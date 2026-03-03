@@ -30,7 +30,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20 min-w-0 h-full overflow-hidden")}>
         <Header />
-        <main className="flex-1 flex flex-col min-h-0 bg-background px-4 lg:px-6 pb-4 lg:pb-6 pt-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-h-0 bg-background px-4 lg:px-6 pb-4 lg:pb-6 pt-0 overflow-hidden relative">
           <div className="flex-1 flex flex-col min-h-0 pt-4 lg:pt-6 overflow-hidden relative">
             {children}
           </div>

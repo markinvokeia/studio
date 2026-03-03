@@ -43,7 +43,9 @@ import {
     KeyRound,
     LogOut,
     Moon,
-    Sun
+    Sun,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
@@ -87,6 +89,7 @@ export function Header() {
     const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
+    const [isExpanded, setIsExpanded] = React.useState(false);
 
     const { pendingCount } = useAlertNotifications();
 
@@ -169,130 +172,159 @@ export function Header() {
         }
     };
 
+    const UserAvatarMenu = () => (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all overflow-hidden shrink-0">
+                    <Image src="https://picsum.photos/seed/user/36/36" width={36} height={36} alt="Avatar" className="object-cover" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
+                <DropdownMenuLabel className="px-2 py-1.5 text-sm font-bold text-primary truncate">
+                    {user?.name || t('myAccount')}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="rounded-lg font-medium">
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    <span>{t('changePassword')}</span>
+                </DropdownMenuItem>
+                <Link href={`/${locale}/preferences`} passHref>
+                    <DropdownMenuItem className="rounded-lg font-medium">
+                        <Bell className="mr-2 h-4 w-4" />
+                        <span>{t('communicationPreferences')}</span>
+                    </DropdownMenuItem>
+                </Link>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogoutClick} className="rounded-lg font-medium text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{t('logout')}</span>
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+
     return (
         <>
-            <header className="sticky top-0 z-[40] w-full bg-[var(--nav-bg)] text-[var(--nav-foreground)] shadow-[0_4px_20px_rgba(0,0,0,0.1)] border-none transition-colors duration-300">
-                <div className="flex h-14 items-center justify-between px-4 lg:h-[60px] lg:px-6">
-                    <div className="flex items-center gap-4">
-                        <OpenCashSessionWidget />
+            <div className="fixed top-4 right-4 z-[50] flex flex-col items-end gap-2">
+                {!isExpanded ? (
+                    <div className="flex items-center gap-2 bg-card/80 backdrop-blur-md p-1.5 pr-2 rounded-full border border-border shadow-lg transition-all hover:bg-card">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setIsExpanded(true)} 
+                            className="rounded-full h-8 w-8 hover:bg-accent"
+                        >
+                            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                        <UserAvatarMenu />
                     </div>
+                ) : (
+                    <div className={cn(
+                        "flex items-center gap-3 bg-card/95 backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all",
+                        "animate-in fade-in slide-in-from-right-10 duration-300"
+                    )}>
+                        <div className="flex items-center gap-3 px-2">
+                            <OpenCashSessionWidget />
+                            
+                            <div className="h-6 w-px bg-border/50" />
 
-                    <div className="flex items-center justify-end gap-3">
-                        <Link href={`/${locale}/alerts`} passHref>
-                            <Button 
-                                variant="outline" 
-                                size="icon" 
-                                className={cn(
-                                    "relative rounded-full transition-all duration-300",
-                                    "border-[var(--nav-foreground)]/20 bg-black/5 text-[var(--nav-foreground)]",
-                                    "hover:bg-accent/50 hover:border-[var(--nav-foreground)]/40",
-                                    pendingCount > 0 && "border-red-500/50 bg-red-500/10"
-                                )}
-                            >
-                                <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
-                                    <Bell className="h-5 w-5" />
-                                </div>
-                                {pendingCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
-                                        {pendingCount > 99 ? '99+' : pendingCount}
-                                    </span>
-                                )}
-                                <span className="sr-only">{t('alerts')}</span>
-                            </Button>
-                        </Link>
-                        
-                        {activeCashSession && <ExchangeRate activeCashSession={activeCashSession} />}
-                        
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent/50 text-[var(--nav-foreground)]">
-                                    <Globe className="h-5 w-5" />
-                                    <span className="sr-only">{t('toggleLanguage')}</span>
+                            <Link href={`/${locale}/alerts`} passHref>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className={cn(
+                                        "relative rounded-full transition-all duration-300 h-9 w-9",
+                                        pendingCount > 0 && "bg-red-500/10 text-red-600"
+                                    )}
+                                >
+                                    <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
+                                        <Bell className="h-5 w-5" />
+                                    </div>
+                                    {pendingCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
+                                            {pendingCount > 99 ? '99+' : pendingCount}
+                                        </span>
+                                    )}
+                                    <span className="sr-only">{t('alerts')}</span>
                                 </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-xl">
-                                <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
-                                    <span className="flex items-center justify-between w-full font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <UyFlagIcon className="h-4 w-4" />
-                                            {t('spanish')}
-                                        </div>
-                                        {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
-                                    <span className="flex items-center justify-between w-full font-medium">
-                                        <div className="flex items-center gap-2">
-                                            <UsFlagIcon className="h-4 w-4" />
-                                            {t('english')}
-                                        </div>
-                                        {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full hover:bg-accent/50 text-[var(--nav-foreground)]">
-                                    <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                    <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                    <span className="sr-only">{t('toggleTheme')}</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="rounded-xl">
-                                <DropdownMenuItem onClick={() => setTheme('light')}>
-                                    <span className="flex items-center justify-between w-full font-medium">
-                                        <span>Invoke</span>
-                                        {theme === 'light' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('claro')}>
-                                    <span className="flex items-center justify-between w-full font-medium">
-                                        <span>Claro</span>
-                                        {theme === 'claro' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setTheme('dark')}>
-                                    <span className="flex items-center justify-between w-full font-medium">
-                                        <span>Oscuro</span>
-                                        {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-[var(--nav-foreground)]/20 hover:ring-[var(--nav-foreground)]/40 transition-all overflow-hidden">
-                                    <Image src="https://picsum.photos/seed/user/36/36" width={36} height={36} alt="Avatar" className="object-cover" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
-                                <DropdownMenuLabel className="px-2 py-1.5 text-sm font-bold text-primary truncate">
-                                    {user?.name || t('myAccount')}
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="rounded-lg font-medium">
-                                    <KeyRound className="mr-2 h-4 w-4" />
-                                    <span>{t('changePassword')}</span>
-                                </DropdownMenuItem>
-                                <Link href={`/${locale}/preferences`} passHref>
-                                    <DropdownMenuItem className="rounded-lg font-medium">
-                                        <Bell className="mr-2 h-4 w-4" />
-                                        <span>{t('communicationPreferences')}</span>
+                            </Link>
+                            
+                            {activeCashSession && <ExchangeRate activeCashSession={activeCashSession} />}
+                            
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                                        <Globe className="h-5 w-5 text-muted-foreground" />
+                                        <span className="sr-only">{t('toggleLanguage')}</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl">
+                                    <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
+                                        <span className="flex items-center justify-between w-full font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <UyFlagIcon className="h-4 w-4" />
+                                                {t('spanish')}
+                                            </div>
+                                            {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                        </span>
                                     </DropdownMenuItem>
-                                </Link>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleLogoutClick} className="rounded-lg font-medium text-destructive focus:text-destructive">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>{t('logout')}</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                                        <span className="flex items-center justify-between w-full font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <UsFlagIcon className="h-4 w-4" />
+                                                {t('english')}
+                                            </div>
+                                            {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                        </span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-muted-foreground" />
+                                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-muted-foreground" />
+                                        <span className="sr-only">{t('toggleTheme')}</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-xl">
+                                    <DropdownMenuItem onClick={() => setTheme('light')}>
+                                        <span className="flex items-center justify-between w-full font-medium">
+                                            <span>Invoke</span>
+                                            {theme === 'light' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                        </span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTheme('claro')}>
+                                        <span className="flex items-center justify-between w-full font-medium">
+                                            <span>Claro</span>
+                                            {theme === 'claro' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                        </span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTheme('dark')}>
+                                        <span className="flex items-center justify-between w-full font-medium">
+                                            <span>Oscuro</span>
+                                            {theme === 'dark' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                        </span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <UserAvatarMenu />
+                        </div>
+
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => setIsExpanded(false)} 
+                            className="rounded-full h-8 w-8 hover:bg-accent ml-1"
+                        >
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </Button>
                     </div>
-                </div>
-            </header>
+                )}
+            </div>
+
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
                 <AlertDialogContent className="max-w-xl">
                     <AlertDialogHeader>
@@ -317,6 +349,7 @@ export function Header() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
             <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
                 <DialogContent>
                     <DialogHeader>
