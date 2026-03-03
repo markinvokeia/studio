@@ -21,7 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, DollarSign, History } from 'lucide-react';
 
 export default function CurrenciesPage() {
     const t = useTranslations('CurrenciesPage');
@@ -132,12 +132,19 @@ export default function CurrenciesPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden p-1 gap-4">
-            <Card className="flex-none">
-                <CardHeader>
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+            <Card className="flex-none border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <DollarSign className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="bg-card">
                     <div className="space-y-2">
                         <h3 className="font-semibold">{t('baseCurrency')}</h3>
                         <Badge variant="secondary">UYU (Pesos Uruguayos)</Badge>
@@ -145,11 +152,18 @@ export default function CurrenciesPage() {
                 </CardContent>
             </Card>
 
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('exchangeRateHistory')}</CardTitle>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <History className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('exchangeRateHistory')}</CardTitle>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={data}

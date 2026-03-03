@@ -29,7 +29,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, UserSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -327,12 +327,19 @@ export default function DoctorsPage() {
       <TwoPanelLayout
         isRightPanelOpen={!!selectedUser}
         leftPanel={
-          <Card className="h-full flex flex-col">
-            <CardHeader className="flex-none">
-              <CardTitle>{t('Navigation.Doctors')}</CardTitle>
-              <CardDescription>{t('DoctorsPage.description')}</CardDescription>
+          <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+              <div className="flex items-start gap-3">
+                <div className="header-icon-circle mt-0.5">
+                  <UserSquare className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <CardTitle className="text-lg">{t('Navigation.Doctors')}</CardTitle>
+                  <CardDescription className="text-xs">{t('DoctorsPage.description')}</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
               <DataTable
                 columns={userColumns}
                 data={users}

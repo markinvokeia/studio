@@ -20,7 +20,7 @@ import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/seque
 import { Sequence } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Filter, Info, PlusCircle, RefreshCw, Search, X } from 'lucide-react';
+import { Check, Filter, Info, PlusCircle, RefreshCw, Search, X, List } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -129,7 +129,7 @@ async function deleteSequence(id: number) {
   if (responseData && typeof responseData === 'object') {
     // Handle array-based error responses
     if (Array.isArray(responseData)) {
-      const errorItem = responseData.find(item =>
+      const errorItem = responseData.find(item => 
         item?.code >= 400 || item?.error || item?.message
       );
       if (errorItem) {
@@ -145,7 +145,7 @@ async function deleteSequence(id: number) {
 
     if ('message' in responseData && typeof responseData.message === 'string') {
       // Check if it's actually an error message by looking at context
-      const hasErrorIndicators =
+      const hasErrorIndicators = 
         responseData.message.toLowerCase().includes('error') ||
         responseData.message.toLowerCase().includes('failed') ||
         responseData.message.toLowerCase().includes('invalid') ||
@@ -304,12 +304,19 @@ export default function SequencesPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardHeader className="flex-none">
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+        <CardHeader className="flex-none p-4">
+          <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+              <List className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <CardTitle className="text-lg">{t('title')}</CardTitle>
+              <CardDescription className="text-xs">{t('description')}</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
           <DataTable
             columns={sequencesColumns}
             data={sequences}
@@ -429,6 +436,14 @@ export default function SequencesPage() {
                 </div>
               </div>
             )}
+            columnTranslations={{
+              name: t('columns.name'),
+              document_type: t('columns.documentType'),
+              pattern: t('columns.pattern'),
+              current_counter: t('columns.currentCounter'),
+              reset_period: t('columns.resetPeriod'),
+              is_active: t('columns.isActive'),
+            }}
           />
         </CardContent>
       </Card>
@@ -442,14 +457,14 @@ export default function SequencesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4 px-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="mb-0">
                       <FormLabel>{t('createDialog.name')}</FormLabel>
                       <FormControl>
                         <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
@@ -463,7 +478,7 @@ export default function SequencesPage() {
                   control={form.control}
                   name="document_type"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="mb-0">
                       <FormLabel>{t('createDialog.documentType')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
@@ -491,7 +506,7 @@ export default function SequencesPage() {
                 control={form.control}
                 name="pattern"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="mb-0">
                     <FormLabel>{t('createDialog.pattern')}</FormLabel>
                     <FormControl>
                       <Input
@@ -506,12 +521,18 @@ export default function SequencesPage() {
                 )}
               />
 
-              <div className="space-y-3">
-                <Label>{t('createDialog.variables')}</Label>
-                <Alert>
+              {preview && (
+                <Alert className="py-2">
                   <Info className="h-4 w-4" />
-                  <AlertDescription>{t('createDialog.variableDescription')}</AlertDescription>
+                  <AlertDescription className="text-xs">
+                    {t('createDialog.previewExample')}
+                    <code className="bg-muted px-2 py-0.5 rounded mx-1 font-bold">{preview}</code>
+                  </AlertDescription>
                 </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('createDialog.variables')}</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {SEQUENCE_VARIABLES.map((variable) => (
                     <Button
@@ -522,9 +543,9 @@ export default function SequencesPage() {
                       onClick={() => addToPattern('{' + variable.key + '}')}
                       className="justify-start text-xs h-auto p-2"
                     >
-                      <div>
-                        <div className="font-mono">{'{' + variable.key + '}'}</div>
-                        <div className="text-muted-foreground">
+                      <div className="flex flex-col items-start text-left">
+                        <div className="font-mono font-bold text-primary">{'{' + variable.key + '}'}</div>
+                        <div className="text-[10px] text-muted-foreground leading-tight">
                           {variable.key.startsWith('COUNTER:')
                             ? t(`variables.COUNTER:${variable.key.split(':')[1]}`) || t(`variables.COUNTER:N`)
                             : t(`variables.${variable.key}`)
@@ -536,23 +557,12 @@ export default function SequencesPage() {
                 </div>
               </div>
 
-              {preview && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>{t('createDialog.preview')}</AlertTitle>
-                  <AlertDescription>
-                    {t('createDialog.previewExample')}
-                    <code className="bg-muted px-2 py-1 rounded mx-1">{preview}</code>
-                  </AlertDescription>
-                </Alert>
-              )}
-
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="current_counter"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="mb-0">
                       <FormLabel>{t('createDialog.currentCounter')}</FormLabel>
                       <FormControl>
                         <Input
@@ -571,7 +581,7 @@ export default function SequencesPage() {
                   control={form.control}
                   name="reset_period"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="mb-0">
                       <FormLabel>{t('createDialog.resetPeriod')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
@@ -596,9 +606,9 @@ export default function SequencesPage() {
                 control={form.control}
                 name="is_active"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 mb-0">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">{t('createDialog.isActive')}</FormLabel>
+                      <FormLabel className="text-sm font-bold">{t('createDialog.isActive')}</FormLabel>
                     </div>
                     <FormControl>
                       <Switch

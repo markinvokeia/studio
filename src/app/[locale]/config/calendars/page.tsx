@@ -19,10 +19,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar } from '@/lib/types';
+import { Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Calendar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -39,7 +39,7 @@ const calendarFormSchema = (t: (key: string) => string) => z.object({
 
 type CalendarFormValues = z.infer<ReturnType<typeof calendarFormSchema>>;
 
-async function getCalendars(): Promise<Calendar[]> {
+async function getCalendars(): Promise<CalendarType[]> {
     try {
         const data = await api.get(API_ROUTES.CALENDARS);
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
@@ -80,14 +80,14 @@ export default function CalendarsPage() {
     const tNav = useTranslations('Navigation');
     const tValidation = useTranslations('CalendarsPage.validation');
     const { toast } = useToast();
-    const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+    const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [editingCalendar, setEditingCalendar] = React.useState<Calendar | null>(null);
+    const [editingCalendar, setEditingCalendar] = React.useState<CalendarType | null>(null);
 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-    const [deletingCalendar, setDeletingCalendar] = React.useState<Calendar | null>(null);
+    const [deletingCalendar, setDeletingCalendar] = React.useState<CalendarType | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<CalendarFormValues>({
@@ -113,7 +113,7 @@ export default function CalendarsPage() {
         setIsDialogOpen(true);
     };
 
-    const handleEdit = (calendar: Calendar) => {
+    const handleEdit = (calendar: CalendarType) => {
         setEditingCalendar(calendar);
         form.reset({
             ...calendar,
@@ -123,7 +123,7 @@ export default function CalendarsPage() {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = (calendar: Calendar) => {
+    const handleDelete = (calendar: CalendarType) => {
         setDeletingCalendar(calendar);
         setIsDeleteDialogOpen(true);
     };
@@ -143,7 +143,7 @@ export default function CalendarsPage() {
             toast({
                 variant: 'destructive',
                 title: t('toast.errorTitle'),
-                description: error instanceof Error ? error.message : t('toast.deleteErrorDescription'),
+                description: t('toast.deleteErrorDescription'),
             });
         }
     };
@@ -175,12 +175,19 @@ export default function CalendarsPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <CardHeader className="flex-none">
-                    <CardTitle>{tNav('Calendars')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Calendar className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{tNav('Calendars')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={calendarsColumns}
                         data={calendars}
@@ -272,7 +279,7 @@ export default function CalendarsPage() {
                     </Form>
                 </DialogContent>
             </Dialog>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDialogOpen}>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent className="max-w-[400px]">
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>

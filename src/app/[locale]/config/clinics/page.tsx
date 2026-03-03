@@ -11,7 +11,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Clinic } from '@/lib/types';
 import { api } from '@/services/api';
-import { RefreshCw, UploadCloud } from 'lucide-react';
+import { RefreshCw, UploadCloud, Building } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -224,11 +224,18 @@ try {
 
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
+            <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5">
+                        <Building className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-col text-left">
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-card">
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
                     <div className="space-y-6">
                         <div className="space-y-2">
