@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
-import { FloatingActionsWrapper } from '@/components/floating-actions-wrapper';
 import { useLocale } from 'next-intl';
 import { Sidebar } from '../sidebar';
 import { cn } from '@/lib/utils';
@@ -23,7 +22,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   };
 
   const effectivePathname = getEffectivePathname(pathname, locale);
-  const activeParentItem = navItems.find(item => item.href !== '/' && effectivePathname.startsWith(item.href) && item.items);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden text-foreground">
@@ -36,7 +34,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
-      <FloatingActionsWrapper />
     </div>
   );
 }
