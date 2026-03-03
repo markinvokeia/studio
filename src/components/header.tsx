@@ -95,9 +95,9 @@ export function Header() {
                             variant="ghost" 
                             size="icon" 
                             onClick={() => setIsExpanded(true)} 
-                            className="rounded-full h-9 w-9 hover:bg-accent"
+                            className="rounded-full h-8 w-8 hover:bg-accent"
                         >
-                            <ChevronLeft className="h-5 w-5 text-muted-foreground" />
+                            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
                         </Button>
                     </div>
                 ) : (
