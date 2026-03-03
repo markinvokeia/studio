@@ -1,4 +1,3 @@
-
 'use client';
 
 import {
@@ -40,7 +39,7 @@ export function ExchangeRate({ activeCashSession, onRateChange }: ExchangeRatePr
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-[var(--nav-foreground)]/20 bg-[var(--nav-foreground)]/10 px-3 text-sm font-medium text-[var(--nav-foreground)]">
+          <div className="flex h-10 w-auto items-center justify-center gap-2 rounded-md border border-[hsl(var(--exchange-rate-text))]/20 bg-[hsl(var(--exchange-rate-text))]/10 px-3 text-sm font-medium text-[hsl(var(--exchange-rate-text))]">
             <Image src="https://www.brou.com.uy/brou-tmf-portlet/images/USD.png" width={20} height={20} alt="USD Flag" />
             <div className="flex items-baseline">
               <span className="font-semibold">{rate.toFixed(2)}</span>
