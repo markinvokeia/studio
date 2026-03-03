@@ -88,10 +88,9 @@ export function Header() {
 
     return (
         <>
-            <div className="fixed top-4 right-4 z-[50] flex flex-col items-end gap-2">
+            <div className="fixed top-3 right-4 z-[50] flex flex-col items-end gap-2">
                 {!isExpanded ? (
-                    <div className="flex items-center bg-[hsl(var(--floating-header-bg)/0.8)] backdrop-blur-md p-1 rounded-full border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))] gap-1">
-                        <HelpMenu />
+                    <div className="flex items-center bg-[hsl(var(--floating-header-bg)/0.8)] backdrop-blur-md p-1 rounded-full border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]">
                         <Button 
                             variant="ghost" 
                             size="icon" 
