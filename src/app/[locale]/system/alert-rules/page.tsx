@@ -19,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { DynamicFieldInput } from '@/components/ui/dynamic-field-input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -575,14 +576,22 @@ export default function AlertRulesPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('dialog.sourceTable')}</FormLabel>
-                                        <Select onValueChange={(val) => { field.onChange(val); setSelectedTable(val); }} value={field.value}>
+                                        <Select 
+                                            onValueChange={(val) => { 
+                                                field.onChange(val); 
+                                                setSelectedTable(val); 
+                                            }} 
+                                            value={field.value}
+                                        >
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder={t('dialog.selectSourceTable')} />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                {Object.keys(tablesAndColumns).map(table => <SelectItem key={table} value={table}>{table}</SelectItem>)}
+                                                {Object.keys(tablesAndColumns).map(table => (
+                                                    <SelectItem key={table} value={table}>{table}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -642,11 +651,14 @@ export default function AlertRulesPage() {
                                 {conditions.map((cond, index) => (
                                     <div key={cond.id} className="flex items-center space-x-2">
                                         {index > 0 && (
-                                            <Select value={cond.logic} onValueChange={(val: any) => {
-                                                const newConds = [...conditions];
-                                                newConds[index].logic = val;
-                                                setConditions(newConds);
-                                            }}>
+                                            <Select 
+                                                value={cond.logic} 
+                                                onValueChange={(val: any) => {
+                                                    const newConds = [...conditions];
+                                                    newConds[index].logic = val;
+                                                    setConditions(newConds);
+                                                }}
+                                            >
                                                 <SelectTrigger className="w-16"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="AND">AND</SelectItem>
@@ -654,24 +666,34 @@ export default function AlertRulesPage() {
                                                 </SelectContent>
                                             </Select>
                                         )}
-                                        <Select value={cond.column} onValueChange={(val) => {
-                                            const newConds = [...conditions];
-                                            newConds[index].column = val;
-                                            setConditions(newConds);
-                                        }}>
+                                        <Select 
+                                            value={cond.column} 
+                                            onValueChange={(val) => {
+                                                const newConds = [...conditions];
+                                                newConds[index].column = val;
+                                                setConditions(newConds);
+                                            }}
+                                        >
                                             <SelectTrigger className="flex-1"><SelectValue placeholder="Column" /></SelectTrigger>
                                             <SelectContent>
-                                                {(tablesAndColumns[selectedTable] || []).map(col => <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>)}
+                                                {(tablesAndColumns[selectedTable] || []).map(col => (
+                                                    <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
-                                        <Select value={cond.operator} onValueChange={(val) => {
-                                            const newConds = [...conditions];
-                                            newConds[index].operator = val;
-                                            setConditions(newConds);
-                                        }}>
+                                        <Select 
+                                            value={cond.operator} 
+                                            onValueChange={(val) => {
+                                                const newConds = [...conditions];
+                                                newConds[index].operator = val;
+                                                setConditions(newConds);
+                                            }}
+                                        >
                                             <SelectTrigger className="w-24"><SelectValue placeholder="Op" /></SelectTrigger>
                                             <SelectContent>
-                                                {getAvailableOperators(cond.column).map(op => <SelectItem key={op} value={op}>{op}</SelectItem>)}
+                                                {getAvailableOperators(cond.column).map(op => (
+                                                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <DynamicFieldInput
@@ -685,10 +707,22 @@ export default function AlertRulesPage() {
                                             operator={cond.operator}
                                             className="flex-1"
                                         />
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => setConditions(conditions.filter((_, i) => i !== index))}><Trash2 className="h-4 w-4" /></Button>
+                                        <Button 
+                                            type="button" 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={() => setConditions(conditions.filter((_, i) => i !== index))}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 ))}
-                                <Button type="button" variant="outline" size="sm" onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}>
+                                <Button 
+                                    type="button" 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}
+                                >
                                     Add Condition
                                 </Button>
                             </div>
