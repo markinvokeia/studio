@@ -6,8 +6,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { navItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import * as z from 'zod';
 import {
     Tooltip,
     TooltipContent,
@@ -15,12 +22,77 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
+import { useToast } from '@/hooks/use-toast';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { 
+    Sun, 
+    Moon, 
+    LogOut, 
+    KeyRound, 
+    Bell, 
+    Check, 
+    AlertTriangle,
+    Settings
+} from 'lucide-react';
+
+const passwordFormSchema = (t: (key: string) => string) => z.object({
+    old_password: z.string().min(1, t('validation.oldPasswordRequired')),
+    new_password: z.string()
+        .min(8, t('validation.newPasswordMin'))
+        .regex(/[A-Z]/, t('validation.newPasswordUpper'))
+        .regex(/[0-9]/, t('validation.newPasswordNumber')),
+    confirm_password: z.string(),
+}).refine(data => data.new_password === data.confirm_password, {
+    message: t('validation.passwordsMismatch'),
+    path: ['confirm_password'],
+});
+
+type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
 
 const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; activeItem: any }) => {
     const pathname = usePathname();
+    const router = useRouter();
     const t = useTranslations('Navigation');
+    const tHeader = useTranslations('Header');
     const locale = useLocale();
+    const { theme, setTheme } = useTheme();
+    const { logout, user } = useAuth();
+    const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
+
+    const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+    const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
+
+    const form = useForm<PasswordFormValues>({
+        resolver: zodResolver(passwordFormSchema(tHeader)),
+    });
 
     const getEffectivePathname = (p: string, l: string) => {
         const localePrefix = `/${l}`;
@@ -31,6 +103,46 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     };
 
     const effectivePathname = getEffectivePathname(pathname, locale);
+
+    const handleLogout = () => {
+        logout();
+        router.push(`/${locale}/login`);
+    };
+
+    const handleLogoutClick = async () => {
+        if (!user) {
+            handleLogout();
+            return;
+        }
+        try {
+            const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
+            if (data.code === 200) {
+                setIsLogoutAlertOpen(true);
+            } else {
+                handleLogout();
+            }
+        } catch (error) {
+            handleLogout();
+        }
+    };
+
+    const handleChangePasswordSubmit: SubmitHandler<PasswordFormValues> = async (data: PasswordFormValues) => {
+        setPasswordChangeError(null);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_PASSWORD_CHANGE, {
+                old_password: data.old_password,
+                new_password: data.new_password,
+            }, undefined, { token });
+
+            toast({ title: tHeader('success.title'), description: responseData.message || tHeader('success.description') });
+            setIsChangePasswordOpen(false);
+        } catch (error: any) {
+            setPasswordChangeError(error.message || tHeader('errors.generic'));
+        }
+    };
 
     return (
         <aside className="fixed inset-y-0 left-0 z-[20] flex h-screen w-20 flex-col bg-[var(--nav-bg)] shadow-[4px_0_20px_rgba(0,0,0,0.1)] transition-all">
@@ -96,7 +208,129 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                         })}
                     </nav>
                 </div>
+
+                <div className="mt-auto flex flex-col items-center gap-2 pb-4 shrink-0 border-t border-white/10 pt-4">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-[var(--nav-foreground)] hover:bg-accent/50 opacity-80 hover:opacity-100 transition-all">
+                                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                        <span className="sr-only">{tHeader('toggleTheme')}</span>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent side="right" align="end" className="rounded-xl">
+                                    <DropdownMenuItem onClick={() => setTheme('light')}>Invoke</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTheme('claro')}>Claro</DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTheme('dark')}>Oscuro</DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{tHeader('toggleTheme')}</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="relative h-12 w-12 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all overflow-hidden shrink-0">
+                                        <Image src="https://picsum.photos/seed/user/48/48" width={48} height={48} alt="Avatar" className="object-cover" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent side="right" align="end" className="w-56 rounded-xl p-2">
+                                    <DropdownMenuLabel className="px-2 py-1.5 text-sm font-bold text-primary truncate">
+                                        {user?.name || tHeader('myAccount')}
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="rounded-lg font-medium">
+                                        <KeyRound className="mr-2 h-4 w-4" />
+                                        <span>{tHeader('changePassword')}</span>
+                                    </DropdownMenuItem>
+                                    <Link href={`/${locale}/preferences`} passHref>
+                                        <DropdownMenuItem className="rounded-lg font-medium">
+                                            <Bell className="mr-2 h-4 w-4" />
+                                            <span>{tHeader('communicationPreferences')}</span>
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={handleLogoutClick} className="rounded-lg font-medium text-destructive focus:text-destructive">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>{tHeader('logout')}</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{user?.name || tHeader('myAccount')}</TooltipContent>
+                    </Tooltip>
+                </div>
             </TooltipProvider>
+
+            <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
+                <AlertDialogContent className="max-w-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                            <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                            {tHeader('logoutConfirmation.title')}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {tHeader('logoutConfirmation.description')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{tHeader('logoutConfirmation.cancel')}</AlertDialogCancel>
+                        <Link href={`/${locale}/cashier`} passHref>
+                            <Button variant="outline">{tHeader('logoutConfirmation.goToCashier')}</Button>
+                        </Link>
+                        <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
+                            {tHeader('logoutConfirmation.logoutAnyway')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{tHeader('changePasswordDialog.title')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)} className="space-y-4 py-4 px-6">
+                            {passwordChangeError && (
+                                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive text-destructive text-sm flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    {passwordChangeError}
+                                </div>
+                            )}
+                            <FormField control={form.control} name="old_password" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{tHeader('changePasswordDialog.oldPassword')}</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="new_password" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{tHeader('changePasswordDialog.newPassword')}</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="confirm_password" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{tHeader('changePasswordDialog.confirmPassword')}</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <DialogFooter>
+                                <Button variant="outline" type="button" onClick={() => setIsChangePasswordOpen(false)}>{tHeader('changePasswordDialog.cancel')}</Button>
+                                <Button type="submit">{tHeader('changePasswordDialog.save')}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </aside>
     );
 }
@@ -189,7 +423,7 @@ export function Sidebar() {
 
     return (
         <div onMouseLeave={handleLeave}>
-            <MainSidebar handleHover={handleHover} onHover={handleHover} activeItem={hoveredItem} />
+            <MainSidebar onHover={handleHover} activeItem={hoveredItem} />
             {hoveredItem && (
                 <div onMouseEnter={handleSecondaryEnter}>
                     <SecondarySidebar item={hoveredItem} onLeave={handleLeave} />
