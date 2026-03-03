@@ -199,7 +199,7 @@ export default function PaymentMethodsPage() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={methods}
@@ -218,7 +218,7 @@ export default function PaymentMethodsPage() {
                         <DialogTitle>{editingMethod ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

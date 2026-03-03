@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -27,7 +26,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Briefcase } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -300,7 +299,7 @@ export default function ProvidersPage() {
             }
           });
         } else {
-          setSubmissionError(errorData?.message || t('ProvidersPage.createDialog.validation.genericError'));
+          setSubmissionError(errorData?.message || t('SystemUsersPage.createDialog.validation.genericError'));
         }
       } else if (error.status >= 500) {
         setSubmissionError(t('ProvidersPage.createDialog.validation.serverError'));
@@ -315,12 +314,19 @@ export default function ProvidersPage() {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <div className={cn("grid grid-cols-1 gap-4 flex-1 min-h-0 overflow-hidden", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
         <div className={cn("transition-all duration-300 flex flex-col min-h-0 overflow-hidden", selectedProvider ? "lg:col-span-2" : "lg:col-span-1")}>
-          <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <CardHeader className="flex-none">
-              <CardTitle>{t('ProvidersPage.title')}</CardTitle>
-              <CardDescription>{t('ProvidersPage.description')}</CardDescription>
+          <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+              <div className="flex items-start gap-3">
+                <div className="header-icon-circle mt-0.5">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <CardTitle className="text-lg">{t('ProvidersPage.title')}</CardTitle>
+                  <CardDescription className="text-xs">{t('ProvidersPage.description')}</CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
               <DataTable
                 columns={providerColumns}
                 data={providers}
@@ -346,10 +352,15 @@ export default function ProvidersPage() {
 
         {selectedProvider && (
           <div className="lg:col-span-3 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <CardHeader className="flex flex-row items-start justify-between flex-none">
-                <div>
-                  <CardTitle>{t('ProvidersPage.detailsFor', { name: selectedProvider.name })}</CardTitle>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+              <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="header-icon-circle mt-0.5">
+                    <Briefcase className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1 flex flex-col text-left">
+                    <CardTitle className="truncate">{t('ProvidersPage.detailsFor', { name: selectedProvider.name })}</CardTitle>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>

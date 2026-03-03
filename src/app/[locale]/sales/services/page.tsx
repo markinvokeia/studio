@@ -127,7 +127,7 @@ async function deleteService(id: string) {
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
-    if (firstItem && (firstElement.code >= 400 || firstItem.error)) {
+    if (firstItem && (firstItem.code >= 400 || firstItem.error)) {
       const message = firstItem.message || firstItem.error || 'Failed to delete service';
       throw new Error(message);
     }
@@ -306,7 +306,7 @@ export default function ServicesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 py-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 py-4 px-6">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />

@@ -302,7 +302,7 @@ export default function ServicesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 py-2">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 py-4 px-6">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
