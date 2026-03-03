@@ -39,11 +39,13 @@ async function getMedications(): Promise<Medication[]> {
     try {
         const data = await api.get(API_ROUTES.CLINIC_CATALOG.MEDICATIONS);
         const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
-        return medicationsData.map((apiMedication: any) => ({
-            id: String(apiMedication.id),
-            nombre_generico: apiMedication.nombre_generico,
-            nombre_comercial: apiMedication.nombre_comercial,
-        }));
+        return medicationsData
+            .map((apiMedication: any) => ({
+                id: String(apiMedication.id),
+                nombre_generico: apiMedication.nombre_generico,
+                nombre_comercial: apiMedication.nombre_comercial,
+            }))
+            .filter((medication: Medication) => medication.id && medication.id !== 'undefined' && medication.nombre_generico);
     } catch (error) {
         console.error("Failed to fetch medications:", error);
         return [];
