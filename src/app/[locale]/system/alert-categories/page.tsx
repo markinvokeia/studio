@@ -38,12 +38,12 @@ import * as z from 'zod';
 const categoryFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
     code: z.string()
-        .min(1, t('validation.codeRequired'))
-        .regex(/^[A-Z0-9_]+$/, t('validation.codeFormat')),
-    name: z.string().min(1, t('validation.nameRequired')).max(100, t('validation.nameMaxLength')),
-    description: z.string().max(500, t('validation.descriptionMaxLength')).optional(),
+        .min(1, t('codeRequired'))
+        .regex(/^[A-Z0-9_]+$/, t('codeFormat')),
+    name: z.string().min(1, t('nameRequired')).max(100, t('nameMaxLength')),
+    description: z.string().max(500, t('descriptionMaxLength')).optional(),
     icon: z.string().optional(),
-    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('validation.colorInvalid')).optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional(),
     sort_order: z.coerce.number().optional(),
     is_active: z.boolean().default(true),
     internal_category_id: z.string().optional(),

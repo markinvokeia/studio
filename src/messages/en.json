@@ -209,7 +209,8 @@
     "selectSpecificDate": "Select a specific date",
     "chooseDateVariable": "Choose a date variable",
     "chooseVariable": "Choose variable",
-    "var": "Var"
+    "var": "Var",
+    "pickDate": "Pick a date"
   },
   "ReportFilters": {
     "apply": "Apply Filters",
@@ -1211,12 +1212,6 @@
         "paid": "Paid",
         "overdue": "Overdue"
       }
-    },
-    "actions": {
-      "print": "Print",
-      "sendEmail": "Send by email",
-      "title": "Actions",
-      "openMenu": "Open menu"
     },
     "sendEmailDialog": {
       "title": "Send Invoice by Email",
@@ -3413,7 +3408,8 @@
         }
       },
       "defaultSender": "Default Sender",
-      "close": "Close"
+      "close": "Close",
+      "namePlaceholder": "e.g. Template name"
     },
     "deleteDialog": {
       "title": "Delete Template",
