@@ -4,6 +4,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -148,7 +149,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
             <DialogTitle>{t('dialog.title')}</DialogTitle>
             <DialogDescription>{t('dialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 px-6">
             <Label>{t('dialog.availableRoles')}</Label>
             <ScrollArea className="h-64 mt-2 border rounded-md p-4">
               <div className="space-y-2">

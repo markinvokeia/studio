@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { Settings } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -111,10 +112,17 @@ export default function AlertsConfigPage() {
 
   return (
     <div className="flex-1 overflow-y-auto space-y-6 p-1">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
+      <Card className="shadow-sm border-0">
+        <CardHeader className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+              <Settings className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <CardTitle className="text-lg">{t('title')}</CardTitle>
+              <CardDescription className="text-xs">{t('description')}</CardDescription>
+            </div>
+          </div>
         </CardHeader>
       </Card>
 
@@ -128,7 +136,7 @@ export default function AlertsConfigPage() {
               </CardHeader>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="space-y-4 pt-0">
+              <CardContent className="space-y-4 pt-0 bg-card">
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <Label htmlFor="enable-scheduler">{t('scheduler.enable')}</Label>
@@ -189,7 +197,7 @@ export default function AlertsConfigPage() {
               </CardHeader>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="space-y-4 pt-0">
+              <CardContent className="space-y-4 pt-0 bg-card">
                 <div className="space-y-2">
                   <Label htmlFor="email-provider">{t('email.provider')}</Label>
                   <Select
@@ -299,7 +307,7 @@ export default function AlertsConfigPage() {
               </CardHeader>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="space-y-4 pt-0">
+              <CardContent className="space-y-4 pt-0 bg-card">
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
                     <Label htmlFor="enable-sms">{t('sms.enable')}</Label>
@@ -380,7 +388,7 @@ export default function AlertsConfigPage() {
               </CardHeader>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="space-y-4 pt-0">
+              <CardContent className="space-y-4 pt-0 bg-card">
                 <div className="space-y-2">
                   <Label htmlFor="alert-retention">{t('retention.alerts')}</Label>
                   <Input

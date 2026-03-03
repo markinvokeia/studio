@@ -16,7 +16,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { ErrorLog } from '@/lib/types';
 import api from '@/services/api';
 import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, FileWarning } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -113,12 +113,19 @@ export default function ErrorLogPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <FileWarning className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={data}

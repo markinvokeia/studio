@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { api } from '@/services/api';
+import { Mails } from 'lucide-react';
 
 const mapAlertActionToCommunicationLog = (action: AlertAction): CommunicationLog => {
   const channel = action.action_type === 'SEND_EMAIL' ? 'EMAIL' : action.action_type as any; // map others if needed
@@ -108,12 +109,19 @@ export default function CommunicationHistoryPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Mails className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
+                    </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                     <DataTable
                         columns={columns}
                         data={logs}

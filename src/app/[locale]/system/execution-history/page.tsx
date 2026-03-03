@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { api } from '@/services/api';
 import { ExecutionDetailDialog } from './execution-detail-dialog';
 import { ExecutionHistoryColumns } from './columns';
+import { FileClock } from 'lucide-react';
 
 export default function ExecutionHistoryPage() {
   const t = useTranslations('ExecutionHistoryPage');
@@ -37,7 +38,7 @@ export default function ExecutionHistoryPage() {
   };
 
   const tColumns = useTranslations('ExecutionHistoryPage.columns');
-  const columns = React.useMemo(() => ExecutionHistoryColumns({ onViewDetails: handleViewDetails, t: tColumns }), []);
+  const columns = React.useMemo(() => ExecutionHistoryColumns({ onViewDetails: handleViewDetails, t: tColumns }), [tColumns]);
 
   const onPaginationChange: React.Dispatch<React.SetStateAction<typeof pagination>> = (updater) => {
     const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
@@ -58,12 +59,19 @@ export default function ExecutionHistoryPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <CardHeader className="flex-none">
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
+        <CardHeader className="flex-none p-4">
+          <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+              <FileClock className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <CardTitle className="text-lg">{t('title')}</CardTitle>
+              <CardDescription className="text-xs">{t('description')}</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
           <DataTable
               columns={columns}
               data={runs}

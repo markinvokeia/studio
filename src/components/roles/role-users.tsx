@@ -208,7 +208,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
   return (
     <>
       <Card>
-        <CardContent className="p-4">
+        <CardContent className="p-4 bg-card">
           <DataTable
             columns={columns}
             data={users}
@@ -228,7 +228,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
             <DialogDescription>Select a user to assign to this role.</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />

@@ -63,7 +63,7 @@ export function ExecutionDetailDialog({ open, onOpenChange, run }: ExecutionDeta
                     <DialogTitle>{t('title')}</DialogTitle>
                 </DialogHeader>
                 <ScrollArea className="max-h-[calc(80vh-100px)] pr-4">
-                    <div className="space-y-6">
+                    <div className="space-y-6 px-6 py-4">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="space-y-1">
                                 <p className="text-sm text-muted-foreground">{t('runDate')}</p>

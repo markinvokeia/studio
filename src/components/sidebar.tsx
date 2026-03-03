@@ -129,6 +129,10 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
             <div className="flex-1 overflow-y-auto py-2">
                 <nav className="grid gap-1 pl-2 pr-0">
                     {item.items.map((subItem: any, index: number) => {
+                        if (subItem.isSeparator) {
+                            return <hr key={index} className="my-2 border-white/10 [.claro_&]:border-gray-200 mx-4" />;
+                        }
+
                         const isSubActive = subItem.href === '/' 
                             ? effectivePathname === '/' 
                             : (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'));

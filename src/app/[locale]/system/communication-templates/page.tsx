@@ -29,7 +29,7 @@ import { AlertCategory, CommunicationTemplate } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, Bold, Code2, Italic, List, MoreHorizontal } from 'lucide-react';
+import { AlertTriangle, Bold, Code2, Italic, List, MoreHorizontal, BookCopy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -362,11 +362,18 @@ export default function CommunicationTemplatesPage() {
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                    <CardHeader className="bg-primary text-primary-foreground flex-none">
-                        <CardTitle>{t('title')}</CardTitle>
-                        <CardDescription className="text-primary-foreground/70">{t('description')}</CardDescription>
+                    <CardHeader className="flex-none p-4">
+                        <div className="flex items-start gap-3">
+                            <div className="header-icon-circle mt-0.5">
+                                <BookCopy className="h-5 w-5" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <CardTitle className="text-lg">{t('title')}</CardTitle>
+                                <CardDescription className="text-xs">{t('description')}</CardDescription>
+                            </div>
+                        </div>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
                         <DataTable
                             columns={columns}
                             data={templates}
@@ -400,16 +407,69 @@ export default function CommunicationTemplatesPage() {
                                 </Alert>
                             )}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>{t('dialog.name')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="code" render={({ field }) => (<FormItem><FormLabel>{t('dialog.code')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="version" render={({ field }) => (<FormItem><FormLabel>{t('dialog.version')}</FormLabel><FormControl><Input {...field} value={field.value || (editingTemplate ? (editingTemplate.version || 1) + 1 : 1)} readOnly className="bg-muted" /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.name')}</FormLabel>
+                                        <FormControl><Input placeholder={t('dialog.namePlaceholder')} {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="code" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.code')}</FormLabel>
+                                        <FormControl><Input {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="version" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.version')}</FormLabel>
+                                        <FormControl><Input {...field} value={field.value || (editingTemplate ? (editingTemplate.version || 1) + 1 : 1)} readOnly className="bg-muted" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <FormField control={form.control} name="type" render={({ field }) => (<FormItem><FormLabel>{t('dialog.type')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl><SelectContent><SelectItem value="EMAIL">Email</SelectItem><SelectItem value="SMS">SMS</SelectItem><SelectItem value="DOCUMENT">Document</SelectItem><SelectItem value="WHATSAPP">WhatsApp</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                                <FormField control={form.control} name="category_id" render={({ field }) => (<FormItem><FormLabel>{t('dialog.category')}</FormLabel><Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}><FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl><SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="type" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.type')}</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectType')} /></SelectTrigger></FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="EMAIL">Email</SelectItem>
+                                                <SelectItem value="SMS">SMS</SelectItem>
+                                                <SelectItem value="DOCUMENT">Document</SelectItem>
+                                                <SelectItem value="WHATSAPP">WhatsApp</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="category_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.category')}</FormLabel>
+                                        <Select onValueChange={(value) => field.onChange(value ? parseInt(value) : undefined)} value={field.value?.toString()}>
+                                            <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger></FormControl>
+                                            <SelectContent>{categories.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                             </div>
-                            <FormField control={form.control} name="subject" render={({ field }) => (<FormItem><FormLabel>{t('dialog.subject')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                            <FormField control={form.control} name="default_sender" render={({ field }) => (<FormItem><FormLabel>{t('dialog.defaultSender')}</FormLabel><FormControl><Input {...field} placeholder="sender@example.com" /></FormControl><FormMessage /></FormItem>)} />
+                            <FormField control={form.control} name="subject" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.subject')}</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="default_sender" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.defaultSender')}</FormLabel>
+                                    <FormControl><Input {...field} placeholder="sender@example.com" /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
 
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
@@ -419,7 +479,7 @@ export default function CommunicationTemplatesPage() {
                                             <DropdownMenuTrigger asChild>
                                                 <Button variant="outline" size="sm"><Code2 className="mr-2 h-4 w-4" /> {t('dialog.variables.title')}</Button>
                                             </DropdownMenuTrigger>
-<DropdownMenuContent>
+                                            <DropdownMenuContent>
                                                 {Object.entries(getAvailableVariables(t)).map(([group, vars]) => (
                                                     <React.Fragment key={group}>
                                                         <DropdownMenuLabel className="capitalize">
