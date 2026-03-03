@@ -47,8 +47,8 @@
     --header-bg: #2e1065;
     --header-foreground: #ffffff;
 
-    /* Card Header for Invoke - matches Claro for better visibility in content area */
-    --card-header-bg: 240 5% 96%;
+    /* Card Header for Invoke - Very light violet */
+    --card-header-bg: 263 40% 97%;
     --card-header-foreground: 0 0% 0%;
 
     /* Dashboard Chart Colors */
