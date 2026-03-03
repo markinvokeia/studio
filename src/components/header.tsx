@@ -1,4 +1,3 @@
-
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
@@ -21,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { ExchangeRate } from './exchange-rate';
 import { UsFlagIcon } from './icons/us-flag-icon';
@@ -132,5 +132,3 @@ export function Header() {
         </div>
     );
 }
-
-import { usePathname, useRouter } from 'next/navigation';
