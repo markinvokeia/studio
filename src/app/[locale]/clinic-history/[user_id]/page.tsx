@@ -4,7 +4,6 @@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Collapsible,
@@ -12,6 +11,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogContent,
@@ -33,8 +33,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { API_ROUTES } from '@/constants/routes';
@@ -323,22 +321,43 @@ const AnamnesisDashboard = ({
 
     useEffect(() => {
         const fetchMedications = async () => {
-            if (isMedicationDialogOpen) {
+            if (isMedicationDialogOpen && medicationSearchTerm.length > 0) {
                 try {
-                    const url = medicationSearchTerm 
-                        ? `${API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG}?search=${encodeURIComponent(medicationSearchTerm)}`
-                        : API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG;
-                    const data = await api.get(url);
-                    const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
-                    setMedicationsCatalog(medicationsData.map((m: any) => ({
-                        ...m,
-                        id: String(m.id),
-                        nombre_generico: m.nombre_generico,
-                        nombre_comercial: m.nombre_comercial
-                    })));
+                    const data = await api.get(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_CATALOG, {
+                        search: medicationSearchTerm,
+                        page: '1',
+                        limit: '20',
+                    });
+
+                    let medicationsData: any[] = [];
+
+                    if (Array.isArray(data) && data.length > 0) {
+                        const firstElement = data[0];
+                        if (firstElement.json && typeof firstElement.json === 'object') {
+                            medicationsData = firstElement.json.data || [];
+                        } else if (firstElement.data) {
+                            medicationsData = firstElement.data;
+                        }
+                    } else if (typeof data === 'object' && data !== null) {
+                        const responseObj = data[0]?.json || data;
+                        medicationsData = responseObj.data || [];
+                    }
+
+                    const filteredMedications = medicationsData
+                        .filter((m: any) => m.id && String(m.id) !== 'undefined' && m.nombre_generico)
+                        .map((m: any) => ({
+                            ...m,
+                            id: String(m.id),
+                            nombre_generico: m.nombre_generico,
+                            nombre_comercial: m.nombre_comercial
+                        }));
+
+                    setMedicationsCatalog(filteredMedications);
                 } catch (error) {
                     console.error("Failed to fetch medications catalog", error);
                 }
+            } else {
+                setMedicationsCatalog([]);
             }
         };
 
@@ -1150,8 +1169,8 @@ const AnamnesisDashboard = ({
                                 </PopoverTrigger>
                                 <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                     <Command>
-                                        <CommandInput 
-                                            placeholder={t('anamnesis.dialogs.medication.searchMedication')} 
+                                        <CommandInput
+                                            placeholder={t('anamnesis.dialogs.medication.searchMedication')}
                                             value={medicationSearchTerm}
                                             onValueChange={setMedicationSearchTerm}
                                         />
@@ -1648,7 +1667,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             <div className="flex flex-col items-center justify-center py-2">
                                                 <Upload className="w-5 h-5 mb-1 text-muted-foreground" />
                                                 <p className="text-[10px] text-muted-foreground text-center">
-                                                    <span className="font-semibold">{tPage('dragDropBold')}</span><br/>{tPage('dragDropNormal')}
+                                                    <span className="font-semibold">{tPage('dragDropBold')}</span><br />{tPage('dragDropNormal')}
                                                 </p>
                                             </div>
                                             <Input

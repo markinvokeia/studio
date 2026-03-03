@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Medication } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { AlertTriangle, Pill } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -35,18 +36,51 @@ const medicationFormSchema = (t: (key: string) => string) => z.object({
 
 type MedicationFormValues = z.infer<ReturnType<typeof medicationFormSchema>>;
 
-async function getMedications(): Promise<Medication[]> {
+type MedicationResponse = {
+    medications: Medication[];
+    total: number;
+};
+
+async function getMedications(pagination: PaginationState, searchQuery: string): Promise<MedicationResponse> {
     try {
-        const data = await api.get(API_ROUTES.CLINIC_CATALOG.MEDICATIONS);
-        const medicationsData = Array.isArray(data) ? data : (data.catalogo_medicamentos || data.data || data.result || []);
-        return medicationsData.map((apiMedication: any) => ({
-            id: String(apiMedication.id),
-            nombre_generico: apiMedication.nombre_generico,
-            nombre_comercial: apiMedication.nombre_comercial,
-        }));
+        const searchValue = searchQuery.length >= 3 ? searchQuery : '';
+        
+        const data = await api.get(API_ROUTES.CLINIC_CATALOG.MEDICATIONS, {
+            search: searchValue,
+            page: (pagination.pageIndex + 1).toString(),
+            limit: pagination.pageSize.toString(),
+        });
+
+        let medicationsData: any[] = [];
+        let total = 0;
+
+        if (Array.isArray(data) && data.length > 0) {
+            const firstElement = data[0];
+            if (firstElement.json && typeof firstElement.json === 'object') {
+                medicationsData = firstElement.json.data || [];
+                total = Number(firstElement.json.total_items) || 0;
+            } else if (firstElement.data) {
+                medicationsData = firstElement.data;
+                total = Number(firstElement.total_items) || medicationsData.length;
+            }
+        } else if (typeof data === 'object' && data !== null) {
+            const responseObj = data[0]?.json || data;
+            medicationsData = responseObj.data || [];
+            total = Number(responseObj.total_items) || medicationsData.length;
+        }
+
+        const medications = medicationsData
+            .map((apiMedication: any) => ({
+                id: String(apiMedication.id),
+                nombre_generico: apiMedication.nombre_generico,
+                nombre_comercial: apiMedication.nombre_comercial,
+            }))
+            .filter((medication: Medication) => medication.id && medication.id !== 'undefined' && medication.nombre_generico);
+
+        return { medications, total };
     } catch (error) {
         console.error("Failed to fetch medications:", error);
-        return [];
+        return { medications: [], total: 0 };
     }
 }
 
@@ -73,7 +107,14 @@ export default function MedicationsPage() {
     const { toast } = useToast();
 
     const [medications, setMedications] = React.useState<Medication[]>([]);
+    const [totalItems, setTotalItems] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+    const [pagination, setPagination] = React.useState<PaginationState>({
+        pageIndex: 0,
+        pageSize: 10,
+    });
+    const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingMedication, setEditingMedication] = React.useState<Medication | null>(null);
@@ -90,14 +131,23 @@ export default function MedicationsPage() {
 
     const loadMedications = React.useCallback(async () => {
         setIsRefreshing(true);
-        const fetchedMedications = await getMedications();
+        const searchQuery = (columnFilters.find(f => f.id === 'nombre_generico')?.value as string) || '';
+        const { medications: fetchedMedications, total } = await getMedications(pagination, searchQuery);
         setMedications(fetchedMedications);
+        setTotalItems(total);
         setIsRefreshing(false);
-    }, []);
+    }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadMedications();
+        const debounce = setTimeout(() => {
+            loadMedications();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadMedications]);
+
+    React.useEffect(() => {
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
 
     const handleCreate = () => {
         setEditingMedication(null);
@@ -189,6 +239,12 @@ export default function MedicationsPage() {
                             nombre_generico: tColumns('genericName'),
                             nombre_comercial: tColumns('commercialName'),
                         }}
+                        pageCount={totalItems > 0 ? Math.ceil(totalItems / pagination.pageSize) : 0}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
+                        manualPagination={true}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
                     />
                 </CardContent>
             </Card>
