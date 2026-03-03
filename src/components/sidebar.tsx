@@ -50,13 +50,13 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { 
-    Sun, 
-    Moon, 
-    LogOut, 
-    KeyRound, 
-    Bell, 
-    Check, 
+import {
+    Sun,
+    Moon,
+    LogOut,
+    KeyRound,
+    Bell,
+    Check,
     AlertTriangle,
     Settings
 } from 'lucide-react';
@@ -156,9 +156,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                     <nav className="flex flex-col items-center gap-2">
                         {navItems.map(item => {
                             const isActive = item.items
-                                ? item.items.some(subItem => 
+                                ? item.items.some(subItem =>
                                     subItem.href !== '' && (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'))
-                                  )
+                                )
                                 : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
 
                             const isHovered = activeItem?.title === item.title;
@@ -167,8 +167,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                             let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                             if (item.href.includes('/clinic-history')) {
                                 const parts = effectivePathname.split('/');
-                                const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2]) 
-                                    ? parts[2] 
+                                const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2])
+                                    ? parts[2]
                                     : '1';
                                 linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
                             }
@@ -181,8 +181,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 href={linkHref}
                                                 className={cn(
                                                     "flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl transition-all duration-300 relative group",
-                                                    (isActive || isHovered) 
-                                                        ? 'bg-accent text-accent-foreground shadow-[0_0_15px_rgba(0,0,0,0.1)]' 
+                                                    (isActive || isHovered)
+                                                        ? 'bg-accent text-accent-foreground shadow-[0_0_15px_rgba(0,0,0,0.1)]'
                                                         : 'text-[var(--nav-foreground)] hover:bg-accent/50 hover:text-[var(--nav-foreground)] opacity-80 hover:opacity-100',
                                                     isExpanded && "w-20 rounded-r-none z-[31]"
                                                 )}
@@ -222,10 +222,19 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                         <span className="sr-only">{tHeader('toggleTheme')}</span>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent side="right" align="end" className="rounded-xl">
-                                    <DropdownMenuItem onClick={() => setTheme('light')}>Invoke</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('claro')}>Claro</DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('dark')}>Oscuro</DropdownMenuItem>
+                                <DropdownMenuContent side="right" align="end" className="rounded-xl w-40">
+                                    <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center justify-between">
+                                        <span>Invoke</span>
+                                        {theme === 'light' && <Check className="h-4 w-4 text-primary" />}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTheme('claro')} className="flex items-center justify-between">
+                                        <span>Claro</span>
+                                        {theme === 'claro' && <Check className="h-4 w-4 text-primary" />}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center justify-between">
+                                        <span>Oscuro</span>
+                                        {theme === 'dark' && <Check className="h-4 w-4 text-primary" />}
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TooltipTrigger>
@@ -369,16 +378,16 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                             return <hr key={index} className="my-2 border-white/10 [.claro_&]:border-gray-200 mx-4" />;
                         }
 
-                        const isSubActive = subItem.href === '/' 
-                            ? effectivePathname === '/' 
+                        const isSubActive = subItem.href === '/'
+                            ? effectivePathname === '/'
                             : (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'));
 
                         let subLinkHref = `/${locale}${subItem.href === '/' ? '' : subItem.href}`;
                         if (subItem.href.includes('/clinic-history')) {
                             const parts = effectivePathname.split('/');
                             // Si ya estamos en una página de historia clínica, intentamos mantener el ID del paciente actual
-                            const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2]) 
-                                ? parts[2] 
+                            const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2])
+                                ? parts[2]
                                 : '1';
                             subLinkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
                         }
@@ -390,13 +399,13 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                                 className={cn(
                                     "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-semibold transition-all active:scale-95",
                                     "hover:bg-white/10 [.claro_&]:hover:bg-black/5",
-                                    isSubActive 
-                                        ? "bg-white/20 text-white [.claro_&]:bg-black/10 [.claro_&]:text-gray-900" 
+                                    isSubActive
+                                        ? "bg-white/20 text-white [.claro_&]:bg-black/10 [.claro_&]:text-gray-900"
                                         : "text-white/70 [.claro_&]:text-gray-600"
                                 )}
                             >
                                 <subItem.icon className={cn(
-                                    "h-4 w-4 transition-opacity", 
+                                    "h-4 w-4 transition-opacity",
                                     isSubActive ? "opacity-100" : "opacity-70",
                                     "[.claro_&]:text-gray-700"
                                 )} />
