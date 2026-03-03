@@ -72,6 +72,12 @@ const GOOGLE_CALENDAR_COLORS = [
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
 
+const isWhite = (color: string | null | undefined) => {
+    if (!color) return true;
+    const n = color.toLowerCase().replace(/\s/g, '');
+    return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
+};
+
 
 async function getAppointments(
     calendarGoogleIds: string[],
@@ -139,14 +145,38 @@ async function getAppointments(
             const calendarId = apiAppt.google_calendar_id || apiAppt.calendar_id || apiAppt.calendarId || apiAppt.organizer?.email;
             const calendar = calendars.find(c => c.google_calendar_id === calendarId || c.id === calendarId);
 
-            const appointmentColorId = apiAppt.color_id || apiAppt.colorId || apiAppt.colorid;
-
             const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
             const doctor = doctors.find(d => String(d.id) === String(doctorId) || (apiAppt.doctor_email && d.email === apiAppt.doctor_email) || (apiAppt.doctorEmail && d.email === apiAppt.doctorEmail) || (apiAppt.doctoremail && d.email === apiAppt.doctoremail));
 
-            const service = services.find(s => s.name === apiAppt.summary || String(s.id) === String(apiAppt.service_id));
+            // Try to find a service match from summary or from the services array if it exists
+            const apiApptServices = Array.isArray(apiAppt.services) ? apiAppt.services : [];
+            const service = services.find(s =>
+                s.name === apiAppt.summary ||
+                String(s.id) === String(apiAppt.service_id) ||
+                apiApptServices.some((as: any) => String(as.id) === String(s.id))
+            );
 
-            let finalColor = apiAppt.color || colorMap.get(appointmentColorId) || service?.color || doctor?.color || calendar?.color;
+            const appointmentColorId = String(apiAppt.color_id || apiAppt.colorId || apiAppt.colorid || '');
+            let finalColor = apiAppt.color;
+
+            // If the color field contains a Google Color ID, map it to hex
+            if (finalColor && colorMap.has(String(finalColor))) {
+                finalColor = colorMap.get(String(finalColor));
+            }
+
+            // Fallback algorithm: Appointment Color Tag > Service Color > Doctor Color > Calendar Color
+            // We skip white colors (255, 255, 255) as they are considered "no color"
+            if (!finalColor || (typeof finalColor === 'string' && !finalColor.startsWith('#') && !finalColor.startsWith('hsl'))) {
+                const tagColor = colorMap.get(appointmentColorId);
+                const sColor = service?.color;
+                const dColor = doctor?.color;
+                const cColor = calendar?.color;
+
+                finalColor = (!isWhite(tagColor) ? tagColor : null) ||
+                    (!isWhite(sColor) ? sColor : null) ||
+                    (!isWhite(dColor) ? dColor : null) ||
+                    (!isWhite(cColor) ? cColor : null);
+            }
 
             const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid;
             const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
@@ -447,7 +477,7 @@ export default function AppointmentsPage() {
         // Optimistically update UI
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
 
-        // Persist change to backend
+        // Persist change to backend using snake_case for consistency
         const payload = {
             appointment_id: appointment.id,
             google_event_id: appointment.googleEventId,
