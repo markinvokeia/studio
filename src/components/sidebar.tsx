@@ -167,7 +167,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                             let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
                             if (item.href.includes('/clinic-history')) {
                                 const parts = effectivePathname.split('/');
-                                const userIdFromUrl = parts[2] && !isNaN(parseInt(parts[2])) ? parts[2] : '1';
+                                const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2]) 
+                                    ? parts[2] 
+                                    : '1';
                                 linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
                             }
 
@@ -371,10 +373,20 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                             ? effectivePathname === '/' 
                             : (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'));
 
+                        let subLinkHref = `/${locale}${subItem.href === '/' ? '' : subItem.href}`;
+                        if (subItem.href.includes('/clinic-history')) {
+                            const parts = effectivePathname.split('/');
+                            // Si ya estamos en una página de historia clínica, intentamos mantener el ID del paciente actual
+                            const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2]) 
+                                ? parts[2] 
+                                : '1';
+                            subLinkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
+                        }
+
                         return (
                             <Link
                                 key={index}
-                                href={`/${locale}${subItem.href}`}
+                                href={subLinkHref}
                                 className={cn(
                                     "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-semibold transition-all active:scale-95",
                                     "hover:bg-white/10 [.claro_&]:hover:bg-black/5",
