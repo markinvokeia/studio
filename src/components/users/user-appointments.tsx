@@ -14,6 +14,12 @@ import { addMonths, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+const isWhite = (color: string | null | undefined) => {
+  if (!color) return true;
+  const n = color.toLowerCase().replace(/\s/g, '');
+  return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
+};
+
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
   {
     accessorKey: 'summary',
@@ -114,7 +120,15 @@ async function getAppointmentsForUser(user: User | null): Promise<Appointment[]>
         created_at: apiAppt.created_at || apiAppt.createdat,
         google_calendar_id: apiAppt.google_calendar_id || '',
         googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
-        color: apiAppt.color,
+        color: (() => {
+          const c = (apiAppt.color && ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"].includes(String(apiAppt.color)))
+            ? {
+              "1": "#a4bdfc", "2": "#7ae7bf", "3": "#dbadff", "4": "#ff887c", "5": "#fbd75b",
+              "6": "#ffb878", "7": "#46d6db", "8": "#e1e1e1", "9": "#5484ed", "10": "#51b749", "11": "#dc2127"
+            }[String(apiAppt.color)]
+            : apiAppt.color;
+          return isWhite(c) ? undefined : c;
+        })(),
         start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
         end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
         services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
