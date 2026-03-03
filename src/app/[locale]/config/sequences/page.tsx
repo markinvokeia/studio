@@ -149,7 +149,7 @@ async function deleteSequence(id: number) {
         responseData.message.toLowerCase().includes('error') ||
         responseData.message.toLowerCase().includes('failed') ||
         responseData.message.toLowerCase().includes('invalid') ||
-        responseData.status >= 400;
+        (responseData.status && responseData.status >= 400);
 
       if (hasErrorIndicators) {
         throw new Error(responseData.message);
@@ -343,7 +343,7 @@ export default function SequencesPage() {
                       <Button
                         variant="ghost"
                         onClick={() => setSearchTerm('')}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground mr-1"
                       >
                         <X className="h-4 w-4" />
                         <span className="sr-only">Clear</span>
@@ -522,9 +522,9 @@ export default function SequencesPage() {
               />
 
               {preview && (
-                <Alert className="py-2">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
+                <Alert className="py-2 flex items-center gap-2">
+                  <Info className="h-4 w-4 static" />
+                  <AlertDescription className="text-xs p-0 translate-y-0">
                     {t('createDialog.previewExample')}
                     <code className="bg-muted px-2 py-0.5 rounded mx-1 font-bold">{preview}</code>
                   </AlertDescription>
