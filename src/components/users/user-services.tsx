@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -134,7 +133,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
     const fetchedUserServices = await getServicesForUser(userId, t);
     setUserServices(fetchedUserServices);
     setIsLoading(false);
-  }, [userId]);
+  }, [userId, t]);
 
   React.useEffect(() => {
     loadUserServices();
@@ -240,7 +239,7 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
             <DialogTitle>{t('UserServices.dialog.title')}</DialogTitle>
             <DialogDescription>{t('UserServices.dialog.description')}</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-4 px-6">
             <div className="flex justify-between items-center mb-4">
               <Label>{t('UserServices.dialog.availableServices')}</Label>
               <div className="flex gap-2">
