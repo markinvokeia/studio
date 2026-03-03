@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -14,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { handleApiErrorEnhanced } from '@/lib/error-utils';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
@@ -522,8 +522,7 @@ export default function SequencesPage() {
               />
 
               {preview && (
-                <Alert className="py-2 flex items-center justify-center gap-2">
-                  <Info className="h-4 w-4 static" />
+                <Alert className="py-2 flex items-center justify-center">
                   <AlertDescription className="text-xs p-0 pl-0 translate-y-0">
                     {t('createDialog.previewExample')}
                     <code className="bg-muted px-2 py-0.5 rounded mx-1 font-bold">{preview}</code>
@@ -642,7 +641,7 @@ export default function SequencesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AccordionCancel>{t('deleteDialog.cancel')}</AccordionCancel>
+            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {t('deleteDialog.confirm')}
             </AlertDialogAction>
