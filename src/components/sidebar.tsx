@@ -83,7 +83,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <span className="block w-full text-center text-[9px] font-bold uppercase tracking-tight leading-tight line-clamp-1">{t(item.title as any)}</span>
+                                                    <span className="block w-full text-center text-[9px] font-semibold uppercase tracking-tight leading-tight line-clamp-1">{t(item.title as any)}</span>
                                                 </div>
                                             </Link>
                                         </div>
@@ -124,7 +124,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
             style={{ width: '200px' }}
         >
             <div className="flex h-12 items-center px-6 border-b border-white/10 [.claro_&]:border-gray-200">
-                <h2 className="text-xs font-black uppercase tracking-widest [.claro_&]:text-gray-500">{t(item.title as any)}</h2>
+                <h2 className="text-xs font-bold uppercase tracking-widest [.claro_&]:text-gray-500">{t(item.title as any)}</h2>
             </div>
             <div className="flex-1 overflow-y-auto py-2">
                 <nav className="grid gap-1 pl-2 pr-0">
@@ -142,7 +142,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                                 key={index}
                                 href={`/${locale}${subItem.href}`}
                                 className={cn(
-                                    "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-bold transition-all active:scale-95",
+                                    "flex items-center gap-3 px-4 py-2.5 rounded-l-lg rounded-r-none text-sm font-semibold transition-all active:scale-95",
                                     "hover:bg-white/10 [.claro_&]:hover:bg-black/5",
                                     isSubActive 
                                         ? "bg-white/20 text-white [.claro_&]:bg-black/10 [.claro_&]:text-gray-900" 
