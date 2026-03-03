@@ -207,7 +207,7 @@ export function Header() {
         <>
             <div className="fixed top-4 right-4 z-[50] flex flex-col items-end gap-2">
                 {!isExpanded ? (
-                    <div className="flex items-center gap-2 bg-card/80 backdrop-blur-md p-1.5 pr-2 rounded-full border border-border shadow-lg transition-all hover:bg-card">
+                    <div className="flex items-center gap-2 bg-[hsl(var(--floating-header-bg)/0.8)] backdrop-blur-md p-1.5 pr-2 rounded-full border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]">
                         <Button 
                             variant="ghost" 
                             size="icon" 
@@ -220,7 +220,7 @@ export function Header() {
                     </div>
                 ) : (
                     <div className={cn(
-                        "flex items-center gap-3 bg-card/95 backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all",
+                        "flex items-center gap-3 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all",
                         "animate-in fade-in slide-in-from-right-10 duration-300"
                     )}>
                         <div className="flex items-center gap-3 px-2">

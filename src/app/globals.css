@@ -51,6 +51,10 @@
     --card-header-bg: 263 40% 97%;
     --card-header-foreground: 0 0% 0%;
 
+    /* Header Widgets specifically for INVOKE */
+    --floating-header-bg: 263 40% 97%;
+    --exchange-rate-text: 0 0% 0%;
+
     /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;   /* Rojo */
     --chart-2: 142 76% 36%; /* Verde */
@@ -88,6 +92,9 @@
     --card-header-bg: 240 5% 96%;
     --card-header-foreground: 0 0% 0%;
 
+    --floating-header-bg: 0 0% 100%;
+    --exchange-rate-text: 240 10% 10%;
+
     /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;
     --chart-2: 142 76% 36%;
@@ -124,6 +131,9 @@
 
     --card-header-bg: 240 10% 22%;
     --card-header-foreground: 240 5% 95%;
+
+    --floating-header-bg: 240 10% 18%;
+    --exchange-rate-text: 240 5% 95%;
 
     /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;
