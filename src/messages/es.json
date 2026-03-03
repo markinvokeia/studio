@@ -209,7 +209,8 @@
         "selectSpecificDate": "Seleccionar una fecha específica",
         "chooseDateVariable": "Elegir una variable de fecha",
         "chooseVariable": "Elegir variable",
-        "var": "Var"
+        "var": "Var",
+        "pickDate": "Seleccionar una fecha"
     },
     "ReportFilters": {
         "apply": "Aplicar Filtros",
@@ -1211,12 +1212,6 @@
                 "paid": "Pagado",
                 "overdue": "Vencido"
             }
-        },
-        "actions": {
-            "print": "Imprimir",
-            "sendEmail": "Enviar por correo",
-            "title": "Acciones",
-            "openMenu": "Abrir menú"
         },
         "sendEmailDialog": {
             "title": "Enviar Factura por Correo",
@@ -3412,7 +3407,8 @@
             },
             "version": "Versión",
             "defaultSender": "Enviador por defecto",
-            "close": "Cerrar"
+            "close": "Cerrar",
+            "namePlaceholder": "ej. Nombre template"
         },
         "deleteDialog": {
             "title": "Eliminar Plantilla",

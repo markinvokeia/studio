@@ -37,13 +37,13 @@ import * as z from 'zod';
 
 const ruleFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
-    category_id: z.string().min(1, t('validation.categoryRequired')),
-    code: z.string().min(1, t('validation.codeRequired')),
-    name: z.string().min(1, t('validation.nameRequired')),
+    category_id: z.string().min(1, t('categoryRequired')),
+    code: z.string().min(1, t('codeRequired')),
+    name: z.string().min(1, t('nameRequired')),
     description: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-    source_table: z.string().min(1, t('validation.sourceTableRequired')),
-    table_id_field: z.string().min(1, t('validation.tableIdFieldRequired')),
+    source_table: z.string().min(1, t('sourceTableRequired')),
+    table_id_field: z.string().min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
     days_after: z.coerce.number().int().default(0),
