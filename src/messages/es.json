@@ -1194,7 +1194,8 @@
         "tabs": {
             "items": "Artículos",
             "payments": "Pagos",
-            "creditNotes": "Notas de Crédito"
+            "creditNotes": "Notas de Crédito",
+            "allocations": "Movimientos"
         },
         "creditNotesTable": {
             "title": "Notas de Crédito Asociadas",
@@ -1211,6 +1212,19 @@
                 "sent": "Enviado",
                 "paid": "Pagado",
                 "overdue": "Vencido"
+            }
+        },
+        "AllocationsTable": {
+            "title": "Movimientos de Nota de Crédito",
+            "empty": "No hay movimientos asociados a esta nota de crédito",
+            "destino_doc_no": "Documento Destino",
+            "destino_tipo": "Tipo",
+            "monto_asignado": "Monto Asignado",
+            "tipo_cambio": "Tipo de Cambio",
+            "monto_en_destino": "Monto en Destino",
+            "fecha_asignacion": "Fecha de Asignación",
+            "documentTypes": {
+                "invoice": "Factura"
             }
         },
         "sendEmailDialog": {

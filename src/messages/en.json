@@ -1194,7 +1194,8 @@
     "tabs": {
       "items": "Items",
       "payments": "Payments",
-      "creditNotes": "Credit Notes"
+      "creditNotes": "Credit Notes",
+      "allocations": "Allocations"
     },
     "creditNotesTable": {
       "title": "Associated Credit Notes",
@@ -1211,6 +1212,19 @@
         "sent": "Sent",
         "paid": "Paid",
         "overdue": "Overdue"
+      }
+    },
+    "AllocationsTable": {
+      "title": "Credit Note Allocations",
+      "empty": "There are no allocations associated with this credit note",
+      "destino_doc_no": "Destination Document",
+      "destino_tipo": "Type",
+      "monto_asignado": "Allocated Amount",
+      "tipo_cambio": "Exchange Rate",
+      "monto_en_destino": "Amount in Destination",
+      "fecha_asignacion": "Allocation Date",
+      "documentTypes": {
+        "invoice": "Invoice"
       }
     },
     "sendEmailDialog": {
