@@ -1,6 +1,8 @@
-
 'use client';
 
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,15 +10,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
+import { Payment, PaymentAllocation } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
-import { getPurchasePayments, Payment } from '@/services/payments-service';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { getPurchasePayments } from '@/services/payments-service';
+import { RowSelectionState } from '@tanstack/react-table';
+import { CreditCard, Loader2, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { Loader2 } from 'lucide-react';
 import * as React from 'react';
 
 
@@ -41,9 +44,14 @@ export default function PaymentsPage() {
     const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
     const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
 
+    const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [paymentAllocations, setPaymentAllocations] = React.useState<PaymentAllocation[]>([]);
+    const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
 
 
-    const handlePrintPayment = async (payment: Payment) => {
+
+    const handlePrintPayment = React.useCallback(async (payment: Payment) => {
         const fileName = getDocumentFileName(payment, 'payment');
         toast({
             title: "Generating PDF",
@@ -73,13 +81,50 @@ export default function PaymentsPage() {
                 description: error instanceof Error ? error.message : 'Could not print the payment.',
             });
         }
-    };
+    }, [toast]);
 
-    const handleSendEmailClick = (payment: Payment) => {
+    const loadPaymentAllocations = React.useCallback(async (paymentId: string) => {
+        setIsLoadingAllocations(true);
+        try {
+            const data = await api.get(API_ROUTES.PURCHASES.PAYMENT_ALLOCATIONS, { payment_id: paymentId });
+            const allocations = Array.isArray(data) ? data : [];
+            setPaymentAllocations(allocations.filter((item: PaymentAllocation) => item && item.allocation_id));
+        } catch (error) {
+            console.error("Failed to fetch payment allocations:", error);
+            setPaymentAllocations([]);
+        } finally {
+            setIsLoadingAllocations(false);
+        }
+    }, []);
+
+    const handleRowSelectionChange = React.useCallback((selectedRows: Payment[]) => {
+        const payment = selectedRows.length > 0 ? selectedRows[0] : null;
+
+        if (payment) {
+            setSelectedPayment(payment);
+            if (!payment.invoice_id) {
+                loadPaymentAllocations(payment.id);
+            } else {
+                setPaymentAllocations([]);
+                setIsLoadingAllocations(false);
+            }
+        } else {
+            setSelectedPayment(null);
+            setPaymentAllocations([]);
+        }
+    }, [loadPaymentAllocations]);
+
+    const handleCloseDetails = React.useCallback(() => {
+        setSelectedPayment(null);
+        setPaymentAllocations([]);
+        setRowSelection({});
+    }, []);
+
+    const handleSendEmailClick = React.useCallback((payment: Payment) => {
         setSelectedPaymentForEmail(payment);
         setEmailRecipients(payment.userEmail || '');
         setIsSendEmailDialogOpen(true);
-    };
+    }, []);
 
     const handleConfirmSendEmail = async () => {
         if (!selectedPaymentForEmail) return;
@@ -147,27 +192,70 @@ export default function PaymentsPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
-            <Card className="flex-1 flex flex-col min-h-0">
-                <CardHeader className="flex-none">
-                    <CardTitle>{t('title')}</CardTitle>
-                    <CardDescription>{t('description')}</CardDescription>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                    <PaymentsTable
-                        payments={payments}
-                        isLoading={isLoading}
-                        onRefresh={refreshPayments}
-                        isRefreshing={isLoading}
-                        onPrint={handlePrintPayment}
-                        onSendEmail={handleSendEmailClick}
-                        pagination={pagination}
-                        onPaginationChange={handlePaginationChange}
-                        pageCount={totalPages}
-                        manualPagination={true}
-                    />
-                </CardContent>
-            </Card>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <TwoPanelLayout
+                isRightPanelOpen={!!selectedPayment}
+                leftPanel={
+                    <Card className="flex-1 flex flex-col min-h-0 h-full">
+                        <CardHeader className="flex-none">
+                            <CardTitle>{t('title')}</CardTitle>
+                            <CardDescription>{t('description')}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
+                            <PaymentsTable
+                                payments={payments}
+                                isLoading={isLoading}
+                                onRefresh={refreshPayments}
+                                isRefreshing={isLoading}
+                                onPrint={handlePrintPayment}
+                                onSendEmail={handleSendEmailClick}
+                                pagination={pagination}
+                                onPaginationChange={handlePaginationChange}
+                                pageCount={totalPages}
+                                manualPagination={true}
+                                onRowSelectionChange={handleRowSelectionChange}
+                                rowSelection={rowSelection}
+                                setRowSelection={setRowSelection}
+                            />
+                        </CardContent>
+                    </Card>
+                }
+                rightPanel={
+                    selectedPayment && (
+                        <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
+                            <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                    <div className="header-icon-circle mt-0.5">
+                                        <CreditCard className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col truncate text-left">
+                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedPayment.user_name })}</CardTitle>
+                                        <CardDescription className="text-xs">{t('prepaidId')}: {selectedPayment.doc_no || selectedPayment.id}</CardDescription>
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">{t('close')}</span>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
+                                <div className="flex items-center justify-between mb-2 flex-none mt-4">
+                                    <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
+                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
+                                        <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
+                                    </Button>
+                                </div>
+                                <div className="flex-1 min-h-0 overflow-auto">
+                                    <PaymentAllocationsTable
+                                        allocations={paymentAllocations}
+                                        isLoading={isLoadingAllocations}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )
+                }
+            />
 
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>

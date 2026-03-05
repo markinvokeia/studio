@@ -2,6 +2,7 @@
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { AllocationsTable } from '@/components/tables/allocations-table';
 import { CreditNotesTable } from '@/components/tables/credit-notes-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
@@ -20,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
-import { Invoice, InvoiceItem, Payment, Service, CreditNote } from '@/lib/types';
+import { Invoice, InvoiceItem, InvoiceAllocation, Payment, Service, CreditNote } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -197,11 +198,13 @@ export default function InvoicesPage() {
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [creditNotes, setCreditNotes] = React.useState<CreditNote[]>([]);
+    const [allocations, setAllocations] = React.useState<InvoiceAllocation[]>([]);
 
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     const [isLoadingCreditNotes, setIsLoadingCreditNotes] = React.useState(false);
+    const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
 
     const [editingItem, setEditingItem] = React.useState<InvoiceItem | null>(null);
     const [isItemDialogOpen, setIsItemDialogOpen] = React.useState(false);
@@ -263,17 +266,28 @@ export default function InvoicesPage() {
         setIsLoadingCreditNotes(false);
     }, [selectedInvoice]);
 
+    const loadAllocations = React.useCallback(async () => {
+        if (!selectedInvoice || selectedInvoice.type !== 'credit_note') return;
+        setIsLoadingAllocations(true);
+        const data = await api.get(API_ROUTES.SALES.INVOICE_ALLOCATIONS, { credit_note_id: selectedInvoice.id });
+        const arr = Array.isArray(data) ? data : [];
+        setAllocations(arr.filter((item: InvoiceAllocation) => item && item.allocation_id));
+        setIsLoadingAllocations(false);
+    }, [selectedInvoice]);
+
     React.useEffect(() => {
         if (selectedInvoice) {
             loadInvoiceItems();
             loadPayments();
             loadCreditNotes();
+            loadAllocations();
         } else {
             setInvoiceItems([]);
             setPayments([]);
             setCreditNotes([]);
+            setAllocations([]);
         }
-    }, [selectedInvoice, loadInvoiceItems, loadPayments, loadCreditNotes]);
+    }, [selectedInvoice, loadInvoiceItems, loadPayments, loadCreditNotes, loadAllocations]);
 
     const handleRowSelectionChange = (selectedRows: Invoice[]) => {
         const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -580,7 +594,11 @@ export default function InvoicesPage() {
                                         <TabsList>
                                             <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
                                             <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
-                                            <TabsTrigger value="creditNotes" className="text-xs">{t('tabs.creditNotes')}</TabsTrigger>
+                                            {selectedInvoice?.type === 'credit_note' ? (
+                                                <TabsTrigger value="allocations" className="text-xs">{t('tabs.allocations')}</TabsTrigger>
+                                            ) : (
+                                                <TabsTrigger value="creditNotes" className="text-xs">{t('tabs.creditNotes')}</TabsTrigger>
+                                            )}
                                         </TabsList>
                                         <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
                                             <TabsContent value="items" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
@@ -602,16 +620,30 @@ export default function InvoicesPage() {
                                                     isRefreshing={isLoadingPayments}
                                                 />
                                             </TabsContent>
-                                            <TabsContent value="creditNotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                                                <CreditNotesTable
-                                                    creditNotes={creditNotes}
-                                                    isLoading={isLoadingCreditNotes}
-                                                    onRefresh={loadCreditNotes}
-                                                    isRefreshing={isLoadingCreditNotes}
-                                                    onPrint={handlePrintInvoice}
-                                                    onSendEmail={handleSendEmailClick}
-                                                />
-                                            </TabsContent>
+                                            {selectedInvoice?.type === 'credit_note' ? (
+                                                <TabsContent value="allocations" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                                    <div className="flex items-center justify-between mb-2 flex-none">
+                                                        <h4 className="text-sm font-semibold">{t('AllocationsTable.title')}</h4>
+                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadAllocations} disabled={isLoadingAllocations}>
+                                                            <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
+                                                        </Button>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0 overflow-auto">
+                                                        <AllocationsTable allocations={allocations} isLoading={isLoadingAllocations} />
+                                                    </div>
+                                                </TabsContent>
+                                            ) : (
+                                                <TabsContent value="creditNotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                                    <CreditNotesTable
+                                                        creditNotes={creditNotes}
+                                                        isLoading={isLoadingCreditNotes}
+                                                        onRefresh={loadCreditNotes}
+                                                        isRefreshing={isLoadingCreditNotes}
+                                                        onPrint={handlePrintInvoice}
+                                                        onSendEmail={handleSendEmailClick}
+                                                    />
+                                                </TabsContent>
+                                            )}
                                         </div>
                                     </Tabs>
                                 </CardContent>

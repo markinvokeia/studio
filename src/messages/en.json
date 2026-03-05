@@ -606,6 +606,7 @@
     "createDialog": {
       "title": "Create New Patient",
       "description": "Fill in the details below to add a new patient.",
+      "createDescription": "Fill in the details below to add a new patient.",
       "editTitle": "Edit Patient",
       "editDescription": "Update the details for this patient.",
       "createSuccessTitle": "Patient Created",
@@ -1194,7 +1195,8 @@
     "tabs": {
       "items": "Items",
       "payments": "Payments",
-      "creditNotes": "Credit Notes"
+      "creditNotes": "Credit Notes",
+      "allocations": "Allocations"
     },
     "creditNotesTable": {
       "title": "Associated Credit Notes",
@@ -1211,6 +1213,19 @@
         "sent": "Sent",
         "paid": "Paid",
         "overdue": "Overdue"
+      }
+    },
+    "AllocationsTable": {
+      "title": "Credit Note Allocations",
+      "empty": "There are no allocations associated with this credit note",
+      "destino_doc_no": "Destination Document",
+      "destino_tipo": "Type",
+      "monto_asignado": "Allocated Amount",
+      "tipo_cambio": "Exchange Rate",
+      "monto_en_destino": "Amount in Destination",
+      "fecha_asignacion": "Allocation Date",
+      "documentTypes": {
+        "invoice": "Invoice"
       }
     },
     "sendEmailDialog": {
@@ -1732,6 +1747,9 @@
       "openMenu": "Open Menu"
     },
     "createPrepaid": "Create Prepaid",
+    "detailsFor": "Payment Details - {name}",
+    "prepaidId": "Payment ID",
+    "close": "Close",
     "prepaidDialog": {
       "amount": "Amount",
       "cancel": "Cancel",
@@ -1754,6 +1772,21 @@
         "errorTitle": "Error",
         "successDescription": "Operation completed successfully.",
         "successTitle": "Success"
+      }
+    },
+    "PaymentAllocationsTable": {
+      "title": "Payment Allocations",
+      "empty": "No payment allocations found.",
+      "factura_doc_no": "Invoice Doc No.",
+      "factura_tipo": "Type",
+      "moneda_factura": "Invoice Currency",
+      "monto_desde_pago": "Amount from Payment",
+      "tipo_cambio": "Exchange Rate",
+      "monto_aplicado_a_factura": "Applied Amount",
+      "fecha_aplicacion": "Application Date",
+      "documentTypes": {
+        "invoice": "Invoice",
+        "credit_note": "Credit Note"
       }
     }
   },

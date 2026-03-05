@@ -606,6 +606,7 @@
         "createDialog": {
             "title": "Crear Nuevo Paciente",
             "description": "Complete los detalles a continuación para agregar un nuevo usuario.",
+            "createDescription": "Complete los detalles a continuación para agregar un nuevo paciente.",
             "editTitle": "Editar Paciente",
             "editDescription": "Actualice los detalles de este paciente.",
             "createSuccessTitle": "Paciente Creado",
@@ -1194,7 +1195,8 @@
         "tabs": {
             "items": "Artículos",
             "payments": "Pagos",
-            "creditNotes": "Notas de Crédito"
+            "creditNotes": "Notas de Crédito",
+            "allocations": "Movimientos"
         },
         "creditNotesTable": {
             "title": "Notas de Crédito Asociadas",
@@ -1211,6 +1213,19 @@
                 "sent": "Enviado",
                 "paid": "Pagado",
                 "overdue": "Vencido"
+            }
+        },
+        "AllocationsTable": {
+            "title": "Movimientos de Nota de Crédito",
+            "empty": "No hay movimientos asociados a esta nota de crédito",
+            "destino_doc_no": "Documento Destino",
+            "destino_tipo": "Tipo",
+            "monto_asignado": "Monto Asignado",
+            "tipo_cambio": "Tipo de Cambio",
+            "monto_en_destino": "Monto en Destino",
+            "fecha_asignacion": "Fecha de Asignación",
+            "documentTypes": {
+                "invoice": "Factura"
             }
         },
         "sendEmailDialog": {
@@ -1732,6 +1747,9 @@
             "openMenu": "Abrir Menú"
         },
         "createPrepaid": "Crear Prepago",
+        "detailsFor": "Detalles del Pago - {name}",
+        "prepaidId": "ID de Pago",
+        "close": "Cerrar",
         "prepaidDialog": {
             "amount": "Monto",
             "cancel": "Cancelar",
@@ -1754,6 +1772,21 @@
                 "errorTitle": "Error",
                 "successDescription": "Operación completada exitosamente.",
                 "successTitle": "Éxito"
+            }
+        },
+        "PaymentAllocationsTable": {
+            "title": "Asignaciones de Pago",
+            "empty": "No se encontraron asignaciones de pago.",
+            "factura_doc_no": "No. Factura",
+            "factura_tipo": "Tipo",
+            "moneda_factura": "Moneda Factura",
+            "monto_desde_pago": "Monto del Pago",
+            "tipo_cambio": "Tipo de Cambio",
+            "monto_aplicado_a_factura": "Monto Aplicado",
+            "fecha_aplicacion": "Fecha de Aplicación",
+            "documentTypes": {
+                "invoice": "Factura",
+                "credit_note": "Nota de Crédito"
             }
         }
     },
