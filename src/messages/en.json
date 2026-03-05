@@ -1746,6 +1746,9 @@
       "openMenu": "Open Menu"
     },
     "createPrepaid": "Create Prepaid",
+    "detailsFor": "Payment Details - {name}",
+    "prepaidId": "Payment ID",
+    "close": "Close",
     "prepaidDialog": {
       "amount": "Amount",
       "cancel": "Cancel",
@@ -1768,6 +1771,21 @@
         "errorTitle": "Error",
         "successDescription": "Operation completed successfully.",
         "successTitle": "Success"
+      }
+    },
+    "PaymentAllocationsTable": {
+      "title": "Payment Allocations",
+      "empty": "No payment allocations found.",
+      "factura_doc_no": "Invoice Doc No.",
+      "factura_tipo": "Type",
+      "moneda_factura": "Invoice Currency",
+      "monto_desde_pago": "Amount from Payment",
+      "tipo_cambio": "Exchange Rate",
+      "monto_aplicado_a_factura": "Applied Amount",
+      "fecha_aplicacion": "Application Date",
+      "documentTypes": {
+        "invoice": "Invoice",
+        "credit_note": "Credit Note"
       }
     }
   },

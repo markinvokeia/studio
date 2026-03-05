@@ -216,6 +216,21 @@ export type InvoiceAllocation = {
   fecha_asignacion: string;
 };
 
+export type PaymentAllocation = {
+  allocation_id: number;
+  pago_doc_no: string;
+  medio_pago: string;
+  moneda_pago: string;
+  factura_doc_no: string;
+  factura_tipo: 'invoice' | 'credit_note';
+  moneda_factura: string;
+  monto_desde_pago: string;
+  moneda_allocation: string;
+  tipo_cambio: string;
+  monto_aplicado_a_factura: string;
+  fecha_aplicacion: string;
+};
+
 export type PaymentMethod = {
   id: string;
   name: string;

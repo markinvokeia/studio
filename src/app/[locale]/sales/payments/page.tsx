@@ -1,13 +1,15 @@
 'use client';
 
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -17,16 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
-import { Payment, PaymentMethod, User } from '@/lib/types';
+import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
 import { cn, getDocumentFileName } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown, CreditCard, Loader2 } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown, CreditCard, Loader2, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -125,6 +128,11 @@ export default function PaymentsPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isUserPopoverOpen, setIsUserPopoverOpen] = React.useState(false);
 
+    const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [paymentAllocations, setPaymentAllocations] = React.useState<PaymentAllocation[]>([]);
+    const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
+
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -136,9 +144,47 @@ export default function PaymentsPage() {
         }
     });
 
+    const loadPaymentAllocations = React.useCallback(async (paymentId: string) => {
+        setIsLoadingAllocations(true);
+        try {
+            const data = await api.get(API_ROUTES.SALES.PAYMENT_ALLOCATIONS, { payment_id: paymentId });
+            const allocations = Array.isArray(data) ? data : [];
+            setPaymentAllocations(allocations.filter((item: PaymentAllocation) => item && item.allocation_id));
+        } catch (error) {
+            console.error("Failed to fetch payment allocations:", error);
+            setPaymentAllocations([]);
+        } finally {
+            setIsLoadingAllocations(false);
+        }
+    }, []);
+
+    const handleRowSelectionChange = React.useCallback((selectedRows: Payment[]) => {
+        const payment = selectedRows.length > 0 ? selectedRows[0] : null;
+
+        if (payment) {
+            setSelectedPayment(payment);
+            if (!payment.invoice_id) {
+                loadPaymentAllocations(payment.id);
+            } else {
+                setPaymentAllocations([]);
+                setIsLoadingAllocations(false);
+            }
+        } else {
+            setSelectedPayment(null);
+            setPaymentAllocations([]);
+        }
+    }, [loadPaymentAllocations]);
+
+    const handleCloseDetails = React.useCallback(() => {
+        setSelectedPayment(null);
+        setPaymentAllocations([]);
+        setRowSelection({});
+    }, []);
 
 
-    const handlePrintPayment = async (payment: Payment) => {
+
+
+    const handlePrintPayment = React.useCallback(async (payment: Payment) => {
         const fileName = getDocumentFileName(payment, 'payment');
         toast({
             title: "Generating PDF",
@@ -168,13 +214,13 @@ export default function PaymentsPage() {
                 description: error instanceof Error ? error.message : 'Could not print the payment.',
             });
         }
-    };
+    }, [toast]);
 
-    const handleSendEmailClick = (payment: Payment) => {
+    const handleSendEmailClick = React.useCallback((payment: Payment) => {
         setSelectedPaymentForEmail(payment);
         setEmailRecipients(payment.userEmail || '');
         setIsSendEmailDialogOpen(true);
-    };
+    }, []);
 
     const handleConfirmSendEmail = async () => {
         if (!selectedPaymentForEmail) return;
@@ -301,35 +347,78 @@ export default function PaymentsPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden pr-2 pb-4">
-            <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-0">
-                <CardHeader className="p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="header-icon-circle mt-0.5">
-                            <CreditCard className="h-5 w-5" />
-                        </div>
-                        <div className="flex flex-col">
-                            <CardTitle className="text-lg">{t('title')}</CardTitle>
-                            <CardDescription className="text-xs">{t('description')}</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
-                    <PaymentsTable
-                        payments={payments}
-                        isLoading={isLoading}
-                        onRefresh={refreshPayments}
-                        isRefreshing={isLoading}
-                        onPrint={handlePrintPayment}
-                        onSendEmail={handleSendEmailClick}
-                        onCreate={handleCreatePrepaid}
-                        pagination={pagination}
-                        onPaginationChange={handlePaginationChange}
-                        pageCount={totalPages}
-                        manualPagination={true}
-                    />
-                </CardContent>
-            </Card>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <TwoPanelLayout
+                isRightPanelOpen={!!selectedPayment}
+                leftPanel={
+                    <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-0 h-full">
+                        <CardHeader className="p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="header-icon-circle mt-0.5">
+                                    <CreditCard className="h-5 w-5" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <CardTitle className="text-lg">{t('title')}</CardTitle>
+                                    <CardDescription className="text-xs">{t('description')}</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-background">
+                            <PaymentsTable
+                                payments={payments}
+                                isLoading={isLoading}
+                                onRefresh={refreshPayments}
+                                isRefreshing={isLoading}
+                                onPrint={handlePrintPayment}
+                                onSendEmail={handleSendEmailClick}
+                                onCreate={handleCreatePrepaid}
+                                pagination={pagination}
+                                onPaginationChange={handlePaginationChange}
+                                pageCount={totalPages}
+                                manualPagination={true}
+                                onRowSelectionChange={handleRowSelectionChange}
+                                rowSelection={rowSelection}
+                                setRowSelection={setRowSelection}
+                            />
+                        </CardContent>
+                    </Card>
+                }
+                rightPanel={
+                    selectedPayment && (
+                        <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
+                            <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
+                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                    <div className="header-icon-circle mt-0.5">
+                                        <CreditCard className="h-5 w-5" />
+                                    </div>
+                                    <div className="flex flex-col truncate text-left">
+                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedPayment.user_name })}</CardTitle>
+                                        <CardDescription className="text-xs">{t('prepaidId')}: {selectedPayment.doc_no || selectedPayment.id}</CardDescription>
+                                    </div>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">{t('close')}</span>
+                                </Button>
+                            </CardHeader>
+                            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
+                                <div className="flex items-center justify-between mb-2 flex-none mt-4">
+                                    <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
+                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
+                                        <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
+                                    </Button>
+                                </div>
+                                <div className="flex-1 min-h-0 overflow-auto">
+                                    <PaymentAllocationsTable
+                                        allocations={paymentAllocations}
+                                        isLoading={isLoadingAllocations}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )
+                }
+            />
 
             <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
                 <DialogContent>
@@ -432,7 +521,7 @@ export default function PaymentsPage() {
                                     const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
 
                                     React.useEffect(() => {
-                                      setInputValue(value ? String(value) : '');
+                                        setInputValue(value ? String(value) : '');
                                     }, [value]);
 
                                     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -463,7 +552,7 @@ export default function PaymentsPage() {
                                         <FormItem className="col-span-2">
                                             <FormLabel>{t('prepaidDialog.amount')}</FormLabel>
                                             <FormControl>
-                                                <Input 
+                                                <Input
                                                     type="text"
                                                     inputMode="decimal"
                                                     value={inputValue}

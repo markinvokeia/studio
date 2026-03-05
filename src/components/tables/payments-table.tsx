@@ -7,7 +7,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
-import { ColumnDef, PaginationState } from '@tanstack/react-table';
+import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
@@ -211,9 +211,12 @@ interface PaymentsTableProps {
   onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
   pageCount?: number;
   manualPagination?: boolean;
+  onRowSelectionChange?: (selectedRows: Payment[]) => void;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
@@ -263,6 +266,10 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
           manualPagination={manualPagination}
+          enableSingleRowSelection={!!onRowSelectionChange}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
+          onRowSelectionChange={onRowSelectionChange}
         />
       </CardContent>
     </Card>

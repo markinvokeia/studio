@@ -1746,6 +1746,9 @@
             "openMenu": "Abrir Menú"
         },
         "createPrepaid": "Crear Prepago",
+        "detailsFor": "Detalles del Pago - {name}",
+        "prepaidId": "ID de Pago",
+        "close": "Cerrar",
         "prepaidDialog": {
             "amount": "Monto",
             "cancel": "Cancelar",
@@ -1768,6 +1771,21 @@
                 "errorTitle": "Error",
                 "successDescription": "Operación completada exitosamente.",
                 "successTitle": "Éxito"
+            }
+        },
+        "PaymentAllocationsTable": {
+            "title": "Asignaciones de Pago",
+            "empty": "No se encontraron asignaciones de pago.",
+            "factura_doc_no": "No. Factura",
+            "factura_tipo": "Tipo",
+            "moneda_factura": "Moneda Factura",
+            "monto_desde_pago": "Monto del Pago",
+            "tipo_cambio": "Tipo de Cambio",
+            "monto_aplicado_a_factura": "Monto Aplicado",
+            "fecha_aplicacion": "Fecha de Aplicación",
+            "documentTypes": {
+                "invoice": "Factura",
+                "credit_note": "Nota de Crédito"
             }
         }
     },
