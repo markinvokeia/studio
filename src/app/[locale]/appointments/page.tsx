@@ -14,6 +14,7 @@ import {
     DialogTitle,
     DialogDescription,
     DialogFooter,
+    DialogBody,
 } from '@/components/ui/dialog';
 import {
     AlertDialog,
@@ -732,8 +733,8 @@ export default function AppointmentsPage() {
                         <AlertDialogDescription>{t('createDialog.cancelAppointmentDescription', { serviceName: deletingAppointment?.service_name, date: deletingAppointment?.date })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
+                        <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
                         <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteAppointment}>{t('AppointmentsColumns.cancel')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -742,29 +743,22 @@ export default function AppointmentsPage() {
                     <DialogHeader>
                         <DialogTitle>{selectedAppointment?.service_name}</DialogTitle>
                     </DialogHeader>
-                    {selectedAppointment && (
-                        <div className="grid gap-4 py-4">
-                            <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
-                            <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
-                            <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
-                            <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
-                            <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
-                            <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
-                            <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
-                        </div>
-                    )}
+                    <DialogBody className="px-6 py-4">
+                        {selectedAppointment && (
+                            <div className="grid gap-4 py-4">
+                                <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                                <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                                <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
+                                <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
+                                <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
+                                <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
+                                <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
+                            </div>
+                        )}
+                    </DialogBody>
                     <DialogFooter className="justify-between">
                         <Button variant="outline" onClick={() => setIsDetailViewOpen(false)} className="w-24">{t('createDialog.close')}</Button>
                         <div className="flex gap-2">
-                            <Button variant="destructive" onClick={() => {
-                                if (selectedAppointment) {
-                                    handleCancel(selectedAppointment);
-                                    setIsDetailViewOpen(false);
-                                }
-                            }} className="w-28">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {t('AppointmentsColumns.cancel')}
-                            </Button>
                             <Button onClick={() => {
                                 if (selectedAppointment) {
                                     handleEdit(selectedAppointment);
@@ -774,6 +768,15 @@ export default function AppointmentsPage() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 {tColumns('edit')}
                             </Button>
+                            <Button variant="destructive" onClick={() => {
+                                if (selectedAppointment) {
+                                    handleCancel(selectedAppointment);
+                                    setIsDetailViewOpen(false);
+                                }
+                            }} className="w-28">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t('AppointmentsColumns.cancel')}
+                            </Button>
                         </div>
                     </DialogFooter>
                 </DialogContent>
@@ -781,4 +784,3 @@ export default function AppointmentsPage() {
         </Card>
     );
 }
-

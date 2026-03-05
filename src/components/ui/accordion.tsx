@@ -38,7 +38,7 @@ const AccordionTrigger = React.forwardRef<
         className={cn(
           'h-4 w-4 shrink-0 transition-transform duration-200',
           // Special class to prevent rotation if trigger is centered
-          props.className?.includes('justify-center') && 'no-rotate'
+          className?.includes('justify-center') && 'no-rotate'
         )}
       />
     </AccordionPrimitive.Trigger>

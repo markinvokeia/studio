@@ -243,13 +243,13 @@ export const messages: Message[] = [
 
 
 export const appointments: Appointment[] = [
-  { id: 'apt_1', patientName: 'Alice Johnson', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00:00', status: 'completed', calendar_id: 'cal_1' },
-  { id: 'apt_2', patientName: 'Bob Williams', service_name: 'Follow-up', date: '2024-06-15', time: '14:30:00', status: 'confirmed', calendar_id: 'cal_1' },
-  { id: 'apt_3', patientName: 'Charlie Brown', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00:00', status: 'confirmed', calendar_id: 'cal_1' },
-  { id: 'apt_4', patientName: 'Diana Miller', service_name: 'Check-up', date: '2024-05-20', time: '09:00:00', status: 'cancelled', calendar_id: 'cal_1' },
-  { id: 'apt_5', patientName: 'Ethan Davis', service_name: 'Teeth Whitening', date: '2024-08-01', time: '16:00:00', status: 'pending', calendar_id: 'cal_1' },
-  { id: 'apt_6', patientName: 'Alice Johnson', service_name: 'Dental Cleaning', date: '2024-07-10', time: '09:30:00', status: 'confirmed', calendar_id: 'cal_1' },
-  { id: 'apt_7', patientName: 'Charlie Brown', service_name: 'Follow-up', date: '2024-07-22', time: '15:00:00', status: 'confirmed', calendar_id: 'cal_1' },
+  { id: 'apt_1', patientId: 'pat_1', doctorId: 'doc_1', patientName: 'Alice Johnson', summary: 'Initial Consultation', service_name: 'Initial Consultation', date: '2024-06-01', time: '10:00:00', status: 'completed', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
+  { id: 'apt_2', patientId: 'pat_2', doctorId: 'doc_1', patientName: 'Bob Williams', summary: 'Follow-up', service_name: 'Follow-up', date: '2024-06-15', time: '14:30:00', status: 'confirmed', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
+  { id: 'apt_3', patientId: 'pat_3', doctorId: 'doc_2', patientName: 'Charlie Brown', summary: 'Dental Cleaning', service_name: 'Dental Cleaning', date: '2024-07-01', time: '11:00:00', status: 'confirmed', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
+  { id: 'apt_4', patientId: 'pat_4', doctorId: 'doc_2', patientName: 'Diana Miller', summary: 'Check-up', service_name: 'Check-up', date: '2024-05-20', time: '09:00:00', status: 'cancelled', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
+  { id: 'apt_5', patientId: 'pat_5', doctorId: 'doc_3', patientName: 'Ethan Davis', summary: 'Teeth Whitening', service_name: 'Teeth Whitening', date: '2024-08-01', time: '16:00:00', status: 'pending', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
+  { id: 'apt_6', patientId: 'pat_1', doctorId: 'doc_2', patientName: 'Alice Johnson', summary: 'Dental Cleaning', service_name: 'Dental Cleaning', date: '2024-07-10', time: '09:30:00', status: 'confirmed', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
+  { id: 'apt_7', patientId: 'pat_3', doctorId: 'doc_1', patientName: 'Charlie Brown', summary: 'Follow-up', service_name: 'Follow-up', date: '2024-07-22', time: '15:00:00', status: 'confirmed', calendar_id: 'cal_1', google_calendar_id: 'cal_1' },
 ];
 
 export const userLogs: UserLog[] = [

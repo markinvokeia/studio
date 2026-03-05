@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
@@ -129,7 +129,7 @@ async function deleteSequence(id: number) {
   if (responseData && typeof responseData === 'object') {
     // Handle array-based error responses
     if (Array.isArray(responseData)) {
-      const errorItem = responseData.find(item => 
+      const errorItem = responseData.find(item =>
         item?.code >= 400 || item?.error || item?.message
       );
       if (errorItem) {
@@ -145,7 +145,7 @@ async function deleteSequence(id: number) {
 
     if ('message' in responseData && typeof responseData.message === 'string') {
       // Check if it's actually an error message by looking at context
-      const hasErrorIndicators = 
+      const hasErrorIndicators =
         responseData.message.toLowerCase().includes('error') ||
         responseData.message.toLowerCase().includes('failed') ||
         responseData.message.toLowerCase().includes('invalid') ||
@@ -457,7 +457,8 @@ export default function SequencesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 py-4 px-6">
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -618,13 +619,14 @@ export default function SequencesPage() {
                   </FormItem>
                 )}
               />
+              </DialogBody>
 
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
-                  {t('createDialog.cancel')}
-                </Button>
                 <Button type="submit">
                   {editingSequence ? t('createDialog.editSave') : t('createDialog.save')}
+                </Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
+                  {t('createDialog.cancel')}
                 </Button>
               </DialogFooter>
             </form>
@@ -641,10 +643,10 @@ export default function SequencesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {t('deleteDialog.confirm')}
             </AlertDialogAction>
+            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

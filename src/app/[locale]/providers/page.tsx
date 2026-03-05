@@ -7,8 +7,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -402,14 +404,15 @@ export default function ProvidersPage() {
             <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 px-6 py-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
+                )}
               <FormField
                 control={form.control}
                 name="name"
@@ -480,10 +483,11 @@ export default function ProvidersPage() {
                   </FormItem>
                 )}
               />
-              <div className="flex justify-end space-x-2 pt-4">
+              </DialogBody>
+              <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>
                 <Button type="submit">{editingProvider ? t('ProvidersPage.createDialog.editSave') : t('ProvidersPage.createDialog.save')}</Button>
-              </div>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>

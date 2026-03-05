@@ -533,9 +533,9 @@ export default function CommunicationTemplatesPage() {
                             )} />
                         </form>
                     </Form>
-                    <DialogFooter className="mt-4 px-6">
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                    <DialogFooter>
                         <Button type="button" onClick={() => form.handleSubmit(onSubmit)()}>{editingTemplate ? t('dialog.save') : t('dialog.create')}</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -551,9 +551,9 @@ export default function CommunicationTemplatesPage() {
                         {previewingTemplate?.type === 'EMAIL' && previewingTemplate.subject && (
                             <div className="space-y-1">
                                 <Label className="text-muted-foreground">{t('dialog.subject')}</Label>
-                                <div 
+                                <div
                                     className="p-3 bg-background border rounded-md text-foreground"
-                                    dangerouslySetInnerHTML={{ 
+                                    dangerouslySetInnerHTML={{
                                         __html: previewingTemplate.subject.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`)
                                     }}
                                 />
@@ -561,14 +561,14 @@ export default function CommunicationTemplatesPage() {
                         )}
                         <div className="space-y-1">
                             <Label className="text-muted-foreground">{t('dialog.body')}</Label>
-                            <div 
+                            <div
                                 className="p-4 bg-background border rounded-md min-h-[200px] text-foreground"
-                                dangerouslySetInnerHTML={{ 
+                                dangerouslySetInnerHTML={{
                                     __html: previewingTemplate?.body_html?.replace(
-                                        /{{(.*?)}}/g, 
+                                        /{{(.*?)}}/g,
                                         (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`
-                                    ) || '' 
-                                }} 
+                                    ) || ''
+                                }}
                             />
                         </div>
                     </div>
@@ -584,8 +584,8 @@ export default function CommunicationTemplatesPage() {
                         <AlertDialogDescription>{t('deleteDialog.description', { name: deletingTemplate?.name })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

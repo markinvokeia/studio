@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -167,7 +168,6 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
             currency: apiOrder.currency || 'UYU',
-            quote_id: apiOrder.quote_id,
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -252,9 +252,9 @@ function hasValidPayments(paymentsData: any[]): boolean {
     if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
         return false;
     }
-    
+
     const firstItem = paymentsData[0];
-    
+
     if (!firstItem || typeof firstItem !== 'object') {
         return false;
     }
@@ -271,11 +271,11 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
-        
+
         if (!hasValidPayments(paymentsData)) {
             return [];
         }
-        
+
         const isNewFormat = paymentsData[0].amount_applied !== undefined && typeof paymentsData[0].amount_applied === 'string';
 
         return paymentsData.map((apiPayment: any) => ({
@@ -339,7 +339,7 @@ async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => strin
 }
 
 async function deleteQuote(id: string, t: (key: string) => string) {
-const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTE_DELETE, { id, is_sales: false });
+    const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTE_DELETE, { id, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToDeleteQuote');
         throw new Error(message);
@@ -372,6 +372,7 @@ export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
     const tVal = useTranslations('QuotesPage');
+    const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
@@ -386,7 +387,7 @@ export default function QuotesPage() {
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
-const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [payments, setPayments] = React.useState<Payment[]>([]);
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -446,7 +447,7 @@ const [payments, setPayments] = React.useState<Payment[]>([]);
         setIsRefreshing(false);
     }, [t]);
 
-React.useEffect(() => {
+    React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
 
@@ -528,15 +529,25 @@ React.useEffect(() => {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-const handleCreateQuote = async () => {
+    const loadUsersForQuoteDialog = React.useCallback(async () => {
+        try {
+            setAllUsers(await getUsers(t));
+        } catch (error) {
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadUsers') });
+        }
+    }, [t, toast]);
+
+    const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
         quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate });
         setQuoteSubmissionError(null);
-        setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
+        if (allUsers.length === 0) {
+            void loadUsersForQuoteDialog();
+        }
     };
 
     const handleEditQuote = async (quote: Quote) => {
@@ -549,8 +560,10 @@ const handleCreateQuote = async () => {
         const exchangeRate = quote.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate });
         setQuoteSubmissionError(null);
-        setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
+        if (allUsers.length === 0) {
+            void loadUsersForQuoteDialog();
+        }
     };
 
     const handleDeleteQuote = (quote: Quote) => {
@@ -607,20 +620,23 @@ const handleCreateQuote = async () => {
         const sessionRate = getSessionExchangeRate();
         setExchangeRate(sessionRate);
 
-        try {
-            const fetchedServices = await getServices();
-            setAllServices(fetchedServices);
-            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
-            setIsQuoteItemDialogOpen(true);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
+        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+        setIsQuoteItemDialogOpen(true);
+
+        if (allServices.length === 0) {
+            try {
+                const fetchedServices = await getServices();
+                setAllServices(fetchedServices);
+            } catch (error) {
+                toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
+            }
         }
     };
 
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
         try {
-            const fetchedServices = await getServices();
+            const fetchedServices = allServices.length > 0 ? allServices : await getServices();
             setAllServices(fetchedServices);
             setEditingQuoteItem(item);
             setQuoteItemSubmissionError(null);
@@ -980,14 +996,15 @@ const handleCreateQuote = async () => {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4 px-6">
-                            {quoteSubmissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{quoteSubmissionError}</AlertDescription>
-                                </Alert>
-                            )}
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {quoteSubmissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{quoteSubmissionError}</AlertDescription>
+                                    </Alert>
+                                )}
                             <FormField
                                 control={quoteForm.control}
                                 name="user_id"
@@ -1086,9 +1103,10 @@ const handleCreateQuote = async () => {
                                     )}
                                 />
                             )}
+                            </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -1103,8 +1121,8 @@ const handleCreateQuote = async () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -1117,14 +1135,15 @@ const handleCreateQuote = async () => {
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...quoteItemForm}>
-                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4 px-6">
-                            {quoteItemSubmissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
-                                </Alert>
-                            )}
+                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {quoteItemSubmissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
+                                    </Alert>
+                                )}
                             <FormField
                                 control={quoteItemForm.control}
                                 name="service_id"
@@ -1266,9 +1285,10 @@ const handleCreateQuote = async () => {
                                     <FormMessage />
                                 </FormItem>
                             )} />
+                            </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuoteItem ? t('itemDialog.editSave') : t('itemDialog.save')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -1281,8 +1301,8 @@ const handleCreateQuote = async () => {
                         <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

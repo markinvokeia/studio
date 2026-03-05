@@ -390,10 +390,14 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         const amounts = (session as any).amounts || [];
         const uyuData = amounts.find((a: any) => a.currency === 'UYU');
         const usdData = amounts.find((a: any) => a.currency === 'USD');
+        const denominations = typeof session.opening_details === 'object' && session.opening_details !== null
+            ? (session.opening_details as Record<string, Record<string, number>>)
+            : {};
+
         return {
             totalUYU: uyuData?.opening_amount || 0,
             totalUSD: usdData?.opening_amount || 0,
-            denominations: session.opening_details || {}
+            denominations
         };
     }, [(session as any).amounts, session.opening_details]);
 

@@ -10,6 +10,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -261,14 +262,15 @@ export default function AvailabilityExceptionsPage() {
                         <DialogTitle>{editingException ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
                             <FormField
                                 control={form.control}
                                 name="user_id"
@@ -329,9 +331,10 @@ export default function AvailabilityExceptionsPage() {
                                 <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
+                            </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingException ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -344,8 +347,8 @@ export default function AvailabilityExceptionsPage() {
                         <AlertDialogDescription>{t('deleteDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

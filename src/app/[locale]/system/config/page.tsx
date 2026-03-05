@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -226,96 +227,98 @@ export default function SystemConfigPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={form.control}
-                                name="key"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.key')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('dialog.keyPlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
                                 )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="value"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.value')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('dialog.valuePlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="description"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.description')}</FormLabel>
-                                        <FormControl>
-                                            <Textarea placeholder={t('dialog.descriptionPlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="data_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.dataType')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormField
+                                    control={form.control}
+                                    name="key"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.key')}</FormLabel>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectDataType')} />
-                                                </SelectTrigger>
+                                                <Input placeholder={t('dialog.keyPlaceholder')} {...field} />
                                             </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="string">String</SelectItem>
-                                                <SelectItem value="number">Number</SelectItem>
-                                                <SelectItem value="boolean">Boolean</SelectItem>
-                                                <SelectItem value="json">JSON</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="is_public"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                                        <FormControl>
-                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                        </FormControl>
-                                        <div className="space-y-1 leading-none">
-                                            <FormLabel>{t('dialog.isPublic')}</FormLabel>
-                                            <FormDescription>
-                                                {t('dialog.isPublicDescription')}
-                                            </FormDescription>
-                                        </div>
-                                    </FormItem>
-                                )}
-                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="value"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.value')}</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder={t('dialog.valuePlaceholder')} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.description')}</FormLabel>
+                                            <FormControl>
+                                                <Textarea placeholder={t('dialog.descriptionPlaceholder')} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="data_type"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.dataType')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectDataType')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="string">String</SelectItem>
+                                                    <SelectItem value="number">Number</SelectItem>
+                                                    <SelectItem value="boolean">Boolean</SelectItem>
+                                                    <SelectItem value="json">JSON</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="is_public"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                                            <FormControl>
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>{t('dialog.isPublic')}</FormLabel>
+                                                <FormDescription>
+                                                    {t('dialog.isPublicDescription')}
+                                                </FormDescription>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                            </DialogBody>
                             <DialogFooter>
-                                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingConfig ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -330,8 +333,8 @@ export default function SystemConfigPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

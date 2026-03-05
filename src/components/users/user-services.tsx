@@ -291,8 +291,8 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
             </ScrollArea>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
             <Button onClick={handleAssignServices}>{t('UserServices.dialog.assign')}</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

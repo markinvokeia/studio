@@ -94,6 +94,11 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
         resolver: zodResolver(passwordFormSchema(tHeader)),
     });
 
+    const userInitial = React.useMemo(() => {
+        const source = user?.name?.trim() || user?.email?.trim() || '';
+        return source ? source.charAt(0).toUpperCase() : 'U';
+    }, [user?.email, user?.name]);
+
     const getEffectivePathname = (p: string, l: string) => {
         const localePrefix = `/${l}`;
         if (p.startsWith(localePrefix)) {
@@ -245,8 +250,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                         <TooltipTrigger asChild>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="relative h-12 w-12 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all overflow-hidden shrink-0">
-                                        <Image src="https://picsum.photos/seed/user/48/48" width={48} height={48} alt="Avatar" className="object-cover" />
+                                    <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full ring-2 ring-primary/20 hover:ring-primary/40 transition-all shrink-0 bg-accent text-accent-foreground font-bold text-sm">
+                                        <span aria-hidden="true">{userInitial}</span>
+                                        <span className="sr-only">{user?.name || tHeader('myAccount')}</span>
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent side="right" align="end" className="w-56 rounded-xl p-2">
@@ -289,13 +295,13 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{tHeader('logoutConfirmation.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {tHeader('logoutConfirmation.logoutAnyway')}
+                        </AlertDialogAction>
                         <Link href={`/${locale}/cashier`} passHref>
                             <Button variant="outline">{tHeader('logoutConfirmation.goToCashier')}</Button>
                         </Link>
-                        <AlertDialogAction onClick={handleLogout} className="bg-destructive hover:bg-destructive/90">
-                            {tHeader('logoutConfirmation.logoutAnyway')}
-                        </AlertDialogAction>
+                        <AlertDialogCancel>{tHeader('logoutConfirmation.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -335,8 +341,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                 </FormItem>
                             )} />
                             <DialogFooter>
-                                <Button variant="outline" type="button" onClick={() => setIsChangePasswordOpen(false)}>{tHeader('changePasswordDialog.cancel')}</Button>
                                 <Button type="submit">{tHeader('changePasswordDialog.save')}</Button>
+                                <Button variant="outline" type="button" onClick={() => setIsChangePasswordOpen(false)}>{tHeader('changePasswordDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

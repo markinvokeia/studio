@@ -20,6 +20,7 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogBody,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -252,9 +253,9 @@ function hasValidPayments(paymentsData: any[]): boolean {
     if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
         return false;
     }
-    
+
     const firstItem = paymentsData[0];
-    
+
     if (!firstItem || typeof firstItem !== 'object') {
         return false;
     }
@@ -271,11 +272,11 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     try {
         const data = await api.get(API_ROUTES.SALES.QUOTES_PAYMENTS, { quote_id: quoteId });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
-        
+
         if (!hasValidPayments(paymentsData)) {
             return [];
         }
-        
+
         const isNewFormat = paymentsData[0].amount_applied !== undefined && typeof paymentsData[0].amount_applied === 'string';
 
         return paymentsData.map((apiPayment: any) => ({
@@ -386,7 +387,7 @@ export default function QuotesPage() {
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
-const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [payments, setPayments] = React.useState<Payment[]>([]);
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -446,7 +447,7 @@ const [payments, setPayments] = React.useState<Payment[]>([]);
         setIsRefreshing(false);
     }, [t]);
 
-React.useEffect(() => {
+    React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
 
@@ -528,15 +529,25 @@ React.useEffect(() => {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-const handleCreateQuote = async () => {
+    const loadUsersForQuoteDialog = React.useCallback(async () => {
+        try {
+            setAllUsers(await getUsers(t));
+        } catch (error) {
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadUsers') });
+        }
+    }, [t, toast]);
+
+    const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
         quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate });
         setQuoteSubmissionError(null);
-        setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
+        if (allUsers.length === 0) {
+            void loadUsersForQuoteDialog();
+        }
     };
 
     const handleEditQuote = async (quote: Quote) => {
@@ -549,8 +560,10 @@ const handleCreateQuote = async () => {
         const exchangeRate = quote.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate });
         setQuoteSubmissionError(null);
-        setAllUsers(await getUsers(t));
         setIsQuoteDialogOpen(true);
+        if (allUsers.length === 0) {
+            void loadUsersForQuoteDialog();
+        }
     };
 
     const handleDeleteQuote = (quote: Quote) => {
@@ -607,20 +620,23 @@ const handleCreateQuote = async () => {
         const sessionRate = getSessionExchangeRate();
         setExchangeRate(sessionRate);
 
-        try {
-            const fetchedServices = await getServices();
-            setAllServices(fetchedServices);
-            quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
-            setIsQuoteItemDialogOpen(true);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
+        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
+        setIsQuoteItemDialogOpen(true);
+
+        if (allServices.length === 0) {
+            try {
+                const fetchedServices = await getServices();
+                setAllServices(fetchedServices);
+            } catch (error) {
+                toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
+            }
         }
     };
 
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
         try {
-            const fetchedServices = await getServices();
+            const fetchedServices = allServices.length > 0 ? allServices : await getServices();
             setAllServices(fetchedServices);
             setEditingQuoteItem(item);
             setQuoteItemSubmissionError(null);
@@ -647,6 +663,18 @@ const handleCreateQuote = async () => {
                     tooth_number: item.tooth_number || ''
                 });
 
+                setIsQuoteItemDialogOpen(true);
+            } else {
+                setEditingQuoteItem(item);
+                quoteItemForm.reset({
+                    id: item.id,
+                    quote_id: selectedQuote.id,
+                    service_id: String(item.service_id),
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    total: item.total,
+                    tooth_number: item.tooth_number || ''
+                });
                 setIsQuoteItemDialogOpen(true);
             }
         } catch (error) {
@@ -957,110 +985,112 @@ const handleCreateQuote = async () => {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="space-y-4 py-4 px-6">
-                            {quoteSubmissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{quoteSubmissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={quoteForm.control}
-                                name="user_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.user')}</FormLabel>
-                                        <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                <Command>
-                                                    <CommandInput placeholder={t('quoteDialog.searchUser')} />
-                                                    <CommandList>
-                                                        <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {allUsers.map((user) => (
-                                                                <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
-                                                                    <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                    {user.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <div className="grid grid-cols-2 gap-4">
-                                {editingQuote && (
-                                    <FormField
-                                        control={quoteForm.control}
-                                        name="total"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('quoteDialog.total')}</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" placeholder={t('placeholders.total')} {...field} disabled />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {quoteSubmissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{quoteSubmissionError}</AlertDescription>
+                                    </Alert>
                                 )}
                                 <FormField
                                     control={quoteForm.control}
-                                    name="currency"
+                                    name="user_id"
                                     render={({ field }) => (
-                                        <FormItem className={cn(!editingQuote && 'col-span-2')}>
-                                            <FormLabel>{t('quoteDialog.currency')}</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="USD">USD</SelectItem>
-                                                    <SelectItem value="UYU">UYU</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.user')}</FormLabel>
+                                            <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder={t('quoteDialog.searchUser')} />
+                                                        <CommandList>
+                                                            <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {allUsers.map((user) => (
+                                                                    <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
+                                                                        <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                        {user.name}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                            </div>
-                            <FormField
-                                control={quoteForm.control}
-                                name="exchange_rate"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder={t('placeholders.exchangeRate')}
-                                                value={field.value ? Number(field.value).toFixed(2) : ''}
-                                                disabled={isClinicCurrency}
-                                                onChange={(e) => {
-                                                    if (isClinicCurrency) {
-                                                        field.onChange(1);
-                                                    } else {
-                                                        field.onChange(parseFloat(e.target.value) || 0);
-                                                    }
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                <div className="grid grid-cols-2 gap-4">
+                                    {editingQuote && (
+                                        <FormField
+                                            control={quoteForm.control}
+                                            name="total"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('quoteDialog.total')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" placeholder={t('placeholders.total')} {...field} disabled />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    )}
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="currency"
+                                        render={({ field }) => (
+                                            <FormItem className={cn(!editingQuote && 'col-span-2')}>
+                                                <FormLabel>{t('quoteDialog.currency')}</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="USD">USD</SelectItem>
+                                                        <SelectItem value="UYU">UYU</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <FormField
+                                    control={quoteForm.control}
+                                    name="exchange_rate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder={t('placeholders.exchangeRate')}
+                                                    value={field.value ? Number(field.value).toFixed(2) : ''}
+                                                    disabled={isClinicCurrency}
+                                                    onChange={(e) => {
+                                                        if (isClinicCurrency) {
+                                                            field.onChange(1);
+                                                        } else {
+                                                            field.onChange(parseFloat(e.target.value) || 0);
+                                                        }
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
@@ -1092,155 +1122,157 @@ const handleCreateQuote = async () => {
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...quoteItemForm}>
-                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="space-y-4 py-4 px-6">
-                            {quoteItemSubmissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={quoteItemForm.control}
-                                name="service_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('itemDialog.service')}</FormLabel>
-                                        <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? allServices.find(s => s.id === field.value)?.name : t('itemDialog.selectService')}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                <Command>
-                                                    <CommandInput placeholder={t('itemDialog.searchService')} />
-                                                    <CommandList>
-                                                        <CommandEmpty>{t('itemDialog.noServiceFound')}</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {allServices.map((service) => (
-                                                                <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
-                                                                    <Check className={cn("mr-2 h-4 w-4", String(service.id) === field.value ? "opacity-100" : "opacity-0")} />
-                                                                    {service.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
+                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {quoteItemSubmissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('errors.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{quoteItemSubmissionError}</AlertDescription>
+                                    </Alert>
                                 )}
-                            />
-                            <FormField
-                                control={quoteItemForm.control}
-                                name="tooth_number"
-                                render={({ field }) => (
+                                <FormField
+                                    control={quoteItemForm.control}
+                                    name="service_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('itemDialog.service')}</FormLabel>
+                                            <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? allServices.find(s => s.id === field.value)?.name : t('itemDialog.selectService')}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder={t('itemDialog.searchService')} />
+                                                        <CommandList>
+                                                            <CommandEmpty>{t('itemDialog.noServiceFound')}</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {allServices.map((service) => (
+                                                                    <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
+                                                                        <Check className={cn("mr-2 h-4 w-4", String(service.id) === field.value ? "opacity-100" : "opacity-0")} />
+                                                                        {service.name}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={quoteItemForm.control}
+                                    name="tooth_number"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder={t('placeholders.toothNumber')}
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        field.onChange(value === '' ? '' : Number(value));
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                {showConversion && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormItem>
+                                            <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
+                                            <Input
+                                                value={originalServicePrice !== null && !isNaN(Number(originalServicePrice)) ? Number(originalServicePrice).toFixed(2) : ''}
+                                                readOnly
+                                                disabled
+                                            />
+                                        </FormItem>
+
+                                    </div>
+                                )}
+                                <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
+                                        <FormLabel>{t('itemDialog.quantity')}</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                placeholder={t('placeholders.toothNumber')}
+                                                placeholder={t('placeholders.quantity')}
                                                 {...field}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
                                                     field.onChange(value === '' ? '' : Number(value));
                                                 }}
+                                                onBlur={async (e) => {
+                                                    field.onBlur();
+                                                    const value = e.target.value;
+                                                    if (value !== '') {
+                                                        const quantity = Number(value);
+                                                        const unitPrice = quoteItemForm.getValues('unit_price') || 0;
+                                                        const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
+                                                        quoteItemForm.setValue('total', nameTotal);
+                                                    }
+                                                    await quoteItemForm.trigger('quantity');
+                                                }}
                                             />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
-                                )}
-                            />
-                            {showConversion && (
-                                <div className="grid grid-cols-2 gap-4">
+                                )} />
+                                <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('itemDialog.originalPrice')} ({originalServiceCurrency})</FormLabel>
-                                        <Input
-                                            value={originalServicePrice !== null && !isNaN(Number(originalServicePrice)) ? Number(originalServicePrice).toFixed(2) : ''}
-                                            readOnly
-                                            disabled
-                                        />
+                                        <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="number"
+                                                placeholder={t('placeholders.unitPrice')}
+                                                value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    if (value === '') {
+                                                        field.onChange('');
+                                                    } else {
+                                                        const numValue = Number(value);
+                                                        field.onChange(Math.round(numValue * 100) / 100);
+                                                    }
+                                                }}
+                                                onBlur={(e) => {
+                                                    const value = e.target.value;
+                                                    if (value !== '') {
+                                                        const numValue = Number(value);
+                                                        field.onChange(Math.round(numValue * 100) / 100);
+                                                        // Recalculate total
+                                                        const quantity = quoteItemForm.getValues('quantity') || 0;
+                                                        const newTotal = Math.round((numValue * quantity) * 100) / 100;
+                                                        quoteItemForm.setValue('total', newTotal);
+                                                    }
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
                                     </FormItem>
-
-                                </div>
-                            )}
-                            <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('itemDialog.quantity')}</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            type="number"
-                                            placeholder={t('placeholders.quantity')}
-                                            {...field}
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                field.onChange(value === '' ? '' : Number(value));
-                                            }}
-                                            onBlur={async (e) => {
-                                                field.onBlur();
-                                                const value = e.target.value;
-                                                if (value !== '') {
-                                                    const quantity = Number(value);
-                                                    const unitPrice = quoteItemForm.getValues('unit_price') || 0;
-                                                    const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
-                                                    quoteItemForm.setValue('total', nameTotal);
-                                                }
-                                                await quoteItemForm.trigger('quantity');
-                                            }}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            type="number"
-                                            placeholder={t('placeholders.unitPrice')}
-                                            value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''}
-                                            onChange={(e) => {
-                                                const value = e.target.value;
-                                                if (value === '') {
-                                                    field.onChange('');
-                                                } else {
-                                                    const numValue = Number(value);
-                                                    field.onChange(Math.round(numValue * 100) / 100);
-                                                }
-                                            }}
-                                            onBlur={(e) => {
-                                                const value = e.target.value;
-                                                if (value !== '') {
-                                                    const numValue = Number(value);
-                                                    field.onChange(Math.round(numValue * 100) / 100);
-                                                    // Recalculate total
-                                                    const quantity = quoteItemForm.getValues('quantity') || 0;
-                                                    const newTotal = Math.round((numValue * quantity) * 100) / 100;
-                                                    quoteItemForm.setValue('total', newTotal);
-                                                }
-                                            }}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('itemDialog.total')}</FormLabel>
-                                    <FormControl><Input type="number" placeholder={t('placeholders.total')} readOnly disabled value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+                                )} />
+                                <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('itemDialog.total')}</FormLabel>
+                                        <FormControl><Input type="number" placeholder={t('placeholders.total')} readOnly disabled value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuoteItem ? t('itemDialog.editSave') : t('itemDialog.save')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -1253,8 +1285,8 @@ const handleCreateQuote = async () => {
                         <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

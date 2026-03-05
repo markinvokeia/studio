@@ -86,8 +86,8 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
         const categoryMap = new Map(internalCategories.map(cat => [cat.slug, cat.name]));
 
         return {
-            data: response.map((cat: any) => ({ 
-                ...cat, 
+            data: response.map((cat: any) => ({
+                ...cat,
                 rules_count: cat.rules_count || 0,
                 internal_category_id: cat.notification_category_slug || undefined,
                 internal_category_name: cat.notification_category_slug ? categoryMap.get(cat.notification_category_slug) : undefined
@@ -508,12 +508,12 @@ export default function AlertCategoriesPage() {
                             </div>
                         </form>
                     </Form>
-                    <DialogFooter className="bottom-0 bg-background pt-4">
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                            {t('dialog.cancel')}
-                        </Button>
+                    <DialogFooter>
                         <Button disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
                             {isSubmitting ? t('dialog.saving') : editingCategory ? t('dialog.save') : t('dialog.create')}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            {t('dialog.cancel')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -528,13 +528,13 @@ export default function AlertCategoriesPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={confirmDelete}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             {t('deleteDialog.confirm')}
                         </AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

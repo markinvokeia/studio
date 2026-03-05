@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -358,7 +358,7 @@ export default function InvoicesPage() {
 
     const sendEmail = async (emails: string[]) => {
         if (!selectedInvoiceForEmail) return;
-        
+
         setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.SALES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
@@ -537,7 +537,7 @@ export default function InvoicesPage() {
                             onRefresh={loadInvoices}
                             onPrint={handlePrintInvoice}
                             onSendEmail={handleSendEmailClick}
-                        onConfirm={handleConfirmInvoiceClick}
+                            onConfirm={handleConfirmInvoiceClick}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -740,8 +740,8 @@ export default function InvoicesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -759,8 +759,8 @@ export default function InvoicesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -827,7 +827,8 @@ const ItemFormDialog = ({
                     </div>
                 ) : (
                     <Form {...itemForm}>
-                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}
                                 name="service_id"
@@ -886,11 +887,12 @@ const ItemFormDialog = ({
                                     </FormItem>
                                 )}
                             />
+                            </DialogBody>
                             <DialogFooter>
+                                <Button type="submit">{t('createDialog.save')}</Button>
                                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                     {t('createDialog.cancel')}
                                 </Button>
-                                <Button type="submit">{t('createDialog.save')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

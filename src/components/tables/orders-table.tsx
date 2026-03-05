@@ -214,13 +214,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-<DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
-                {t('Navigation.InvoiceAction')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
+                  {t('Navigation.InvoiceAction')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       }
     }
@@ -339,8 +339,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
             <Button onClick={handleConfirmInvoice}>{tOrdersPage('invoiceDialog.confirm')}</Button>
+            <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -534,8 +534,8 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
               <Button type="submit">{t('create')}</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
             </DialogFooter>
           </form>
         </Form>

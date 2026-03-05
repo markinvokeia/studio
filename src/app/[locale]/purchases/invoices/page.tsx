@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -679,7 +679,6 @@ export default function InvoicesPage() {
                         <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('createDialog.cancel')}</Button>
                         <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
                             {isSendingEmail ? (
                                 <>
@@ -690,6 +689,7 @@ export default function InvoicesPage() {
                                 t('sendEmailDialog.send')
                             )}
                         </Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('createDialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -716,8 +716,8 @@ export default function InvoicesPage() {
                     </DialogHeader>
                     <div className="py-4 space-y-4 px-6">
                         <div className="flex items-center justify-center w-full">
-                            <label 
-                                htmlFor="dropzone-file" 
+                            <label
+                                htmlFor="dropzone-file"
                                 className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50 transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
@@ -741,7 +741,6 @@ export default function InvoicesPage() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('createDialog.cancel')}</Button>
                         <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
                             {isProcessingImport ? (
                                 <>
@@ -752,6 +751,7 @@ export default function InvoicesPage() {
                                 t('importDialog.createInvoice')
                             )}
                         </Button>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('createDialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -779,8 +779,8 @@ export default function InvoicesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -798,8 +798,8 @@ export default function InvoicesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => confirmingInvoice && handleConfirmInvoiceInternal(confirmingInvoice)}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -866,7 +866,8 @@ const ItemFormDialog = ({
                     </div>
                 ) : (
                     <Form {...itemForm}>
-                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}
                                 name="service_id"
@@ -925,11 +926,12 @@ const ItemFormDialog = ({
                                     </FormItem>
                                 )}
                             />
+                            </DialogBody>
                             <DialogFooter>
+                                <Button type="submit">{t('createDialog.save')}</Button>
                                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                     {t('createDialog.cancel')}
                                 </Button>
-                                <Button type="submit">{t('createDialog.save')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

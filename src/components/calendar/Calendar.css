@@ -82,6 +82,14 @@
   gap: 0.5rem;
 }
 .event:hover { opacity: 0.8; }
+.event-time {
+  font-weight: 600;
+}
+.event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .day-view-container {
   display: flex;
@@ -194,6 +202,26 @@
   cursor: pointer;
   z-index: 10;
   border: 1px solid rgba(255, 255, 255, 0.2); /* Add subtle border for visibility */
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.event-day-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.event-day-time {
+  font-size: 0.7rem;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.event-in-day-view-compact {
+  justify-content: center;
 }
 
 .current-time-indicator {

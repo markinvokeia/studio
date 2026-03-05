@@ -44,8 +44,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     if (valueProp) {
       const asYouType = new AsYouType();
       asYouType.input(valueProp);
-      if (asYouType.country) {
-        setCountry(asYouType.country);
+      const detectedCountry = asYouType.getCountry();
+      if (detectedCountry) {
+        setCountry(detectedCountry);
         setInputValue(asYouType.getNumber()?.formatNational() || '');
       } else {
         setInputValue(valueProp);

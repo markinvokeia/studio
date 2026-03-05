@@ -241,9 +241,9 @@ function AlertsCenterPageContent() {
     const sendEmail = React.useCallback(async (alertIds: string[]) => {
         const alertsToCheck = alerts.filter(a => alertIds.includes(a.id));
         const userIds = alertsToCheck.map(a => a.patient_id).filter(Boolean) as string[];
-        
+
         const uniqueUserIds = [...new Set(userIds)];
-        
+
         if (uniqueUserIds.length > 0) {
             const disabledIds: string[] = [];
             for (const userId of uniqueUserIds) {
@@ -316,10 +316,10 @@ function AlertsCenterPageContent() {
 
     const registerCall = async (alertIds: string[], scheduledAt: string, reason: string) => {
         try {
-            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_CALL_REGISTER, { 
-                ids: alertIds, 
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_CALL_REGISTER, {
+                ids: alertIds,
                 details_json: { scheduled_at: scheduledAt },
-                reason 
+                reason
             });
             refreshAlerts();
             await loadAlerts();
@@ -593,6 +593,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('ignoreAlert.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setIgnoreDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -643,6 +644,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('snoozeAlert.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setSnoozeDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -685,6 +687,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('registerCall.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setRegisterCallDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -717,6 +720,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('addNote.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setAddNoteDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -304,8 +304,8 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
                 )}
               />
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('PermissionsPage.dialog.cancel')}</Button>
                 <Button type="submit">{t('PermissionsPage.dialog.create')}</Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('PermissionsPage.dialog.cancel')}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -321,8 +321,8 @@ export function RolePermissions({ roleId }: RolePermissionsProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('PermissionsPage.deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('PermissionsPage.deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogCancel>{t('PermissionsPage.deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

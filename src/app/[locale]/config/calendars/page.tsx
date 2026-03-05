@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -209,71 +210,73 @@ export default function CalendarsPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.name')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('dialog.namePlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
                                 )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="google_calendar_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.googleCalendarId')}</FormLabel>
-                                        <FormControl>
-                                            <Input type="email" placeholder={t('dialog.googleCalendarIdPlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="color"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.color')}</FormLabel>
-                                        <FormControl>
-                                            <div className="flex items-center gap-2">
-                                                <Input type="color" className="p-1 h-10 w-14" {...field} />
-                                                <Input placeholder="#FFFFFF" {...field} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="is_active"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                        <FormControl>
-                                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                        </FormControl>
-                                        <FormLabel>{t('dialog.active')}</FormLabel>
-                                    </FormItem>
-                                )}
-                            />
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.name')}</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder={t('dialog.namePlaceholder')} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="google_calendar_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.googleCalendarId')}</FormLabel>
+                                            <FormControl>
+                                                <Input type="email" placeholder={t('dialog.googleCalendarIdPlaceholder')} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="color"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.color')}</FormLabel>
+                                            <FormControl>
+                                                <div className="flex items-center gap-2">
+                                                    <Input type="color" className="p-1 h-10 w-14" {...field} />
+                                                    <Input placeholder="#FFFFFF" {...field} />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="is_active"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                            <FormControl>
+                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                            </FormControl>
+                                            <FormLabel>{t('dialog.active')}</FormLabel>
+                                        </FormItem>
+                                    )}
+                                />
+                            </DialogBody>
                             <DialogFooter>
-                                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingCalendar ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -288,8 +291,8 @@ export default function CalendarsPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.delete')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

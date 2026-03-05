@@ -560,7 +560,7 @@ export default function MiscellaneousTransactionsPage() {
                                     const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
 
                                     React.useEffect(() => {
-                                      setInputValue(value ? String(value) : '');
+                                        setInputValue(value ? String(value) : '');
                                     }, [value]);
 
                                     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -591,7 +591,7 @@ export default function MiscellaneousTransactionsPage() {
                                         <FormItem className="col-span-2">
                                             <FormLabel>{t('dialog.amount')}</FormLabel>
                                             <FormControl>
-                                                <Input 
+                                                <Input
                                                     type="text"
                                                     inputMode="decimal"
                                                     value={inputValue}
@@ -612,8 +612,8 @@ export default function MiscellaneousTransactionsPage() {
                                 <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>{t('dialog.tags')}</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingTransaction ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -628,8 +628,8 @@ export default function MiscellaneousTransactionsPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('dialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('dialog.deleteAction')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('dialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

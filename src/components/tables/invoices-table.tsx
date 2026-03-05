@@ -9,6 +9,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -1375,14 +1376,15 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
           </div>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
-            {submissionError && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{t('errors.title')}</AlertTitle>
-                <AlertDescription>{submissionError}</AlertDescription>
-              </Alert>
-            )}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <DialogBody className="space-y-4 py-4 px-6">
+              {submissionError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('errors.title')}</AlertTitle>
+                  <AlertDescription>{submissionError}</AlertDescription>
+                </Alert>
+              )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -1584,6 +1586,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                 </div>
               </CardContent>
             </Card>
+            </DialogBody>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>

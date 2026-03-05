@@ -11,6 +11,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -133,10 +134,10 @@ export default function ChannelsPage() {
                     <Label htmlFor="is_active">Is Active</Label>
                 </div>
             </div>
-            <div className="flex justify-end space-x-2">
+            <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
                 <Button type="submit">Create Channel</Button>
-            </div>
+            </DialogFooter>
         </DialogContent>
     </Dialog>
     </>

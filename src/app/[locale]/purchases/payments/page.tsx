@@ -186,7 +186,6 @@ export default function PaymentsPage() {
                         <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
                         <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
                             {isSendingEmail ? (
                                 <>
@@ -197,6 +196,7 @@ export default function PaymentsPage() {
                                 'Send Email'
                             )}
                         </Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

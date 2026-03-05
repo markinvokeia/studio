@@ -10,6 +10,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -218,14 +219,15 @@ export default function PaymentMethodsPage() {
                         <DialogTitle>{editingMethod ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 py-4 px-6">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
                             <FormField
                                 control={form.control}
                                 name="name"
@@ -276,6 +278,7 @@ export default function PaymentMethodsPage() {
                                     </FormItem>
                                 )}
                             />
+                            </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingMethod ? t('dialog.save') : t('dialog.create')}</Button>

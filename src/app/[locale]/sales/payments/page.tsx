@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -376,14 +376,15 @@ export default function PaymentsPage() {
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="space-y-4 px-6 py-4">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
+                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>Error</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
                             <FormField
                                 control={form.control}
                                 name="user_id"
@@ -522,6 +523,7 @@ export default function PaymentsPage() {
                                     </FormItem>
                                 )}
                             />
+                            </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsPrepaidDialogOpen(false)}>{t('prepaidDialog.cancel')}</Button>
                                 <Button type="submit">{t('prepaidDialog.save')}</Button>

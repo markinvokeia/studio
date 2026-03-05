@@ -58,7 +58,7 @@ async function getMiscellaneousCategories(pagination: PaginationState, searchQue
         if (!data) return { categories: [], total: 0 };
 
         const normalized = normalizeApiResponse(data);
-        
+
         return {
             categories: normalized.items.map((c: any) => ({
                 ...c,
@@ -75,7 +75,7 @@ async function getMiscellaneousCategories(pagination: PaginationState, searchQue
 
 async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
     const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_UPSERT, categoryData);
-    
+
     // Check for error responses in array format
     if (Array.isArray(response) && response.length > 0) {
         const firstItem = response[0];
@@ -84,7 +84,7 @@ async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
             throw new Error(message);
         }
     }
-    
+
     // Check for error responses in object format
     if (response && typeof response === 'object' && !Array.isArray(response)) {
         if (response.error || response.code >= 400) {
@@ -92,13 +92,13 @@ async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
             throw new Error(message);
         }
     }
-    
+
     return response;
 }
 
 async function deleteMiscellaneousCategory(id: string) {
     const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_DELETE, { id });
-    
+
     // Check for error responses in array format
     if (Array.isArray(response) && response.length > 0) {
         const firstItem = response[0];
@@ -107,7 +107,7 @@ async function deleteMiscellaneousCategory(id: string) {
             throw new Error(message);
         }
     }
-    
+
     // Check for error responses in object format
     if (response && typeof response === 'object' && !Array.isArray(response)) {
         if (response.error || response.code >= 400) {
@@ -115,7 +115,7 @@ async function deleteMiscellaneousCategory(id: string) {
             throw new Error(message);
         }
     }
-    
+
     return response;
 }
 
@@ -344,8 +344,8 @@ export default function MiscellaneousCategoriesPage() {
                                 )}
                             />
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingCategory ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -365,8 +365,8 @@ export default function MiscellaneousCategoriesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

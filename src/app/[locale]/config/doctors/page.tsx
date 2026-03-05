@@ -10,8 +10,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -444,104 +446,106 @@ export default function DoctorsPage() {
             <DialogDescription>{editingUser ? t('DoctorsPage.createDialog.editDescription') : t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('DoctorsPage.createDialog.validation.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('DoctorsPage.createDialog.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('DoctorsPage.createDialog.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 px-6 py-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('DoctorsPage.createDialog.validation.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('DoctorsPage.createDialog.email')}</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder={t('DoctorsPage.createDialog.emailPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('DoctorsPage.createDialog.phone')}</FormLabel>
-                    <FormControl>
-                      <PhoneInput
-                        {...field}
-                        defaultCountry="UY"
-                        placeholder={t('DoctorsPage.createDialog.phonePlaceholder')}
-                        onChange={field.onChange}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="identity_document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('DoctorsPage.createDialog.identity_document')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('DoctorsPage.createDialog.identity_document_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('DoctorsPage.createDialog.color')}</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input type="color" className="p-1 h-10 w-14" {...field} />
-                        <Input placeholder="#FFFFFF" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('DoctorsPage.createDialog.cancel')}</Button>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('DoctorsPage.createDialog.namePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.email')}</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder={t('DoctorsPage.createDialog.emailPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.phone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          placeholder={t('DoctorsPage.createDialog.phonePlaceholder')}
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="identity_document"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.identity_document')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('DoctorsPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('DoctorsPage.createDialog.color')}</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" className="p-1 h-10 w-14" {...field} />
+                          <Input placeholder="#FFFFFF" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </DialogBody>
+              <DialogFooter>
                 <Button type="submit">{editingUser ? t('DoctorsPage.createDialog.editSave') : t('DoctorsPage.createDialog.save')}</Button>
-              </div>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('DoctorsPage.createDialog.cancel')}</Button>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>

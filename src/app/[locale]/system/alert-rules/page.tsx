@@ -133,7 +133,7 @@ export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
     const tValidation = useTranslations('AlertRulesPage.validation');
     const { toast } = useToast();
-    
+
     const [rules, setRules] = React.useState<AlertRule[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [tablesAndColumns, setTablesAndColumns] = React.useState<Record<string, { name: string, type: string, is_nullable: string }[]>>({});
@@ -482,7 +482,7 @@ export default function AlertRulesPage() {
                                     <AlertDescription>{submissionError}</AlertDescription>
                                 </Alert>
                             )}
-                            
+
                             <FormField
                                 control={form.control}
                                 name="name"
@@ -576,11 +576,11 @@ export default function AlertRulesPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('dialog.sourceTable')}</FormLabel>
-                                        <Select 
-                                            onValueChange={(val) => { 
-                                                field.onChange(val); 
-                                                setSelectedTable(val); 
-                                            }} 
+                                        <Select
+                                            onValueChange={(val) => {
+                                                field.onChange(val);
+                                                setSelectedTable(val);
+                                            }}
                                             value={field.value}
                                         >
                                             <FormControl>
@@ -651,8 +651,8 @@ export default function AlertRulesPage() {
                                 {conditions.map((cond, index) => (
                                     <div key={cond.id} className="flex items-center space-x-2">
                                         {index > 0 && (
-                                            <Select 
-                                                value={cond.logic} 
+                                            <Select
+                                                value={cond.logic}
                                                 onValueChange={(val: any) => {
                                                     const newConds = [...conditions];
                                                     newConds[index].logic = val;
@@ -666,8 +666,8 @@ export default function AlertRulesPage() {
                                                 </SelectContent>
                                             </Select>
                                         )}
-                                        <Select 
-                                            value={cond.column} 
+                                        <Select
+                                            value={cond.column}
                                             onValueChange={(val) => {
                                                 const newConds = [...conditions];
                                                 newConds[index].column = val;
@@ -681,8 +681,8 @@ export default function AlertRulesPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Select 
-                                            value={cond.operator} 
+                                        <Select
+                                            value={cond.operator}
                                             onValueChange={(val) => {
                                                 const newConds = [...conditions];
                                                 newConds[index].operator = val;
@@ -707,20 +707,20 @@ export default function AlertRulesPage() {
                                             operator={cond.operator}
                                             className="flex-1"
                                         />
-                                        <Button 
-                                            type="button" 
-                                            variant="ghost" 
-                                            size="icon" 
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => setConditions(conditions.filter((_, i) => i !== index))}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 ))}
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}
                                 >
                                     Add Condition
@@ -841,9 +841,9 @@ export default function AlertRulesPage() {
                             </div>
                         </form>
                     </Form>
-                    <DialogFooter className="pt-4 px-6">
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
+                    <DialogFooter>
                         <Button disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -855,8 +855,8 @@ export default function AlertRulesPage() {
                         <AlertDialogDescription>{t('deleteDialog.description', { name: deletingRule?.name })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">{isDeleting ? t('deleteDialog.deleting') : t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel disabled={isDeleting}>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
