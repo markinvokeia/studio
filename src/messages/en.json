@@ -606,6 +606,7 @@
     "createDialog": {
       "title": "Create New Patient",
       "description": "Fill in the details below to add a new patient.",
+      "createDescription": "Fill in the details below to add a new patient.",
       "editTitle": "Edit Patient",
       "editDescription": "Update the details for this patient.",
       "createSuccessTitle": "Patient Created",
