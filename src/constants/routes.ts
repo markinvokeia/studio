@@ -133,6 +133,7 @@ export const API_ROUTES = {
     },
     LOGIN: '/api/auth/login',
     LOGOUT: '/api/auth/logout',
+    AUTH_ME: '/auth/me',
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',

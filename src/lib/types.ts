@@ -18,6 +18,28 @@ export type User = {
   notes?: string;
 };
 
+export type UserPermission = {
+  permission: string;
+  action: string;
+  resource: string;
+  code: string;
+};
+
+export type UserRoleAndPermission = {
+  role_name: string;
+  role_description: string;
+  permissions: UserPermission[];
+};
+
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  internal_id?: string | null;
+  is_active: boolean;
+  roles_and_permissions: UserRoleAndPermission[];
+};
+
 export type PatientDischarge = {
   id: string;
   user_id: string;

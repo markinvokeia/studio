@@ -52,6 +52,10 @@ export interface NavItem {
   items?: NavItem[];
   isChidren?: boolean;
   isSeparator?: boolean;
+  requiredPermission?: string;
+  requiredPermissions?: string[];
+  requiredAnyPermission?: string[];
+  requiredRole?: string;
 }
 
 export const navItems: NavItem[] = [

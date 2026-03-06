@@ -1,13 +1,97 @@
 'use client';
 
-import * as React from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { usePathname, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
-import { useLocale } from 'next-intl';
-import { Sidebar } from '../sidebar';
+import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
-import { navItems } from '@/config/nav';
+import { useLocale } from 'next-intl';
+import { usePathname, useRouter } from 'next/navigation';
+import * as React from 'react';
+import { Sidebar } from '../sidebar';
+
+interface PrivateRouteProps {
+  children: React.ReactNode;
+  requiredPermission?: string;
+  requiredPermissions?: string[];
+  requiredAnyPermission?: string[];
+  fallback?: React.ReactNode;
+}
+
+export function PrivateRoute({
+  children,
+  requiredPermission,
+  requiredPermissions,
+  requiredAnyPermission,
+  fallback = null,
+}: PrivateRouteProps) {
+  const { user, isLoading } = useAuth();
+  const { hasPermission, hasAllPermissions, hasAnyPermission } = usePermissions();
+  const pathname = usePathname();
+  const router = useRouter();
+  const locale = useLocale();
+
+  const isPublicPage = pathname === `/${locale}/login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
+
+  React.useEffect(() => {
+    if (!isLoading) {
+      if (!user && !isPublicPage) {
+        router.replace(`/${locale}/login`);
+      } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
+        router.replace(`/${locale}`);
+      }
+    }
+  }, [user, isLoading, isPublicPage, pathname, router, locale]);
+
+  if (isLoading && !isPublicPage) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user && !isPublicPage) {
+    return null;
+  }
+
+  if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
+    return null;
+  }
+
+  if (isPublicPage) {
+    return <>{children}</>;
+  }
+
+  if (user) {
+    const hasAccess = !requiredPermission || hasPermission(requiredPermission);
+    const hasAllAccess = !requiredPermissions || hasAllPermissions(requiredPermissions);
+    const hasAnyAccess = !requiredAnyPermission || hasAnyPermission(requiredAnyPermission);
+
+    if (!hasAccess || !hasAllAccess || !hasAnyAccess) {
+      if (fallback) {
+        return <>{fallback}</>;
+      }
+      return (
+        <AuthenticatedLayout>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold">Acceso Denegado</h2>
+              <p className="text-muted-foreground mt-2">No tienes permisos para acceder a esta página.</p>
+            </div>
+          </div>
+        </AuthenticatedLayout>
+      );
+    }
+
+    return (
+      <AuthenticatedLayout>
+        {children}
+      </AuthenticatedLayout>
+    );
+  }
+
+  return null;
+}
 
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -36,53 +120,4 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
-}
-
-export function PrivateRoute({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
-  const pathname = usePathname();
-  const router = useRouter();
-  const locale = useLocale();
-
-  const isPublicPage = pathname === `/${locale}/login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
-
-  React.useEffect(() => {
-    if (!isLoading) {
-      if (!user && !isPublicPage) {
-        router.replace(`/${locale}/login`);
-      } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) { // Allow authenticated users on reset/set password
-        router.replace(`/${locale}`);
-      }
-    }
-  }, [user, isLoading, isPublicPage, pathname, router, locale]);
-
-  if (isLoading && !isPublicPage) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!user && !isPublicPage) {
-    return null; // or a loading spinner, since the redirect is happening
-  }
-
-  if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
-    return null;
-  }
-
-  if (isPublicPage) {
-    return <>{children}</>;
-  }
-
-  if (user) {
-    return (
-      <AuthenticatedLayout>
-        {children}
-      </AuthenticatedLayout>
-    );
-  }
-
-  return null;
 }

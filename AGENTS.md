@@ -179,4 +179,36 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 - Use consistent date formats across the application
 - Handle timezone considerations for international users
 
+## Sistema de Permisos y Control de Acceso
+
+**IMPORTANTE:** Este proyecto implementa un sistema de permisos basado en roles. Antes de agregar, modificar o eliminar cualquier funcionalidad que involucre control de acceso, **DEBES cargar y usar el skill `permissions-protection`**.
+
+### Cuándo Usar Este Skill
+
+Usa el skill `permissions-protection` cuando:
+
+1. **Crear nuevas páginas o rutas** que necesiten protección de acceso
+2. **Agregar botones, acciones o elementos de UI** que deban mostrarse/ocultarse según permisos
+3. **Modificar formularios o tablas** que contengan acciones condicionadas
+4. **Trabajar con menús de navegación** (`src/config/nav.ts`)
+
+### Archivos del Sistema de Permisos
+
+- `src/context/AuthContext.tsx` - Proveedor de autenticación con permisos
+- `src/hooks/usePermissions.ts` - Hook para verificar permisos en componentes
+- `src/components/auth/Can.tsx` - Componente para renderizado condicional
+- `src/components/auth/PrivateRoute.tsx` - Protección de rutas
+- `src/lib/permissions.ts` - Utilitarios para filtrar menú
+- `src/config/nav.ts` - Configuración del menú con permisos
+
+### Códigos de Permiso
+
+Los permisos se definen en el backend con códigos como:
+
+- `CATALOG_MEDICATIONS_CREATE`, `CATALOG_MEDICATIONS_READ`, etc.
+- `USUARIOS_VIEW_LIST`, `USUARIOS_CREATE`, `USUARIOS_EDIT`, `USUARIOS_DELETE`
+- `ROLES_VIEW_LIST`, `ROLES_CREATE`, etc.
+
+Para agregar permisos al menú o proteger rutas, consulta los códigos disponibles en el endpoint `/auth/me`.
+
 This file should be updated as the codebase evolves and new patterns are established.
