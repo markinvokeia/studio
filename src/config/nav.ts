@@ -94,7 +94,12 @@ export const navItems: NavItem[] = [
     title: 'Pacientes',
     href: '/users',
     icon: Users,
-    requiredPermission: PATIENTS_PERMISSIONS.VIEW_MENU,
+    requiredAnyPermission: [
+      PATIENTS_PERMISSIONS.VIEW_MENU,
+      PATIENTS_PERMISSIONS.VIEW_LIST,
+      MEDICAL_HISTORY_PERMISSIONS.VIEW_MENU,
+      DICOM_PERMISSIONS.VIEW_MENU,
+    ],
     items: [
       { title: 'Pacientes', href: '/users', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
       { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true, requiredPermission: MEDICAL_HISTORY_PERMISSIONS.VIEW_MENU },
