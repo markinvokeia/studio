@@ -43,7 +43,7 @@ import {
   UserX,
   Wallet
 } from 'lucide-react';
-import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
+import { DASHBOARD_PERMISSIONS, ALERT_CENTER_PERMISSIONS } from '@/constants/permissions';
 
 export interface NavItem {
   title: string;
@@ -70,6 +70,7 @@ export const navItems: NavItem[] = [
     title: 'AlertsCenter',
     href: '/alerts',
     icon: BellRing,
+    requiredPermission: ALERT_CENTER_PERMISSIONS.VIEW_MENU,
   },
   {
     title: 'Cashier',

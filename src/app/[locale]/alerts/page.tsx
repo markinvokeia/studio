@@ -12,10 +12,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Can } from '@/components/auth/Can';
 import { useAlertNotifications, AlertNotificationsProvider } from '@/context/alert-notifications-context';
 import { API_ROUTES } from '@/constants/routes';
+import { ALERT_CENTER_PERMISSIONS } from '@/constants/permissions';
 import { toast } from '@/hooks/use-toast';
 import { checkPreferencesByUserId } from '@/hooks/use-communication-preferences';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
@@ -125,6 +128,7 @@ const SummaryCard = ({ title, count, color }: { title: string, count: number, co
 
 function AlertsCenterPageContent() {
     const t = useTranslations('AlertsCenterPage');
+    const { hasPermission } = usePermissions();
     const { refreshAlerts } = useAlertNotifications();
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
     const [alertActions, setAlertActions] = React.useState<AlertAction[]>([]);
@@ -406,10 +410,12 @@ function AlertsCenterPageContent() {
                     </div>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-card">
-                    <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
-                    <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
-                    <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
-                    <SummaryCard title={t('summary.medium')} count={summaryCounts.medium} color="border-yellow-500" />
+                    <Can permission={ALERT_CENTER_PERMISSIONS.VIEW_KPIS}>
+                        <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
+                        <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
+                        <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
+                        <SummaryCard title={t('summary.medium')} count={summaryCounts.medium} color="border-yellow-500" />
+                    </Can>
                 </CardContent>
             </Card>
 
@@ -429,7 +435,8 @@ function AlertsCenterPageContent() {
                                 <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                                 {t('reload')}
                             </Button>
-                            <DropdownMenu>
+                            <Can permission={ALERT_CENTER_PERMISSIONS.FILTER}>
+                                <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
                                 </DropdownMenuTrigger>
@@ -469,6 +476,7 @@ function AlertsCenterPageContent() {
                                     </div>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            </Can>
                         </div>
                     </div>
                 </CardHeader>
@@ -536,23 +544,37 @@ function AlertsCenterPageContent() {
                                                     <User className="h-4 w-4" />
                                                     <span className="text-sm">{alert.patient_name}</span>
                                                     <div className="flex items-center gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.SEND_EMAIL}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                        </Can>
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
                                                                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
-                                                                <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])} disabled><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuLabel>{t('actionsGroups.management')}</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuLabel>{t('actionsGroups.other')}</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
+                                                                <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
+                                                                    <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])} disabled><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
+                                                                </Can>
+                                                                <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
+                                                                    <DropdownMenuItem onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
+                                                                </Can>
+                                                                <Can permission={ALERT_CENTER_PERMISSIONS.SNOOZE}>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuLabel>{t('actionsGroups.management')}</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
+                                                                </Can>
+                                                                <Can permission={ALERT_CENTER_PERMISSIONS.IGNORE}>
+                                                                    <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
+                                                                </Can>
+                                                                <Can permission={ALERT_CENTER_PERMISSIONS.ADD_NOTES}>
+                                                                    <DropdownMenuSeparator />
+                                                                    <DropdownMenuLabel>{t('actionsGroups.other')}</DropdownMenuLabel>
+                                                                    <DropdownMenuItem onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
+                                                                </Can>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </div>
@@ -731,17 +753,25 @@ function AlertsCenterPageContent() {
             />
 
             {/* Floating Bulk Actions Bar */}
-            <BulkActionsFloatingBar
-                selectedCount={selectedAlerts.length}
-                loadingAction={bulkActionLoading}
-                onMarkAsCompleted={() => markAsCompleted(selectedAlerts)}
-                onSendEmail={() => sendEmail(selectedAlerts)}
-                onSendSms={() => sendSms(selectedAlerts)}
-                onSendWhatsApp={() => sendWhatsApp(selectedAlerts)}
-                onIgnore={() => { if (!bulkActionLoading) { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); } }}
-                onSnooze={() => { if (!bulkActionLoading) { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); } }}
-                onDeselectAll={() => setSelectedAlerts([])}
-            />
+            <Can permission={ALERT_CENTER_PERMISSIONS.BULK_ACTIONS}>
+                <BulkActionsFloatingBar
+                    selectedCount={selectedAlerts.length}
+                    loadingAction={bulkActionLoading}
+                    onMarkAsCompleted={() => markAsCompleted(selectedAlerts)}
+                    onSendEmail={() => sendEmail(selectedAlerts)}
+                    onSendSms={() => sendSms(selectedAlerts)}
+                    onSendWhatsApp={() => sendWhatsApp(selectedAlerts)}
+                    onIgnore={() => { if (!bulkActionLoading) { setAlertsToIgnore(selectedAlerts); setIgnoreDialogOpen(true); } }}
+                    onSnooze={() => { if (!bulkActionLoading) { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); } }}
+                    onDeselectAll={() => setSelectedAlerts([])}
+                    canComplete={hasPermission(ALERT_CENTER_PERMISSIONS.COMPLETE)}
+                    canSendEmail={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_EMAIL)}
+                    canSendSms={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_SMS)}
+                    canSendWhatsApp={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP)}
+                    canSnooze={hasPermission(ALERT_CENTER_PERMISSIONS.SNOOZE)}
+                    canIgnore={hasPermission(ALERT_CENTER_PERMISSIONS.IGNORE)}
+                />
+            </Can>
 
         </div>
     );

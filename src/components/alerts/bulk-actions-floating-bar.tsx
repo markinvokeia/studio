@@ -25,6 +25,12 @@ interface BulkActionsFloatingBarProps {
     onSnooze: () => void
     onDeselectAll: () => void
     className?: string
+    canComplete?: boolean
+    canSendEmail?: boolean
+    canSendSms?: boolean
+    canSendWhatsApp?: boolean
+    canSnooze?: boolean
+    canIgnore?: boolean
 }
 
 export function BulkActionsFloatingBar({
@@ -37,7 +43,13 @@ export function BulkActionsFloatingBar({
     onIgnore,
     onSnooze,
     onDeselectAll,
-    className
+    className,
+    canComplete = true,
+    canSendEmail = true,
+    canSendSms = true,
+    canSendWhatsApp = true,
+    canSnooze = true,
+    canIgnore = true,
 }: BulkActionsFloatingBarProps) {
     if (selectedCount === 0) {
         return null
@@ -73,6 +85,7 @@ export function BulkActionsFloatingBar({
             
             {/* Action buttons */}
             <div className="flex items-center gap-1">
+                {canComplete && (
                 <Button
                     variant={loadingAction === 'complete' ? 'default' : 'ghost'}
                     size="sm"
@@ -93,8 +106,10 @@ export function BulkActionsFloatingBar({
                         <CheckCircle className="h-4 w-4" />
                     )}
                 </Button>
+                )}
                 
-<Button
+                {canSendEmail && (
+                <Button
                     variant={loadingAction === 'email' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={onSendEmail}
@@ -114,7 +129,9 @@ export function BulkActionsFloatingBar({
                         <Mail className="h-4 w-4" />
                     )}
                 </Button>
+                )}
                 
+                {canSendWhatsApp && (
                 <Button
                     variant={loadingAction === 'whatsapp' ? 'default' : 'ghost'}
                     size="sm"
@@ -135,8 +152,10 @@ export function BulkActionsFloatingBar({
                         <MessageCircle className="h-4 w-4" />
                     )}
                 </Button>
+                )}
                 
-<Button
+                {canSnooze && (
+                <Button
                     variant={loadingAction === 'snooze' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={onSnooze}
@@ -156,6 +175,7 @@ export function BulkActionsFloatingBar({
                         <Clock className="h-4 w-4" />
                     )}
                 </Button>
+                )}
                 
                 <div className="h-6 w-px bg-border mx-1" />
                 
