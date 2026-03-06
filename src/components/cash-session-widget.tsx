@@ -15,11 +15,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { CASHIER_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export const OpenCashSessionWidget = () => {
     const t = useTranslations('OpenCashSessionWidget');
     const locale = useLocale();
     const { activeCashSession, isLoading: isAuthLoading } = useAuth();
+    const { hasPermission } = usePermissions();
+    
+    const canViewWidget = hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET);
+    
+    if (!canViewWidget) {
+        return null;
+    }
     
     if (isAuthLoading) {
         return (

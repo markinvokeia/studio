@@ -20,6 +20,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { CASHIER_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -284,6 +286,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   const { toast } = useToast();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const { hasPermission } = usePermissions();
+  const canAccessCashier = hasPermission(CASHIER_PERMISSIONS.VIEW_MENU);
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
@@ -336,7 +340,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const creditsTotalInInvoiceCurrency = React.useMemo(() => {
     if (!selectedInvoiceForPayment) return 0;
     const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
-    
+
     return Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
       const credit = userCredits.find(c => c.source_id === creditId);
       if (!credit) return sum;
@@ -355,15 +359,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
   React.useEffect(() => {
     if (!selectedInvoiceForPayment) return;
-    
+
     const invoiceTotal = selectedInvoiceForPayment.total || 0;
     const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
     const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
     const remainingBalance = Math.max(0, invoiceTotal - paidAmount - creditsTotalInInvoiceCurrency);
-    
+
     const currentAmount = form.getValues('amount') || 0;
     const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
-    
+
     if (appliedCredits.size > 0 || currentAmount > remainingBalance) {
       let amountToSet = remainingBalance;
       if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
@@ -373,7 +377,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           amountToSet = remainingBalance / sessionExchangeRate;
         }
       }
-      
+
       amountToSet = Math.round(amountToSet * 100) / 100;
       form.setValue('amount', amountToSet);
     }
@@ -937,7 +941,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         <FormItem>
                           <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               type="text"
                               inputMode="decimal"
                               value={inputValue}
@@ -1015,7 +1019,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                         <FormItem>
                           <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               type="text"
                               inputMode="decimal"
                               value={inputValue}
@@ -1142,13 +1146,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
-            <Link href={`/${locale}/cashier`} passHref>
-              <Button>
-                <Box className="mr-2 h-4 w-4" />
-                {t('noSessionDialog.openCashSession')}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+            {canAccessCashier && (
+              <Link href={`/${locale}/cashier`} passHref>
+                <Button>
+                  <Box className="mr-2 h-4 w-4" />
+                  {t('noSessionDialog.openCashSession')}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1322,7 +1328,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       if (values.type === 'credit_note' && (!values.items || values.items.length === 0)) {
         throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
       }
-      
+
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
       const payload = isEditing && invoice
         ? { ...values, id: invoice.id, is_sales: isSales }
@@ -1448,8 +1454,8 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               <FormField control={form.control} name="user_id" render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    {invoiceType === 'credit_note' 
-                      ? (isSales ? t('client') : t('provider')) 
+                    {invoiceType === 'credit_note'
+                      ? (isSales ? t('client') : t('provider'))
                       : t('user')}
                   </FormLabel>
                   <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
@@ -1560,7 +1566,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                         return (
                           <FormItem className="w-full md:w-28">
                             <FormControl>
-                              <Input 
+                              <Input
                                 type="text"
                                 inputMode="decimal"
                                 value={inputValue}
