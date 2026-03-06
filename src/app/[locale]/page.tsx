@@ -17,6 +17,9 @@ import { KpiRow } from '@/components/dashboard/kpi-row';
 import { useTranslations } from 'next-intl';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
+import { Can } from '@/components/auth/Can';
 
 type DashboardSummary = {
     stats: Stat[],
@@ -304,6 +307,15 @@ export default function DashboardPage() {
     const tStats = useTranslations('Stats');
     const tKpi = useTranslations('KpiRow');
     const t = useTranslations();
+    const { hasPermission } = usePermissions();
+
+    const canViewKpis = hasPermission(DASHBOARD_PERMISSIONS.VIEW_KPIS);
+    const canViewCharts = hasPermission(DASHBOARD_PERMISSIONS.VIEW_CHARTS);
+    const canViewOperationalKpis = hasPermission(DASHBOARD_PERMISSIONS.VIEW_OPERATIONAL_KPIS);
+    const canViewRecentQuotes = hasPermission(DASHBOARD_PERMISSIONS.VIEW_RECENT_QUOTES);
+    const canViewRecentOrders = hasPermission(DASHBOARD_PERMISSIONS.VIEW_RECENT_ORDERS);
+    const canViewNewPatients = hasPermission(DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS);
+    const canApplyFilters = hasPermission(DASHBOARD_PERMISSIONS.APPLY_FILTERS);
 
     const [stats, setStats] = React.useState<Stat[]>([]);
     const [salesTrend, setSalesTrend] = React.useState(0);
@@ -393,45 +405,57 @@ export default function DashboardPage() {
 
     return (
         <div className="flex-1 overflow-y-auto p-4 pr-2 space-y-4 min-h-0">
-            <ReportFilters date={date} setDate={setDate} />
-            <Stats data={stats} />
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <SalesSummaryChart
-                    salesTrend={salesTrend}
-                    date={date}
-                    chartData={salesChartData}
-                    isLoading={isChartLoading}
-                />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading} />
-                    <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
+            <Can permission={DASHBOARD_PERMISSIONS.APPLY_FILTERS}>
+                <ReportFilters date={date} setDate={setDate} />
+            </Can>
+            <Can permission={DASHBOARD_PERMISSIONS.VIEW_KPIS}>
+                <Stats data={stats} />
+            </Can>
+            <Can permission={DASHBOARD_PERMISSIONS.VIEW_CHARTS}>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <SalesSummaryChart
+                        salesTrend={salesTrend}
+                        date={date}
+                        chartData={salesChartData}
+                        isLoading={isChartLoading}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading} />
+                        <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
+                    </div>
                 </div>
-            </div>
-            <KpiRow
-                averageBillingData={averageBilling}
-                appointmentAttendanceData={appointmentAttendance}
-                patientDemographicsData={patientDemographics}
-                isLoading={isKpiLoading}
-            />
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:h-[500px]">
+            </Can>
+            <Can permission={DASHBOARD_PERMISSIONS.VIEW_OPERATIONAL_KPIS}>
+                <KpiRow
+                    averageBillingData={averageBilling}
+                    appointmentAttendanceData={appointmentAttendance}
+                    patientDemographicsData={patientDemographics}
+                    isLoading={isKpiLoading}
+                />
+            </Can>
+            <Can permission={DASHBOARD_PERMISSIONS.VIEW_RECENT_QUOTES}>
                 <RecentQuotesTable
                     quotes={quotes}
                     title={t('RecentQuotesTable.title')}
                     description={t('RecentQuotesTable.description')}
                 />
+            </Can>
+            <Can permission={DASHBOARD_PERMISSIONS.VIEW_RECENT_ORDERS}>
                 <RecentOrdersTable orders={orders} />
-            </div>
-            <NewPatientsTable
-                patients={patients}
-                onRefresh={loadPatients}
-                isRefreshing={isRefreshingPatients}
-                pageCount={Math.ceil(patientTotal / patientPagination.pageSize)}
-                pagination={patientPagination}
-                onPaginationChange={setPatientPagination}
-                columnFilters={patientColumnFilters}
-                onColumnFiltersChange={setPatientColumnFilters}
-                className="lg:h-[500px]"
-            />
+            </Can>
+            <Can permission={DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS}>
+                <NewPatientsTable
+                    patients={patients}
+                    onRefresh={loadPatients}
+                    isRefreshing={isRefreshingPatients}
+                    pageCount={Math.ceil(patientTotal / patientPagination.pageSize)}
+                    pagination={patientPagination}
+                    onPaginationChange={setPatientPagination}
+                    columnFilters={patientColumnFilters}
+                    onColumnFiltersChange={setPatientColumnFilters}
+                    className="lg:h-[500px]"
+                />
+            </Can>
         </div>
     );
 }

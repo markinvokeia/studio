@@ -5,10 +5,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { navItems } from '@/config/nav';
 import { cn } from '@/lib/utils';
+import { filterNavByPermissions } from '@/lib/permissions';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -83,8 +85,13 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const locale = useLocale();
     const { theme, setTheme } = useTheme();
     const { logout, user } = useAuth();
+    const { hasPermission, permissions, roles } = usePermissions();
     const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
+
+    const filteredNavItems = React.useMemo(() => {
+        return filterNavByPermissions(navItems, permissions, roles);
+    }, [permissions, roles]);
 
     const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
@@ -154,7 +161,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
             <TooltipProvider>
                 <div className="flex-1 min-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <nav className="flex flex-col items-center gap-2">
-                        {navItems.map(item => {
+                        {filteredNavItems.map(item => {
                             const isActive = item.items
                                 ? item.items.some(subItem =>
                                     subItem.href !== '' && (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'))

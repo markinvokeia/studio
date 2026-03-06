@@ -43,6 +43,7 @@ import {
   UserX,
   Wallet
 } from 'lucide-react';
+import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
 
 export interface NavItem {
   title: string;
@@ -63,6 +64,7 @@ export const navItems: NavItem[] = [
     title: 'Dashboard',
     href: '/',
     icon: Home,
+    requiredPermission: DASHBOARD_PERMISSIONS.VIEW_MENU,
   },
   {
     title: 'AlertsCenter',
