@@ -1,12 +1,9 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
-import Image from 'next/image';
-import { MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,8 +12,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { User } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
+import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
@@ -58,7 +57,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
       <DataTableColumnHeader column={column} title={t('email')} />
     ),
   },
-    {
+  {
     accessorKey: 'identity_document',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('identity_document')} />
@@ -100,7 +99,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(user.id)}
               >
-                {t('copyId')} 
+                {t('copyId')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(user)}>{t('edit')}</DropdownMenuItem>
@@ -116,10 +115,10 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
 ];
 
 
-export function UserColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void;}) {
-    const t = useTranslations('UserColumns');
-    const columns = React.useMemo(() => {
-        return getColumns(t, onToggleActivate, onEdit);
-    }, [t, onToggleActivate, onEdit]);
-    return columns;
+export function UserColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; }) {
+  const t = useTranslations('UserColumns');
+  const columns = React.useMemo(() => {
+    return getColumns(t, onToggleActivate, onEdit);
+  }, [t, onToggleActivate, onEdit]);
+  return columns;
 }

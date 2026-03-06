@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogContent,
@@ -18,13 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MedicalHistory } from '@/components/users/medical-history';
@@ -37,18 +37,19 @@ import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { PatientDischarge, Quote, User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek, addMonths } from 'date-fns';
-import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Users, Printer, Receipt, X, XCircle } from 'lucide-react';
+import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { useLocale, useTranslations } from 'next-intl';
+import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Printer, Receipt, Users, X, XCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
@@ -446,7 +447,7 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
 
 export default function UsersPage() {
   const t = useTranslations();
-
+  const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const [users, setUsers] = React.useState<any[]>([]);
   const [userCount, setUserCount] = React.useState(0);
@@ -474,6 +475,25 @@ export default function UsersPage() {
   const [datePreset, setDatePreset] = React.useState<string | null>('allTime');
   const [showDebtors, setShowDebtors] = React.useState(false);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
+
+  // Permission checks
+  const canViewList = hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST);
+  const canCreate = hasPermission(PATIENTS_PERMISSIONS.CREATE);
+  const canToggleStatus = hasPermission(PATIENTS_PERMISSIONS.TOGGLE_STATUS);
+  const canSearchDebtors = hasPermission(PATIENTS_PERMISSIONS.SEARCH_DEBTORS);
+  const canCopyId = hasPermission(PATIENTS_PERMISSIONS.COPY_ID);
+  const canViewDetail = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
+  const canViewHistory = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_HISTORY);
+  const canViewAppointments = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_APPOINTMENTS);
+  const canViewQuotes = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES);
+  const canViewOrders = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS);
+  const canViewInvoices = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES);
+  const canViewPayments = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS);
+  const canViewMessages = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_MESSAGES);
+  const canViewNotes = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_NOTES);
+  const canCreateNote = hasPermission(PATIENTS_PERMISSIONS.CREATE_NOTE);
+  const canUpdateNote = hasPermission(PATIENTS_PERMISSIONS.UPDATE_NOTE);
+  const canDeleteNote = hasPermission(PATIENTS_PERMISSIONS.DELETE_NOTE);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -868,13 +888,13 @@ export default function UsersPage() {
       isActive: datePreset === 'month',
       onSelect: () => handleDatePreset('month'),
     },
-    {
+    ...(canSearchDebtors ? [{
       value: 'debtors',
       label: t('UsersPage.filters.showOnlyDebtors'),
       group: 'Status',
       isActive: showDebtors,
       onSelect: () => setShowDebtors(!showDebtors),
-    },
+    }] : []),
     {
       value: 'active',
       label: t('UsersPage.filters.showOnlyActive'),
@@ -939,7 +959,7 @@ export default function UsersPage() {
                       }}
                       filters={filtersOptionList}
                       onClearFilters={handleClearFilters}
-                      onCreate={handleCreate}
+                      onCreate={canCreate ? handleCreate : undefined}
                       onRefresh={loadUsers}
                       isRefreshing={isRefreshing}
                       extraButtons={null}
@@ -1015,61 +1035,65 @@ export default function UsersPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
-                  <UserStats user={selectedUser} t={t} onPrint={handlePrintFinancialSummary} />
-                  <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
-                    <TabsList className="gap-1">
-                      <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>
-                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
-                      )}
-                      <TabsTrigger value="quotes" className="text-xs px-2 py-1">{t('UsersPage.tabs.quotes')}</TabsTrigger>
-                      <TabsTrigger value="orders" className="text-xs px-2 py-1">{t('UsersPage.tabs.orders')}</TabsTrigger>
-                      <TabsTrigger value="invoices" className="text-xs px-2 py-1">{t('UsersPage.tabs.invoices')}</TabsTrigger>
-                      <TabsTrigger value="payments" className="text-xs px-2 py-1">{t('UsersPage.tabs.payments')}</TabsTrigger>
-                      <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
-                      <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                      <TabsTrigger value="preferences" className="text-xs px-2 py-1">{t('UsersPage.tabs.preferences')}</TabsTrigger>
-                      <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                      <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
-                    </TabsList>
-                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                      <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <MedicalHistory user={selectedUser} />
-                      </TabsContent>
-                      {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                        <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                          <UserServices userId={selectedUser.id} isSalesUser={true} />
-                        </TabsContent>
-                      )}
-                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
-                      </TabsContent>
-                      <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserOrders userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserInvoices userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserPayments userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserAppointments user={selectedUser} />
-                      </TabsContent>
-                      <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserMessages userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserCommunicationPreferences user={selectedUser} />
-                      </TabsContent>
-                      <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserLogs userId={selectedUser.id} />
-                      </TabsContent>
-                      <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />
-                      </TabsContent>
-                    </div>
-                  </Tabs>
+                  {canViewDetail && selectedUser ? (
+                    <>
+                      <UserStats user={selectedUser} t={t} onPrint={handlePrintFinancialSummary} />
+                      <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
+                        <TabsList className="gap-1">
+                          {canViewHistory && <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>}
+                          {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                            <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
+                          )}
+                          <TabsTrigger value="quotes" className="text-xs px-2 py-1">{t('UsersPage.tabs.quotes')}</TabsTrigger>
+                          <TabsTrigger value="orders" className="text-xs px-2 py-1">{t('UsersPage.tabs.orders')}</TabsTrigger>
+                          <TabsTrigger value="invoices" className="text-xs px-2 py-1">{t('UsersPage.tabs.invoices')}</TabsTrigger>
+                          <TabsTrigger value="payments" className="text-xs px-2 py-1">{t('UsersPage.tabs.payments')}</TabsTrigger>
+                          <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
+                          <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
+                          <TabsTrigger value="preferences" className="text-xs px-2 py-1">{t('UsersPage.tabs.preferences')}</TabsTrigger>
+                          <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                          <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
+                        </TabsList>
+                        <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
+                          <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <MedicalHistory user={selectedUser} />
+                          </TabsContent>
+                          {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                            <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                              <UserServices userId={selectedUser.id} isSalesUser={true} />
+                            </TabsContent>
+                          )}
+                          <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
+                          </TabsContent>
+                          <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserOrders userId={selectedUser.id} />
+                          </TabsContent>
+                          <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserInvoices userId={selectedUser.id} />
+                          </TabsContent>
+                          <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserPayments userId={selectedUser.id} />
+                          </TabsContent>
+                          <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserAppointments user={selectedUser} />
+                          </TabsContent>
+                          <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserMessages userId={selectedUser.id} />
+                          </TabsContent>
+                          <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserCommunicationPreferences user={selectedUser} />
+                          </TabsContent>
+                          <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <UserLogs userId={selectedUser.id} />
+                          </TabsContent>
+                          <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />
+                          </TabsContent>
+                        </div>
+                      </Tabs>
+                    </>
+                  ) : (<></>)}
                 </CardContent>
               </Card>
             )

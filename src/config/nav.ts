@@ -1,4 +1,5 @@
 
+import { ALERT_CENTER_PERMISSIONS, CASHIER_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
@@ -43,7 +44,6 @@ import {
   UserX,
   Wallet
 } from 'lucide-react';
-import { DASHBOARD_PERMISSIONS, ALERT_CENTER_PERMISSIONS, CASHIER_PERMISSIONS } from '@/constants/permissions';
 
 export interface NavItem {
   title: string;
@@ -94,11 +94,12 @@ export const navItems: NavItem[] = [
     title: 'Pacientes',
     href: '/users',
     icon: Users,
+    requiredPermission: PATIENTS_PERMISSIONS.VIEW_MENU,
     items: [
-      { title: 'Pacientes', href: '/users', icon: Users, isChidren: true },
-      { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true },
-      { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true },
-      { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true },
+      { title: 'Pacientes', href: '/users', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
+      { title: 'ClinicHistory', href: '/clinic-history', icon: HeartPulse, isChidren: true, requiredPermission: MEDICAL_HISTORY_PERMISSIONS.VIEW_MENU },
+      { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
+      { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
     ],
   },
   {
