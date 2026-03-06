@@ -54,6 +54,12 @@ export type Permission = {
   action: string;
   resource: string;
   description?: string;
+  // Extended fields for permission matrix
+  module?: string;
+  submenu?: string;
+  permission_code?: string;
+  permission_type?: string;
+  casl_action?: string;
 };
 
 export type UserRole = {

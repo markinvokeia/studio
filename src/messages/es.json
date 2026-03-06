@@ -2586,7 +2586,31 @@
             "saveError": "Error al guardar rol",
             "deleteError": "Error al eliminar rol"
         },
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "permissionsMatrix": {
+            "total": "Total",
+            "search": "Buscar permisos...",
+            "save": "Guardar",
+            "all": "Todos",
+            "none": "Ninguno",
+            "expand": "Expandir",
+            "collapse": "Colapsar",
+            "expandAll": "Expandir todos los módulos",
+            "collapseAll": "Colapsar todos los módulos",
+            "selectAll": "Seleccionar todos los permisos",
+            "deselectAll": "Deseleccionar todos los permisos",
+            "noPermissions": "No se encontraron permisos",
+            "noPermissionsDescription": "No hay permisos disponibles para mostrar.",
+            "toast": {
+                "success": "Éxito",
+                "saveSuccess": "Permisos guardados exitosamente.",
+                "saveError": "Error al guardar los permisos. Por favor, inténtelo de nuevo."
+            }
+        },
+        "all": "Todos",
+        "none": "Ninguno",
+        "save": "Guardar",
+        "search": "Buscar"
     },
     "RolesColumns": {
         "roleId": "ID",
@@ -2971,7 +2995,9 @@
                 "family": "No hay información familiar disponible",
                 "medications": "No hay medicamentos disponibles",
                 "allergies": "No hay alergias disponibles"
-            }
+            },
+            "createNew": "Crear Nuevo",
+            "refresh": "Actualizar"
         },
         "habits": {
             "title": "Hábitos",
@@ -3402,7 +3428,8 @@
             "preview": "Vista Previa",
             "history": "Historial",
             "delete": "Eliminar",
-            "version": "Versión"
+            "version": "Versión",
+            "defaultSender": "Enviador por defecto"
         },
         "dialog": {
             "createTitle": "Crear Plantilla",

@@ -2228,7 +2228,9 @@
         "identityInvalid": "Invalid identity document.",
         "identityMaxLength": "Identity document must be at most 10 characters long.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
-      }
+      },
+      "SuccessActivateDescription": "The doctor has been activated sucessfully",
+      "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully"
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -2584,7 +2586,31 @@
       "saveError": "Failed to save role",
       "deleteError": "Failed to delete role"
     },
-    "close": "Close"
+    "close": "Close",
+    "permissionsMatrix": {
+      "total": "Total",
+      "search": "Search permissions...",
+      "save": "Save",
+      "all": "All",
+      "none": "None",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "expandAll": "Expand all modules",
+      "collapseAll": "Collapse all modules",
+      "selectAll": "Select all permissions",
+      "deselectAll": "Deselect all permissions",
+      "noPermissions": "No permissions found",
+      "noPermissionsDescription": "There are no permissions available to display.",
+      "toast": {
+        "success": "Success",
+        "saveSuccess": "Permissions saved successfully.",
+        "saveError": "Failed to save permissions. Please try again."
+      }
+    },
+    "search": "Search",
+    "save": "Save",
+    "all": "All",
+    "none": "None"
   },
   "RolesColumns": {
     "roleId": "ID",
