@@ -19,6 +19,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { API_ROUTES } from '@/constants/routes';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentMethod } from '@/lib/types';
 import api from '@/services/api';
@@ -74,6 +76,15 @@ export default function PaymentMethodsPage() {
     const t = useTranslations('PaymentMethodsPage');
     const tValidation = useTranslations('PaymentMethodsPage.validation');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks
+    const canViewList = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_VIEW_LIST);
+    const canCreate = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_CREATE);
+    const canUpdate = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_UPDATE);
+    const canDelete = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_DELETE);
+    const canToggleStatus = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_TOGGLE_STATUS);
+
     const [methods, setMethods] = React.useState<PaymentMethod[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -176,8 +187,8 @@ export default function PaymentMethodsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(method)}>{t('columns.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(method)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
+                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(method)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(method)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -205,7 +216,7 @@ export default function PaymentMethodsPage() {
                         data={methods}
                         filterColumnId="name"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={loadMethods}
                         isRefreshing={isRefreshing}
                     />

@@ -19,6 +19,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { Invoice, InvoiceItem, InvoiceAllocation, Payment, Service, CreditNote } from '@/lib/types';
@@ -182,6 +184,22 @@ export default function InvoicesPage() {
     const t = useTranslations('InvoicesPage');
     const tQuotes = useTranslations('QuotesPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks
+    const canViewList = hasPermission(SALES_PERMISSIONS.INVOICES_VIEW_LIST);
+    const canCreate = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
+    const canUpdate = hasPermission(SALES_PERMISSIONS.INVOICES_UPDATE);
+    const canDelete = hasPermission(SALES_PERMISSIONS.INVOICES_DELETE);
+    const canConfirm = hasPermission(SALES_PERMISSIONS.INVOICES_CONFIRM);
+    const canViewDetail = hasPermission(SALES_PERMISSIONS.INVOICES_VIEW_DETAIL);
+    const canPrint = hasPermission(SALES_PERMISSIONS.INVOICES_PRINT);
+    const canSendEmail = hasPermission(SALES_PERMISSIONS.INVOICES_SEND_EMAIL);
+    const canViewItems = hasPermission(SALES_PERMISSIONS.INVOICES_VIEW_ITEMS);
+    const canAddItem = hasPermission(SALES_PERMISSIONS.INVOICES_ADD_ITEM);
+    const canUpdateItem = hasPermission(SALES_PERMISSIONS.INVOICES_UPDATE_ITEM);
+    const canDeleteItem = hasPermission(SALES_PERMISSIONS.INVOICES_DELETE_ITEM);
+
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -372,7 +390,7 @@ export default function InvoicesPage() {
 
     const sendEmail = async (emails: string[]) => {
         if (!selectedInvoiceForEmail) return;
-        
+
         setIsSendingEmail(true);
         try {
             await api.post(API_ROUTES.SALES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
@@ -549,9 +567,9 @@ export default function InvoicesPage() {
                             isLoading={isLoadingInvoices}
                             onRowSelectionChange={handleRowSelectionChange}
                             onRefresh={loadInvoices}
-                            onPrint={handlePrintInvoice}
-                            onSendEmail={handleSendEmailClick}
-                        onConfirm={handleConfirmInvoiceClick}
+                            onPrint={canPrint ? handlePrintInvoice : undefined}
+                            onSendEmail={canSendEmail ? handleSendEmailClick : undefined}
+                            onConfirm={canConfirm ? handleConfirmInvoiceClick : undefined}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}

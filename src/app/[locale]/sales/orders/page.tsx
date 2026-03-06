@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
 import api from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -179,6 +181,19 @@ export default function OrdersPage() {
     const tOrderItems = useTranslations('OrderItemsTable');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const tInvoices = useTranslations('InvoicesPage');
+    const { hasPermission } = usePermissions();
+
+    // Permission checks
+    const canViewList = hasPermission(SALES_PERMISSIONS.ORDERS_VIEW_LIST);
+    const canViewDetail = hasPermission(SALES_PERMISSIONS.ORDERS_VIEW_DETAIL);
+    const canViewItems = hasPermission(SALES_PERMISSIONS.ORDERS_VIEW_ITEMS);
+    const canAddItem = hasPermission(SALES_PERMISSIONS.ORDERS_ADD_ITEM);
+    const canUpdateItem = hasPermission(SALES_PERMISSIONS.ORDERS_UPDATE_ITEM);
+    const canDeleteItem = hasPermission(SALES_PERMISSIONS.ORDERS_DELETE_ITEM);
+    const canScheduleItem = hasPermission(SALES_PERMISSIONS.ORDERS_SCHEDULE_ITEM);
+    const canCompleteItem = hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
+    const canInvoiceFromOrder = hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
+
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});

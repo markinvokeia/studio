@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, CASHIER_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, CASHIER_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
@@ -106,13 +106,21 @@ export const navItems: NavItem[] = [
     title: 'Sales',
     href: '/sales/quotes',
     icon: Wallet,
+    requiredAnyPermission: [
+      SALES_PERMISSIONS.QUOTES_VIEW_MENU,
+      SALES_PERMISSIONS.ORDERS_VIEW_MENU,
+      SALES_PERMISSIONS.INVOICES_VIEW_MENU,
+      SALES_PERMISSIONS.PAYMENTS_VIEW_MENU,
+      SALES_PERMISSIONS.PAYMENT_METHODS_VIEW_MENU,
+      SALES_PERMISSIONS.SERVICES_VIEW_MENU,
+    ],
     items: [
-      { title: 'Quotes', href: '/sales/quotes', icon: FileText, isChidren: true },
-      { title: 'Orders', href: '/sales/orders', icon: ShoppingCart, isChidren: true },
-      { title: 'Invoices', href: '/sales/invoices', icon: Receipt, isChidren: true },
-      { title: 'Payments', href: '/sales/payments', icon: CreditCard, isChidren: true },
-      { title: 'PaymentMethods', href: '/sales/payment-methods', icon: CreditCard, isChidren: true },
-      { title: 'Services', href: '/sales/services', icon: Briefcase, isChidren: true },
+      { title: 'Quotes', href: '/sales/quotes', icon: FileText, isChidren: true, requiredPermission: SALES_PERMISSIONS.QUOTES_VIEW_MENU },
+      { title: 'Orders', href: '/sales/orders', icon: ShoppingCart, isChidren: true, requiredPermission: SALES_PERMISSIONS.ORDERS_VIEW_MENU },
+      { title: 'Invoices', href: '/sales/invoices', icon: Receipt, isChidren: true, requiredPermission: SALES_PERMISSIONS.INVOICES_VIEW_MENU },
+      { title: 'Payments', href: '/sales/payments', icon: CreditCard, isChidren: true, requiredPermission: SALES_PERMISSIONS.PAYMENTS_VIEW_MENU },
+      { title: 'PaymentMethods', href: '/sales/payment-methods', icon: CreditCard, isChidren: true, requiredPermission: SALES_PERMISSIONS.PAYMENT_METHODS_VIEW_MENU },
+      { title: 'Services', href: '/sales/services', icon: Briefcase, isChidren: true, requiredPermission: SALES_PERMISSIONS.SERVICES_VIEW_MENU },
     ],
   },
   {

@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
@@ -148,6 +150,7 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
+  const { hasPermission } = usePermissions();
   const [services, setServices] = React.useState<Service[]>([]);
   const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -156,6 +159,12 @@ export default function ServicesPage() {
   const [deletingService, setDeletingService] = React.useState<Service | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+
+  // Permission checks
+  const canViewList = hasPermission(SALES_PERMISSIONS.SERVICES_VIEW_LIST);
+  const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
+  const canUpdate = hasPermission(SALES_PERMISSIONS.SERVICES_UPDATE);
+  const canDelete = hasPermission(SALES_PERMISSIONS.SERVICES_DELETE);
 
   const { toast } = useToast();
 
@@ -254,7 +263,10 @@ export default function ServicesPage() {
     }
   };
 
-  const servicesColumns = ServicesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+  const servicesColumns = ServicesColumnsWrapper({
+    onEdit: canUpdate ? handleEdit : undefined,
+    onDelete: canDelete ? handleDelete : undefined
+  });
 
   const columnTranslations = {
     id: tColumns('id'),
@@ -289,7 +301,7 @@ export default function ServicesPage() {
             data={services}
             filterColumnId="name"
             filterPlaceholder={t('filterPlaceholder')}
-            onCreate={handleCreate}
+            onCreate={canCreate ? handleCreate : undefined}
             onRefresh={loadServices}
             isRefreshing={isRefreshing}
             columnTranslations={columnTranslations}
@@ -392,7 +404,7 @@ export default function ServicesPage() {
                       <FormItem>
                         <FormLabel>{t('createDialog.price')}</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             type="text"
                             inputMode="decimal"
                             value={inputValue}

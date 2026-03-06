@@ -33,7 +33,9 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User, Clinic } from '@/lib/types';
@@ -252,9 +254,9 @@ function hasValidPayments(paymentsData: any[]): boolean {
     if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
         return false;
     }
-    
+
     const firstItem = paymentsData[0];
-    
+
     if (!firstItem || typeof firstItem !== 'object') {
         return false;
     }
@@ -271,11 +273,11 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     try {
         const data = await api.get(API_ROUTES.SALES.QUOTES_PAYMENTS, { quote_id: quoteId });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
-        
+
         if (!hasValidPayments(paymentsData)) {
             return [];
         }
-        
+
         const isNewFormat = paymentsData[0].amount_applied !== undefined && typeof paymentsData[0].amount_applied === 'string';
 
         return paymentsData.map((apiPayment: any) => ({
@@ -374,6 +376,25 @@ export default function QuotesPage() {
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks for UI elements (used in this page and child components)
+    const canViewList = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_LIST);
+    const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
+    const canUpdateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE);
+    const canDeleteQuote = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE);
+    const canConfirmQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CONFIRM);
+    const canRejectQuote = hasPermission(SALES_PERMISSIONS.QUOTES_REJECT);
+    const canSendEmail = hasPermission(SALES_PERMISSIONS.QUOTES_SEND_EMAIL);
+    const canPrint = hasPermission(SALES_PERMISSIONS.QUOTES_PRINT);
+    const canViewDetail = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_DETAIL);
+    const canViewItems = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_ITEMS);
+    const canAddItem = hasPermission(SALES_PERMISSIONS.QUOTES_ADD_ITEM);
+    const canUpdateItem = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE_ITEM);
+    const canDeleteItem = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE_ITEM);
+    const canViewOrders = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_ORDERS);
+    const canViewInvoices = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_INVOICES);
+    const canViewPayments = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_PAYMENTS);
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -386,7 +407,7 @@ export default function QuotesPage() {
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
-const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [payments, setPayments] = React.useState<Payment[]>([]);
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -446,7 +467,7 @@ const [payments, setPayments] = React.useState<Payment[]>([]);
         setIsRefreshing(false);
     }, [t]);
 
-React.useEffect(() => {
+    React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
 
@@ -528,7 +549,7 @@ React.useEffect(() => {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-const handleCreateQuote = async () => {
+    const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
@@ -785,14 +806,14 @@ const handleCreateQuote = async () => {
                         <RecentQuotesTable
                             quotes={quotes}
                             onRowSelectionChange={handleRowSelectionChange}
-                            onCreate={handleCreateQuote}
+                            onCreate={canCreateQuote ? handleCreateQuote : undefined}
                             onRefresh={loadQuotes}
                             isRefreshing={isRefreshing}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
-                            onEdit={handleEditQuote}
-                            onDelete={handleDeleteQuote}
-                            onQuoteAction={handleQuoteAction}
+                            onEdit={canUpdateQuote ? handleEditQuote : undefined}
+                            onDelete={canDeleteQuote ? handleDeleteQuote : undefined}
+                            onQuoteAction={(canConfirmQuote || canRejectQuote) ? handleQuoteAction : undefined}
                             isCompact={!!selectedQuote}
                             standalone={true}
                             title={t('title')}
@@ -835,10 +856,10 @@ const handleCreateQuote = async () => {
                                                     isLoading={isLoadingItems}
                                                     onRefresh={loadQuoteItems}
                                                     isRefreshing={isLoadingItems}
-                                                    canEdit={canEditQuote}
-                                                    onCreate={handleCreateQuoteItem}
-                                                    onEdit={handleEditQuoteItem}
-                                                    onDelete={handleDeleteQuoteItem}
+                                                    canEdit={canEditQuote && canUpdateItem}
+                                                    onCreate={canAddItem ? handleCreateQuoteItem : () => { }}
+                                                    onEdit={canUpdateItem ? handleEditQuoteItem : () => { }}
+                                                    onDelete={canDeleteItem ? handleDeleteQuoteItem : () => { }}
                                                     showToothNumber={true}
                                                 />
                                             </TabsContent>

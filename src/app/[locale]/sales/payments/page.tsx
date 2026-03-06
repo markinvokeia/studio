@@ -17,6 +17,8 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_ROUTES } from '@/constants/routes';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
@@ -102,6 +104,16 @@ export default function PaymentsPage() {
     const { toast } = useToast();
     const { user, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks
+    const canViewList = hasPermission(SALES_PERMISSIONS.PAYMENTS_VIEW_LIST);
+    const canCreate = hasPermission(SALES_PERMISSIONS.PAYMENTS_CREATE);
+    const canUseCredits = hasPermission(SALES_PERMISSIONS.PAYMENTS_USE_CREDITS);
+    const canViewDetail = hasPermission(SALES_PERMISSIONS.PAYMENTS_VIEW_DETAIL);
+    const canPrepaidCreate = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_CREATE);
+    const canPrepaidView = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_VIEW);
+
     const {
         payments,
         isLoading,
@@ -371,7 +383,7 @@ export default function PaymentsPage() {
                                 isRefreshing={isLoading}
                                 onPrint={handlePrintPayment}
                                 onSendEmail={handleSendEmailClick}
-                                onCreate={handleCreatePrepaid}
+                                onCreate={canPrepaidCreate ? handleCreatePrepaid : undefined}
                                 pagination={pagination}
                                 onPaginationChange={handlePaginationChange}
                                 pageCount={totalPages}
