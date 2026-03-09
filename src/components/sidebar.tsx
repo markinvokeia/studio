@@ -1,44 +1,5 @@
 'use client';
 
-import * as React from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { navItems } from '@/config/nav';
-import { cn } from '@/lib/utils';
-import { filterNavByPermissions } from '@/lib/permissions';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
-import { useTheme } from 'next-themes';
-import { useAuth } from '@/context/AuthContext';
-import { usePermissions } from '@/hooks/usePermissions';
-import { api } from '@/services/api';
-import { API_ROUTES } from '@/constants/routes';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import * as z from 'zod';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { useAlertNotifications } from '@/context/alert-notifications-context';
-import { useToast } from '@/hooks/use-toast';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -49,19 +10,58 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
-    Sun,
-    Moon,
-    LogOut,
-    KeyRound,
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { navItems } from '@/config/nav';
+import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
+import { API_ROUTES } from '@/constants/routes';
+import { useAlertNotifications } from '@/context/alert-notifications-context';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { filterNavByPermissions } from '@/lib/permissions';
+import { cn } from '@/lib/utils';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import {
+    AlertTriangle,
     Bell,
     Check,
-    AlertTriangle,
-    Settings
+    KeyRound,
+    LogOut,
+    Moon,
+    Sun
 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useTheme } from 'next-themes';
+import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import * as React from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const passwordFormSchema = (t: (key: string) => string) => z.object({
     old_password: z.string().min(1, t('validation.oldPasswordRequired')),
@@ -219,34 +219,36 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                 </div>
 
                 <div className="mt-auto flex flex-col items-center gap-2 pb-4 shrink-0 border-t border-white/10 pt-4">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-[var(--nav-foreground)] hover:bg-accent/50 opacity-80 hover:opacity-100 transition-all">
-                                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                        <span className="sr-only">{tHeader('toggleTheme')}</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent side="right" align="end" className="rounded-xl w-40">
-                                    <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center justify-between">
-                                        <span>Invoke</span>
-                                        {theme === 'light' && <Check className="h-4 w-4 text-primary" />}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('claro')} className="flex items-center justify-between">
-                                        <span>Claro</span>
-                                        {theme === 'claro' && <Check className="h-4 w-4 text-primary" />}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center justify-between">
-                                        <span>Oscuro</span>
-                                        {theme === 'dark' && <Check className="h-4 w-4 text-primary" />}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">{tHeader('toggleTheme')}</TooltipContent>
-                    </Tooltip>
+                    {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_THEME) && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-12 w-12 rounded-xl text-[var(--nav-foreground)] hover:bg-accent/50 opacity-80 hover:opacity-100 transition-all">
+                                            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                            <span className="sr-only">{tHeader('toggleTheme')}</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent side="right" align="end" className="rounded-xl w-40">
+                                        <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center justify-between">
+                                            <span>Invoke</span>
+                                            {theme === 'light' && <Check className="h-4 w-4 text-primary" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setTheme('claro')} className="flex items-center justify-between">
+                                            <span>Claro</span>
+                                            {theme === 'claro' && <Check className="h-4 w-4 text-primary" />}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center justify-between">
+                                            <span>Oscuro</span>
+                                            {theme === 'dark' && <Check className="h-4 w-4 text-primary" />}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TooltipTrigger>
+                            <TooltipContent side="right">{tHeader('toggleTheme')}</TooltipContent>
+                        </Tooltip>
+                    )}
 
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -261,10 +263,12 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                         {user?.name || tHeader('myAccount')}
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="rounded-lg font-medium">
-                                        <KeyRound className="mr-2 h-4 w-4" />
-                                        <span>{tHeader('changePassword')}</span>
-                                    </DropdownMenuItem>
+                                    {hasPermission(GLOBAL_PERMISSIONS.PROFILE_CHANGE_PASSWORD) && (
+                                        <DropdownMenuItem onClick={() => setIsChangePasswordOpen(true)} className="rounded-lg font-medium">
+                                            <KeyRound className="mr-2 h-4 w-4" />
+                                            <span>{tHeader('changePassword')}</span>
+                                        </DropdownMenuItem>
+                                    )}
                                     <Link href={`/${locale}/preferences`} passHref>
                                         <DropdownMenuItem className="rounded-lg font-medium">
                                             <Bell className="mr-2 h-4 w-4" />

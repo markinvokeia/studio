@@ -445,6 +445,20 @@ export const BUSINESS_CONFIG_PERMISSIONS = {
 
 export type BusinessConfigPermission = (typeof BUSINESS_CONFIG_PERMISSIONS)[keyof typeof BUSINESS_CONFIG_PERMISSIONS];
 
+// Global (Panel Superior) Permissions
+export const GLOBAL_PERMISSIONS = {
+  // Profile
+  PROFILE_CHANGE_PASSWORD: 'PROFILE_CHANGE_PASSWORD',
+
+  // Panel Superior
+  GLOBAL_CHANGE_LANGUAGE: 'GLOBAL_CHANGE_LANGUAGE',
+  GLOBAL_CHANGE_THEME: 'GLOBAL_CHANGE_THEME',
+  GLOBAL_VIEW_EXCHANGE_RATE: 'GLOBAL_VIEW_EXCHANGE_RATE',
+  GLOBAL_VIEW_NOTIFICATIONS_BADGE: 'GLOBAL_VIEW_NOTIFICATIONS_BADGE',
+} as const;
+
+export type GlobalPermission = (typeof GLOBAL_PERMISSIONS)[keyof typeof GLOBAL_PERMISSIONS];
+
 // System (Admin) Permissions
 export const SYSTEM_PERMISSIONS = {
   // System Menu
