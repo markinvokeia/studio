@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Clinic } from '@/lib/types';
 import { api } from '@/services/api';
-import { RefreshCw, UploadCloud, Building } from 'lucide-react';
+import { Building, RefreshCw, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -56,6 +58,9 @@ async function getClinicLogo(): Promise<string | null> {
 
 export default function ClinicsPage() {
     const t = useTranslations('ClinicDetailsPage');
+    const { hasPermission } = usePermissions();
+    const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_UPDATE);
+    const canUploadLogo = hasPermission(BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_UPLOAD_LOGO);
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
@@ -63,7 +68,7 @@ export default function ClinicsPage() {
     const [logoFile, setLogoFile] = React.useState<File | null>(null);
     const { toast } = useToast();
 
-const loadClinic = React.useCallback(async () => {
+    const loadClinic = React.useCallback(async () => {
         setIsLoading(true);
         const [fetchedClinic, logoUrl] = await Promise.all([
             getClinic(),
@@ -129,7 +134,7 @@ const loadClinic = React.useCallback(async () => {
             formData.append('data', logoFile);
         }
 
-try {
+        try {
             const responseData = await api.post(API_ROUTES.CLINIC_UPDATE, formData);
 
             // Handle the new response format
@@ -137,7 +142,7 @@ try {
             // Error: array with error message (status 400)
             if (Array.isArray(responseData) && responseData.length > 0) {
                 const firstItem = responseData[0];
-                
+
                 // Check if this is an error response (has message field) or success response (has clinic data)
                 if (firstItem.message) {
                     // Error response
@@ -249,7 +254,9 @@ try {
                                         <UploadCloud className="h-8 w-8 text-muted-foreground" />
                                     )}
                                 </div>
-                                <Input id="logo" type="file" onChange={handleLogoChange} accept="image/*" className="max-w-xs" />
+                                {canUploadLogo && (
+                                    <Input id="logo" type="file" onChange={handleLogoChange} accept="image/*" className="max-w-xs" />
+                                )}
                             </div>
                         </div>
 
@@ -293,9 +300,11 @@ try {
                 </div>
             </CardContent>
             <CardFooter className="justify-between">
-                <Button onClick={handleSaveChanges} disabled={isSaving}>
-                    {isSaving ? t('saving') : t('save')}
-                </Button>
+                {canUpdate && (
+                    <Button onClick={handleSaveChanges} disabled={isSaving}>
+                        {isSaving ? t('saving') : t('save')}
+                    </Button>
+                )}
                 <Button variant="outline" size="icon" onClick={loadClinic} disabled={isLoading}>
                     <RefreshCw className={`h-4 w-4 ${isLoading || isSaving ? 'animate-spin' : ''}`} />
                 </Button>

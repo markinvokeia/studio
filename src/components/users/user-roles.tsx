@@ -3,8 +3,6 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -41,9 +39,11 @@ interface UserRolesProps {
   initialUserRoles: UserRole[];
   isLoading: boolean;
   onRolesChange: () => void;
+  canAssignRole?: boolean;
+  canRemoveRole?: boolean;
 }
 
-export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }: UserRolesProps) {
+export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange, canAssignRole = true, canRemoveRole = true }: UserRolesProps) {
   const t = useTranslations('UserRoles');
   const [allRoles, setAllRoles] = React.useState<Role[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -86,6 +86,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
   };
 
   const handleAssignRoles = async () => {
+    if (!canAssignRole) return;
     try {
       await assignRolesToUser(userId, selectedRoles);
       toast({
@@ -138,7 +139,7 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange }
         data={initialUserRoles}
         filterColumnId="name"
         filterPlaceholder={t('filterPlaceholder')}
-        onCreate={handleAddRole}
+        onCreate={canAssignRole ? handleAddRole : undefined}
         createButtonLabel={t('addRoles')}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}

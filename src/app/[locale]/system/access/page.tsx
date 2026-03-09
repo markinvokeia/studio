@@ -18,7 +18,9 @@ import { MoreHorizontal, UserCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { usePermissions } from '@/hooks/usePermissions';
 import api from '@/services/api';
 
 type GetAccessLogsResponse = {
@@ -58,6 +60,8 @@ async function getAccessLogs(pagination: PaginationState): Promise<GetAccessLogs
 
 export default function AccessLogPage() {
     const t = useTranslations('AccessLogPage');
+    const { hasPermission } = usePermissions();
+    const canViewList = hasPermission(SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_LIST);
     const [data, setData] = React.useState<AccessLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -136,20 +140,26 @@ export default function AccessLogPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                    <DataTable
-                        columns={columns}
-                        data={data}
-                        filterColumnId="user_id"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onRefresh={loadLogs}
-                        isRefreshing={isRefreshing}
-                        pageCount={Math.ceil(logCount / pagination.pageSize)}
-                        pagination={pagination}
-                        onPaginationChange={setPagination}
-                        manualPagination={true}
-                        columnVisibility={columnVisibility}
-                        onColumnVisibilityChange={setColumnVisibility}
-                    />
+                    {canViewList ? (
+                        <DataTable
+                            columns={columns}
+                            data={data}
+                            filterColumnId="user_id"
+                            filterPlaceholder={t('filterPlaceholder')}
+                            onRefresh={loadLogs}
+                            isRefreshing={isRefreshing}
+                            pageCount={Math.ceil(logCount / pagination.pageSize)}
+                            pagination={pagination}
+                            onPaginationChange={setPagination}
+                            manualPagination={true}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={setColumnVisibility}
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-muted-foreground">{t('noAccess')}</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

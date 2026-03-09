@@ -1,18 +1,23 @@
 
 'use client';
 
-import * as React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AlertScheduleRun } from '@/lib/types';
-import { useTranslations } from 'next-intl';
 import { api } from '@/services/api';
-import { ExecutionDetailDialog } from './execution-detail-dialog';
-import { ExecutionHistoryColumns } from './columns';
 import { FileClock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { ExecutionHistoryColumns } from './columns';
+import { ExecutionDetailDialog } from './execution-detail-dialog';
 
 export default function ExecutionHistoryPage() {
   const t = useTranslations('ExecutionHistoryPage');
+  const { hasPermission } = usePermissions();
+  const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_LIST);
+  const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_DETAIL);
   const [runs, setRuns] = React.useState<AlertScheduleRun[]>([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
@@ -38,7 +43,7 @@ export default function ExecutionHistoryPage() {
   };
 
   const tColumns = useTranslations('ExecutionHistoryPage.columns');
-  const columns = React.useMemo(() => ExecutionHistoryColumns({ onViewDetails: handleViewDetails, t: tColumns }), [tColumns]);
+  const columns = React.useMemo(() => ExecutionHistoryColumns({ onViewDetails: canViewDetail ? handleViewDetails : undefined, t: tColumns }), [tColumns, canViewDetail]);
 
   const onPaginationChange: React.Dispatch<React.SetStateAction<typeof pagination>> = (updater) => {
     const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
@@ -72,7 +77,8 @@ export default function ExecutionHistoryPage() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-          <DataTable
+          {canViewList ? (
+            <DataTable
               columns={columns}
               data={runs}
               filterColumnId="status"
@@ -82,7 +88,12 @@ export default function ExecutionHistoryPage() {
               pagination={pagination}
               onPaginationChange={onPaginationChange}
               manualPagination
-          />
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground">{t('noAccess')}</p>
+            </div>
+          )}
         </CardContent>
         <ExecutionDetailDialog
           open={detailDialogOpen}

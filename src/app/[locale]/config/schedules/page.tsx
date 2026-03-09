@@ -23,8 +23,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ClinicSchedule } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -83,6 +85,10 @@ export default function SchedulesPage() {
     const t = useTranslations('SchedulesPage');
     const tValidation = useTranslations('SchedulesPage.validation');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    const canCreate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_CREATE);
+    const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_UPDATE);
+    const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_DELETE);
     const [schedules, setSchedules] = React.useState<ClinicSchedule[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -168,7 +174,7 @@ export default function SchedulesPage() {
         }
     };
 
-    const schedulesColumns = SchedulesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const schedulesColumns = SchedulesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete, canEdit: canUpdate, canDelete: canDelete });
 
     const columnTranslations = {
         id: t('columns.id'),
@@ -198,7 +204,7 @@ export default function SchedulesPage() {
                         data={schedules}
                         filterColumnId="day_of_week"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={loadSchedules}
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}

@@ -3817,5 +3817,10 @@
         "description": "Las siguientes direcciones de correo electrónico no tienen el canal de email habilitado en sus preferencias de comunicación. Es posible que no reciban este mensaje:",
         "cancel": "Cancelar",
         "continueAnyway": "Enviar de Todos Modos"
+    },
+    "Common": {
+        "accessDenied": "Acceso Denegado",
+        "noPermission": "No tienes permisos para acceder a esta página.",
+        "loading": "Cargando..."
     }
 }

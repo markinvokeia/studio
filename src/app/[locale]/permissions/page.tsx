@@ -1,5 +1,6 @@
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { PermissionUsers } from '@/components/permissions/permission-users';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -24,10 +25,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Permission } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -37,7 +39,6 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { PermissionsColumnsWrapper } from './columns';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 const permissionFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -78,6 +79,15 @@ async function deletePermission(id: string) {
 export default function PermissionsPage() {
   const t = useTranslations('PermissionsPage');
   const tValidation = useTranslations('PermissionsPage.validation');
+  const { hasPermission } = usePermissions();
+
+  // Permission checks
+  const canViewList = hasPermission(SYSTEM_PERMISSIONS.PERMISSIONS_VIEW_LIST);
+  const canCreate = hasPermission(SYSTEM_PERMISSIONS.PERMISSIONS_CREATE);
+  const canUpdate = hasPermission(SYSTEM_PERMISSIONS.PERMISSIONS_UPDATE);
+  const canDelete = hasPermission(SYSTEM_PERMISSIONS.PERMISSIONS_DELETE);
+  const canViewImpact = hasPermission(SYSTEM_PERMISSIONS.PERMISSIONS_VIEW_IMPACT);
+
   const [permissions, setPermissions] = React.useState<Permission[]>([]);
   const [selectedPermission, setSelectedPermission] = React.useState<Permission | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -106,6 +116,7 @@ export default function PermissionsPage() {
   }, [loadPermissions]);
 
   const handleCreate = () => {
+    if (!canCreate) return;
     setEditingPermission(null);
     form.reset({ name: '', description: '', action: '', resource: '' });
     setSubmissionError(null);
@@ -113,6 +124,7 @@ export default function PermissionsPage() {
   };
 
   const handleEdit = (permission: Permission) => {
+    if (!canUpdate) return;
     setEditingPermission(permission);
     form.reset(permission);
     setSubmissionError(null);
@@ -120,6 +132,7 @@ export default function PermissionsPage() {
   };
 
   const handleDelete = (permission: Permission) => {
+    if (!canDelete) return;
     setDeletingPermission(permission);
     setIsDeleteDialogOpen(true);
   };
@@ -169,7 +182,7 @@ export default function PermissionsPage() {
     }
   };
 
-  const permissionsColumns = PermissionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+  const permissionsColumns = PermissionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete, canEdit: canUpdate, canDelete: canDelete });
 
 
   return (
@@ -197,7 +210,7 @@ export default function PermissionsPage() {
                 filterPlaceholder={t('filterPlaceholder')}
                 onRowSelectionChange={handleRowSelectionChange}
                 enableSingleRowSelection={true}
-                onCreate={handleCreate}
+                onCreate={canCreate ? handleCreate : undefined}
                 onRefresh={loadPermissions}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}

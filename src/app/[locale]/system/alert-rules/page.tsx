@@ -22,13 +22,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, AlertRule } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
-import * as LucideIcons from 'lucide-react';
 import { AlertTriangle, BotMessageSquare, MoreHorizontal, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -133,7 +134,14 @@ export default function AlertRulesPage() {
     const t = useTranslations('AlertRulesPage');
     const tValidation = useTranslations('AlertRulesPage.validation');
     const { toast } = useToast();
-    
+    const { hasPermission } = usePermissions();
+
+    const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_VIEW_LIST);
+    const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_CREATE);
+    const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_UPDATE);
+    const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_DELETE);
+    const canToggleStatus = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_TOGGLE_STATUS);
+
     const [rules, setRules] = React.useState<AlertRule[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [tablesAndColumns, setTablesAndColumns] = React.useState<Record<string, { name: string, type: string, is_nullable: string }[]>>({});
@@ -428,10 +436,10 @@ export default function AlertRulesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleTest(rule)} disabled={isTesting}>{t('columns.test')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
+                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canCreate && <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem onClick={() => handleTest(rule)} disabled={isTesting}>{t('columns.test')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -455,15 +463,21 @@ export default function AlertRulesPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                        <DataTable
-                            columns={columns}
-                            data={rules}
-                            filterColumnId="name"
-                            filterPlaceholder={t('filterPlaceholder')}
-                            onCreate={handleCreate}
-                            onRefresh={loadData}
-                            isRefreshing={isRefreshing}
-                        />
+                        {canViewList ? (
+                            <DataTable
+                                columns={columns}
+                                data={rules}
+                                filterColumnId="name"
+                                filterPlaceholder={t('filterPlaceholder')}
+                                onCreate={canCreate ? handleCreate : undefined}
+                                onRefresh={loadData}
+                                isRefreshing={isRefreshing}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground">{t('noAccess')}</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -482,7 +496,7 @@ export default function AlertRulesPage() {
                                     <AlertDescription>{submissionError}</AlertDescription>
                                 </Alert>
                             )}
-                            
+
                             <FormField
                                 control={form.control}
                                 name="name"
@@ -576,11 +590,11 @@ export default function AlertRulesPage() {
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('dialog.sourceTable')}</FormLabel>
-                                        <Select 
-                                            onValueChange={(val) => { 
-                                                field.onChange(val); 
-                                                setSelectedTable(val); 
-                                            }} 
+                                        <Select
+                                            onValueChange={(val) => {
+                                                field.onChange(val);
+                                                setSelectedTable(val);
+                                            }}
                                             value={field.value}
                                         >
                                             <FormControl>
@@ -651,8 +665,8 @@ export default function AlertRulesPage() {
                                 {conditions.map((cond, index) => (
                                     <div key={cond.id} className="flex items-center space-x-2">
                                         {index > 0 && (
-                                            <Select 
-                                                value={cond.logic} 
+                                            <Select
+                                                value={cond.logic}
                                                 onValueChange={(val: any) => {
                                                     const newConds = [...conditions];
                                                     newConds[index].logic = val;
@@ -666,8 +680,8 @@ export default function AlertRulesPage() {
                                                 </SelectContent>
                                             </Select>
                                         )}
-                                        <Select 
-                                            value={cond.column} 
+                                        <Select
+                                            value={cond.column}
                                             onValueChange={(val) => {
                                                 const newConds = [...conditions];
                                                 newConds[index].column = val;
@@ -681,8 +695,8 @@ export default function AlertRulesPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <Select 
-                                            value={cond.operator} 
+                                        <Select
+                                            value={cond.operator}
                                             onValueChange={(val) => {
                                                 const newConds = [...conditions];
                                                 newConds[index].operator = val;
@@ -707,20 +721,20 @@ export default function AlertRulesPage() {
                                             operator={cond.operator}
                                             className="flex-1"
                                         />
-                                        <Button 
-                                            type="button" 
-                                            variant="ghost" 
-                                            size="icon" 
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
                                             onClick={() => setConditions(conditions.filter((_, i) => i !== index))}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 ))}
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
-                                    size="sm" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
                                     onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}
                                 >
                                     Add Condition

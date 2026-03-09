@@ -1,22 +1,22 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { AlertScheduleRun } from '@/lib/types';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal, Eye } from 'lucide-react';
+import { AlertScheduleRun } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { Badge } from '@/components/ui/badge';
+import { Eye, MoreHorizontal } from 'lucide-react';
 
 interface ExecutionHistoryColumnsProps {
-    onViewDetails: (run: AlertScheduleRun) => void;
+    onViewDetails?: (run: AlertScheduleRun) => void;
     t: (key: string) => string;
 }
 
@@ -70,10 +70,10 @@ export const ExecutionHistoryColumns = ({ onViewDetails, t }: ExecutionHistoryCo
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onViewDetails(run)}>
+                            {onViewDetails && <DropdownMenuItem onClick={() => onViewDetails(run)}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 {t('viewDetails')}
-                            </DropdownMenuItem>
+                            </DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );

@@ -12,11 +12,13 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AuditLog } from '@/lib/types';
 import api from '@/services/api';
 import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { MoreHorizontal, BarChart } from 'lucide-react';
+import { BarChart, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -58,6 +60,9 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
 
 export default function AuditLogPage() {
     const t = useTranslations('AuditLog');
+    const { hasPermission } = usePermissions();
+    const canViewList = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
+    const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_DETAIL);
     const [data, setData] = React.useState<AuditLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -122,7 +127,7 @@ export default function AuditLogPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>
+                            {canViewDetail && <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -157,20 +162,26 @@ export default function AuditLogPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                    <DataTable
-                        columns={columns}
-                        data={data}
-                        filterColumnId="table_name"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onRefresh={loadLogs}
-                        isRefreshing={isRefreshing}
-                        pageCount={Math.ceil(logCount / pagination.pageSize)}
-                        pagination={pagination}
-                        onPaginationChange={setPagination}
-                        manualPagination={true}
-                        columnVisibility={columnVisibility}
-                        onColumnVisibilityChange={setColumnVisibility}
-                    />
+                    {canViewList ? (
+                        <DataTable
+                            columns={columns}
+                            data={data}
+                            filterColumnId="table_name"
+                            filterPlaceholder={t('filterPlaceholder')}
+                            onRefresh={loadLogs}
+                            isRefreshing={isRefreshing}
+                            pageCount={Math.ceil(logCount / pagination.pageSize)}
+                            pagination={pagination}
+                            onPaginationChange={setPagination}
+                            manualPagination={true}
+                            columnVisibility={columnVisibility}
+                            onColumnVisibilityChange={setColumnVisibility}
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full">
+                            <p className="text-muted-foreground">{t('noAccess')}</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

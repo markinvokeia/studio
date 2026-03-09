@@ -1,5 +1,6 @@
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { RolePermissions } from '@/components/roles/role-permissions';
 import { RoleUsers } from '@/components/roles/role-users';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,10 +19,11 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Role } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -31,7 +33,6 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { RolesColumnsWrapper } from './columns';
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 
 const roleFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -67,6 +68,19 @@ async function deleteRole(id: string) {
 export default function RolesPage() {
   const t = useTranslations('RolesPage');
   const tValidation = useTranslations('RolesPage.validation');
+  const { hasPermission } = usePermissions();
+
+  // Permission checks
+  const canViewList = hasPermission(SYSTEM_PERMISSIONS.ROLES_VIEW_LIST);
+  const canCreate = hasPermission(SYSTEM_PERMISSIONS.ROLES_CREATE);
+  const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ROLES_UPDATE);
+  const canDelete = hasPermission(SYSTEM_PERMISSIONS.ROLES_DELETE);
+  const canViewUsers = hasPermission(SYSTEM_PERMISSIONS.ROLES_VIEW_USERS);
+  const canAddUser = hasPermission(SYSTEM_PERMISSIONS.ROLES_ADD_USER);
+  const canRemoveUser = hasPermission(SYSTEM_PERMISSIONS.ROLES_REMOVE_USER);
+  const canViewPermissions = hasPermission(SYSTEM_PERMISSIONS.ROLES_VIEW_PERMISSIONS);
+  const canAssignPermission = hasPermission(SYSTEM_PERMISSIONS.ROLES_ASSIGN_PERMISSION);
+  const canRemovePermission = hasPermission(SYSTEM_PERMISSIONS.ROLES_REMOVE_PERMISSION);
 
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
@@ -96,6 +110,7 @@ export default function RolesPage() {
   }, [loadRoles]);
 
   const handleCreate = () => {
+    if (!canCreate) return;
     setEditingRole(null);
     form.reset({ name: '' });
     setSubmissionError(null);
@@ -103,6 +118,7 @@ export default function RolesPage() {
   };
 
   const handleEdit = (role: Role) => {
+    if (!canUpdate) return;
     setEditingRole(role);
     form.reset({ id: role.id, name: role.name });
     setSubmissionError(null);
@@ -110,6 +126,7 @@ export default function RolesPage() {
   };
 
   const handleDelete = (role: Role) => {
+    if (!canDelete) return;
     setDeletingRole(role);
     setIsDeleteDialogOpen(true);
   };
@@ -159,7 +176,7 @@ export default function RolesPage() {
     }
   };
 
-  const rolesColumns = RolesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+  const rolesColumns = RolesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete, canEdit: canUpdate, canDelete: canDelete });
 
 
   return (
@@ -187,7 +204,7 @@ export default function RolesPage() {
                 filterPlaceholder={t('filterPlaceholder')}
                 onRowSelectionChange={handleRowSelectionChange}
                 enableSingleRowSelection={true}
-                onCreate={handleCreate}
+                onCreate={canCreate ? handleCreate : undefined}
                 onRefresh={loadRoles}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}
@@ -217,16 +234,20 @@ export default function RolesPage() {
               <CardContent className="flex-1 overflow-auto p-4 pt-0">
                 <Tabs defaultValue="users" className="w-full h-full flex flex-col">
                   <TabsList>
-                    <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
-                    <TabsTrigger value="permissions">{t('tabs.permissions')}</TabsTrigger>
+                    {canViewUsers && <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>}
+                    {canViewPermissions && <TabsTrigger value="permissions">{t('tabs.permissions')}</TabsTrigger>}
                   </TabsList>
                   <div className="flex-1 overflow-auto mt-4">
-                    <TabsContent value="users" className="m-0">
-                      <RoleUsers roleId={selectedRole.id} />
-                    </TabsContent>
-                    <TabsContent value="permissions" className="m-0">
-                      <RolePermissions roleId={selectedRole.id} />
-                    </TabsContent>
+                    {canViewUsers && (
+                      <TabsContent value="users" className="m-0">
+                        <RoleUsers roleId={selectedRole.id} canAddUser={canAddUser} canRemoveUser={canRemoveUser} />
+                      </TabsContent>
+                    )}
+                    {canViewPermissions && (
+                      <TabsContent value="permissions" className="m-0">
+                        <RolePermissions roleId={selectedRole.id} canAssignPermission={canAssignPermission} canRemovePermission={canRemovePermission} />
+                      </TabsContent>
+                    )}
                   </div>
                 </Tabs>
               </CardContent>

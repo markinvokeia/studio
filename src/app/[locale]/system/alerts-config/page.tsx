@@ -1,28 +1,34 @@
 
 'use client';
 
-import * as React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { useTranslations } from 'next-intl';
-import { api } from '@/services/api';
-import { API_ROUTES } from '@/constants/routes';
-import { Settings } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from "@/components/ui/accordion";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { api } from '@/services/api';
+import { Settings } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 export default function AlertsConfigPage() {
   const t = useTranslations('AlertsConfigPage');
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  const canView = hasPermission(SYSTEM_PERMISSIONS.ALERT_CONFIG_VIEW);
+  const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_CONFIG_UPDATE);
 
   // Configuration state
   const [config, setConfig] = React.useState({
@@ -435,7 +441,7 @@ export default function AlertsConfigPage() {
       </Accordion>
 
       <div className="flex justify-end">
-        <Button onClick={handleSaveChanges}>{t('saveChanges')}</Button>
+        {canUpdate && <Button onClick={handleSaveChanges}>{t('saveChanges')}</Button>}
       </div>
     </div>
   );

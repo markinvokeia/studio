@@ -1,13 +1,15 @@
 'use client';
 
-import { PermissionMatrix } from './permission-matrix';
 import * as React from 'react';
+import { PermissionMatrix } from './permission-matrix';
 
 interface RolePermissionsProps {
   roleId: string;
+  canAssignPermission?: boolean;
+  canRemovePermission?: boolean;
 }
 
-export function RolePermissions({ roleId }: RolePermissionsProps) {
+export function RolePermissions({ roleId, canAssignPermission = true, canRemovePermission = true }: RolePermissionsProps) {
   const [refreshKey, setRefreshKey] = React.useState(0);
 
   const handlePermissionsChange = React.useCallback(() => {

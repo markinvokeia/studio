@@ -25,8 +25,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { SystemConfiguration } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -92,6 +94,12 @@ export default function SystemConfigPage() {
     const t = useTranslations('ConfigurationsPage');
     const tValidation = useTranslations('ConfigurationsPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    const canViewList = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_VIEW_LIST);
+    const canCreate = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_CREATE);
+    const canUpdate = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_UPDATE);
+    const canDelete = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_DELETE);
     const [configs, setConfigs] = React.useState<SystemConfiguration[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -178,7 +186,10 @@ export default function SystemConfigPage() {
         }
     };
 
-    const configsColumns = ConfigsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const configsColumns = ConfigsColumnsWrapper({
+        onEdit: canUpdate ? handleEdit : undefined,
+        onDelete: canDelete ? handleDelete : undefined
+    });
 
     return (
         <>
@@ -196,24 +207,30 @@ export default function SystemConfigPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                        <DataTable
-                            columns={configsColumns}
-                            data={configs}
-                            filterColumnId="key"
-                            filterPlaceholder={t('filterPlaceholder')}
-                            onCreate={handleCreate}
-                            onRefresh={loadConfigs}
-                            isRefreshing={isRefreshing}
-                            columnTranslations={{
-                                id: t('columns.id'),
-                                key: t('columns.key'),
-                                value: t('columns.value'),
-                                description: t('columns.description'),
-                                data_type: t('columns.type'),
-                                is_public: t('columns.isPublic'),
-                                updated_by: t('columns.updatedBy'),
-                            }}
-                        />
+                        {canViewList ? (
+                            <DataTable
+                                columns={configsColumns}
+                                data={configs}
+                                filterColumnId="key"
+                                filterPlaceholder={t('filterPlaceholder')}
+                                onCreate={canCreate ? handleCreate : undefined}
+                                onRefresh={loadConfigs}
+                                isRefreshing={isRefreshing}
+                                columnTranslations={{
+                                    id: t('columns.id'),
+                                    key: t('columns.key'),
+                                    value: t('columns.value'),
+                                    description: t('columns.description'),
+                                    data_type: t('columns.type'),
+                                    is_public: t('columns.isPublic'),
+                                    updated_by: t('columns.updatedBy'),
+                                }}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground">{t('noAccess')}</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

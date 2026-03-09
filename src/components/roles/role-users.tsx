@@ -72,9 +72,11 @@ async function deleteUserFromRole(roleId: string, userId: string) {
 
 interface RoleUsersProps {
   roleId: string;
+  canAddUser?: boolean;
+  canRemoveUser?: boolean;
 }
 
-export function RoleUsers({ roleId }: RoleUsersProps) {
+export function RoleUsers({ roleId, canAddUser = true, canRemoveUser = true }: RoleUsersProps) {
   const [users, setUsers] = React.useState<UserRole[]>([]);
   const [allUsers, setAllUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -114,7 +116,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
   };
 
   const confirmDelete = async () => {
-    if (!deletingUser) return;
+    if (!deletingUser || !canRemoveUser) return;
     try {
       await deleteUserFromRole(roleId, deletingUser.id);
       toast({
@@ -175,6 +177,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
       id: 'actions',
       cell: ({ row }) => {
         const user = row.original;
+        if (!canRemoveUser) return null;
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -214,7 +217,7 @@ export function RoleUsers({ roleId }: RoleUsersProps) {
             data={users}
             filterColumnId='name'
             filterPlaceholder='Filter by user...'
-            onCreate={handleCreate}
+            onCreate={canAddUser ? handleCreate : undefined}
             onRefresh={loadUsers}
             isRefreshing={isLoading}
           />

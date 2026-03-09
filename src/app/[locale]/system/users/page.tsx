@@ -20,16 +20,19 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { User, UserRole } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, KeyRound, X, Users } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { AlertTriangle, KeyRound, Users, X } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -161,6 +164,51 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 
 export default function SystemUsersPage() {
   const t = useTranslations();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { hasPermission } = usePermissions();
+  const router = useRouter();
+  const locale = useLocale();
+  const tCommon = useTranslations('Common');
+
+  // Route-level permission checks
+  const canViewList = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_LIST);
+  const canCreate = hasPermission(SYSTEM_PERMISSIONS.USERS_CREATE);
+  const canUpdate = hasPermission(SYSTEM_PERMISSIONS.USERS_UPDATE);
+  const canToggleStatus = hasPermission(SYSTEM_PERMISSIONS.USERS_TOGGLE_STATUS);
+  const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
+  const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_DETAIL);
+  const canViewRoles = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_ROLES);
+  const canAssignRole = hasPermission(SYSTEM_PERMISSIONS.USERS_ASSIGN_ROLE);
+  const canRemoveRole = hasPermission(SYSTEM_PERMISSIONS.USERS_REMOVE_ROLE);
+  const canViewLogs = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_LOGS);
+
+  // Redirect if no access to view list
+  React.useEffect(() => {
+    if (!isAuthLoading && user && !canViewList) {
+      router.replace(`/${locale}/`);
+    }
+  }, [isAuthLoading, user, canViewList, router, locale]);
+
+  // Show loading state
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <p>{tCommon('loading')}</p>
+      </div>
+    );
+  }
+
+  // Show access denied if no permission
+  if (user && !canViewList) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold">{tCommon('accessDenied')}</h2>
+          <p className="text-muted-foreground mt-2">{tCommon('noPermission')}</p>
+        </div>
+      </div>
+    );
+  }
 
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
@@ -171,7 +219,7 @@ export default function SystemUsersPage() {
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [canSetFirstPassword, setCanSetFirstPassword] = React.useState(false);
+  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -219,6 +267,7 @@ export default function SystemUsersPage() {
   }, [loadUsers]);
 
   const handleToggleActivate = async (user: User) => {
+    if (!canToggleStatus) return;
     try {
       await api.put(API_ROUTES.USERS_ACTIVATE, {
         user_id: user.id,
@@ -242,6 +291,7 @@ export default function SystemUsersPage() {
   };
 
   const handleCreate = () => {
+    if (!canCreate) return;
     setEditingUser(null);
     form.reset({
       name: '',
@@ -268,7 +318,7 @@ export default function SystemUsersPage() {
     setIsDialogOpen(true);
   };
 
-  const userColumns = SystemUserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+  const userColumns = SystemUserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit, canEdit: canUpdate, canToggleStatus: canToggleStatus });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -277,23 +327,23 @@ export default function SystemUsersPage() {
 
   React.useEffect(() => {
     const checkFirstPasswordRequirements = async () => {
-      if (!selectedUser) {
-        setCanSetFirstPassword(false);
+      if (!selectedUser || !canSetInitialPassword) {
+        setHasPasswordPermission(false);
         return;
       }
 
       const token = localStorage.getItem('token');
       if (!token) {
-        setCanSetFirstPassword(false);
+        setHasPasswordPermission(false);
         return;
       }
 
       try {
         await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id });
-        setCanSetFirstPassword(true);
+        setHasPasswordPermission(true);
       } catch (error) {
         console.error("Failed to check first password requirements:", error);
-        setCanSetFirstPassword(false);
+        setHasPasswordPermission(false);
       }
     };
 
@@ -302,9 +352,9 @@ export default function SystemUsersPage() {
       checkFirstPasswordRequirements();
     } else {
       setSelectedUserRoles([]);
-      setCanSetFirstPassword(false);
+      setHasPasswordPermission(false);
     }
-  }, [selectedUser, loadUserRoles]);
+  }, [selectedUser, loadUserRoles, canSetInitialPassword]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -355,7 +405,7 @@ export default function SystemUsersPage() {
   };
 
   const handleSendInitialPassword = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !canSetInitialPassword) return;
     try {
       const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_FIRST_TIME_PASSWORD_TOKEN, { user_id: selectedUser.id });
       toast({ title: 'Email Sent', description: responseData.message });
@@ -432,7 +482,7 @@ export default function SystemUsersPage() {
                       }}
                       filters={filtersOptionList}
                       onClearFilters={handleClearFilters}
-                      onCreate={handleCreate}
+                      onCreate={canCreate ? handleCreate : undefined}
                       onRefresh={loadUsers}
                       isRefreshing={isRefreshing}
                       extraButtons={null}
@@ -462,7 +512,7 @@ export default function SystemUsersPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {canSetFirstPassword && (
+                    {hasPasswordPermission && (
                       <Button variant="outline" size="sm" onClick={handleSendInitialPassword}>
                         <KeyRound className="mr-2 h-4 w-4" />
                         {t('SystemUsersPage.setInitialPassword')}
@@ -477,21 +527,27 @@ export default function SystemUsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
                     <TabsList>
-                      <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>
-                      <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>
+                      {canViewRoles && <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>}
+                      {canViewLogs && <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>}
                     </TabsList>
                     <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
-                      <TabsContent value="roles" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserRoles
-                          userId={selectedUser.id}
-                          initialUserRoles={selectedUserRoles}
-                          isLoading={isRolesLoading}
-                          onRolesChange={() => loadUserRoles(selectedUser.id)}
-                        />
-                      </TabsContent>
-                      <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                        <UserLogs userId={selectedUser.id} />
-                      </TabsContent>
+                      {canViewRoles && (
+                        <TabsContent value="roles" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <UserRoles
+                            userId={selectedUser.id}
+                            initialUserRoles={selectedUserRoles}
+                            isLoading={isRolesLoading}
+                            onRolesChange={() => loadUserRoles(selectedUser.id)}
+                            canAssignRole={canAssignRole}
+                            canRemoveRole={canRemoveRole}
+                          />
+                        </TabsContent>
+                      )}
+                      {canViewLogs && (
+                        <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <UserLogs userId={selectedUser.id} />
+                        </TabsContent>
+                      )}
                     </div>
                   </Tabs>
                 </CardContent>

@@ -1,10 +1,8 @@
 
 'use client';
 
-import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,76 +11,83 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Role } from '@/lib/types';
+import { ColumnDef } from '@tanstack/react-table';
+import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface RolesColumnsProps {
-    onEdit: (role: Role) => void;
-    onDelete: (role: Role) => void;
+  onEdit: (role: Role) => void;
+  onDelete: (role: Role) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-export const RolesColumnsWrapper = ({ onEdit, onDelete }: RolesColumnsProps): ColumnDef<Role>[] => {
-    const t = useTranslations('RolesColumns');
+export const RolesColumnsWrapper = ({ onEdit, onDelete, canEdit = true, canDelete = true }: RolesColumnsProps): ColumnDef<Role>[] => {
+  const t = useTranslations('RolesColumns');
 
-    const columns: ColumnDef<Role>[] = [
-      {
-        id: 'select',
-        header: () => null,
-        cell: ({ row, table }) => {
-          const isSelected = row.getIsSelected();
-          return (
-            <RadioGroup
-              value={isSelected ? row.id : ''}
-              onValueChange={() => {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
-              }}
-            >
-              <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
-            </RadioGroup>
-          );
-        },
-        enableSorting: false,
-        enableHiding: false,
+  const columns: ColumnDef<Role>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.id : ''}
+            onValueChange={() => {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }}
+          >
+            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          </RadioGroup>
+        );
       },
-      {
-        accessorKey: 'id',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('roleId')} />
-        ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'id',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('roleId')} />
+      ),
+    },
+    {
+      accessorKey: 'name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('name')} />
+      ),
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => {
+        const role = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
+              {canEdit && <DropdownMenuItem onClick={() => onEdit(role)}>{t('edit')}</DropdownMenuItem>}
+              {canDelete && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onDelete(role)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
       },
-      {
-        accessorKey: 'name',
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('name')} />
-        ),
-      },
-      {
-        id: 'actions',
-        cell: ({ row }) => {
-          const role = row.original;
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => onEdit(role)}>{t('edit')}</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => onDelete(role)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        },
-      },
-    ];
+    },
+  ];
 
-    return columns;
+  return columns;
 };
 
-    

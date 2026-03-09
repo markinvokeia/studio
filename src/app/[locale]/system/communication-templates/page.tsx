@@ -23,13 +23,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, CommunicationTemplate } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, Bold, Code2, Italic, List, MoreHorizontal, BookCopy } from 'lucide-react';
+import { AlertTriangle, Bold, BookCopy, Code2, Italic, List, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -137,6 +139,12 @@ const getAvailableVariables = (t: (key: string) => string) => ({
 export default function CommunicationTemplatesPage() {
     const t = useTranslations('CommunicationTemplatesPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_VIEW_LIST);
+    const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_CREATE);
+    const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_UPDATE);
+    const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_DELETE);
     const [templates, setTemplates] = React.useState<CommunicationTemplate[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -345,12 +353,12 @@ export default function CommunicationTemplatesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem>
+                            {canUpdate && <><DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem></>}
                             <DropdownMenuItem onClick={() => handlePreview(template)}>{t('columns.preview')}</DropdownMenuItem>
                             {/* <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem> */}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
+                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -374,21 +382,27 @@ export default function CommunicationTemplatesPage() {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                        <DataTable
-                            columns={columns}
-                            data={templates}
-                            filterColumnId="name"
-                            filterPlaceholder={t('filterPlaceholder')}
-                            onCreate={handleCreate}
-                            onRefresh={loadData}
-                            isRefreshing={isRefreshing}
-                            pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
-                            pagination={pagination}
-                            onPaginationChange={setPagination}
-                            columnFilters={columnFilters}
-                            onColumnFiltersChange={setColumnFilters}
-                            manualPagination={true}
-                        />
+                        {canViewList ? (
+                            <DataTable
+                                columns={columns}
+                                data={templates}
+                                filterColumnId="name"
+                                filterPlaceholder={t('filterPlaceholder')}
+                                onCreate={canCreate ? handleCreate : undefined}
+                                onRefresh={loadData}
+                                isRefreshing={isRefreshing}
+                                pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
+                                pagination={pagination}
+                                onPaginationChange={setPagination}
+                                columnFilters={columnFilters}
+                                onColumnFiltersChange={setColumnFilters}
+                                manualPagination={true}
+                            />
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground">{t('noAccess')}</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -551,9 +565,9 @@ export default function CommunicationTemplatesPage() {
                         {previewingTemplate?.type === 'EMAIL' && previewingTemplate.subject && (
                             <div className="space-y-1">
                                 <Label className="text-muted-foreground">{t('dialog.subject')}</Label>
-                                <div 
+                                <div
                                     className="p-3 bg-background border rounded-md text-foreground"
-                                    dangerouslySetInnerHTML={{ 
+                                    dangerouslySetInnerHTML={{
                                         __html: previewingTemplate.subject.replace(/{{(.*?)}}/g, (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`)
                                     }}
                                 />
@@ -561,14 +575,14 @@ export default function CommunicationTemplatesPage() {
                         )}
                         <div className="space-y-1">
                             <Label className="text-muted-foreground">{t('dialog.body')}</Label>
-                            <div 
+                            <div
                                 className="p-4 bg-background border rounded-md min-h-[200px] text-foreground"
-                                dangerouslySetInnerHTML={{ 
+                                dangerouslySetInnerHTML={{
                                     __html: previewingTemplate?.body_html?.replace(
-                                        /{{(.*?)}}/g, 
+                                        /{{(.*?)}}/g,
                                         (match, p1) => `<span class="bg-primary/20 text-primary-foreground rounded px-1">${p1.trim()}</span>`
-                                    ) || '' 
-                                }} 
+                                    ) || ''
+                                }}
                             />
                         </div>
                     </div>

@@ -3817,5 +3817,10 @@
     "description": "The following email addresses do not have the email channel enabled in their communication preferences. They may not receive this message:",
     "cancel": "Cancel",
     "continueAnyway": "Send Anyway"
+  },
+  "Common": {
+    "accessDenied": "Access Denied",
+    "noPermission": "You do not have permission to access this page.",
+    "loading": "Loading..."
   }
 }

@@ -21,9 +21,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
-import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, NotificationCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -86,8 +87,8 @@ async function getCategories(search?: string, is_active?: boolean, page: number 
         const categoryMap = new Map(internalCategories.map(cat => [cat.slug, cat.name]));
 
         return {
-            data: response.map((cat: any) => ({ 
-                ...cat, 
+            data: response.map((cat: any) => ({
+                ...cat,
                 rules_count: cat.rules_count || 0,
                 internal_category_id: cat.notification_category_slug || undefined,
                 internal_category_name: cat.notification_category_slug ? categoryMap.get(cat.notification_category_slug) : undefined
@@ -156,6 +157,14 @@ export default function AlertCategoriesPage() {
     const t = useTranslations('AlertCategoriesPage');
     const tValidation = useTranslations('AlertCategoriesPage.validation');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks
+    const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_VIEW_LIST);
+    const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_CREATE);
+    const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_UPDATE);
+    const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_DELETE);
+
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -221,6 +230,7 @@ export default function AlertCategoriesPage() {
     }, []);
 
     const handleCreate = () => {
+        if (!canCreate) return;
         setEditingCategory(null);
         form.reset({ code: '', name: '', description: '', icon: 'AlertCircle', color: '#888888', sort_order: 0, is_active: true, internal_category_id: undefined });
         setSubmissionError(null);
@@ -228,6 +238,7 @@ export default function AlertCategoriesPage() {
     };
 
     const handleEdit = (category: AlertCategory) => {
+        if (!canUpdate) return;
         setEditingCategory(category);
         form.reset({
             ...category,
@@ -239,6 +250,7 @@ export default function AlertCategoriesPage() {
     };
 
     const handleDelete = (category: AlertCategory) => {
+        if (!canDelete) return;
         if (category.rules_count && category.rules_count > 0) {
             toast({
                 variant: 'destructive',
@@ -350,8 +362,10 @@ export default function AlertCategoriesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(category)}>{t('columns.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(category)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
+                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(category)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canDelete && (
+                                <DropdownMenuItem onClick={() => handleDelete(category)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 );
@@ -379,7 +393,7 @@ export default function AlertCategoriesPage() {
                         data={categories}
                         filterColumnId="name"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={() => loadCategories(columnFilters, currentPage, pageSize)}
                         isRefreshing={isRefreshing}
                         columnFilters={columnFilters}

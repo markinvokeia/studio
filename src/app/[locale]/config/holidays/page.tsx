@@ -19,8 +19,10 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { ClinicException } from '@/lib/types';
 import { formatHolidayDate } from '@/lib/utils';
 import api from '@/services/api';
@@ -95,6 +97,10 @@ export default function HolidaysPage() {
     const tValidation = useTranslations('HolidaysPage.validation');
 
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    const canCreate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_CREATE);
+    const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_UPDATE);
+    const canDelete = hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_DELETE);
     const [holidays, setHolidays] = React.useState<ClinicException[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -195,7 +201,7 @@ export default function HolidaysPage() {
         );
     }, [holidays, searchQuery]);
 
-    const holidaysColumns = HolidaysColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const holidaysColumns = HolidaysColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete, canEdit: canUpdate, canDelete: canDelete });
 
     const columnTranslations = {
         id: t('columns.id'),
@@ -230,7 +236,7 @@ export default function HolidaysPage() {
                                 searchQuery={searchQuery}
                                 onSearchChange={setSearchQuery}
                                 filterPlaceholder={t('filterPlaceholder')}
-                                onCreate={handleCreate}
+                                onCreate={canCreate ? handleCreate : undefined}
                                 onRefresh={loadHolidays}
                                 isRefreshing={isRefreshing}
                                 columnTranslations={columnTranslations}
