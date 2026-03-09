@@ -17,7 +17,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { API_ROUTES } from '@/constants/routes';
+import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Ailment } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -79,6 +81,7 @@ async function deleteAilment(id: string) {
 export default function AilmentsPage() {
     const t = useTranslations('AilmentsPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
 
     const [ailments, setAilments] = React.useState<Ailment[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -166,7 +169,10 @@ export default function AilmentsPage() {
         }
     };
 
-    const ailmentsColumns = AilmentsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const ailmentsColumns = AilmentsColumnsWrapper({ 
+        onEdit: handleEdit, 
+        onDelete: handleDelete 
+    });
     const tColumns = useTranslations('AilmentsColumns');
 
 
@@ -190,7 +196,7 @@ export default function AilmentsPage() {
                         data={ailments}
                         filterColumnId="nombre"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={hasPermission(CLINIC_CATALOG_PERMISSIONS.CONDITIONS_CREATE) ? handleCreate : undefined}
                         onRefresh={loadAilments}
                         isRefreshing={isRefreshing}
                         columnTranslations={{
@@ -201,95 +207,6 @@ export default function AilmentsPage() {
                     />
                 </CardContent>
             </Card>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingAilment ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
-                        <DialogDescription>
-                            {editingAilment ? t('createDialog.editDescription') : t('createDialog.description')}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={form.control}
-                                name="nombre"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.name')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="categoria"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.category')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('createDialog.categoryPlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="nivel_alerta"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.alertLevel')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('createDialog.alertLevelPlaceholder')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="1">{t('createDialog.level1')}</SelectItem>
-                                                <SelectItem value="2">{t('createDialog.level2')}</SelectItem>
-                                                <SelectItem value="3">{t('createDialog.level3')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
-                                <Button type="submit">{editingAilment ? t('createDialog.editSave') : t('createDialog.save')}</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
-
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t('deleteDialog.description', { name: deletingAilment?.nombre })}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
         </div>
     );
 }

@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Medication } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,7 +46,7 @@ type MedicationResponse = {
 async function getMedications(pagination: PaginationState, searchQuery: string): Promise<MedicationResponse> {
     try {
         const searchValue = searchQuery.length >= 3 ? searchQuery : '';
-        
+
         const data = await api.get(API_ROUTES.CLINIC_CATALOG.MEDICATIONS, {
             search: searchValue,
             page: (pagination.pageIndex + 1).toString(),
@@ -105,6 +107,7 @@ async function deleteMedication(id: string) {
 export default function MedicationsPage() {
     const t = useTranslations('MedicationsPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
 
     const [medications, setMedications] = React.useState<Medication[]>([]);
     const [totalItems, setTotalItems] = React.useState(0);
@@ -231,7 +234,7 @@ export default function MedicationsPage() {
                         data={medications}
                         filterColumnId="nombre_generico"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={hasPermission(CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_CREATE) ? handleCreate : undefined}
                         onRefresh={loadMedications}
                         isRefreshing={isRefreshing}
                         columnTranslations={{

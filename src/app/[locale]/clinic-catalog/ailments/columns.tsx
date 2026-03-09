@@ -13,15 +13,18 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Can } from '@/components/auth/Can';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface AilmentsColumnsProps {
     onEdit: (ailment: Ailment) => void;
     onDelete: (ailment: Ailment) => void;
+    canEdit?: boolean;
+    canDelete?: boolean;
 }
 
-export const AilmentsColumnsWrapper = ({ onEdit, onDelete }: AilmentsColumnsProps) => {
+export const AilmentsColumnsWrapper = ({ onEdit, onDelete, canEdit, canDelete }: AilmentsColumnsProps) => {
     const t = useTranslations('AilmentsColumns');
     const columns: ColumnDef<Ailment>[] = [
         { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
@@ -54,8 +57,12 @@ export const AilmentsColumnsWrapper = ({ onEdit, onDelete }: AilmentsColumnsProp
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(ailment)}>{t('edit')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(ailment)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                    <Can permission="CATALOG_CONDITIONS_UPDATE">
+                        <DropdownMenuItem onClick={() => onEdit(ailment)}>{t('edit')}</DropdownMenuItem>
+                    </Can>
+                    <Can permission="CATALOG_CONDITIONS_DELETE">
+                        <DropdownMenuItem onClick={() => onDelete(ailment)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                    </Can>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );

@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DentalSurface } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -72,6 +74,7 @@ async function deleteDentalSurface(id: string) {
 export default function DentalSurfacesPage() {
     const t = useTranslations('DentalSurfacesPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
 
     const [surfaces, setSurfaces] = React.useState<DentalSurface[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -181,7 +184,7 @@ export default function DentalSurfacesPage() {
                         data={surfaces}
                         filterColumnId="nombre"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={hasPermission(CLINIC_CATALOG_PERMISSIONS.DENTAL_SURF_CREATE) ? handleCreate : undefined}
                         onRefresh={loadSurfaces}
                         isRefreshing={isRefreshing}
                     />

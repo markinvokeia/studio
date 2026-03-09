@@ -12,12 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Can } from '@/components/auth/Can';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface MedicationsColumnsProps {
     onEdit: (medication: Medication) => void;
     onDelete: (medication: Medication) => void;
+    canEdit?: boolean;
+    canDelete?: boolean;
 }
 
 export const MedicationsColumnsWrapper = ({ onEdit, onDelete }: MedicationsColumnsProps) => {
@@ -40,8 +43,12 @@ export const MedicationsColumnsWrapper = ({ onEdit, onDelete }: MedicationsColum
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(medication)}>{t('edit')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(medication)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                    <Can permission="CATALOG_MEDICATIONS_UPDATE">
+                        <DropdownMenuItem onClick={() => onEdit(medication)}>{t('edit')}</DropdownMenuItem>
+                    </Can>
+                    <Can permission="CATALOG_MEDICATIONS_DELETE">
+                        <DropdownMenuItem onClick={() => onDelete(medication)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                    </Can>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );

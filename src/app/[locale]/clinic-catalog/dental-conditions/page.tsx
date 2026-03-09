@@ -15,8 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DentalCondition } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -73,6 +75,7 @@ async function deleteDentalCondition(id: string) {
 export default function DentalConditionsPage() {
     const t = useTranslations('DentalConditionsPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
 
     const [conditions, setConditions] = React.useState<DentalCondition[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -183,7 +186,7 @@ export default function DentalConditionsPage() {
                         data={conditions}
                         filterColumnId="nombre"
                         filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
+                        onCreate={hasPermission(CLINIC_CATALOG_PERMISSIONS.DENTAL_COND_CREATE) ? handleCreate : undefined}
                         onRefresh={loadConditions}
                         isRefreshing={isRefreshing}
                     />

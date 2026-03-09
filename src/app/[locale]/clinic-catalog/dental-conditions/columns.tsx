@@ -12,12 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Can } from '@/components/auth/Can';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface DentalConditionsColumnsProps {
     onEdit: (condition: DentalCondition) => void;
     onDelete: (condition: DentalCondition) => void;
+    canEdit?: boolean;
+    canDelete?: boolean;
 }
 
 export const DentalConditionsColumnsWrapper = ({ onEdit, onDelete }: DentalConditionsColumnsProps) => {
@@ -53,8 +56,12 @@ export const DentalConditionsColumnsWrapper = ({ onEdit, onDelete }: DentalCondi
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(condition)}>{t('edit')}</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onDelete(condition)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                    <Can permission="CATALOG_DENTAL_COND_UPDATE">
+                        <DropdownMenuItem onClick={() => onEdit(condition)}>{t('edit')}</DropdownMenuItem>
+                    </Can>
+                    <Can permission="CATALOG_DENTAL_COND_DELETE">
+                        <DropdownMenuItem onClick={() => onDelete(condition)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                    </Can>
                 </DropdownMenuContent>
                 </DropdownMenu>
             );
