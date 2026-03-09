@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
@@ -24,8 +26,19 @@ import * as React from 'react';
 
 
 export default function PaymentsPage() {
+    return <PaymentsPageContent />;
+}
+
+function PaymentsPageContent() {
     const t = useTranslations('PaymentsPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks for UI elements
+    const canViewList = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_VIEW_LIST);
+    const canCreatePayment = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
+    const canViewDetail = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_VIEW_DETAIL);
+
     const {
         payments,
         isLoading,

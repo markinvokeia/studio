@@ -19,6 +19,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -142,9 +145,36 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 }
 
 export default function ProvidersPage() {
-  const t = useTranslations();
+  return (
+    <PrivateRoute requiredAnyPermission={[
+      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU,
+      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_LIST,
+      PURCHASES_PERMISSIONS.SUPPLIERS_CREATE,
+      PURCHASES_PERMISSIONS.SUPPLIERS_UPDATE,
+      PURCHASES_PERMISSIONS.SUPPLIERS_DELETE,
+      PURCHASES_PERMISSIONS.SUPPLIERS_TOGGLE_STATUS,
+      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_DETAIL,
+      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_SERVICES
+    ]}>
+      <ProvidersPageContent />
+    </PrivateRoute>
+  );
+}
 
+function ProvidersPageContent() {
+  const t = useTranslations();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+
+  // Permission checks for UI elements
+  const canViewList = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_LIST);
+  const canCreateSupplier = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_CREATE);
+  const canUpdateSupplier = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_UPDATE);
+  const canDeleteSupplier = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_DELETE);
+  const canToggleStatus = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_TOGGLE_STATUS);
+  const canViewDetail = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_DETAIL);
+  const canViewServices = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_SERVICES);
+
   const [providers, setProviders] = React.useState<User[]>([]);
   const [providerCount, setProviderCount] = React.useState(0);
   const [selectedProvider, setSelectedProvider] = React.useState<User | null>(null);
@@ -247,7 +277,7 @@ export default function ProvidersPage() {
     setIsDialogOpen(true);
   };
 
-  const providerColumns = ProviderColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+  const providerColumns = ProviderColumnsWrapper({ onToggleActivate: canToggleStatus ? handleToggleActivate : undefined, onEdit: canUpdateSupplier ? handleEdit : undefined });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -334,7 +364,7 @@ export default function ProvidersPage() {
                 filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
                 onRowSelectionChange={handleRowSelectionChange}
                 enableSingleRowSelection={true}
-                onCreate={handleCreate}
+                onCreate={canCreateSupplier ? handleCreate : undefined}
                 onRefresh={loadProviders}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}

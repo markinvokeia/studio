@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
@@ -144,10 +146,23 @@ async function deleteService(id: string) {
 }
 
 export default function ServicesPage() {
+  return <ServicesPageContent />;
+}
+
+function ServicesPageContent() {
   const t = useTranslations('ServicesPage');
   const tNav = useTranslations('Navigation');
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
+  const { hasPermission } = usePermissions();
+  const { toast } = useToast();
+
+  // Permission checks for UI elements
+  const canViewList = hasPermission(PURCHASES_PERMISSIONS.PRODUCTS_VIEW_LIST);
+  const canCreateProduct = hasPermission(PURCHASES_PERMISSIONS.PRODUCTS_CREATE);
+  const canUpdateProduct = hasPermission(PURCHASES_PERMISSIONS.PRODUCTS_UPDATE);
+  const canDeleteProduct = hasPermission(PURCHASES_PERMISSIONS.PRODUCTS_DELETE);
+
   const [services, setServices] = React.useState<Service[]>([]);
   const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -156,8 +171,6 @@ export default function ServicesPage() {
   const [deletingService, setDeletingService] = React.useState<Service | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-
-  const { toast } = useToast();
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
@@ -251,7 +264,7 @@ export default function ServicesPage() {
     }
   };
 
-  const servicesColumns = ServicesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+  const servicesColumns = ServicesColumnsWrapper({ onEdit: canUpdateProduct ? handleEdit : undefined, onDelete: canDeleteProduct ? handleDelete : undefined });
 
   const columnTranslations = {
     id: tColumns('id'),
@@ -285,7 +298,7 @@ export default function ServicesPage() {
             data={services}
             filterColumnId="name"
             filterPlaceholder={t('filterPlaceholder')}
-            onCreate={handleCreate}
+            onCreate={canCreateProduct ? handleCreate : undefined}
             onRefresh={loadServices}
             isRefreshing={isRefreshing}
             columnTranslations={columnTranslations}
@@ -388,7 +401,7 @@ export default function ServicesPage() {
                       <FormItem>
                         <FormLabel>{t('createDialog.price')}</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             type="text"
                             inputMode="decimal"
                             value={inputValue}

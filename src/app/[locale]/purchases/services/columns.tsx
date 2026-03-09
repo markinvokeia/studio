@@ -18,12 +18,16 @@ import { useTranslations } from 'next-intl';
 
 
 interface ServicesColumnsProps {
-  onEdit: (service: Service) => void;
-  onDelete: (service: Service) => void;
+  onEdit?: (service: Service) => void;
+  onDelete?: (service: Service) => void;
 }
 
 export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProps): ColumnDef<Service>[] => {
   const t = useTranslations('ServicesColumns');
+
+  const handleEdit = onEdit ?? (() => { });
+  const handleDelete = onDelete ?? (() => { });
+
   const columns: ColumnDef<Service>[] = [
     {
       accessorKey: 'id',
@@ -109,8 +113,8 @@ export const ServicesColumnsWrapper = ({ onEdit, onDelete }: ServicesColumnsProp
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onEdit(service)}>{t('edit')}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(service)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEdit(service)}>{t('edit')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDelete(service)} className="text-destructive">{t('delete')}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );

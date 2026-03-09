@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
 import { api } from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -174,11 +176,24 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 }
 
 export default function OrdersPage() {
+    return <OrdersPageContent />;
+}
+
+function OrdersPageContent() {
     const t = useTranslations('OrdersPage');
     const tQuotes = useTranslations('QuotesPage');
     const tOrderItems = useTranslations('OrderItemsTable');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const tInvoices = useTranslations('InvoicesPage');
+    const { hasPermission } = usePermissions();
+
+    // Permission checks for UI elements
+    const canViewList = hasPermission(PURCHASES_PERMISSIONS.ORDERS_VIEW_LIST);
+    const canCreateOrder = hasPermission(PURCHASES_PERMISSIONS.ORDERS_CREATE);
+    const canUpdateOrder = hasPermission(PURCHASES_PERMISSIONS.ORDERS_UPDATE);
+    const canDeleteOrder = hasPermission(PURCHASES_PERMISSIONS.ORDERS_DELETE);
+    const canConvertToInvoice = hasPermission(PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE);
+
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});

@@ -57,7 +57,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
       <DataTableColumnHeader column={column} title={t('email')} />
     ),
   },
-    {
+  {
     accessorKey: 'identity_document',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title={t('identity_document')} />
@@ -99,7 +99,7 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
               <DropdownMenuItem
                 onClick={() => navigator.clipboard.writeText(user.id)}
               >
-                {t('copyId')} 
+                {t('copyId')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onEdit(user)}>{t('edit')}</DropdownMenuItem>
@@ -114,10 +114,14 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
   },
 ];
 
-export function ProviderColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void;}) {
-    const t = useTranslations('ProviderColumns');
-    const columns = React.useMemo(() => {
-        return getColumns(t, onToggleActivate, onEdit);
-    }, [t, onToggleActivate, onEdit]);
-    return columns;
+export function ProviderColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate?: (user: User) => void; onEdit?: (user: User) => void; }) {
+  const t = useTranslations('ProviderColumns');
+
+  const handleToggleActivate = onToggleActivate ?? (() => { });
+  const handleEdit = onEdit ?? (() => { });
+
+  const columns = React.useMemo(() => {
+    return getColumns(t, handleToggleActivate, handleEdit);
+  }, [t, handleToggleActivate, handleEdit]);
+  return columns;
 }

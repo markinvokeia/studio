@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, CASHIER_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, CASHIER_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
@@ -132,13 +132,21 @@ export const navItems: NavItem[] = [
     title: 'Purchases',
     href: '/purchases/quotes',
     icon: ShoppingBasket,
+    requiredAnyPermission: [
+      PURCHASES_PERMISSIONS.INVOICES_VIEW_MENU,
+      PURCHASES_PERMISSIONS.QUOTES_VIEW_MENU,
+      PURCHASES_PERMISSIONS.ORDERS_VIEW_MENU,
+      PURCHASES_PERMISSIONS.PAYMENTS_VIEW_MENU,
+      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU,
+      PURCHASES_PERMISSIONS.PRODUCTS_VIEW_MENU,
+    ],
     items: [
-      { title: 'PurchaseQuotes', href: '/purchases/quotes', icon: FileText, isChidren: true },
-      { title: 'PurchaseOrders', href: '/purchases/orders', icon: ShoppingCart, isChidren: true },
-      { title: 'PurchaseInvoices', href: '/purchases/invoices', icon: Receipt, isChidren: true },
-      { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true },
-      { title: 'Providers', href: '/providers', icon: Briefcase, isChidren: true },
-      { title: 'ProviderProducts', href: '/purchases/services', icon: Briefcase, isChidren: true },
+      { title: 'PurchaseQuotes', href: '/purchases/quotes', icon: FileText, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.QUOTES_VIEW_MENU },
+      { title: 'PurchaseOrders', href: '/purchases/orders', icon: ShoppingCart, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.ORDERS_VIEW_MENU },
+      { title: 'PurchaseInvoices', href: '/purchases/invoices', icon: Receipt, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.INVOICES_VIEW_MENU },
+      { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.PAYMENTS_VIEW_MENU },
+      { title: 'Providers', href: '/providers', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU },
+      { title: 'ProviderProducts', href: '/purchases/services', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.PRODUCTS_VIEW_MENU },
     ],
   },
   {

@@ -19,7 +19,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { Invoice, InvoiceItem, InvoiceAllocation, Payment, Service, CreditNote } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
@@ -179,8 +181,27 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
 }
 
 export default function InvoicesPage() {
+    return <InvoicesPageContent />;
+}
+
+function InvoicesPageContent() {
     const t = useTranslations('InvoicesPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks for UI elements
+    const canViewList = hasPermission(PURCHASES_PERMISSIONS.INVOICES_VIEW_LIST);
+    const canCreateInvoice = hasPermission(PURCHASES_PERMISSIONS.INVOICES_CREATE);
+    const canUpdateInvoice = hasPermission(PURCHASES_PERMISSIONS.INVOICES_UPDATE);
+    const canDeleteInvoice = hasPermission(PURCHASES_PERMISSIONS.INVOICES_DELETE);
+    const canConfirmInvoice = hasPermission(PURCHASES_PERMISSIONS.INVOICES_CONFIRM);
+    const canImportAI = hasPermission(PURCHASES_PERMISSIONS.INVOICES_IMPORT_AI);
+    const canViewDetail = hasPermission(PURCHASES_PERMISSIONS.INVOICES_VIEW_DETAIL);
+    const canViewItems = hasPermission(PURCHASES_PERMISSIONS.INVOICES_VIEW_ITEMS);
+    const canAddItem = hasPermission(PURCHASES_PERMISSIONS.INVOICES_ADD_ITEM);
+    const canUpdateItem = hasPermission(PURCHASES_PERMISSIONS.INVOICES_UPDATE_ITEM);
+    const canDeleteItem = hasPermission(PURCHASES_PERMISSIONS.INVOICES_DELETE_ITEM);
+
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -558,7 +579,7 @@ export default function InvoicesPage() {
         createdAt: t('columns.createdAt'),
     };
 
-    const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft';
+    const canEditItems = selectedInvoice?.status.toLowerCase() === 'draft' && (canAddItem || canUpdateItem || canDeleteItem);
 
 
     return (
@@ -579,7 +600,7 @@ export default function InvoicesPage() {
                                 setIsProcessingImport(false);
                                 setIsImportDialogOpen(true);
                             }}
-                            onConfirm={handleConfirmInvoiceClick}
+                            onConfirm={canConfirmInvoice ? handleConfirmInvoiceClick : undefined}
                             isRefreshing={isLoadingInvoices}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
@@ -643,7 +664,13 @@ export default function InvoicesPage() {
                                                     </div>
                                                 </div>
                                                 <div className="flex-1 min-h-0">
-                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} canEdit={canEditItems} onEdit={handleEditItem} onDelete={handleDeleteItem} />
+                                                    <InvoiceItemsTable
+                                                        items={invoiceItems}
+                                                        isLoading={isLoadingInvoiceItems}
+                                                        canEdit={canEditItems && canUpdateItem}
+                                                        onEdit={canEditItems && canUpdateItem ? handleEditItem : undefined}
+                                                        onDelete={canEditItems && canDeleteItem ? handleDeleteItem : undefined}
+                                                    />
                                                 </div>
                                             </TabsContent>
                                             <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
@@ -748,8 +775,8 @@ export default function InvoicesPage() {
                     </DialogHeader>
                     <div className="py-4 space-y-4 px-6">
                         <div className="flex items-center justify-center w-full">
-                            <label 
-                                htmlFor="dropzone-file" 
+                            <label
+                                htmlFor="dropzone-file"
                                 className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50 transition-colors ${isDragging ? 'border-primary bg-primary/10' : ''}`}
                                 onDragOver={handleDragOver}
                                 onDragLeave={handleDragLeave}
@@ -831,7 +858,7 @@ export default function InvoicesPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => confirmingInvoice && handleConfirmInvoiceInternal(confirmingInvoice)}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

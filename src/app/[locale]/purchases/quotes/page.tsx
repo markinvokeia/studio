@@ -32,16 +32,18 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User, Clinic } from '@/lib/types';
+import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, RefreshCw, X, ShoppingCart, Receipt, Send } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, Receipt, RefreshCw, ShoppingCart, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -166,8 +168,7 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
             user_name: apiOrder.user_name || apiOrder.name || t('defaults.notAvailable'),
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
-            currency: apiOrder.currency || 'UYU',
-            quote_id: apiOrder.quote_id,
+            currency: apiOrder.currency || 'UYU'
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -252,9 +253,9 @@ function hasValidPayments(paymentsData: any[]): boolean {
     if (!Array.isArray(paymentsData) || paymentsData.length === 0) {
         return false;
     }
-    
+
     const firstItem = paymentsData[0];
-    
+
     if (!firstItem || typeof firstItem !== 'object') {
         return false;
     }
@@ -271,11 +272,11 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     try {
         const data = await api.get(API_ROUTES.PURCHASES.QUOTES_PAYMENTS, { quote_id: quoteId, is_sales: 'false' });
         const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
-        
+
         if (!hasValidPayments(paymentsData)) {
             return [];
         }
-        
+
         const isNewFormat = paymentsData[0].amount_applied !== undefined && typeof paymentsData[0].amount_applied === 'string';
 
         return paymentsData.map((apiPayment: any) => ({
@@ -339,7 +340,7 @@ async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => strin
 }
 
 async function deleteQuote(id: string, t: (key: string) => string) {
-const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTE_DELETE, { id, is_sales: false });
+    const responseData = await api.delete(API_ROUTES.PURCHASES.QUOTE_DELETE, { id, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToDeleteQuote');
         throw new Error(message);
@@ -369,11 +370,24 @@ async function getClinic(): Promise<Clinic | null> {
 
 
 export default function QuotesPage() {
+    return <QuotesPageContent />;
+}
+
+function QuotesPageContent() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
+    const { hasPermission } = usePermissions();
+
+    // Permission checks for UI elements
+    const canViewList = hasPermission(PURCHASES_PERMISSIONS.QUOTES_VIEW_LIST);
+    const canCreateQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_CREATE);
+    const canUpdateQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_UPDATE);
+    const canDeleteQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_DELETE);
+    const canConfirmQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_CONFIRM);
+
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -386,7 +400,7 @@ export default function QuotesPage() {
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
-const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [payments, setPayments] = React.useState<Payment[]>([]);
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -446,7 +460,7 @@ const [payments, setPayments] = React.useState<Payment[]>([]);
         setIsRefreshing(false);
     }, [t]);
 
-React.useEffect(() => {
+    React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
 
@@ -528,7 +542,7 @@ React.useEffect(() => {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-const handleCreateQuote = async () => {
+    const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
@@ -807,14 +821,14 @@ const handleCreateQuote = async () => {
                         <RecentQuotesTable
                             quotes={quotes}
                             onRowSelectionChange={handleRowSelectionChange}
-                            onCreate={handleCreateQuote}
+                            onCreate={canCreateQuote ? handleCreateQuote : undefined}
                             onRefresh={loadQuotes}
                             isRefreshing={isRefreshing}
                             rowSelection={rowSelection}
                             setRowSelection={setRowSelection}
-                            onEdit={handleEditQuote}
-                            onDelete={handleDeleteQuote}
-                            onQuoteAction={handleQuoteAction}
+                            onEdit={canUpdateQuote ? handleEditQuote : undefined}
+                            onDelete={canDeleteQuote ? handleDeleteQuote : undefined}
+                            onQuoteAction={(canConfirmQuote) ? handleQuoteAction : undefined}
                             isCompact={!!selectedQuote}
                             standalone={true}
                             title={t('title')}
@@ -944,7 +958,7 @@ const handleCreateQuote = async () => {
                                                 {selectedInvoice && (
                                                     <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold">{tInvoiceItems('titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
+                                                            <h4 className="text-sm font-semibold">{tRoot('InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
                                                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                                 <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
                                                             </Button>
