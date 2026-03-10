@@ -15,6 +15,18 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+interface QuoteItemsTableProps {
+  items: QuoteItem[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  canEdit?: boolean;
+  onCreate?: () => void;
+  onEdit: (item: QuoteItem) => void;
+  onDelete: (item: QuoteItem) => void;
+  showToothNumber?: boolean;
+}
+
 const getColumns = (
   t: any,
   showToothNumber: boolean = true,
@@ -89,7 +101,6 @@ const getColumns = (
 
 export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
-  const tShared = useTranslations('UserColumns');
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const columns = React.useMemo(() => getColumns(t, showToothNumber, (selected) => { }), [t, showToothNumber]);
@@ -126,8 +137,8 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
   }
 
   return (
-    <Card className="h-full flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
-      <CardContent className="flex-1 flex flex-col min-h-0 p-4 bg-card">
+    <Card className="h-full flex-1 flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-card">
         <DataTableAdvancedToolbar
           table={table}
           filterPlaceholder={t('searchService')}
@@ -165,7 +176,15 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                  <TableRow 
+                    key={row.id} 
+                    data-state={row.getIsSelected() && 'selected'} 
+                    className="cursor-pointer"
+                    onClick={() => {
+                      table.toggleAllPageRowsSelected(false);
+                      row.toggleSelected(true);
+                    }}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}

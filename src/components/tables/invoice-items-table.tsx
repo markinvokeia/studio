@@ -14,6 +14,14 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+interface InvoiceItemsTableProps {
+  items: InvoiceItem[];
+  isLoading?: boolean;
+  canEdit?: boolean;
+  onEdit?: (item: InvoiceItem) => void;
+  onDelete?: (item: InvoiceItem) => void;
+}
+
 const getColumns = (
   t: any,
   onRowSelectionChange?: (selectedRows: InvoiceItem[]) => void
@@ -90,7 +98,7 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
   if (isLoading) return <div className="space-y-4 pt-4"><Skeleton className="h-8 w-full" /><Skeleton className="h-12 w-full" /></div>;
 
   return (
-    <Card className="h-full flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
+    <Card className="h-full flex-1 flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
       <CardContent className="flex-1 flex flex-col min-h-0 p-4 bg-card">
         <DataTableAdvancedToolbar
           table={table}
@@ -99,10 +107,10 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
           onSearchChange={(value) => table.getColumn('service_name')?.setFilterValue(value)}
           extraButtons={selectedItem && canEdit && (
             <div className="flex items-center gap-1 mr-2 px-2 border-r">
-              <Button variant="ghost" size="sm" onClick={() => onEdit?.(selectedItem)} className="h-8 px-2 gap-1 text-xs font-bold text-primary">
+              <Button variant="ghost" size="sm" onClick={() => onEdit?.(selectedItem)} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
                 <Edit3 className="h-3.5 w-3.5" /> {t('actions.edit')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => onDelete?.(selectedItem)} className="h-8 px-2 gap-1 text-xs font-bold text-destructive">
+              <Button variant="ghost" size="sm" onClick={() => onDelete?.(selectedItem)} className="h-8 px-2 gap-1 text-xs font-bold text-destructive hover:text-destructive hover:bg-destructive/10">
                 <Trash2 className="h-3.5 w-3.5" /> {t('actions.delete')}
               </Button>
             </div>
@@ -122,7 +130,15 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                  <TableRow 
+                    key={row.id} 
+                    data-state={row.getIsSelected() && 'selected'} 
+                    className="cursor-pointer"
+                    onClick={() => {
+                      table.toggleAllPageRowsSelected(false);
+                      row.toggleSelected(true);
+                    }}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}

@@ -17,6 +17,25 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+interface PaymentsTableProps {
+  payments: Payment[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  columnsToHide?: string[];
+  onPrint?: (payment: Payment) => void;
+  onSendEmail?: (payment: Payment) => void;
+  onCreate?: () => void;
+  className?: string;
+  pagination?: any;
+  onPaginationChange?: (updater: any) => void;
+  pageCount?: number;
+  manualPagination?: boolean;
+  onRowSelectionChange?: (selectedRows: Payment[]) => void;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+}
+
 const getColumns = (
   t: any,
   tTransactionType: any,
@@ -117,10 +136,10 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           isRefreshing={isRefreshing}
           extraButtons={selectedPayment && (
             <div className="flex items-center gap-1 mr-2 px-2 border-r">
-              <Button variant="ghost" size="sm" onClick={() => onPrint?.(selectedPayment)} className="h-8 px-2 gap-1 text-xs font-bold text-primary">
+              <Button variant="ghost" size="sm" onClick={() => onPrint?.(selectedPayment)} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
                 <Printer className="h-3.5 w-3.5" /> {tActions('print')}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => onSendEmail?.(selectedPayment)} className="h-8 px-2 gap-1 text-xs font-bold text-primary">
+              <Button variant="ghost" size="sm" onClick={() => onSendEmail?.(selectedPayment)} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
                 <Send className="h-3.5 w-3.5" /> {tActions('sendEmail')}
               </Button>
             </div>
@@ -140,7 +159,15 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
             <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                  <TableRow 
+                    key={row.id} 
+                    data-state={row.getIsSelected() && 'selected'} 
+                    className="cursor-pointer"
+                    onClick={() => {
+                      table.toggleAllPageRowsSelected(false);
+                      row.toggleSelected(true);
+                    }}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                     ))}

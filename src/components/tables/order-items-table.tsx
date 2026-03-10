@@ -22,6 +22,16 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+interface OrderItemsTableProps {
+  items: OrderItem[];
+  isLoading?: boolean;
+  onItemsUpdate?: () => void;
+  quoteId?: string;
+  isSales?: boolean;
+  userId?: string;
+  patient?: UserType;
+}
+
 const getColumns = (
   t: any,
   onRowSelectionChange?: (selectedRows: OrderItem[]) => void
@@ -172,7 +182,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
   return (
     <>
-      <Card className="h-full flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
+      <Card className="h-full flex-1 flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
         <CardContent className="flex-1 flex flex-col min-h-0 p-4 bg-card">
           <DataTableAdvancedToolbar
             table={table}
@@ -184,12 +194,12 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             extraButtons={selectedRowItem && (
               <div className="flex items-center gap-1 mr-2 px-2 border-r">
                 {!selectedRowItem.scheduled_date && (
-                  <Button variant="ghost" size="sm" onClick={() => handleActionClick(selectedRowItem, 'schedule')} className="h-8 px-2 gap-1 text-xs font-bold text-primary">
+                  <Button variant="ghost" size="sm" onClick={() => handleActionClick(selectedRowItem, 'schedule')} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
                     <CalendarIcon className="h-3.5 w-3.5" /> {t('actions.schedule')}
                   </Button>
                 )}
                 {!selectedRowItem.completed_date && (
-                  <Button variant="ghost" size="sm" onClick={() => handleActionClick(selectedRowItem, 'complete')} className="h-8 px-2 gap-1 text-xs font-bold text-green-600">
+                  <Button variant="ghost" size="sm" onClick={() => handleActionClick(selectedRowItem, 'complete')} className="h-8 px-2 gap-1 text-xs font-bold text-green-600 hover:text-green-600 hover:bg-green-50">
                     <CheckCircle className="h-3.5 w-3.5" /> {t('actions.complete')}
                   </Button>
                 )}
@@ -210,7 +220,15 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                    <TableRow 
+                      key={row.id} 
+                      data-state={row.getIsSelected() && 'selected'} 
+                      className="cursor-pointer"
+                      onClick={() => {
+                        table.toggleAllPageRowsSelected(false);
+                        row.toggleSelected(true);
+                      }}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                       ))}

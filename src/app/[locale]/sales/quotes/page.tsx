@@ -159,13 +159,13 @@ async function getOrders(quoteId: string, t: any): Promise<Order[]> {
         const data = await api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : 'N/A',
-            doc_no: apiOrder.doc_no || 'N/A',
+            id: apiOrder.id ? String(apiOrder.id) : t('defaults.notAvailable'),
+            doc_no: apiOrder.doc_no || t('defaults.notAvailable'),
             user_id: apiOrder.user_id,
             quote_id: apiOrder.quote_id,
-            user_name: apiOrder.user_name || apiOrder.name || 'N/A',
+            user_name: apiOrder.user_name || apiOrder.name || t('defaults.notAvailable'),
             status: apiOrder.status,
-            createdAt: apiOrder.created_at || new Date().toISOString().split('T')[0],
+            createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updated_at || new Date().toISOString(),
             currency: apiOrder.currency || 'UYU',
         }));
@@ -199,13 +199,15 @@ async function getInvoices(quoteId: string, t: any): Promise<Invoice[]> {
         const data = await api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId });
         const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
         return invoicesData.map((apiInvoice: any) => ({
-            id: apiInvoice.id ? String(apiInvoice.id) : 'N/A',
+            id: apiInvoice.id ? String(apiInvoice.id) : t('defaults.notAvailable'),
+            invoice_ref: apiInvoice.invoice_ref || t('defaults.notAvailable'),
             doc_no: apiInvoice.doc_no || `INV-${apiInvoice.id}`,
             total: parseFloat(apiInvoice.total) || 0,
             status: apiInvoice.status || 'draft',
-            createdAt: apiInvoice.created_at || new Date().toISOString(),
+            createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
             currency: apiInvoice.currency || 'USD',
-            user_name: apiInvoice.user_name || apiInvoice.name || 'N/A',
+            order_id: apiInvoice.order_id,
+            user_name: apiInvoice.user_name || apiInvoice.name || t('defaults.notAvailable'),
             user_id: apiInvoice.user_id,
             payment_status: apiInvoice.payment_state || 'unpaid',
             paid_amount: parseFloat(apiInvoice.paid_amount) || 0,
@@ -220,9 +222,9 @@ async function getInvoiceItems(invoiceId: string, t: any): Promise<InvoiceItem[]
         const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: invoiceId });
         const itemsData = Array.isArray(data) ? data : (data.invoice_items || data.data || []);
         return itemsData.map((apiItem: any) => ({
-            id: apiItem.id ? String(apiItem.id) : 'N/A',
+            id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
             service_id: apiItem.service_id,
-            service_name: apiItem.service_name || 'N/A',
+            service_name: apiItem.service_name || t('defaults.notAvailable'),
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
@@ -247,6 +249,13 @@ async function getPayments(quoteId: string, t: any): Promise<Payment[]> {
             status: apiPayment.status || 'completed',
         }));
     } catch (e) { return []; }
+}
+
+function hasValidPayments(paymentsData: any[]): boolean {
+    if (!Array.isArray(paymentsData) || paymentsData.length === 0) return false;
+    const firstItem = paymentsData[0];
+    if (!firstItem || typeof firstItem !== 'object') return false;
+    return firstItem.amount_applied !== undefined || firstItem.amount !== undefined;
 }
 
 async function getUsers(t: any): Promise<User[]> {
@@ -285,6 +294,7 @@ export default function QuotesPage() {
 function QuotesPageContent() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
+    const tInvoices = useTranslations('InvoicesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
     const { hasPermission } = usePermissions();
@@ -293,7 +303,6 @@ function QuotesPageContent() {
     const canUpdateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE);
     const canDeleteQuote = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE);
     const canConfirmQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CONFIRM);
-    const canRejectQuote = hasPermission(SALES_PERMISSIONS.QUOTES_REJECT);
     const canUpdateItem = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE_ITEM);
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
@@ -301,9 +310,11 @@ function QuotesPageContent() {
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
+    const [orderRowSelection, setOrderRowSelection] = React.useState<RowSelectionState>({});
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+    const [invoiceRowSelection, setInvoiceRowSelection] = React.useState<RowSelectionState>({});
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
@@ -333,7 +344,6 @@ function QuotesPageContent() {
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const [isOrderInvoicingDialogOpen, setIsOrderInvoicingDialogOpen] = React.useState(false);
@@ -399,6 +409,7 @@ function QuotesPageContent() {
         if (selectedQuote) {
             loadQuoteItems(); loadOrders(); loadInvoices(); loadPayments();
             setSelectedOrder(null); setSelectedInvoice(null);
+            setOrderRowSelection({}); setInvoiceRowSelection({});
         } else {
             setQuoteItems([]); setOrders([]); setInvoices([]); setPayments([]);
         }
@@ -449,7 +460,7 @@ function QuotesPageContent() {
             size="sm"
             onClick={(e) => { e.stopPropagation(); onClick(); }}
             disabled={disabled}
-            className={cn("flex flex-col items-center justify-center h-14 min-w-16 w-auto px-3 py-1 gap-1 text-[9px] font-bold uppercase", className)}
+            className={cn("flex flex-col items-center justify-center h-14 min-w-[80px] w-auto px-3 py-1 gap-1 text-[9px] font-bold uppercase", className)}
         >
             <Icon className="h-5 w-5 shrink-0" />
             <span className="whitespace-nowrap text-center leading-none">{label}</span>
@@ -504,7 +515,7 @@ function QuotesPageContent() {
                 rightPanel={
                     selectedQuote && (
                         <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0 overflow-hidden">
-                            <CardHeader className="flex flex-row items-center justify-between flex-none p-4 border-b">
+                            <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card">
                                 <div className="flex items-start gap-3 min-w-0 flex-1">
                                     <div className="header-icon-circle">
                                         <FileText className="h-5 w-5" />
@@ -525,7 +536,7 @@ function QuotesPageContent() {
                                             <div className="h-3 w-px bg-primary/20" />
                                             <span>{t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}</span>
                                             <div className="h-3 w-px bg-primary/20" />
-                                            <span className="text-primary">{selectedQuote.currency} {Number(selectedQuote.total).toFixed(2)}</span>
+                                            <span className="text-primary">{selectedQuote.currency} {Number(selectedQuote.total || 0).toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -555,10 +566,10 @@ function QuotesPageContent() {
                                             <QuoteItemsTable items={quoteItems} isLoading={isLoadingItems} onRefresh={loadQuoteItems} isRefreshing={isLoadingItems} canEdit={selectedQuote.status.toLowerCase() === 'draft' && canUpdateItem} onCreate={() => setIsQuoteItemDialogOpen(true)} onEdit={(item) => { setEditingQuoteItem(item); setIsQuoteItemDialogOpen(true); }} onDelete={(item) => { setDeletingQuoteItem(item); setIsDeleteQuoteItemDialogOpen(true); }} showToothNumber={true} />
                                         </TabsContent>
                                         <TabsContent value="orders" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                            <OrdersTable orders={orders} isLoading={isLoadingOrders} onRowSelectionChange={(rows) => setSelectedOrder(rows[0] || null)} onRefresh={loadOrders} isRefreshing={isLoadingOrders} columnsToHide={['user_name', 'quote_id']} isCompact={true} />
+                                            <OrdersTable orders={orders} isLoading={isLoadingOrders} onRowSelectionChange={(rows) => setSelectedOrder(rows[0] || null)} onRefresh={loadOrders} isRefreshing={isLoadingOrders} columnsToHide={['user_name', 'quote_id']} isCompact={true} rowSelection={orderRowSelection} setRowSelection={setOrderRowSelection} />
                                         </TabsContent>
                                         <TabsContent value="invoices" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                            <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} onRowSelectionChange={(rows) => setSelectedInvoice(rows[0] || null)} onRefresh={loadInvoices} isRefreshing={isLoadingInvoices} isCompact={true} canCreate={false} />
+                                            <InvoicesTable invoices={invoices} isLoading={isLoadingInvoices} onRowSelectionChange={(rows) => setSelectedInvoice(rows[0] || null)} onRefresh={loadInvoices} isRefreshing={isLoadingInvoices} isCompact={true} canCreate={false} rowSelection={invoiceRowSelection} setRowSelection={setInvoiceRowSelection} />
                                         </TabsContent>
                                         <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                             <PaymentsTable payments={payments} isLoading={isLoadingPayments} onRefresh={loadPayments} isRefreshing={isLoadingPayments} columnsToHide={['quote_id', 'order_id', 'user_name']} />
@@ -571,14 +582,22 @@ function QuotesPageContent() {
                                             <div className="flex items-start gap-3 min-w-0 flex-1">
                                                 <div className="header-icon-circle"><ShoppingCart className="h-5 w-5" /></div>
                                                 <div className="flex flex-col min-w-0">
-                                                    <h2 className="text-sm font-bold truncate">{selectedOrder.doc_no || `Orden #${selectedOrder.id}`}</h2>
-                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase font-bold"><UserIcon className="h-3 w-3" /><span>{selectedOrder.user_name}</span></div>
+                                                    <h2 className="text-xs font-bold tracking-tight text-muted-foreground">{selectedOrder.doc_no || `Orden #${selectedOrder.id}`}</h2>
+                                                    <div className="flex items-center gap-1.5 text-sm font-bold truncate"><UserIcon className="h-4 w-4 text-primary" /><span>{selectedOrder.user_name}</span></div>
+                                                    <div className="flex items-center gap-2 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1 text-[10px] font-black uppercase">
+                                                        <div className="flex items-center gap-1">
+                                                            <div className={cn("h-1.5 w-1.5 rounded-full", (selectedOrder.status.toLowerCase() === 'completed') ? "bg-green-500" : "bg-slate-400")} />
+                                                            <span>{tRoot(`OrdersPage.status.${selectedOrder.status.toLowerCase().replace(/\s+/g, '_')}` as any)}</span>
+                                                        </div>
+                                                        <div className="h-3 w-px bg-primary/20 mx-1" />
+                                                        <span className="text-primary">{selectedOrder.currency || selectedQuote.currency} {Number(selectedQuote.total || 0).toFixed(2)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <ActionButton onClick={() => handleOrderInvoicing(selectedOrder)} icon={Receipt} label={tRoot('Navigation.InvoiceAction')} className="rounded-lg" />
                                                 <ActionButton onClick={loadOrderItems} icon={RefreshCw} label={tRoot('DataTableToolbar.refresh')} disabled={isLoadingOrderItems} className="rounded-lg" />
-                                                <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(null)} className="ml-2"><X className="h-5 w-5" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedOrder(null); setOrderRowSelection({}); }} className="ml-2 hover:bg-destructive/10 hover:text-destructive"><X className="h-5 w-5" /></Button>
                                             </div>
                                         </CardHeader>
                                         <div className="flex-1 overflow-hidden">
@@ -592,14 +611,27 @@ function QuotesPageContent() {
                                             <div className="flex items-start gap-3 min-w-0 flex-1">
                                                 <div className="header-icon-circle"><Receipt className="h-5 w-5" /></div>
                                                 <div className="flex flex-col min-w-0">
-                                                    <h2 className="text-sm font-bold truncate">{selectedInvoice.doc_no || `Factura #${selectedInvoice.id}`}</h2>
-                                                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase font-bold"><UserIcon className="h-3 w-3" /><span>{selectedInvoice.user_name}</span></div>
+                                                    <h2 className="text-xs font-bold tracking-tight text-muted-foreground">{selectedInvoice.doc_no || `Factura #${selectedInvoice.id}`}</h2>
+                                                    <div className="flex items-center gap-1.5 text-sm font-bold truncate"><UserIcon className="h-4 w-4 text-primary" /><span>{selectedInvoice.user_name}</span></div>
+                                                    <div className="flex items-center gap-2 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1 text-[10px] font-black uppercase">
+                                                        <div className="flex items-center gap-1">
+                                                            <div className={cn("h-1.5 w-1.5 rounded-full", (selectedInvoice.status.toLowerCase() === 'paid') ? "bg-green-500" : "bg-slate-400")} />
+                                                            <span>{tInvoices(`status.${selectedInvoice.status.toLowerCase().replace(/\s+/g, '_')}` as any)}</span>
+                                                        </div>
+                                                        <div className="h-3 w-px bg-primary/20 mx-1" />
+                                                        <div className="flex items-center gap-1">
+                                                            <div className={cn("h-1.5 w-1.5 rounded-full", (selectedInvoice.payment_status.toLowerCase() === 'paid') ? "bg-green-500" : "bg-slate-400")} />
+                                                            <span>{tInvoices(`status.${selectedInvoice.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}</span>
+                                                        </div>
+                                                        <div className="h-3 w-px bg-primary/20 mx-1" />
+                                                        <span className="text-primary">{selectedInvoice.currency} {Number(selectedInvoice.total || 0).toFixed(2)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                <ActionButton onClick={() => {}} icon={CreditCard} label={tRoot('InvoicesPage.paymentDialog.add')} className="rounded-lg" />
+                                                <ActionButton onClick={() => {}} icon={CreditCard} label={tInvoices('paymentDialog.add')} className="rounded-lg" />
                                                 <ActionButton onClick={loadInvoiceItems} icon={RefreshCw} label={tRoot('DataTableToolbar.refresh')} disabled={isLoadingInvoiceItems} className="rounded-lg" />
-                                                <Button variant="ghost" size="icon" onClick={() => setSelectedInvoice(null)} className="ml-2"><X className="h-5 w-5" /></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => { setSelectedInvoice(null); setInvoiceRowSelection({}); }} className="ml-2 hover:bg-destructive/10 hover:text-destructive"><X className="h-5 w-5" /></Button>
                                             </div>
                                         </CardHeader>
                                         <div className="flex-1 overflow-hidden">
