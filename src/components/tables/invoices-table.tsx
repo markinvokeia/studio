@@ -422,7 +422,18 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
               <TableBody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
-                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                    <TableRow 
+                      key={row.id} 
+                      data-state={row.getIsSelected() && 'selected'} 
+                      className="cursor-pointer"
+                      onClick={() => {
+                        table.toggleAllPageRowsSelected(false);
+                        row.toggleSelected(true);
+                        if (onRowSelectionChange) {
+                          onRowSelectionChange([row.original]);
+                        }
+                      }}
+                    >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
                       ))}

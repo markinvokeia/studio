@@ -79,7 +79,7 @@ const getColumns = (
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('amount_applied')} />,
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('amount_applied'));
-        return new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(amount);
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
       },
     },
     {
@@ -166,6 +166,9 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
                     onClick={() => {
                       table.toggleAllPageRowsSelected(false);
                       row.toggleSelected(true);
+                      if (onRowSelectionChange) {
+                        onRowSelectionChange([row.original]);
+                      }
                     }}
                   >
                     {row.getVisibleCells().map((cell) => (

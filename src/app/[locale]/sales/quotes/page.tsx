@@ -229,7 +229,10 @@ async function getInvoiceItems(invoiceId: string, t: any): Promise<InvoiceItem[]
             unit_price: apiItem.unit_price,
             total: apiItem.total,
         }));
-    } catch (e) { return []; }
+    } catch (error) {
+        console.error("Failed to fetch invoice items:", error);
+        return [];
+    }
 }
 
 async function getPayments(quoteId: string, t: any): Promise<Payment[]> {
@@ -247,7 +250,7 @@ async function getPayments(quoteId: string, t: any): Promise<Payment[]> {
             payment_date: apiPayment.payment_date || apiPayment.created_at,
             method: apiPayment.payment_method_name || apiPayment.method,
             status: apiPayment.status || 'completed',
-        }));
+        } as Payment));
     } catch (e) { return []; }
 }
 
@@ -515,13 +518,13 @@ function QuotesPageContent() {
                 rightPanel={
                     selectedQuote && (
                         <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0 overflow-hidden">
-                            <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card">
+                            <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card rounded-t-none">
                                 <div className="flex items-start gap-3 min-w-0 flex-1">
                                     <div className="header-icon-circle">
                                         <FileText className="h-5 w-5" />
                                     </div>
                                     <div className="flex flex-col min-w-0">
-                                        <h2 className="text-xs font-bold tracking-tight text-muted-foreground">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
+                                        <h2 className="text-xs font-bold tracking-tight text-muted-foreground uppercase">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
                                         <div className="flex items-center gap-1.5 text-sm font-bold truncate">
                                             <UserIcon className="h-4 w-4 text-primary" />
                                             <span>{selectedQuote.user_name}</span>
@@ -578,11 +581,11 @@ function QuotesPageContent() {
                                 </Tabs>
                                 {selectedOrder && (
                                     <div className="absolute inset-0 z-[40] bg-background flex flex-col animate-in slide-in-from-right duration-300">
-                                        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card">
+                                        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card rounded-t-none">
                                             <div className="flex items-start gap-3 min-w-0 flex-1">
                                                 <div className="header-icon-circle"><ShoppingCart className="h-5 w-5" /></div>
                                                 <div className="flex flex-col min-w-0">
-                                                    <h2 className="text-xs font-bold tracking-tight text-muted-foreground">{selectedOrder.doc_no || `Orden #${selectedOrder.id}`}</h2>
+                                                    <h2 className="text-xs font-bold tracking-tight text-muted-foreground uppercase">{selectedOrder.doc_no || `Orden #${selectedOrder.id}`}</h2>
                                                     <div className="flex items-center gap-1.5 text-sm font-bold truncate"><UserIcon className="h-4 w-4 text-primary" /><span>{selectedOrder.user_name}</span></div>
                                                     <div className="flex items-center gap-2 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1 text-[10px] font-black uppercase">
                                                         <div className="flex items-center gap-1">
@@ -607,11 +610,11 @@ function QuotesPageContent() {
                                 )}
                                 {selectedInvoice && (
                                     <div className="absolute inset-0 z-[40] bg-background flex flex-col animate-in slide-in-from-right duration-300">
-                                        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card">
+                                        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-card rounded-t-none">
                                             <div className="flex items-start gap-3 min-w-0 flex-1">
                                                 <div className="header-icon-circle"><Receipt className="h-5 w-5" /></div>
                                                 <div className="flex flex-col min-w-0">
-                                                    <h2 className="text-xs font-bold tracking-tight text-muted-foreground">{selectedInvoice.doc_no || `Factura #${selectedInvoice.id}`}</h2>
+                                                    <h2 className="text-xs font-bold tracking-tight text-muted-foreground uppercase">{selectedInvoice.doc_no || `Factura #${selectedInvoice.id}`}</h2>
                                                     <div className="flex items-center gap-1.5 text-sm font-bold truncate"><UserIcon className="h-4 w-4 text-primary" /><span>{selectedInvoice.user_name}</span></div>
                                                     <div className="flex items-center gap-2 px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1 text-[10px] font-black uppercase">
                                                         <div className="flex items-center gap-1">
