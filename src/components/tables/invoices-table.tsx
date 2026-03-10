@@ -10,6 +10,7 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle
@@ -216,6 +217,32 @@ const getColumns = (
   ];
 };
 
+interface InvoicesTableProps {
+  invoices: Invoice[];
+  isLoading?: boolean;
+  onRowSelectionChange?: (selectedRows: Invoice[]) => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  onPrint?: (invoice: Invoice) => void;
+  onSendEmail?: (invoice: Invoice) => void;
+  onCreate?: () => void;
+  onImport?: () => void;
+  onConfirm?: (invoice: Invoice) => void;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  columnTranslations?: { [key: string]: string };
+  filterOptions?: { label: string; value: string }[];
+  onFilterChange?: (value: string) => void;
+  filterValue?: string;
+  onEdit?: (invoice: Invoice) => void;
+  isCompact?: boolean;
+  isSales?: boolean;
+  className?: string;
+  title?: string;
+  description?: string;
+  standalone?: boolean;
+  canCreate?: boolean;
+}
 
 export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
@@ -1517,7 +1544,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? t('save') || 'Save Changes' : t('create')}
+                {isEditing ? tRoot('save') || 'Save Changes' : t('create')}
               </Button>
             </DialogFooter>
           </form>
@@ -1525,32 +1552,4 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       </DialogContent>
     </Dialog>
   );
-}
-
-interface InvoicesTableProps {
-  invoices: Invoice[];
-  isLoading?: boolean;
-  onRowSelectionChange?: (selectedRows: Invoice[]) => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
-  onPrint?: (invoice: Invoice) => void;
-  onSendEmail?: (invoice: Invoice) => void;
-  onCreate?: () => void;
-  onImport?: () => void;
-  onConfirm?: (invoice: Invoice) => void;
-  isRefreshing?: boolean;
-  rowSelection?: RowSelectionState;
-  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
-  columnTranslations?: { [key: string]: string };
-  filterOptions?: { label: string; value: string }[];
-  onFilterChange?: (value: string) => void;
-  filterValue?: string;
-  onEdit?: (invoice: Invoice) => void;
-  isCompact?: boolean;
-  isSales?: boolean;
-  className?: string;
-  title?: string;
-  description?: string;
-  standalone?: boolean;
-  canCreate?: boolean;
 }
