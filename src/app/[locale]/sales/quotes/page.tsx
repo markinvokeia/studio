@@ -862,7 +862,7 @@ function QuotesPageContent() {
             onClick={(e) => { e.stopPropagation(); onClick(); }}
             disabled={disabled}
             className={cn(
-                "flex flex-col items-center justify-center h-14 w-16 p-1 gap-1 text-[9px] font-bold uppercase transition-colors",
+                "flex flex-col items-center justify-center h-14 min-w-16 w-auto px-3 py-1 gap-1 text-[9px] font-bold uppercase transition-colors",
                 className
             )}
         >
@@ -937,6 +937,11 @@ function QuotesPageContent() {
         } catch (error) {
             setOrderInvoicingError(error instanceof Error ? error.message : 'Error creating invoice');
         }
+    };
+
+    const handleAddPaymentClick = (invoice: Invoice) => {
+        // Implement payment logic or trigger existing one
+        toast({ title: "Pago", description: "Iniciando proceso de pago..." });
     };
 
     return (
@@ -1191,6 +1196,13 @@ function QuotesPageContent() {
                                                         label={tRoot('Navigation.InvoiceAction')} 
                                                         className="rounded-lg"
                                                     />
+                                                    <ActionButton 
+                                                        onClick={loadOrderItems} 
+                                                        icon={RefreshCw} 
+                                                        label={tRoot('DataTableToolbar.refresh')} 
+                                                        disabled={isLoadingOrderItems}
+                                                        className={cn("rounded-lg", isLoadingOrderItems && "animate-spin")}
+                                                    />
                                                     <Button variant="ghost" size="icon" onClick={() => {
                                                         setSelectedOrder(null);
                                                         setOrderRowSelection({});
@@ -1200,14 +1212,6 @@ function QuotesPageContent() {
                                                 </div>
                                             </CardHeader>
                                             <div className="flex-1 flex flex-col overflow-hidden">
-                                                <div className="p-4 border-b bg-muted/10 flex items-center justify-between shrink-0">
-                                                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                                        {tRoot('OrderItemsTable.title', { id: selectedOrder.doc_no || selectedOrder.id })}
-                                                    </h3>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                        <RefreshCw className={cn("h-4 w-4", isLoadingOrderItems && "animate-spin")} />
-                                                    </Button>
-                                                </div>
                                                 <div className="flex-1 overflow-hidden">
                                                     <OrderItemsTable
                                                         items={orderItems}
@@ -1263,6 +1267,13 @@ function QuotesPageContent() {
                                                         label={tInvoicesPage('paymentDialog.add')} 
                                                         className="rounded-lg"
                                                     />
+                                                    <ActionButton 
+                                                        onClick={loadInvoiceItems} 
+                                                        icon={RefreshCw} 
+                                                        label={tRoot('DataTableToolbar.refresh')} 
+                                                        disabled={isLoadingInvoiceItems}
+                                                        className={cn("rounded-lg", isLoadingInvoiceItems && "animate-spin")}
+                                                    />
                                                     <Button variant="ghost" size="icon" onClick={() => {
                                                         setSelectedInvoice(null);
                                                         setInvoiceRowSelection({});
@@ -1272,14 +1283,6 @@ function QuotesPageContent() {
                                                 </div>
                                             </CardHeader>
                                             <div className="flex-1 flex flex-col overflow-hidden">
-                                                <div className="p-4 border-b bg-muted/10 flex items-center justify-between shrink-0">
-                                                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                                        {tRoot('InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}
-                                                    </h3>
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                        <RefreshCw className={cn("h-4 w-4", isLoadingInvoiceItems && "animate-spin")} />
-                                                    </Button>
-                                                </div>
                                                 <div className="flex-1 overflow-hidden">
                                                     <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
                                                 </div>
