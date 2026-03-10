@@ -61,12 +61,14 @@ import {
     DollarSign, 
     CreditCard,
     PlusCircle,
-    User as UserIcon
+    User as UserIcon,
+    CalendarIcon
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { DatePicker } from '@/components/ui/date-picker';
 
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
@@ -398,6 +400,7 @@ function QuotesPageContent() {
     const tRoot = useTranslations();
     const tVal = useTranslations('QuotesPage');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
+    const tInvoicesPage = useTranslations('InvoicesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
     const { hasPermission } = usePermissions();
@@ -463,6 +466,12 @@ function QuotesPageContent() {
     const [showConversion, setShowConversion] = React.useState(false);
     const [originalServicePrice, setOriginalServicePrice] = React.useState<number | null>(null);
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
+
+    // Order Invoicing State
+    const [isOrderInvoicingDialogOpen, setIsOrderInvoicingDialogOpen] = React.useState(false);
+    const [orderToInvoice, setOrderToInvoice] = React.useState<Order | null>(null);
+    const [orderInvoicingDate, setOrderInvoicingDate] = React.useState<Date | undefined>(new Date());
+    const [orderInvoicingError, setOrderInvoicingError] = React.useState<string | null>(null);
 
 
     const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)), mode: 'onBlur' });
@@ -895,8 +904,39 @@ function QuotesPageContent() {
     };
 
     const handleSendEmailClick = (quote: Quote) => {
-        // Implement email logic
         toast({ title: "Enviar Correo", description: "Funcionalidad de envío de correo próximamente." });
+    };
+
+    const handleOrderInvoicing = (order: Order) => {
+        setOrderToInvoice(order);
+        setOrderInvoicingDate(new Date());
+        setOrderInvoicingError(null);
+        setIsOrderInvoicingDialogOpen(true);
+    };
+
+    const handleConfirmOrderInvoicing = async () => {
+        if (!orderToInvoice || !orderInvoicingDate) return;
+        try {
+            const payload = {
+                order_id: orderToInvoice.id,
+                is_sales: true,
+                query: JSON.stringify({
+                    order_id: parseInt(orderToInvoice.id, 10),
+                    invoice_date: orderInvoicingDate.toISOString(),
+                    is_sales: true,
+                    user_id: orderToInvoice.user_id,
+                }),
+            };
+            const responseData = await api.post(API_ROUTES.SALES.ORDER_INVOICE, payload);
+            if (responseData.error || (responseData.code && responseData.code >= 400)) {
+                throw new Error(responseData.message || 'Error creating invoice');
+            }
+            toast({ title: 'Invoice Created', description: `Invoice for order ${orderToInvoice.doc_no} created successfully.` });
+            setIsOrderInvoicingDialogOpen(false);
+            loadInvoices(); 
+        } catch (error) {
+            setOrderInvoicingError(error instanceof Error ? error.message : 'Error creating invoice');
+        }
     };
 
     return (
@@ -942,7 +982,6 @@ function QuotesPageContent() {
                                                 <span className="truncate">{selectedQuote.user_name}</span>
                                             </div>
                                             
-                                            {/* Linea de estados compacta estilo píldora */}
                                             <div className="flex items-center gap-2 px-2.5 py-1 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1.5 shadow-sm text-[9px] font-black uppercase">
                                                 <div className="flex items-center gap-1">
                                                     <div className={cn(
@@ -992,7 +1031,6 @@ function QuotesPageContent() {
                                     </div>
                                     
                                     <div className="flex items-center gap-1">
-                                        {/* Acciones de Confirmación/Rechazo */}
                                         {(selectedQuote.status.toLowerCase() === 'draft' || selectedQuote.status.toLowerCase() === 'pending') && (
                                             <div className="flex items-center gap-1 mr-2 pr-2 border-r">
                                                 <ActionButton 
@@ -1013,7 +1051,6 @@ function QuotesPageContent() {
                                             </div>
                                         )}
                                         
-                                        {/* Acciones Comunes */}
                                         <div className="flex items-center gap-1">
                                             {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
                                                 <ActionButton onClick={() => handleEditQuote(selectedQuote)} icon={Edit3} label={t('edit')} className="rounded-lg" />
@@ -1028,7 +1065,7 @@ function QuotesPageContent() {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="flex-1 flex flex-col min-h-0 p-0 overflow-hidden">
+                                <CardContent className="flex-1 flex flex-col min-h-0 p-0 overflow-hidden relative">
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
                                         <TabsList className="flex-none px-4 bg-muted/20 border-b h-auto py-1.5 gap-2">
                                             <TabsTrigger value="items" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
@@ -1067,124 +1104,41 @@ function QuotesPageContent() {
                                             </TabsContent>
 
                                             <TabsContent value="orders" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <TwoPanelLayout
-                                                    isRightPanelOpen={!!selectedOrder}
-                                                    leftPanel={
-                                                        <div className="h-full flex flex-col min-h-0">
-                                                            <div className="flex-1 min-h-0">
-                                                                <OrdersTable
-                                                                    orders={orders}
-                                                                    isLoading={isLoadingOrders}
-                                                                    onRowSelectionChange={handleOrderSelectionChange}
-                                                                    onRefresh={loadOrders}
-                                                                    isRefreshing={isLoadingOrders}
-                                                                    columnsToHide={['user_name', 'quote_id']}
-                                                                    isCompact={true}
-                                                                    rowSelection={orderRowSelection}
-                                                                    setRowSelection={setOrderRowSelection}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                    rightPanel={
-                                                        selectedOrder && (
-                                                            <Card className="h-full border shadow-sm flex flex-col min-h-0 animate-in slide-in-from-left duration-300">
-                                                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/30">
-                                                                    <div className="flex flex-col">
-                                                                        <CardTitle className="text-sm font-black">{tRoot('OrderItemsTable.title', { id: selectedOrder.doc_no || selectedOrder.id })}</CardTitle>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                                            <RefreshCw className={cn("h-4 w-4", isLoadingOrderItems && "animate-spin")} />
-                                                                        </Button>
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                                                                            setSelectedOrder(null);
-                                                                            setOrderRowSelection({});
-                                                                        }}>
-                                                                            <X className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </div>
-                                                                </CardHeader>
-                                                                <CardContent className="flex-1 overflow-hidden p-0">
-                                                                    <OrderItemsTable
-                                                                        items={orderItems}
-                                                                        isLoading={isLoadingOrderItems}
-                                                                        onItemsUpdate={loadOrderItems}
-                                                                        quoteId={selectedQuote.id}
-                                                                        isSales={true}
-                                                                        userId={selectedOrder.user_id}
-                                                                        patient={{
-                                                                            id: selectedOrder.user_id,
-                                                                            name: selectedOrder.user_name || 'Patient',
-                                                                            email: '',
-                                                                            phone_number: '',
-                                                                            is_active: true,
-                                                                            avatar: ''
-                                                                        }}
-                                                                    />
-                                                                </CardContent>
-                                                            </Card>
-                                                        )
-                                                    }
+                                                <OrdersTable
+                                                    orders={orders}
+                                                    isLoading={isLoadingOrders}
+                                                    onRowSelectionChange={handleOrderSelectionChange}
+                                                    onRefresh={loadOrders}
+                                                    isRefreshing={isLoadingOrders}
+                                                    columnsToHide={['user_name', 'quote_id']}
+                                                    isCompact={true}
+                                                    rowSelection={orderRowSelection}
+                                                    setRowSelection={setOrderRowSelection}
                                                 />
                                             </TabsContent>
 
                                             <TabsContent value="invoices" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <TwoPanelLayout
-                                                    isRightPanelOpen={!!selectedInvoice}
-                                                    leftPanel={
-                                                        <div className="h-full flex flex-col min-h-0">
-                                                            <div className="flex-1 min-h-0">
-                                                                <InvoicesTable
-                                                                    invoices={invoices}
-                                                                    isLoading={isLoadingInvoices}
-                                                                    onRowSelectionChange={handleInvoiceSelectionChange}
-                                                                    onRefresh={loadInvoices}
-                                                                    isRefreshing={isLoadingInvoices}
-                                                                    isCompact={true}
-                                                                    canCreate={false}
-                                                                    rowSelection={invoiceRowSelection}
-                                                                    setRowSelection={setInvoiceRowSelection}
-                                                                    columnTranslations={{
-                                                                        doc_no: tRoot('InvoicesPage.columns.docNo'),
-                                                                        user_name: tRoot('InvoicesPage.columns.userName'),
-                                                                        total: tRoot('InvoicesPage.columns.total'),
-                                                                        currency: tRoot('InvoicesPage.columns.currency'),
-                                                                        status: tRoot('InvoicesPage.columns.status'),
-                                                                        type: tRoot('InvoicesPage.columns.type'),
-                                                                        payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
-                                                                        paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
-                                                                        createdAt: tRoot('InvoicesPage.columns.createdAt'),
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    }
-                                                    rightPanel={
-                                                        selectedInvoice && (
-                                                            <Card className="h-full border shadow-sm flex flex-col min-h-0 animate-in slide-in-from-left duration-300">
-                                                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/30">
-                                                                    <div className="flex flex-col">
-                                                                        <CardTitle className="text-sm font-black">{tRoot('InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</CardTitle>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                                            <RefreshCw className={cn("h-4 w-4", isLoadingInvoiceItems && "animate-spin")} />
-                                                                        </Button>
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                                                                            setSelectedInvoice(null);
-                                                                            setInvoiceRowSelection({});
-                                                                        }}>
-                                                                            <X className="h-4 w-4" />
-                                                                        </Button>
-                                                                    </div>
-                                                                </CardHeader>
-                                                                <CardContent className="flex-1 overflow-hidden p-0">
-                                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                                                </CardContent>
-                                                            </Card>
-                                                        )
-                                                    }
+                                                <InvoicesTable
+                                                    invoices={invoices}
+                                                    isLoading={isLoadingInvoices}
+                                                    onRowSelectionChange={handleInvoiceSelectionChange}
+                                                    onRefresh={loadInvoices}
+                                                    isRefreshing={isLoadingInvoices}
+                                                    isCompact={true}
+                                                    canCreate={false}
+                                                    rowSelection={invoiceRowSelection}
+                                                    setRowSelection={setInvoiceRowSelection}
+                                                    columnTranslations={{
+                                                        doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                        user_name: tRoot('InvoicesPage.columns.userName'),
+                                                        total: tRoot('InvoicesPage.columns.total'),
+                                                        currency: tRoot('InvoicesPage.columns.currency'),
+                                                        status: tRoot('InvoicesPage.columns.status'),
+                                                        type: tRoot('InvoicesPage.columns.type'),
+                                                        payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                        paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                        createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                    }}
                                                 />
                                             </TabsContent>
 
@@ -1201,12 +1155,174 @@ function QuotesPageContent() {
                                             </TabsContent>
                                         </div>
                                     </Tabs>
+
+                                    {/* SUB-DETAIL OVERLAYS (Drill-down) */}
+                                    {selectedOrder && (
+                                        <div className="absolute inset-0 z-[40] bg-background flex flex-col animate-in slide-in-from-right duration-300">
+                                            <CardHeader className="flex flex-row items-center justify-between flex-none p-4 border-b bg-card shadow-sm">
+                                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                    <div className="header-icon-circle">
+                                                        <ShoppingCart className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <h2 className="text-sm font-bold tracking-tight truncate">
+                                                            {selectedOrder.doc_no || `Orden #${selectedOrder.id}`}
+                                                        </h2>
+                                                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-wide">
+                                                            <UserIcon className="h-3 w-3" />
+                                                            <span className="truncate">{selectedOrder.user_name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 px-2.5 py-1 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1.5 text-[9px] font-black uppercase">
+                                                            <div className="flex items-center gap-1">
+                                                                <div className={cn(
+                                                                    "h-1.5 w-1.5 rounded-full",
+                                                                    selectedOrder.status.toLowerCase() === 'completed' ? "bg-green-500" : "bg-blue-500"
+                                                                )} />
+                                                                <span className="text-primary">{selectedOrder.status}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-1">
+                                                    <ActionButton 
+                                                        onClick={() => handleOrderInvoicing(selectedOrder)} 
+                                                        icon={Receipt} 
+                                                        label={tRoot('Navigation.InvoiceAction')} 
+                                                        className="rounded-lg"
+                                                    />
+                                                    <Button variant="ghost" size="icon" onClick={() => {
+                                                        setSelectedOrder(null);
+                                                        setOrderRowSelection({});
+                                                    }} className="ml-2">
+                                                        <X className="h-5 w-5" />
+                                                    </Button>
+                                                </div>
+                                            </CardHeader>
+                                            <div className="flex-1 flex flex-col overflow-hidden">
+                                                <div className="p-4 border-b bg-muted/10 flex items-center justify-between shrink-0">
+                                                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                                        {tRoot('OrderItemsTable.title', { id: selectedOrder.doc_no || selectedOrder.id })}
+                                                    </h3>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                        <RefreshCw className={cn("h-4 w-4", isLoadingOrderItems && "animate-spin")} />
+                                                    </Button>
+                                                </div>
+                                                <div className="flex-1 overflow-hidden">
+                                                    <OrderItemsTable
+                                                        items={orderItems}
+                                                        isLoading={isLoadingOrderItems}
+                                                        onItemsUpdate={loadOrderItems}
+                                                        quoteId={selectedQuote.id}
+                                                        isSales={true}
+                                                        userId={selectedOrder.user_id}
+                                                        patient={{
+                                                            id: selectedOrder.user_id,
+                                                            name: selectedOrder.user_name || 'Patient',
+                                                            email: '',
+                                                            phone_number: '',
+                                                            is_active: true,
+                                                            avatar: ''
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {selectedInvoice && (
+                                        <div className="absolute inset-0 z-[40] bg-background flex flex-col animate-in slide-in-from-right duration-300">
+                                            <CardHeader className="flex flex-row items-center justify-between flex-none p-4 border-b bg-card shadow-sm">
+                                                <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                    <div className="header-icon-circle">
+                                                        <Receipt className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="flex flex-col min-w-0">
+                                                        <h2 className="text-sm font-bold tracking-tight truncate">
+                                                            {selectedInvoice.doc_no || `Factura #${selectedInvoice.id}`}
+                                                        </h2>
+                                                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-wide">
+                                                            <UserIcon className="h-3 w-3" />
+                                                            <span className="truncate">{selectedInvoice.user_name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 px-2.5 py-1 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1.5 text-[9px] font-black uppercase">
+                                                            <div className="flex items-center gap-1">
+                                                                <div className={cn("h-1.5 w-1.5 rounded-full", selectedInvoice.status.toLowerCase() === 'paid' ? "bg-green-500" : "bg-blue-500")} />
+                                                                <span>{selectedInvoice.status}</span>
+                                                            </div>
+                                                            <div className="h-3 w-px bg-primary/20" />
+                                                            <div className="text-primary">{selectedInvoice.currency} {selectedInvoice.total}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-1">
+                                                    <ActionButton 
+                                                        onClick={() => handleAddPaymentClick(selectedInvoice)} 
+                                                        icon={CreditCard} 
+                                                        label={tInvoicesPage('paymentDialog.add')} 
+                                                        className="rounded-lg"
+                                                    />
+                                                    <Button variant="ghost" size="icon" onClick={() => {
+                                                        setSelectedInvoice(null);
+                                                        setInvoiceRowSelection({});
+                                                    }} className="ml-2">
+                                                        <X className="h-5 w-5" />
+                                                    </Button>
+                                                </div>
+                                            </CardHeader>
+                                            <div className="flex-1 flex flex-col overflow-hidden">
+                                                <div className="p-4 border-b bg-muted/10 flex items-center justify-between shrink-0">
+                                                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                                                        {tRoot('InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}
+                                                    </h3>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                        <RefreshCw className={cn("h-4 w-4", isLoadingInvoiceItems && "animate-spin")} />
+                                                    </Button>
+                                                </div>
+                                                <div className="flex-1 overflow-hidden">
+                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         )
                     }
                 />
             </div>
+
+            {/* Invoicing Dialog for Orders */}
+            <Dialog open={isOrderInvoicingDialogOpen} onOpenChange={setIsOrderInvoicingDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>{tVal('invoiceDialog.title')}</DialogTitle>
+                        <DialogDescription>
+                            {tVal('invoiceDialog.description', { orderId: orderToInvoice?.doc_no })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {orderInvoicingError && (
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>{tVal('invoiceDialog.error')}</AlertTitle>
+                            <AlertDescription>{orderInvoicingError}</AlertDescription>
+                        </Alert>
+                    )}
+                    <div className="flex justify-center py-4">
+                        <DatePicker
+                            mode="single"
+                            selected={orderInvoicingDate}
+                            onSelect={setOrderInvoicingDate}
+                            initialFocus
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleConfirmOrderInvoicing}>{tVal('invoiceDialog.confirm')}</Button>
+                        <Button variant="outline" onClick={() => setIsOrderInvoicingDialogOpen(false)}>{tVal('cancel')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -1545,4 +1661,3 @@ function QuotesPageContent() {
         </>
     );
 }
-
