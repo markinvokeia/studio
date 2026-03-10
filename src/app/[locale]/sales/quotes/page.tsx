@@ -42,7 +42,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -55,7 +55,6 @@ import {
     RefreshCw, 
     ShoppingCart, 
     X, 
-    Star, 
     Printer, 
     Send, 
     Edit3, 
@@ -859,6 +858,43 @@ function QuotesPageContent() {
         </Button>
     );
 
+    const handlePrintQuote = async (quote: Quote) => {
+        const fileName = getDocumentFileName(quote, 'quote');
+        toast({
+            title: t('generatingPdf'),
+            description: t('pleaseWait', { id: fileName }),
+        });
+
+        try {
+            const blob = await api.getBlob(API_ROUTES.SALES.QUOTES_PRINT, { quoteId: quote.id.toString() });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileName}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            toast({
+                title: t('downloadStarted'),
+                description: t('pdfDownloading', { id: fileName }),
+            });
+
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('printError'),
+                description: error instanceof Error ? error.message : t('couldNotPrint'),
+            });
+        }
+    };
+
+    const handleSendEmailClick = (quote: Quote) => {
+        // Implement email logic
+        toast({ title: "Enviar Correo", description: "Funcionalidad de envío de correo próximamente." });
+    };
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -887,146 +923,114 @@ function QuotesPageContent() {
                     }
                     rightPanel={
                         selectedQuote && (
-                            <div className="flex h-full min-h-0 bg-background overflow-hidden">
-                                <Tabs defaultValue="items" className="flex flex-1 min-h-0 overflow-hidden" orientation="vertical">
-                                    {/* Sidebar Vertical Tabs */}
-                                    <TabsList className="vertical-tabs-list shrink-0 border-r bg-muted/10 p-0 rounded-none w-20">
-                                        <TabsTrigger value="items" className="vertical-tab-trigger h-20 w-20" title={t('tabs.items')}>
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <DollarSign className="h-5 w-5" />
-                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.items')}</span>
-                                            </div>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="orders" className="vertical-tab-trigger h-20 w-20" title={t('tabs.orders')}>
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <ShoppingCart className="h-5 w-5" />
-                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.orders')}</span>
-                                            </div>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="invoices" className="vertical-tab-trigger h-20 w-20" title={t('tabs.invoices')}>
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <Receipt className="h-5 w-5" />
-                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.invoices')}</span>
-                                            </div>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="payments" className="vertical-tab-trigger h-20 w-20" title={t('tabs.payments')}>
-                                            <div className="flex flex-col items-center gap-1.5">
-                                                <CreditCard className="h-5 w-5" />
-                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.payments')}</span>
-                                            </div>
-                                        </TabsTrigger>
-                                        <div className="mt-auto pb-4">
-                                            {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                <TabsTrigger value="edit" className="vertical-tab-trigger h-20 w-20" title={t('edit')}>
-                                                    <div className="flex flex-col items-center gap-1.5">
-                                                        <Edit3 className="h-5 w-5" />
-                                                        <span className="text-[9px] font-bold uppercase tracking-tight">{t('edit')}</span>
-                                                    </div>
-                                                </TabsTrigger>
-                                            )}
+                            <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0 overflow-hidden">
+                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4 border-b bg-card">
+                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                        <div className="header-icon-circle mt-0.5">
+                                            <FileText className="h-5 w-5" />
                                         </div>
-                                    </TabsList>
-
-                                    {/* Main Content Area */}
-                                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
-                                        {/* Header */}
-                                        <div className="flex flex-col flex-none p-6 border-b bg-card">
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                    <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
-                                                    <div className="flex flex-col">
-                                                        <h2 className="text-2xl font-black tracking-tight">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
-                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold uppercase tracking-wide">
-                                                            <UserIcon className="h-4 w-4" />
-                                                            <span>{selectedQuote.user_name}</span>
-                                                        </div>
-                                                        
-                                                        {/* NEW COMPACT SUMMARY LINE */}
-                                                        <div className="flex items-center gap-3 px-3 py-1.5 bg-accent/5 rounded-full border border-accent/10 w-fit mt-3 shadow-sm">
-                                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
-                                                                <div className={cn(
-                                                                    "h-2 w-2 rounded-full",
-                                                                    (selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted') ? "bg-green-500" :
-                                                                    selectedQuote.status.toLowerCase() === 'draft' ? "bg-slate-400" : "bg-blue-500"
-                                                                )} />
-                                                                <span className={cn(
-                                                                    (selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted') ? "text-green-700" :
-                                                                    selectedQuote.status.toLowerCase() === 'draft' ? "text-slate-600" : "text-blue-700"
-                                                                )}>
-                                                                    {t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}
-                                                                </span>
-                                                            </div>
-                                                            
-                                                            <div className="h-3 w-px bg-border" />
-                                                            
-                                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
-                                                                <FileText className="h-3 w-3 text-blue-600" />
-                                                                <span className="text-blue-700">
-                                                                    {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
-                                                                </span>
-                                                            </div>
-                                                            
-                                                            <div className="h-3 w-px bg-border" />
-                                                            
-                                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
-                                                                <CreditCard className="h-3 w-3 text-emerald-600" />
-                                                                <span className="text-emerald-700">
-                                                                    {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
-                                                                </span>
-                                                            </div>
-                                                            
-                                                            <div className="ml-4 pl-4 border-l border-border flex items-center gap-2">
-                                                                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-tighter">Monto Total:</span>
-                                                                <div className="flex items-baseline gap-1">
-                                                                    <span className="text-[10px] font-bold text-primary">{selectedQuote.currency}</span>
-                                                                    <span className="text-sm font-black text-primary">
-                                                                        {new Intl.NumberFormat('es-UY', {
-                                                                            minimumFractionDigits: 2,
-                                                                            maximumFractionDigits: 2
-                                                                        }).format(Number(selectedQuote.total))}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <h2 className="text-lg font-bold tracking-tight truncate">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
+                                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+                                                <UserIcon className="h-3.5 w-3.5" />
+                                                <span className="truncate">{selectedQuote.user_name}</span>
+                                            </div>
+                                            
+                                            {/* Compact Status Line */}
+                                            <div className="flex items-center gap-2 px-2 py-1 bg-accent/5 rounded-full border border-accent/10 w-fit mt-2 shadow-sm text-[9px] font-bold uppercase">
+                                                <div className="flex items-center gap-1">
+                                                    <div className={cn(
+                                                        "h-1.5 w-1.5 rounded-full",
+                                                        (selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted') ? "bg-green-500" :
+                                                        selectedQuote.status.toLowerCase() === 'draft' ? "bg-slate-400" : "bg-blue-500"
+                                                    )} />
+                                                    <span className={cn(
+                                                        (selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted') ? "text-green-700" :
+                                                        selectedQuote.status.toLowerCase() === 'draft' ? "text-slate-600" : "text-blue-700"
+                                                    )}>
+                                                        {t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}
+                                                    </span>
                                                 </div>
                                                 
-                                                <div className="flex items-center gap-3">
-                                                    {/* Confirm/Reject Actions */}
-                                                    {(selectedQuote.status.toLowerCase() === 'draft' || selectedQuote.status.toLowerCase() === 'pending') && (
-                                                        <div className="flex items-center gap-2 mr-2 pr-4 border-r">
-                                                            <ActionButton 
-                                                                onClick={() => handleQuoteAction(selectedQuote, 'confirm')} 
-                                                                icon={Check} 
-                                                                label={t('confirm')} 
-                                                                variant="default"
-                                                                className="bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm"
-                                                            />
-                                                            <ActionButton 
-                                                                onClick={() => handleQuoteAction(selectedQuote, 'reject')} 
-                                                                icon={X} 
-                                                                label={t('reject')} 
-                                                                className="text-rose-600 hover:bg-rose-50 rounded-lg"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                    
-                                                    {/* Common Actions */}
-                                                    <div className="flex items-center gap-1">
-                                                        <ActionButton onClick={() => handlePrintQuote(selectedQuote)} icon={Printer} label={t('print')} className="rounded-lg" />
-                                                        <ActionButton onClick={() => handleSendEmailClick(selectedQuote)} icon={Send} label={t('sendEmail')} className="rounded-lg" />
-                                                    </div>
-                                                    
-                                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 hover:bg-destructive/10 hover:text-destructive transition-colors">
-                                                        <X className="h-5 w-5" />
-                                                    </Button>
+                                                <div className="h-3 w-px bg-border" />
+                                                
+                                                <div className="flex items-center gap-1">
+                                                    <FileText className="h-3 w-3 text-blue-600" />
+                                                    <span className="text-blue-700">
+                                                        {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="h-3 w-px bg-border" />
+                                                
+                                                <div className="flex items-center gap-1">
+                                                    <CreditCard className="h-3 w-3 text-emerald-600" />
+                                                    <span className="text-emerald-700">
+                                                        {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="h-3 w-px bg-border" />
+                                                
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-primary">{selectedQuote.currency}</span>
+                                                    <span className="text-primary font-black">
+                                                        {new Intl.NumberFormat('es-UY', {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2
+                                                        }).format(Number(selectedQuote.total))}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-1">
+                                        {/* Confirm/Reject Actions */}
+                                        {(selectedQuote.status.toLowerCase() === 'draft' || selectedQuote.status.toLowerCase() === 'pending') && (
+                                            <div className="flex items-center gap-1 mr-2 pr-2 border-r">
+                                                <ActionButton 
+                                                    onClick={() => handleQuoteAction(selectedQuote, 'confirm')} 
+                                                    icon={Check} 
+                                                    label={t('confirm')} 
+                                                    variant="default"
+                                                    className="bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                                                />
+                                                <ActionButton 
+                                                    onClick={() => handleQuoteAction(selectedQuote, 'reject')} 
+                                                    icon={X} 
+                                                    label={t('reject')} 
+                                                    className="text-rose-600 hover:bg-rose-50 rounded-lg"
+                                                />
+                                            </div>
+                                        )}
+                                        
+                                        {/* Common Actions: Edit -> Print -> Send Email */}
+                                        <div className="flex items-center gap-1">
+                                            {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                                <ActionButton onClick={() => handleEditQuote(selectedQuote)} icon={Edit3} label={t('edit')} className="rounded-lg" />
+                                            )}
+                                            <ActionButton onClick={() => handlePrintQuote(selectedQuote)} icon={Printer} label={t('print')} className="rounded-lg" />
+                                            <ActionButton onClick={() => handleSendEmailClick(selectedQuote)} icon={Send} label={t('sendEmail')} className="rounded-lg" />
+                                        </div>
+                                        
+                                        <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 hover:bg-destructive/10 hover:text-destructive transition-colors">
+                                            <X className="h-5 w-5" />
+                                        </Button>
+                                    </div>
+                                </CardHeader>
 
-                                        {/* Content Tabs */}
-                                        <div className="flex-1 overflow-hidden p-6 bg-card/30">
-                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                <CardContent className="flex-1 flex flex-col min-h-0 p-0 bg-card/30 overflow-hidden">
+                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                                        <TabsList className="flex-none px-4 bg-muted/20 border-b h-auto py-1.5 gap-2">
+                                            <TabsTrigger value="items" className="text-xs font-bold uppercase tracking-wider">{t('tabs.items')}</TabsTrigger>
+                                            <TabsTrigger value="orders" className="text-xs font-bold uppercase tracking-wider">{t('tabs.orders')}</TabsTrigger>
+                                            <TabsTrigger value="invoices" className="text-xs font-bold uppercase tracking-wider">{t('tabs.invoices')}</TabsTrigger>
+                                            <TabsTrigger value="payments" className="text-xs font-bold uppercase tracking-wider">{t('tabs.payments')}</TabsTrigger>
+                                        </TabsList>
+                                        
+                                        <div className="flex-1 overflow-hidden">
+                                            <TabsContent value="items" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h3 className="font-black text-lg flex items-center gap-2 text-primary">
                                                         <DollarSign className="h-5 w-5" />
@@ -1053,7 +1057,7 @@ function QuotesPageContent() {
                                                 </div>
                                             </TabsContent>
 
-                                            <TabsContent value="orders" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                            <TabsContent value="orders" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
                                                 <TwoPanelLayout
                                                     isRightPanelOpen={!!selectedOrder}
                                                     leftPanel={
@@ -1117,7 +1121,7 @@ function QuotesPageContent() {
                                                 />
                                             </TabsContent>
 
-                                            <TabsContent value="invoices" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                            <TabsContent value="invoices" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
                                                 <TwoPanelLayout
                                                     isRightPanelOpen={!!selectedInvoice}
                                                     leftPanel={
@@ -1177,7 +1181,7 @@ function QuotesPageContent() {
                                                 />
                                             </TabsContent>
 
-                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                            <TabsContent value="payments" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex items-center justify-between mb-4">
                                                     <h3 className="font-black text-lg flex items-center gap-2 text-primary">
                                                         <CreditCard className="h-5 w-5" />
@@ -1194,33 +1198,10 @@ function QuotesPageContent() {
                                                     />
                                                 </div>
                                             </TabsContent>
-
-                                            <TabsContent value="edit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-black text-lg flex items-center gap-2 text-primary">
-                                                        <Edit3 className="h-5 w-5" />
-                                                        {t('edit')}
-                                                    </h3>
-                                                </div>
-                                                <ScrollArea className="flex-1 bg-background rounded-xl border p-8">
-                                                    <div className="max-w-md mx-auto space-y-6">
-                                                        <div className="p-6 bg-muted/20 rounded-xl border text-center space-y-4">
-                                                            <Edit3 className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
-                                                            <div>
-                                                                <p className="font-bold text-foreground">{t('quoteDialog.editTitle')}</p>
-                                                                <p className="text-sm text-muted-foreground mt-1">Utilice el botón Editar del encabezado principal o modifique los items directamente en la pestaña correspondiente.</p>
-                                                            </div>
-                                                            <Button onClick={() => handleEditQuote(selectedQuote)} variant="outline" className="w-full font-bold uppercase tracking-wider h-10">
-                                                                Abrir Editor de Encabezado
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                </ScrollArea>
-                                            </TabsContent>
                                         </div>
-                                    </div>
-                                </Tabs>
-                            </div>
+                                    </Tabs>
+                                </CardContent>
+                            </Card>
                         )
                     }
                 />
