@@ -61,7 +61,8 @@ import {
     Edit3, 
     DollarSign, 
     CreditCard,
-    PlusCircle
+    PlusCircle,
+    User as UserIcon
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -336,7 +337,7 @@ async function getUsers(t: (key: string) => string): Promise<User[]> {
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
         const usersData = Array.isArray(data.data) ? data.data : [];
         return usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : t('defaults.noName'),
+            id: apiUser.id ? String(apiUser.id) : t('defaults.notAvailable'),
             name: apiUser.name || t('defaults.noName'),
             email: apiUser.email || t('defaults.noEmail'),
             phone_number: apiUser.phone_number || '000-000-0000',
@@ -397,6 +398,7 @@ function QuotesPageContent() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
     const tVal = useTranslations('QuotesPage');
+    const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
     const { hasPermission } = usePermissions();
@@ -929,12 +931,63 @@ function QuotesPageContent() {
                                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
                                         {/* Header */}
                                         <div className="flex flex-col flex-none p-6 border-b bg-card">
-                                            <div className="flex items-start justify-between mb-6">
+                                            <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
                                                     <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
                                                     <div className="flex flex-col">
                                                         <h2 className="text-2xl font-black tracking-tight">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
-                                                        <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wide">{selectedQuote.user_name}</span>
+                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-semibold uppercase tracking-wide">
+                                                            <UserIcon className="h-4 w-4" />
+                                                            <span>{selectedQuote.user_name}</span>
+                                                        </div>
+                                                        
+                                                        {/* NEW COMPACT SUMMARY LINE */}
+                                                        <div className="flex items-center gap-3 px-3 py-1.5 bg-accent/5 rounded-full border border-accent/10 w-fit mt-3 shadow-sm">
+                                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
+                                                                <div className={cn(
+                                                                    "h-2 w-2 rounded-full",
+                                                                    (selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted') ? "bg-green-500" :
+                                                                    selectedQuote.status.toLowerCase() === 'draft' ? "bg-slate-400" : "bg-blue-500"
+                                                                )} />
+                                                                <span className={cn(
+                                                                    (selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted') ? "text-green-700" :
+                                                                    selectedQuote.status.toLowerCase() === 'draft' ? "text-slate-600" : "text-blue-700"
+                                                                )}>
+                                                                    {t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <div className="h-3 w-px bg-border" />
+                                                            
+                                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
+                                                                <FileText className="h-3 w-3 text-blue-600" />
+                                                                <span className="text-blue-700">
+                                                                    {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <div className="h-3 w-px bg-border" />
+                                                            
+                                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase">
+                                                                <CreditCard className="h-3 w-3 text-emerald-600" />
+                                                                <span className="text-emerald-700">
+                                                                    {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                                </span>
+                                                            </div>
+                                                            
+                                                            <div className="ml-4 pl-4 border-l border-border flex items-center gap-2">
+                                                                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-tighter">Monto Total:</span>
+                                                                <div className="flex items-baseline gap-1">
+                                                                    <span className="text-[10px] font-bold text-primary">{selectedQuote.currency}</span>
+                                                                    <span className="text-sm font-black text-primary">
+                                                                        {new Intl.NumberFormat('es-UY', {
+                                                                            minimumFractionDigits: 2,
+                                                                            maximumFractionDigits: 2
+                                                                        }).format(Number(selectedQuote.total))}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 
@@ -960,51 +1013,13 @@ function QuotesPageContent() {
                                                     
                                                     {/* Common Actions */}
                                                     <div className="flex items-center gap-1">
-                                                        <ActionButton onClick={() => {}} icon={Printer} label={t('print')} className="rounded-lg" />
-                                                        <ActionButton onClick={() => {}} icon={Send} label={t('sendEmail')} className="rounded-lg" />
+                                                        <ActionButton onClick={() => handlePrintQuote(selectedQuote)} icon={Printer} label={t('print')} className="rounded-lg" />
+                                                        <ActionButton onClick={() => handleSendEmailClick(selectedQuote)} icon={Send} label={t('sendEmail')} className="rounded-lg" />
                                                     </div>
                                                     
                                                     <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 hover:bg-destructive/10 hover:text-destructive transition-colors">
                                                         <X className="h-5 w-5" />
                                                     </Button>
-                                                </div>
-                                            </div>
-
-                                            {/* Summary Stats / KPIs in single line */}
-                                            <div className="flex items-center justify-between gap-4 p-4 bg-muted/20 rounded-xl border">
-                                                <div className="flex items-center gap-8">
-                                                    <div className="flex flex-col gap-1.5 border-r pr-8">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('quoteDialog.status')}</span>
-                                                        <Badge variant={
-                                                            selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted' ? 'success' :
-                                                            selectedQuote.status.toLowerCase() === 'draft' ? 'outline' : 'secondary'
-                                                        } className="w-fit h-6 text-[10px] font-black uppercase px-3">{t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}</Badge>
-                                                    </div>
-                                                    <div className="flex flex-col gap-1.5 border-r pr-8">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('quoteDialog.billingStatus')}</span>
-                                                        <Badge variant="outline" className="w-fit h-6 text-[10px] font-black uppercase border-blue-200 text-blue-700 bg-blue-50 px-3">
-                                                            {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
-                                                        </Badge>
-                                                    </div>
-                                                    <div className="flex flex-col gap-1.5">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('quoteDialog.paymentStatus')}</span>
-                                                        <Badge variant="outline" className="w-fit h-6 text-[10px] font-black uppercase border-emerald-200 text-emerald-700 bg-emerald-50 px-3">
-                                                            {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Monto Total</span>
-                                                    <div className="flex items-baseline gap-1.5">
-                                                        <span className="text-xs font-bold text-muted-foreground">{selectedQuote.currency}</span>
-                                                        <span className="text-3xl font-black tracking-tight text-primary">
-                                                            {new Intl.NumberFormat('es-UY', {
-                                                                minimumFractionDigits: 2,
-                                                                maximumFractionDigits: 2
-                                                            }).format(Number(selectedQuote.total))}
-                                                        </span>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
