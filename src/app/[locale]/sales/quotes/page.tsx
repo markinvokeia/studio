@@ -141,7 +141,7 @@ async function getServices(): Promise<Service[]> {
 }
 
 async function upsertQuoteItem(itemData: QuoteItemFormValues, t: (key: string) => string) {
-    const responseData = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: true });
+    const responseData = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, { ...itemData, tooth_number: null, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuoteItem');
         throw new Error(message);
@@ -833,7 +833,7 @@ function QuotesPageContent() {
             onClick={(e) => { e.stopPropagation(); onClick(); }}
             disabled={disabled}
             className={cn(
-                "flex flex-col items-center justify-center h-14 w-16 p-1 gap-1 text-[10px] font-bold uppercase transition-colors hover:bg-accent/50",
+                "flex flex-col items-center justify-center h-14 w-16 p-1 gap-1 text-[9px] font-bold uppercase transition-colors",
                 className
             )}
         >
@@ -874,25 +874,25 @@ function QuotesPageContent() {
                                 <Tabs defaultValue="items" className="flex flex-1 min-h-0 overflow-hidden" orientation="vertical">
                                     {/* Sidebar Vertical Tabs */}
                                     <TabsList className="vertical-tabs-list shrink-0 border-r bg-muted/10 p-0 rounded-none w-20">
-                                        <TabsTrigger value="items" className="vertical-tab-trigger h-16 w-20" title={t('tabs.items')}>
+                                        <TabsTrigger value="items" className="vertical-tab-trigger h-20 w-20" title={t('tabs.items')}>
                                             <div className="flex flex-col items-center gap-1.5">
                                                 <DollarSign className="h-5 w-5" />
                                                 <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.items')}</span>
                                             </div>
                                         </TabsTrigger>
-                                        <TabsTrigger value="orders" className="vertical-tab-trigger h-16 w-20" title={t('tabs.orders')}>
+                                        <TabsTrigger value="orders" className="vertical-tab-trigger h-20 w-20" title={t('tabs.orders')}>
                                             <div className="flex flex-col items-center gap-1.5">
                                                 <ShoppingCart className="h-5 w-5" />
                                                 <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.orders')}</span>
                                             </div>
                                         </TabsTrigger>
-                                        <TabsTrigger value="invoices" className="vertical-tab-trigger h-16 w-20" title={t('tabs.invoices')}>
+                                        <TabsTrigger value="invoices" className="vertical-tab-trigger h-20 w-20" title={t('tabs.invoices')}>
                                             <div className="flex flex-col items-center gap-1.5">
                                                 <Receipt className="h-5 w-5" />
                                                 <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.invoices')}</span>
                                             </div>
                                         </TabsTrigger>
-                                        <TabsTrigger value="payments" className="vertical-tab-trigger h-16 w-20" title={t('tabs.payments')}>
+                                        <TabsTrigger value="payments" className="vertical-tab-trigger h-20 w-20" title={t('tabs.payments')}>
                                             <div className="flex flex-col items-center gap-1.5">
                                                 <CreditCard className="h-5 w-5" />
                                                 <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.payments')}</span>
@@ -900,7 +900,7 @@ function QuotesPageContent() {
                                         </TabsTrigger>
                                         <div className="mt-auto pb-4">
                                             {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                <TabsTrigger value="edit" className="vertical-tab-trigger h-16 w-20" title={t('edit')}>
+                                                <TabsTrigger value="edit" className="vertical-tab-trigger h-20 w-20" title={t('edit')}>
                                                     <div className="flex flex-col items-center gap-1.5">
                                                         <Edit3 className="h-5 w-5" />
                                                         <span className="text-[9px] font-bold uppercase tracking-tight">{t('edit')}</span>
@@ -914,74 +914,76 @@ function QuotesPageContent() {
                                     <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
                                         {/* Header */}
                                         <div className="flex flex-col flex-none p-6 border-b bg-card">
-                                            <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-start justify-between mb-6">
                                                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                                                    <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                                                    <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
                                                     <div className="flex flex-col">
-                                                        <h2 className="text-2xl font-bold tracking-tight">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
-                                                        <span className="text-sm text-muted-foreground font-medium">{selectedQuote.user_name}</span>
+                                                        <h2 className="text-2xl font-black tracking-tight">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
+                                                        <span className="text-sm text-muted-foreground font-semibold uppercase tracking-wide">{selectedQuote.user_name}</span>
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-3">
                                                     {/* Confirm/Reject Actions */}
                                                     {(selectedQuote.status.toLowerCase() === 'draft' || selectedQuote.status.toLowerCase() === 'pending') && (
-                                                        <div className="flex items-center gap-1 mr-2 pr-2 border-r">
+                                                        <div className="flex items-center gap-2 mr-2 pr-4 border-r">
                                                             <ActionButton 
                                                                 onClick={() => handleQuoteAction(selectedQuote, 'confirm')} 
                                                                 icon={Check} 
                                                                 label={t('confirm')} 
                                                                 variant="default"
-                                                                className="bg-green-600 hover:bg-green-700 text-white"
+                                                                className="bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm"
                                                             />
                                                             <ActionButton 
                                                                 onClick={() => handleQuoteAction(selectedQuote, 'reject')} 
                                                                 icon={X} 
                                                                 label={t('reject')} 
-                                                                className="text-rose-600 hover:bg-rose-50"
+                                                                className="text-rose-600 hover:bg-rose-50 rounded-lg"
                                                             />
                                                         </div>
                                                     )}
                                                     
                                                     {/* Common Actions */}
-                                                    <ActionButton onClick={() => {}} icon={Printer} label={t('print')} />
-                                                    <ActionButton onClick={() => {}} icon={Send} label={t('sendEmail')} />
-                                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2">
+                                                    <div className="flex items-center gap-1">
+                                                        <ActionButton onClick={() => {}} icon={Printer} label={t('print')} className="rounded-lg" />
+                                                        <ActionButton onClick={() => {}} icon={Send} label={t('sendEmail')} className="rounded-lg" />
+                                                    </div>
+                                                    
+                                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 hover:bg-destructive/10 hover:text-destructive transition-colors">
                                                         <X className="h-5 w-5" />
                                                     </Button>
                                                 </div>
                                             </div>
 
-                                            {/* Summary Stats / KPIs */}
-                                            <div className="flex items-center justify-between gap-4 p-3 bg-muted/20 rounded-lg border">
-                                                <div className="flex gap-6">
-                                                    <div className="flex flex-col gap-1 border-r pr-6">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.status')}</span>
+                                            {/* Summary Stats / KPIs in single line */}
+                                            <div className="flex items-center justify-between gap-4 p-4 bg-muted/20 rounded-xl border">
+                                                <div className="flex items-center gap-8">
+                                                    <div className="flex flex-col gap-1.5 border-r pr-8">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('quoteDialog.status')}</span>
                                                         <Badge variant={
                                                             selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted' ? 'success' :
                                                             selectedQuote.status.toLowerCase() === 'draft' ? 'outline' : 'secondary'
-                                                        } className="w-fit h-5 text-[10px] uppercase">{t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}</Badge>
+                                                        } className="w-fit h-6 text-[10px] font-black uppercase px-3">{t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}</Badge>
                                                     </div>
-                                                    <div className="flex flex-col gap-1 border-r pr-6">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.billingStatus')}</span>
-                                                        <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-blue-200 text-blue-700 bg-blue-50">
+                                                    <div className="flex flex-col gap-1.5 border-r pr-8">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('quoteDialog.billingStatus')}</span>
+                                                        <Badge variant="outline" className="w-fit h-6 text-[10px] font-black uppercase border-blue-200 text-blue-700 bg-blue-50 px-3">
                                                             {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
                                                         </Badge>
                                                     </div>
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.paymentStatus')}</span>
-                                                        <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50">
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('quoteDialog.paymentStatus')}</span>
+                                                        <Badge variant="outline" className="w-fit h-6 text-[10px] font-black uppercase border-emerald-200 text-emerald-700 bg-emerald-50 px-3">
                                                             {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
                                                         </Badge>
                                                     </div>
                                                 </div>
 
-                                                {/* Total Amount Moved here */}
                                                 <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Monto Total</span>
-                                                    <div className="flex items-baseline gap-1">
-                                                        <span className="text-sm font-semibold text-muted-foreground">{selectedQuote.currency}</span>
-                                                        <span className="text-2xl font-black tracking-tight">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Monto Total</span>
+                                                    <div className="flex items-baseline gap-1.5">
+                                                        <span className="text-xs font-bold text-muted-foreground">{selectedQuote.currency}</span>
+                                                        <span className="text-3xl font-black tracking-tight text-primary">
                                                             {new Intl.NumberFormat('es-UY', {
                                                                 minimumFractionDigits: 2,
                                                                 maximumFractionDigits: 2
@@ -993,16 +995,16 @@ function QuotesPageContent() {
                                         </div>
 
                                         {/* Content Tabs */}
-                                        <div className="flex-1 overflow-hidden p-6 bg-card/50">
+                                        <div className="flex-1 overflow-hidden p-6 bg-card/30">
                                             <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                                        <DollarSign className="h-5 w-5 text-primary" />
+                                                    <h3 className="font-black text-lg flex items-center gap-2 text-primary">
+                                                        <DollarSign className="h-5 w-5" />
                                                         {t('tabs.items')}
                                                     </h3>
                                                     {canEditQuote && canAddItem && (
-                                                        <Button onClick={handleCreateQuoteItem} size="sm" className="gap-2">
-                                                            <Check className="h-4 w-4" /> {t('addItem')}
+                                                        <Button onClick={handleCreateQuoteItem} size="sm" className="gap-2 font-bold uppercase text-[10px] h-8">
+                                                            <PlusCircle className="h-4 w-4" /> {t('addItem')}
                                                         </Button>
                                                     )}
                                                 </div>
@@ -1022,60 +1024,133 @@ function QuotesPageContent() {
                                             </TabsContent>
 
                                             <TabsContent value="orders" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                                        <ShoppingCart className="h-5 w-5 text-primary" />
-                                                        {t('tabs.orders')}
-                                                    </h3>
-                                                </div>
-                                                <div className="flex-1 min-h-0">
-                                                    <OrdersTable
-                                                        orders={orders}
-                                                        isLoading={isLoadingOrders}
-                                                        onRowSelectionChange={handleOrderSelectionChange}
-                                                        onRefresh={loadOrders}
-                                                        isRefreshing={isLoadingOrders}
-                                                        columnsToHide={['user_name', 'quote_id']}
-                                                        isCompact={true}
-                                                    />
-                                                </div>
+                                                <TwoPanelLayout
+                                                    isRightPanelOpen={!!selectedOrder}
+                                                    leftPanel={
+                                                        <div className="h-full flex flex-col min-h-0">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <h3 className="font-black text-lg flex items-center gap-2 text-primary">
+                                                                    <ShoppingCart className="h-5 w-5" />
+                                                                    {t('tabs.orders')}
+                                                                </h3>
+                                                            </div>
+                                                            <div className="flex-1 min-h-0">
+                                                                <OrdersTable
+                                                                    orders={orders}
+                                                                    isLoading={isLoadingOrders}
+                                                                    onRowSelectionChange={handleOrderSelectionChange}
+                                                                    onRefresh={loadOrders}
+                                                                    isRefreshing={isLoadingOrders}
+                                                                    columnsToHide={['user_name', 'quote_id']}
+                                                                    isCompact={true}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    rightPanel={
+                                                        selectedOrder && (
+                                                            <Card className="h-full border shadow-sm flex flex-col min-h-0 animate-in slide-in-from-left duration-300">
+                                                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/30">
+                                                                    <div className="flex flex-col">
+                                                                        <CardTitle className="text-sm font-black">{tRoot('OrderItemsTable.title', { id: selectedOrder.doc_no || selectedOrder.id })}</CardTitle>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
+                                                                            <RefreshCw className={cn("h-4 w-4", isLoadingOrderItems && "animate-spin")} />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedOrder(null)}>
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </CardHeader>
+                                                                <CardContent className="flex-1 overflow-hidden p-0">
+                                                                    <OrderItemsTable
+                                                                        items={orderItems}
+                                                                        isLoading={isLoadingOrderItems}
+                                                                        onItemsUpdate={loadOrderItems}
+                                                                        quoteId={selectedQuote.id}
+                                                                        isSales={true}
+                                                                        userId={selectedOrder.user_id}
+                                                                        patient={{
+                                                                            id: selectedOrder.user_id,
+                                                                            name: selectedOrder.user_name || 'Patient',
+                                                                            email: '',
+                                                                            phone_number: '',
+                                                                            is_active: true,
+                                                                            avatar: ''
+                                                                        }}
+                                                                    />
+                                                                </CardContent>
+                                                            </Card>
+                                                        )
+                                                    }
+                                                />
                                             </TabsContent>
 
                                             <TabsContent value="invoices" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                                        <Receipt className="h-5 w-5 text-primary" />
-                                                        {t('tabs.invoices')}
-                                                    </h3>
-                                                </div>
-                                                <div className="flex-1 min-h-0">
-                                                    <InvoicesTable
-                                                        invoices={invoices}
-                                                        isLoading={isLoadingInvoices}
-                                                        onRowSelectionChange={handleInvoiceSelectionChange}
-                                                        onRefresh={loadInvoices}
-                                                        isRefreshing={isLoadingInvoices}
-                                                        isCompact={true}
-                                                        canCreate={false}
-                                                        columnTranslations={{
-                                                            doc_no: tRoot('InvoicesPage.columns.docNo'),
-                                                            user_name: tRoot('InvoicesPage.columns.userName'),
-                                                            total: tRoot('InvoicesPage.columns.total'),
-                                                            currency: tRoot('InvoicesPage.columns.currency'),
-                                                            status: tRoot('InvoicesPage.columns.status'),
-                                                            type: tRoot('InvoicesPage.columns.type'),
-                                                            payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
-                                                            paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
-                                                            createdAt: tRoot('InvoicesPage.columns.createdAt'),
-                                                        }}
-                                                    />
-                                                </div>
+                                                <TwoPanelLayout
+                                                    isRightPanelOpen={!!selectedInvoice}
+                                                    leftPanel={
+                                                        <div className="h-full flex flex-col min-h-0">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <h3 className="font-black text-lg flex items-center gap-2 text-primary">
+                                                                    <Receipt className="h-5 w-5" />
+                                                                    {t('tabs.invoices')}
+                                                                </h3>
+                                                            </div>
+                                                            <div className="flex-1 min-h-0">
+                                                                <InvoicesTable
+                                                                    invoices={invoices}
+                                                                    isLoading={isLoadingInvoices}
+                                                                    onRowSelectionChange={handleInvoiceSelectionChange}
+                                                                    onRefresh={loadInvoices}
+                                                                    isRefreshing={isLoadingInvoices}
+                                                                    isCompact={true}
+                                                                    canCreate={false}
+                                                                    columnTranslations={{
+                                                                        doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                                        user_name: tRoot('InvoicesPage.columns.userName'),
+                                                                        total: tRoot('InvoicesPage.columns.total'),
+                                                                        currency: tRoot('InvoicesPage.columns.currency'),
+                                                                        status: tRoot('InvoicesPage.columns.status'),
+                                                                        type: tRoot('InvoicesPage.columns.type'),
+                                                                        payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                                        paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                                        createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                    rightPanel={
+                                                        selectedInvoice && (
+                                                            <Card className="h-full border shadow-sm flex flex-col min-h-0 animate-in slide-in-from-left duration-300">
+                                                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-muted/30">
+                                                                    <div className="flex flex-col">
+                                                                        <CardTitle className="text-sm font-black">{tRoot('InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</CardTitle>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                                            <RefreshCw className={cn("h-4 w-4", isLoadingInvoiceItems && "animate-spin")} />
+                                                                        </Button>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInvoice(null)}>
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                </CardHeader>
+                                                                <CardContent className="flex-1 overflow-hidden p-0">
+                                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                                </CardContent>
+                                                            </Card>
+                                                        )
+                                                    }
+                                                />
                                             </TabsContent>
 
                                             <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                                        <CreditCard className="h-5 w-5 text-primary" />
+                                                    <h3 className="font-black text-lg flex items-center gap-2 text-primary">
+                                                        <CreditCard className="h-5 w-5" />
                                                         {t('tabs.payments')}
                                                     </h3>
                                                 </div>
@@ -1092,13 +1167,24 @@ function QuotesPageContent() {
 
                                             <TabsContent value="edit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-bold text-lg flex items-center gap-2">
-                                                        <Edit3 className="h-5 w-5 text-primary" />
+                                                    <h3 className="font-black text-lg flex items-center gap-2 text-primary">
+                                                        <Edit3 className="h-5 w-5" />
                                                         {t('edit')}
                                                     </h3>
                                                 </div>
-                                                <ScrollArea className="flex-1 bg-background rounded-lg border p-6">
-                                                    <p className="text-muted-foreground text-center pt-20">Utilice el botón Editar del encabezado o modifique los items directamente en la pestaña correspondiente.</p>
+                                                <ScrollArea className="flex-1 bg-background rounded-xl border p-8">
+                                                    <div className="max-w-md mx-auto space-y-6">
+                                                        <div className="p-6 bg-muted/20 rounded-xl border text-center space-y-4">
+                                                            <Edit3 className="h-12 w-12 mx-auto text-muted-foreground opacity-50" />
+                                                            <div>
+                                                                <p className="font-bold text-foreground">{t('quoteDialog.editTitle')}</p>
+                                                                <p className="text-sm text-muted-foreground mt-1">Utilice el botón Editar del encabezado principal o modifique los items directamente en la pestaña correspondiente.</p>
+                                                            </div>
+                                                            <Button onClick={() => handleEditQuote(selectedQuote)} variant="outline" className="w-full font-bold uppercase tracking-wider h-10">
+                                                                Abrir Editor de Encabezado
+                                                            </Button>
+                                                        </div>
+                                                    </div>
                                                 </ScrollArea>
                                             </TabsContent>
                                         </div>
@@ -1438,10 +1524,10 @@ function QuotesPageContent() {
                         <AlertDialogTitle>{t('deleteItemDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                    <DialogFooter>
                         <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
-                    </AlertDialogFooter>
+                    </DialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
         </>
