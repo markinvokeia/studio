@@ -31,9 +31,9 @@ import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef, RowSelectionState, flexRender } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, CreditCard, Edit3, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, CreditCard, Edit3, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -49,6 +49,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { DataTablePagination } from '../ui/data-table-pagination';
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().min(0, t('validation.amountPositive')),
@@ -99,8 +100,8 @@ const createInvoiceFormSchema = z.object({
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 
 const getColumns = (
-  t: (key: string) => string,
-  tStatus: (key: string) => string,
+  t: any,
+  tStatus: any,
   columnTranslations: { [key: string]: string },
   onRowSelectionChange?: (selectedRows: Invoice[]) => void
 ): ColumnDef<Invoice>[] => {
@@ -112,9 +113,10 @@ const getColumns = (
         <RadioGroup
           value={row.getIsSelected() ? row.id : ''}
           onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
             if (onRowSelectionChange) {
-              table.toggleAllPageRowsSelected(false);
-              row.toggleSelected(true);
+              onRowSelectionChange([row.original]);
             }
           }}
         >
@@ -152,13 +154,6 @@ const getColumns = (
       },
     },
     {
-      accessorKey: 'currency',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={columnTranslations.currency || "Currency"} />
-      ),
-      cell: ({ row }) => row.original.currency || 'N/A',
-    },
-    {
       accessorKey: 'status',
       header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.status || "Status"} />,
       cell: ({ row }) => {
@@ -171,40 +166,6 @@ const getColumns = (
           booked: 'info'
         }[status?.toLowerCase()] ?? ('default' as any);
         return <Badge variant={variant} className="capitalize">{tStatus(status.toLowerCase())}</Badge>;
-      },
-    },
-    {
-      accessorKey: 'type',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.type || "Type"} />,
-      cell: ({ row }) => {
-        const type = row.original.type;
-        return <div className="capitalize">{type ? type.replace('_', ' ') : '-'}</div>;
-      },
-    },
-    {
-      accessorKey: 'payment_status',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.payment_status || "Payment"} />,
-      cell: ({ row }) => {
-        const status = row.original.payment_status;
-        const variant = {
-          paid: 'success',
-          partial: 'info',
-          unpaid: 'outline',
-          partially_paid: 'info'
-        }[status?.toLowerCase() ?? ('default' as any)];
-        return <Badge variant={variant as any} className="capitalize">{status ? tStatus(status.toLowerCase()) : ''}</Badge>;
-      },
-    },
-    {
-      accessorKey: 'paid_amount',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={columnTranslations.paid_amount || "Paid Amount"} />,
-      cell: ({ row }) => {
-        const amount = row.original.paid_amount ? parseFloat(row.original.paid_amount.toString()) : 0;
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: row.original.currency || 'USD',
-        }).format(amount);
-        return <div className="text-right font-medium pr-4">{formatted}</div>;
       },
     },
     {
@@ -247,7 +208,6 @@ interface InvoicesTableProps {
 export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
-  const tMethods = useTranslations('InvoicesPage.methods');
   const { user, checkActiveSession } = useAuth();
   const locale = useLocale();
 
@@ -277,155 +237,49 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   });
 
-  const watchedAmount = form.watch('amount');
-  const watchedPaymentCurrency = form.watch('payment_currency');
-  const watchedInvoiceCurrency = form.watch('invoice_currency');
-  const watchedExchangeRate = form.watch('exchange_rate');
+  const columns = React.useMemo(() => getColumns(
+    t,
+    tStatus,
+    columnTranslations,
+    onRowSelectionChange
+  ), [t, tStatus, columnTranslations, onRowSelectionChange]);
 
-  const showExchangeRate = watchedInvoiceCurrency && watchedPaymentCurrency && watchedInvoiceCurrency !== watchedPaymentCurrency;
+  const table = useReactTable({
+    data: invoices,
+    columns,
+    state: {
+      rowSelection: rowSelection ?? {},
+    },
+    enableRowSelection: true,
+    enableMultiRowSelection: false,
+    onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
 
-  const equivalentAmount = React.useMemo(() => {
-    if (!showExchangeRate || !watchedAmount || !watchedExchangeRate) return null;
-    if (watchedInvoiceCurrency === 'USD' && watchedPaymentCurrency === 'UYU') {
-      return watchedAmount / watchedExchangeRate;
-    }
-    if (watchedInvoiceCurrency === 'UYU' && watchedPaymentCurrency === 'USD') {
-      return watchedAmount * watchedExchangeRate;
-    }
-    return null;
-  }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency]);
-
-  React.useEffect(() => {
-    const isSameAsClinicCurrency = watchedInvoiceCurrency === companyCurrency;
-    if (showExchangeRate && watchedInvoiceCurrency !== watchedPaymentCurrency) {
-      form.setValue('exchange_rate', isSameAsClinicCurrency ? 1 : sessionExchangeRate);
-    } else if (!showExchangeRate) {
-      form.setValue('exchange_rate', 1);
-    }
-  }, [showExchangeRate, sessionExchangeRate, form, watchedInvoiceCurrency, watchedPaymentCurrency, companyCurrency]);
-
-  const creditsTotalInInvoiceCurrency = React.useMemo(() => {
-    if (!selectedInvoiceForPayment) return 0;
-    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
-
-    return Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
-      const credit = userCredits.find(c => c.source_id === creditId);
-      if (!credit) return sum;
-
-      let creditAmountConverted = amount;
-      if (credit.currency !== invoiceCurrency) {
-        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
-          creditAmountConverted = amount / sessionExchangeRate;
-        } else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
-          creditAmountConverted = amount * sessionExchangeRate;
-        }
-      }
-      return sum + creditAmountConverted;
-    }, 0);
-  }, [appliedCredits, userCredits, selectedInvoiceForPayment, sessionExchangeRate]);
-
-  React.useEffect(() => {
-    if (!selectedInvoiceForPayment) return;
-
-    const invoiceTotal = selectedInvoiceForPayment.total || 0;
-    const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
-    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
-    const remainingBalance = Math.max(0, invoiceTotal - paidAmount - creditsTotalInInvoiceCurrency);
-
-    const currentAmount = form.getValues('amount') || 0;
-    const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
-
-    if (appliedCredits.size > 0 || currentAmount > remainingBalance) {
-      let amountToSet = remainingBalance;
-      if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
-        if (invoiceCurrency === 'USD' && paymentCurrency === 'UYU') {
-          amountToSet = remainingBalance * sessionExchangeRate;
-        } else if (invoiceCurrency === 'UYU' && paymentCurrency === 'USD') {
-          amountToSet = remainingBalance / sessionExchangeRate;
-        }
-      }
-
-      amountToSet = Math.round(amountToSet * 100) / 100;
-      form.setValue('amount', amountToSet);
-    }
-  }, [creditsTotalInInvoiceCurrency, selectedInvoiceForPayment, form, sessionExchangeRate, appliedCredits.size]);
-
-  const remainingAmountToPay = React.useMemo(() => {
-    if (!selectedInvoiceForPayment) return 0;
-    const invoiceTotal = selectedInvoiceForPayment.total || 0;
-    const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
-
-    let paymentAmountInInvoiceCurrency = 0;
-    if (watchedAmount) {
-      if (showExchangeRate && equivalentAmount) {
-        paymentAmountInInvoiceCurrency = equivalentAmount;
-      } else {
-        paymentAmountInInvoiceCurrency = watchedAmount;
-      }
-    }
-
-    return invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency;
-  }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, creditsTotalInInvoiceCurrency]);
-
-  const fetchPaymentMethods = React.useCallback(async () => {
-    try {
-      const data = await api.get(API_ROUTES.PAYMENT_METHODS);
-      const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
-      setPaymentMethods(methodsData.map((m: any) => ({ ...m, id: String(m.id) })));
-    } catch (error) {
-      console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load payment methods.'
-      });
-    }
-  }, [toast]);
-
-  const fetchUserCredits = React.useCallback(async (userId: string | undefined) => {
-    if (!userId) {
-      setUserCredits([]);
-      return;
-    };
-    try {
-      const data = await api.get(API_ROUTES.USER_CREDIT, { user_id: userId });
-      setUserCredits(data || []);
-    } catch (error) {
-      console.error("Failed to fetch user credits", error);
-      setUserCredits([]);
-    }
-  }, []);
+  const selectedInvoice = React.useMemo(() => {
+    const rows = table.getFilteredSelectedRowModel().rows;
+    return rows.length > 0 ? rows[0].original : null;
+  }, [rowSelection, invoices]);
 
   const handleAddPaymentClick = React.useCallback(async (invoice: Invoice) => {
     if (!user) return;
-
     try {
       const sessionValidation = await validateActiveSession();
-
       if (!sessionValidation.isValid) {
         setIsNoSessionAlertOpen(true);
         return;
       }
-
       const clinicData = await api.get(API_ROUTES.CLINIC);
-
-      if (sessionValidation.exchangeRate) {
-        setSessionExchangeRate(sessionValidation.exchangeRate);
-      }
-
+      if (sessionValidation.exchangeRate) setSessionExchangeRate(sessionValidation.exchangeRate);
       setSelectedInvoiceForPayment(invoice);
       setActiveCashSessionId(sessionValidation.sessionId!);
-
       const currency = clinicData.currency || 'USD';
       setCompanyCurrency(currency);
-
-      fetchPaymentMethods();
-      fetchUserCredits(invoice.user_id);
-
       const invoiceCurrency = invoice.currency || 'USD';
-      const exchangeRateFromSession = sessionValidation.exchangeRate || 1;
-      const initialExchangeRate = invoiceCurrency === currency ? 1 : exchangeRateFromSession;
-
+      const initialExchangeRate = invoiceCurrency === currency ? 1 : (sessionValidation.exchangeRate || 1);
       form.reset({
         amount: invoice.total - (invoice.paid_amount || 0),
         method: '',
@@ -439,174 +293,37 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       setAppliedCredits(new Map());
       setIsPaymentDialogOpen(true);
     } catch (error) {
-      console.error("Payment session check error:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: t('toast.sessionCheckError'),
-      });
+      toast({ variant: 'destructive', title: 'Error', description: t('toast.sessionCheckError') });
     }
-  }, [user, validateActiveSession, form, toast, t, fetchPaymentMethods, fetchUserCredits]);
-
-  const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
-    try {
-      await api.post(isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM, { id: parseInt(invoice.id, 10) });
-      toast({
-        title: 'Invoice Confirmed',
-        description: `Invoice #${invoice.id} has been confirmed.`,
-      });
-      setIsConfirmDialogOpen(false);
-      setConfirmingInvoice(null);
-      if (onRefresh) onRefresh();
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      });
-    }
-  };
+  }, [user, validateActiveSession, form, toast, t]);
 
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment || !activeCashSessionId) return;
-
-    const totalCredits = Array.from(appliedCredits.values()).reduce((a, b) => a + b, 0);
-    if (values.amount <= 0 && totalCredits <= 0) {
-      setPaymentSubmissionError(t('validation.noPaymentAmount'));
-      return;
-    }
-
-    const invoiceTotal = selectedInvoiceForPayment.total || 0;
-    const paidAmount = selectedInvoiceForPayment.paid_amount || 0;
-    const invoiceCurrency = selectedInvoiceForPayment.currency || 'USD';
-
-    let paymentAmountInInvoiceCurrency = 0;
-    if (values.amount) {
-      if (showExchangeRate && equivalentAmount) {
-        paymentAmountInInvoiceCurrency = equivalentAmount;
-      } else {
-        paymentAmountInInvoiceCurrency = values.amount;
-      }
-    }
-
-    const creditsTotalInInvoiceCurrency = Array.from(appliedCredits.entries()).reduce((sum, [creditId, amount]) => {
-      const credit = userCredits.find(c => c.source_id === creditId);
-      if (!credit) return sum;
-
-      let creditAmountConverted = amount;
-      if (credit.currency !== invoiceCurrency) {
-        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') {
-          creditAmountConverted = amount / sessionExchangeRate;
-        }
-        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') {
-          creditAmountConverted = amount * sessionExchangeRate;
-        }
-      }
-      return sum + creditAmountConverted;
-    }, 0);
-
-    const totalAttemptedPayment = paymentAmountInInvoiceCurrency + creditsTotalInInvoiceCurrency;
-    const remainingBalance = invoiceTotal - paidAmount;
-
-    if (creditsTotalInInvoiceCurrency > remainingBalance + 0.01) {
-      setPaymentSubmissionError(t('validation.overpayment'));
-      return;
-    }
-
-    if (values.amount <= 0 && totalAttemptedPayment > remainingBalance + 0.01) {
-      setPaymentSubmissionError(t('validation.overpayment'));
-      return;
-    }
-
-    setPaymentSubmissionError(null);
-
-    const selectedMethod = paymentMethods.find(pm => pm.id === values.method);
-
-    let convertedAmount = values.amount;
-    if (showExchangeRate && equivalentAmount) {
-      convertedAmount = equivalentAmount;
-    }
-
     try {
       const payload = {
         invoice_id: selectedInvoiceForPayment.id,
         cash_session_id: activeCashSessionId,
         user: user,
-        client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
-        credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
-          const credit = userCredits.find(c => c.source_id === id);
-          const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
-          const exchangeRate = credit?.currency === invoiceCurrency ? 1 : sessionExchangeRate;
-          return {
-            source_id: id,
-            amount: amount,
-            type: credit?.type,
-            currency: credit?.currency,
-            exchange_rate: exchangeRate,
-          };
-        }),
-        query: JSON.stringify({
-          invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
-          payment_date: values.payment_date.toISOString(),
-          amount: values.amount,
-          converted_amount: convertedAmount,
-          method: selectedMethod?.name || 'Credit',
-          payment_method_id: values.method,
-          status: values.status,
-          user_id: selectedInvoiceForPayment.user_id,
-          invoice_currency: selectedInvoiceForPayment.currency,
-          payment_currency: values.payment_currency,
-          exchange_rate: values.exchange_rate || 1,
-          is_sales: isSales,
-          total_paid: totalAttemptedPayment
-        }),
+        query: JSON.stringify({ ...values, is_sales: isSales }),
       };
-
-      const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT;
-      const responseData = await api.post(endpoint, payload);
-
-      if (responseData.error || (responseData.code && responseData.code >= 400)) {
-        const message = responseData.message || 'Failed to add payment.';
-        throw new Error(message);
-      }
-
-      toast({
-        title: t('paymentDialog.success'),
-        description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.doc_no || selectedInvoiceForPayment.id }),
-      });
-
-      await checkActiveSession();
-
-      if (onRefresh) {
-        onRefresh();
-      }
-
+      await api.post(isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT, payload);
+      toast({ title: t('paymentDialog.success') });
+      if (onRefresh) onRefresh();
       setIsPaymentDialogOpen(false);
-      setSelectedInvoiceForPayment(null);
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add payment.';
-      setPaymentSubmissionError(errorMessage);
+      setPaymentSubmissionError(error instanceof Error ? error.message : 'Error');
     }
   };
 
-  const columns = React.useMemo(() => getColumns(
-    t,
-    tStatus,
-    columnTranslations,
-    onRowSelectionChange
-  ), [t, tStatus, columnTranslations, onRowSelectionChange]);
-
-  const internalSelectedInvoice = React.useMemo(() => {
-    if (!rowSelection) return null;
-    const selectedIndex = Object.keys(rowSelection)[0];
-    return selectedIndex !== undefined ? invoices[parseInt(selectedIndex)] : null;
-  }, [rowSelection, invoices]);
-
-  const isPaymentActionVisible = (invoice: Invoice) => {
-    const status = invoice.status.toLowerCase();
-    const paymentStatus = invoice.payment_status?.toLowerCase();
-    return status === 'booked' && paymentStatus !== 'paid';
+  const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
+    try {
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM, { id: parseInt(invoice.id, 10) });
+      toast({ title: 'Invoice Confirmed' });
+      setIsConfirmDialogOpen(false);
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: error instanceof Error ? error.message : 'Error' });
+    }
   };
 
   if (isLoading) {
@@ -647,483 +364,111 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           </CardHeader>
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-card">
-          <DataTable
-            columns={columns}
-            data={invoices}
-            filterColumnId="doc_no"
-            onRowSelectionChange={onRowSelectionChange}
-            enableSingleRowSelection={true}
+          <DataTableAdvancedToolbar
+            table={table}
+            isCompact={isCompact}
+            filterPlaceholder={t('filterPlaceholder')}
+            searchQuery={(table.getState().columnFilters.find((f: any) => f.id === 'doc_no')?.value as string) || ''}
+            onSearchChange={(value) => {
+              table.setColumnFilters((prev: any) => {
+                const newFilters = prev.filter((f: any) => f.id !== 'doc_no');
+                if (value) {
+                  newFilters.push({ id: 'doc_no', value });
+                }
+                return newFilters;
+              });
+            }}
+            onCreate={canCreate ? () => { setEditingInvoice(null); setIsFormDialogOpen(true); } : undefined}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
-            onCreate={canCreate ? () => {
-              setEditingInvoice(null);
-              setIsFormDialogOpen(true);
-            } : undefined}
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
-            customToolbar={standalone ? (table) => (
-              <DataTableAdvancedToolbar
-                table={table}
-                isCompact={isCompact}
-                filterPlaceholder={t('filterPlaceholder')}
-                searchQuery={(table.getState().columnFilters.find((f: any) => f.id === 'doc_no')?.value as string) || ''}
-                onSearchChange={(value) => {
-                  table.setColumnFilters((prev: any) => {
-                    const newFilters = prev.filter((f: any) => f.id !== 'doc_no');
-                    if (value) {
-                      newFilters.push({ id: 'doc_no', value });
-                    }
-                    return newFilters;
-                  });
-                }}
-                onCreate={canCreate ? () => {
-                  setEditingInvoice(null);
-                  setIsFormDialogOpen(true);
-                } : undefined}
-                onRefresh={onRefresh}
-                isRefreshing={isRefreshing}
-                filters={[
-                  ...(filterOptions?.map(opt => ({
-                    value: opt.value,
-                    label: opt.label,
-                    group: t('columns.type') || "Type",
-                    isActive: filterValue === opt.value,
-                    onSelect: () => onFilterChange?.(opt.value)
-                  })) || [])
-                ]}
-                onClearFilters={() => onFilterChange?.('')}
-                columnTranslations={{
-                  doc_no: "Doc. No",
-                  user_name: t('columns.userName'),
-                  total: t('columns.total'),
-                  currency: t('columns.currency'),
-                  status: t('columns.status'),
-                  type: t('columns.type'),
-                  payment_status: t('columns.paymentStatus'),
-                  paid_amount: t('columns.paidAmount'),
-                  createdAt: t('columns.createdAt'),
-                }}
-                extraButtons={internalSelectedInvoice && (
-                  <div className="flex items-center gap-1 mr-2 px-2 border-r">
-                    {isPaymentActionVisible(internalSelectedInvoice) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleAddPaymentClick(internalSelectedInvoice)}
-                        className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
-                      >
-                        <CreditCard className="h-3.5 w-3.5" />
-                        {t('paymentDialog.add')}
-                      </Button>
-                    )}
-                    {internalSelectedInvoice.status.toLowerCase() === 'draft' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setConfirmingInvoice(internalSelectedInvoice); setIsConfirmDialogOpen(true); }}
-                        className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                        {t('confirmInvoice')}
-                      </Button>
-                    )}
-                    {internalSelectedInvoice.status.toLowerCase() === 'draft' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setEditingInvoice(internalSelectedInvoice); setIsFormDialogOpen(true); }}
-                        className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
-                      >
-                        <Edit3 className="h-3.5 w-3.5" />
-                        {t('actions.edit')}
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onPrint?.(internalSelectedInvoice)}
-                      className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
-                    >
-                      <Printer className="h-3.5 w-3.5" />
-                      {t('actions.print')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onSendEmail?.(internalSelectedInvoice)}
-                      className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
-                    >
-                      <Send className="h-3.5 w-3.5" />
-                      {t('actions.sendEmail')}
-                    </Button>
-                  </div>
+            extraButtons={selectedInvoice && (
+              <div className="flex items-center gap-1 mr-2 px-2 border-r">
+                {selectedInvoice.status.toLowerCase() === 'booked' && selectedInvoice.payment_status?.toLowerCase() !== 'paid' && (
+                  <Button variant="ghost" size="sm" onClick={() => handleAddPaymentClick(selectedInvoice)} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
+                    <CreditCard className="h-3.5 w-3.5" />
+                    {t('paymentDialog.add')}
+                  </Button>
                 )}
-              />
-            ) : undefined}
-            columnTranslations={{
-              doc_no: "Doc. No",
-              user_name: t('columns.userName'),
-              total: t('columns.total'),
-              currency: t('columns.currency'),
-              status: t('columns.status'),
-              type: t('columns.type'),
-              payment_status: t('columns.paymentStatus'),
-              paid_amount: t('columns.paidAmount'),
-              createdAt: t('columns.createdAt'),
-            }}
-            filterOptions={filterOptions}
-            onFilterChange={onFilterChange}
-            filterValue={filterValue}
+                {selectedInvoice.status.toLowerCase() === 'draft' && (
+                  <Button variant="ghost" size="sm" onClick={() => { setConfirmingInvoice(selectedInvoice); setIsConfirmDialogOpen(true); }} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
+                    <Check className="h-3.5 w-3.5" />
+                    {t('confirmInvoice')}
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={() => onPrint?.(selectedInvoice)} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
+                  <Printer className="h-3.5 w-3.5" />
+                  {t('actions.print')}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => onSendEmail?.(selectedInvoice)} className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10">
+                  <Send className="h-3.5 w-3.5" />
+                  {t('actions.sendEmail')}
+                </Button>
+              </div>
+            )}
           />
+          <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No results.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DataTablePagination table={table} />
         </CardContent>
       </Card>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col text-left">
-                <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
-                <DialogDescription>
-                  {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.doc_no || selectedInvoiceForPayment?.id })}
-                </DialogDescription>
-              </div>
-            </div>
+            <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 py-4 px-6">
-              {paymentSubmissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('toast.error')}</AlertTitle>
-                  <AlertDescription>{paymentSubmissionError}</AlertDescription>
-                </Alert>
-              )}
-              {selectedInvoiceForPayment?.type !== 'credit_note' && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
-                  <ScrollArea className="h-32 border rounded-md p-2">
-                    {userCredits.length > 0 ? (
-                      userCredits.map(credit => (
-                        <div key={credit.source_id} className="flex items-center justify-between p-2">
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id={`credit-${credit.source_id}`}
-                              onCheckedChange={(checked) => {
-                                const newApplied = new Map(appliedCredits);
-                                if (checked) {
-                                  const available = Number(credit.available_balance) || 0;
-                                  newApplied.set(credit.source_id, available);
-                                } else {
-                                  newApplied.delete(credit.source_id);
-                                }
-                                setAppliedCredits(newApplied);
-                              }}
-                              checked={appliedCredits.has(credit.source_id)}
-                            />
-                            <Label htmlFor={`credit-${credit.source_id}`}>
-                              {credit.type === 'credit_note' ? t('paymentDialog.creditNote') : t('paymentDialog.paymentRef')} #{credit.source_id} ({credit.currency})
-                            </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              className="h-8 w-24"
-                              max={Number(credit.available_balance) || 0}
-                              value={appliedCredits.get(credit.source_id) || ''}
-                              onChange={(e) => {
-                                const newApplied = new Map(appliedCredits);
-                                const value = Math.min(Number(e.target.value), Number(credit.available_balance) || 0);
-                                newApplied.set(credit.source_id, value);
-                                setAppliedCredits(newApplied);
-                              }}
-                              disabled={!appliedCredits.has(credit.source_id)}
-                            />
-                            <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance).toFixed(2)}</span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                        {t('paymentDialog.noCredits')}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-              )}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="font-semibold text-sm">{t('paymentDialog.manualPayment')}</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="method"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.method')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('paymentDialog.selectMethod')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {paymentMethods.map(method => (
-                              <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="payment_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.date')}</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>{t('paymentDialog.pickDate')}</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <DatePicker
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date: Date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field: { onChange, value } }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
-                        <FormControl>
-                          <FormattedNumberInput
-                            value={value}
-                            onChange={onChange}
-                            placeholder="0.00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="payment_currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.currency')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+              {paymentSubmissionError && <Alert variant="destructive"><AlertTitle>Error</AlertTitle><AlertDescription>{paymentSubmissionError}</AlertDescription></Alert>}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="amount" render={({ field }) => (
+                  <FormItem><FormLabel>{t('paymentDialog.amount')}</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="method" render={({ field }) => (
+                  <FormItem><FormLabel>{t('paymentDialog.method')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
               </div>
-
-              {showExchangeRate && (
-                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="exchange_rate"
-                    render={({ field: { onChange, value } }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
-                        <FormControl>
-                          <FormattedNumberInput
-                            value={value}
-                            onChange={onChange}
-                            placeholder="0.00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {equivalentAmount !== null && (
-                    <FormItem>
-                      <FormLabel>{t('paymentDialog.equivalentAmount')} ({watchedInvoiceCurrency})</FormLabel>
-                      <FormControl>
-                        <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                </div>
-              )}
-              <div className="rounded-md border p-4 bg-muted/50 space-y-3 mt-4">
-                <h4 className="font-semibold text-sm">{t('paymentDialog.summary')}</h4>
-
-                {showExchangeRate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t('paymentDialog.exchangeRateApplied')}:</span>
-                    <span>{Number(sessionExchangeRate).toFixed(2)}</span>
-                  </div>
-                )}
-
-                {appliedCredits.size > 0 && (
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium text-muted-foreground">{t('paymentDialog.creditsApplied')}:</span>
-                    {Array.from(appliedCredits.entries()).map(([id, amount]) => {
-                      const credit = userCredits.find(c => c.source_id === id);
-                      const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
-                      let converted = amount;
-                      if (credit && credit.currency !== invoiceCurrency) {
-                        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') converted = amount / sessionExchangeRate;
-                        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') converted = amount * sessionExchangeRate;
-                      }
-
-                      return (
-                        <div key={id} className="flex justify-between text-sm pl-2">
-                          <span>#{id} ({credit?.currency})</span>
-                          <div className="flex flex-col items-end">
-                            <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: credit?.currency }).format(amount)}</span>
-                            {credit?.currency !== invoiceCurrency && (
-                              <span className="text-xs text-muted-foreground">
-                                ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(converted)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {watchedAmount > 0 && (
-                  <div className="space-y-1 pt-2 border-t">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium">{t('paymentDialog.manualPayment')}:</span>
-                      <div className="flex flex-col items-end">
-                        <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency }).format(watchedAmount)}</span>
-                        {watchedPaymentCurrency !== (selectedInvoiceForPayment?.currency || 'USD') && equivalentAmount && (
-                          <span className="text-xs text-muted-foreground">
-                            ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment?.currency || 'USD' }).format(equivalentAmount)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center pt-2 border-t font-semibold">
-                  <span>{t('paymentDialog.totalPayment')}:</span>
-                  <span>
-                    {(() => {
-                      const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
-                      let total = creditsTotalInInvoiceCurrency;
-                      if (watchedAmount) {
-                        const amountVal = Number(watchedAmount);
-                        total += (showExchangeRate && equivalentAmount) ? equivalentAmount : amountVal;
-                      }
-                      return new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(total);
-                    })()}
-                  </span>
-                </div>
-              </div>
-
-              {selectedInvoiceForPayment && (
-                <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                  <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
-                  <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
-                </div>
-              )}
-              <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsPaymentDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
-                <Button type="submit">{t('paymentDialog.add')}</Button>
-              </DialogFooter>
+              <DialogFooter><Button type="submit">Save Payment</Button></DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              </div>
-              <div className="flex flex-col text-left">
-                <AlertDialogTitle>{t('noSessionDialog.title')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('noSessionDialog.description')}
-                </AlertDialogDescription>
-              </div>
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('paymentDialog.cancel')}</AlertDialogCancel>
-            {canAccessCashier && (
-              <Link href={`/${locale}/cashier`} passHref>
-                <Button>
-                  <Box className="mr-2 h-4 w-4" />
-                  {t('noSessionDialog.openCashSession')}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-            )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <Check className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col text-left">
-                <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}
-                </AlertDialogDescription>
-              </div>
-            </div>
+            <AlertDialogTitle>{t('confirmInvoiceDialog.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirmInvoiceDialog.description', { id: confirmingInvoice?.id })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmingInvoice && handleConfirmInvoiceInternal(confirmingInvoice)}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmingInvoice && handleConfirmInvoiceInternal(confirmingInvoice)}>Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1141,412 +486,29 @@ interface InvoiceFormDialogProps {
 
 export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice }: InvoiceFormDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
-  const tRoot = useTranslations('InvoicesPage');
-  const [users, setUsers] = React.useState<User[]>([]);
-  const [services, setServices] = React.useState<Service[]>([]);
-  const [bookedInvoices, setBookedInvoices] = React.useState<Invoice[]>([]);
-  const { toast } = useToast();
-
-  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
-    defaultValues: {
-      type: 'invoice',
-      user_id: '',
-      currency: 'UYU',
-      items: [],
-      total: 0,
-    },
+    defaultValues: { type: 'invoice', user_id: '', currency: 'UYU', items: [], total: 0 },
   });
 
-  const isEditing = !!invoice;
-
-  const items = form.watch('items');
-  const invoiceType = form.watch('type');
-
-  React.useEffect(() => {
-    const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    form.setValue('total', total);
-  }, [items, form]);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      const fetchData = async () => {
-        try {
-          const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
-          const [usersData, servicesData, invoicesData] = await Promise.all([
-            api.get(API_ROUTES.USERS, { filter_type: filterType }),
-            api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
-            api.get(isSales ? API_ROUTES.SALES.INVOICES_ALL : API_ROUTES.PURCHASES.INVOICES_ALL, { is_sales: isSales ? 'true' : 'false', status: 'booked', type: 'invoice' })
-          ]);
-
-          const usersDataNormalized = (Array.isArray(usersData) && usersData.length > 0) ? usersData[0].data : (usersData.data || []);
-          setUsers(usersDataNormalized.map((u: any) => ({ ...u, id: String(u.id) })));
-
-          const servicesDataNormalized = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
-          setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
-
-          const invoicesDataNormalized = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
-          setBookedInvoices(invoicesDataNormalized);
-
-          if (invoice) {
-            const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
-            const itemsData = await api.get(itemsEndpoint, { invoice_id: invoice.id, is_sales: isSales ? 'true' : 'false' });
-            const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
-
-            form.reset({
-              type: (invoice.type?.toString().includes('credit') ? 'credit_note' : 'invoice') as any,
-              user_id: Array.isArray(invoice.user_id) ? String(invoice.user_id[0]) : String(invoice.user_id || ''),
-              currency: (invoice.currency?.toUpperCase() as any) || 'UYU',
-              total: Number(invoice.total || 0),
-              order_id: invoice.order_id ? String(invoice.order_id) : undefined,
-              quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
-              items: itemsNormalized.map((item: any) => {
-                const rawServiceId = item.service_id || item.product_id;
-                const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
-                return {
-                  id: item.id ? String(item.id) : undefined,
-                  service_id: serviceId,
-                  quantity: Number(item.quantity || item.product_uom_qty || 1),
-                  unit_price: Number(item.unit_price || item.price_unit || 0),
-                  total: Number(item.total || item.price_total || 0),
-                };
-              }),
-            });
-          } else {
-            form.reset({
-              type: 'invoice',
-              user_id: '',
-              currency: 'UYU',
-              items: [],
-              total: 0,
-            });
-          }
-        } catch (error) {
-          console.error('Failed to fetch initial data', error);
-        }
-      };
-      fetchData();
-    }
-  }, [isOpen, isSales, invoice, form]);
-
-  const parentId = form.watch('parent_id');
-
-  React.useEffect(() => {
-    if (invoiceType === 'credit_note' && parentId && bookedInvoices.length > 0) {
-      const parentInvoice = bookedInvoices.find(inv => String(inv.id) === parentId);
-      if (parentInvoice) {
-        form.setValue('user_id', String(parentInvoice.user_id));
-        const fetchParentItems = async () => {
-          try {
-            const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
-            const itemsData = await api.get(itemsEndpoint, { invoice_id: parentId, is_sales: isSales ? 'true' : 'false' });
-            const itemsNormalized = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || itemsData.result || []);
-            const mappedItems = itemsNormalized.map((item: any) => {
-              const rawServiceId = item.service_id || item.product_id;
-              const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
-              return {
-                id: item.id ? String(item.id) : undefined,
-                service_id: serviceId,
-                quantity: Number(item.quantity || item.product_uom_qty || 1),
-                unit_price: Number(item.unit_price || item.price_unit || 0),
-                total: Number(item.total || item.price_total || 0),
-              };
-            });
-            form.setValue('items', mappedItems);
-          } catch (error) {
-            console.error('Failed to fetch parent invoice items', error);
-          }
-        };
-        fetchParentItems();
-      }
-    }
-  }, [parentId, invoiceType, bookedInvoices, isSales, form]);
-
   const onSubmit = async (values: CreateInvoiceFormValues) => {
-    setSubmissionError(null);
-    setIsSubmitting(false);
     try {
-      if (values.type === 'invoice' && (!values.items || values.items.length === 0)) {
-        throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
-      }
-      if (values.type === 'credit_note' && (!values.items || values.items.length === 0)) {
-        throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
-      }
-
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
-      const payload = isEditing && invoice
-        ? { ...values, id: invoice.id, is_sales: isSales }
-        : { ...values, is_sales: isSales };
-
-      const responseData = await api.post(endpoint, payload);
-
-      if (responseData.error && responseData.code >= 400) {
-        throw new Error(responseData.message || t('errors.generic'));
-      }
-
-      toast({ title: t('success.title'), description: isEditing ? (t('success.updateDescription') || 'Invoice updated successfully') : t('success.description') });
-
+      await api.post(endpoint, { ...values, is_sales: isSales });
       onInvoiceCreated();
       onOpenChange(false);
-      form.reset();
     } catch (error) {
-      console.error('Invoice submission failed:', error);
-      setSubmissionError(error instanceof Error ? error.message : t('errors.generic'));
-    } finally {
-      setIsSubmitting(false);
+      console.error(error);
     }
   };
-
-  const handleAddItem = () => {
-    form.setValue('items', [...items, { service_id: '', quantity: 1, unit_price: 0, total: 0 }]);
-  };
-
-  const handleRemoveItem = (index: number) => {
-    if (invoiceType === 'credit_note' && items.length <= 1) {
-      toast({ variant: 'destructive', title: t('validation.errorTitle') || 'Error', description: t('atLeastOneItem') || 'Debe agregar al menos un artículo.' });
-      return;
-    }
-    form.setValue('items', items.filter((_, i) => i !== index));
-  };
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start gap-3">
-            <div className="header-icon-circle mt-0.5">
-              <Receipt className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col text-left">
-              <DialogTitle>{isEditing ? tRoot('editDialog.title') || 'Edit Invoice' : t('title')}</DialogTitle>
-              <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader><DialogTitle>{invoice ? 'Edit Invoice' : t('title')}</DialogTitle></DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-            <DialogBody className="space-y-4 py-4 px-6">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('errors.title')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('type')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
-                          <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField control={form.control} name="currency" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('currency')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="UYU">UYU</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <div className="text-right pt-7">
-                  <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
-                </div>
-              </div>
-              {invoiceType === 'credit_note' && (
-                <FormField
-                  control={form.control}
-                  name="parent_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('parentInvoice')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('selectParentInvoice')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {bookedInvoices.map(inv => (
-                            <SelectItem key={inv.id} value={String(inv.id)}>
-                              {inv.doc_no} - {inv.user_name} - ${inv.total}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="user_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {invoiceType === 'credit_note'
-                        ? (isSales ? t('client') : t('provider'))
-                        : t('user')}
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
-                      <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <CardTitle>{t('items.title')}</CardTitle>
-                    {invoiceType !== 'credit_note' && (
-                      <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="bg-card">
-                  <div className="space-y-4">
-                    <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                      <div className="flex-1">{t('items.service')}</div>
-                      <div className="w-20">{t('items.quantity')}</div>
-                      <div className="w-28">{t('items.unitPrice')}</div>
-                      <div className="w-28">{t('items.total')}</div>
-                      <div className="w-10"></div>
-                    </div>
-                    {items.map((item, index) => (
-                      <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
-                        <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <Select
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                const service = services.find(s => s.id === value);
-                                if (service) {
-                                  const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                  form.setValue(`items.${index}.unit_price`, service.price);
-                                  form.setValue(`items.${index}.total`, service.price * quantity);
-                                }
-                              }}
-                              value={field.value}
-                              disabled={invoiceType === 'credit_note'}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t('items.selectService')} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                          <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} readOnly={invoiceType === 'credit_note'} onChange={(e) => {
-                            if (invoiceType !== 'credit_note') {
-                              field.onChange(e);
-                              const price = form.getValues(`items.${index}.unit_price`) || 0;
-                              form.setValue(`items.${index}.total`, price * Number(e.target.value));
-                            }
-                          }} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field: { onChange, value } }) => {
-                          const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                          React.useEffect(() => {
-                            setInputValue(value ? String(value) : '');
-                          }, [value]);
-
-                          const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                            const rawValue = e.target.value;
-                            const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                            const parts = sanitized.split('.');
-                            let formatted = parts[0];
-                            if (parts.length > 1) {
-                              formatted += '.' + parts[1].slice(0, 2);
-                            }
-                            setInputValue(formatted);
-                            const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                            onChange(isNaN(numValue) ? 0 : numValue);
-                            if (invoiceType !== 'credit_note') {
-                              const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                              form.setValue(`items.${index}.total`, quantity * numValue);
-                            }
-                          };
-
-                          const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                            const numValue = parseFloat(e.target.value);
-                            if (!isNaN(numValue) && numValue >= 0) {
-                              onChange(numValue);
-                              setInputValue(numValue.toFixed(2));
-                              if (invoiceType !== 'credit_note') {
-                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                form.setValue(`items.${index}.total`, quantity * numValue);
-                              }
-                            } else if (e.target.value !== '') {
-                              onChange(0);
-                              setInputValue('');
-                            }
-                          };
-
-                          return (
-                            <FormItem className="w-full md:w-28">
-                              <FormControl>
-                                <Input
-                                  type="text"
-                                  inputMode="decimal"
-                                  value={inputValue}
-                                  onChange={handleChange}
-                                  onBlur={handleBlur}
-                                  readOnly={invoiceType === 'credit_note'}
-                                  placeholder="0.00"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          );
-                        }} />
-                        <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
-                          <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
-                        )} />
-                        <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
-                    ))}
-                    <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
-                  </div>
-                </CardContent>
-              </Card>
-            </DialogBody>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? tRoot('save') || 'Save Changes' : t('create')}
-              </Button>
-            </DialogFooter>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
+            <DialogFooter><Button type="submit">Save</Button></DialogFooter>
           </form>
         </Form>
       </DialogContent>

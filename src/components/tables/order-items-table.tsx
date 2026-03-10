@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent } from '@/components/ui/card';
-import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,57 +13,98 @@ import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { CalendarIcon, CheckCircle, RefreshCw } from 'lucide-react';
+import { ColumnDef, RowSelectionState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
+import { CalendarIcon, CheckCircle, RefreshCw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
+import { DataTablePagination } from '../ui/data-table-pagination';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
-type ActionType = 'schedule' | 'complete';
-
-const DateCell = ({ dateValue }: { dateValue: string | null }) => {
-  const tGeneral = useTranslations('General');
-  const notAvailable = tGeneral('notAvailable');
-
-  if (!dateValue || dateValue === notAvailable) {
-    return <Badge variant="destructive">{notAvailable}</Badge>;
-  }
-
-  const date = new Date(dateValue);
-  const now = new Date();
-
-  date.setHours(0, 0, 0, 0);
-  now.setHours(0, 0, 0, 0);
-
-  if (date < now) {
-    return <Badge variant="success">{formatDateTime(dateValue)}</Badge>;
-  }
-  return <Badge variant="info">{formatDateTime(dateValue)}</Badge>;
-};
-
-interface OrderItemsTableProps {
-  items: OrderItem[];
-  isLoading?: boolean;
-  onItemsUpdate?: () => void;
-  quoteId?: string;
-  isSales?: boolean;
-  userId?: string;
-  patient?: UserType;
-}
+const getColumns = (
+  t: any,
+  onRowSelectionChange?: (selectedRows: OrderItem[]) => void
+): ColumnDef<OrderItem>[] => [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => (
+        <RadioGroup
+          value={row.getIsSelected() ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
+            if (onRowSelectionChange) {
+              onRowSelectionChange([row.original]);
+            }
+          }}
+        >
+          <RadioGroupItem value={row.id} />
+        </RadioGroup>
+      ),
+      size: 40,
+    },
+    {
+      accessorKey: 'service_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.service')} />,
+    },
+    {
+      accessorKey: 'tooth_number',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.toothNumber')} />,
+      cell: ({ row }) => row.original.tooth_number || '-',
+    },
+    {
+      accessorKey: 'quantity',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.quantity')} />,
+    },
+    {
+      accessorKey: 'unit_price',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.unitPrice')} />,
+      cell: ({ row }) => {
+        const amount = parseFloat(row.getValue('unit_price'));
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.status')} />,
+      cell: ({ row }) => {
+        const status = row.original.status?.toLowerCase() || '';
+        const variant = { completed: 'success', scheduled: 'info' }[status] ?? ('default' as any);
+        return <Badge variant={variant} className="capitalize">{t(`status.${status}`)}</Badge>;
+      }
+    },
+  ];
 
 export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, isSales = true, userId, patient }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
-  const [actionType, setActionType] = React.useState<ActionType | null>(null);
+  const [actionType, setActionType] = React.useState<'schedule' | 'complete' | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  const columns = React.useMemo(() => getColumns(t), [t]);
+
+  const table = useReactTable({
+    data: items,
+    columns,
+    state: { rowSelection },
+    enableRowSelection: true,
+    enableMultiRowSelection: false,
+    onRowSelectionChange: setRowSelection,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
 
   const selectedRowItem = React.useMemo(() => {
-    const selectedIndex = Object.keys(rowSelection)[0];
-    return selectedIndex !== undefined ? items[parseInt(selectedIndex)] : null;
+    const rows = table.getFilteredSelectedRowModel().rows;
+    return rows.length > 0 ? rows[0].original : null;
   }, [rowSelection, items]);
 
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
@@ -84,411 +124,122 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
           api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => [])
         ]);
-
         if (Array.isArray(configData)) {
           const calConfig = configData.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
           const docConfig = configData.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
           if (calConfig) setCheckCalendarAvailability(String(calConfig.value).toLowerCase() === 'true');
           if (docConfig) setCheckDoctorAvailability(String(docConfig.value).toLowerCase() === 'true');
         }
-
-        const cals = Array.isArray(calData) ? calData : (calData.calendars || []);
-        setCalendars(cals.map((c: any) => ({ ...c, id: c.id || c.google_calendar_id })));
-
-        let doctorsList: UserType[] = [];
-        if (Array.isArray(docData) && docData.length > 0) {
-          const firstElement = docData[0];
-          if (firstElement.json && typeof firstElement.json === 'object') {
-            doctorsList = firstElement.json.data || [];
-          } else if (firstElement.data) {
-            doctorsList = firstElement.data;
-          } else {
-            doctorsList = docData;
-          }
-        } else if (docData?.data) {
-          doctorsList = Array.isArray(docData.data) ? docData.data : [docData.data];
-        } else if (Array.isArray(docData)) {
-          doctorsList = docData;
-        }
-
-        const doctorsMapped = doctorsList.map((d: any) => ({
-          ...d,
-          id: String(d.id),
-          name: d.name || 'Doctor',
-          email: d.email || '',
-        }));
-        setDoctors(doctorsMapped);
-
-        const serviceMap = new Map<string, Service[]>();
-        await Promise.all(doctorsMapped.map(async (doctor) => {
-          if (doctor.id) {
-            try {
-              const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: doctor.id });
-              const doctorServices = Array.isArray(data) ? data : (data.user_services || data.data || []);
-              serviceMap.set(doctor.id, doctorServices.map((s: any) => ({
-                ...s,
-                id: String(s.id),
-                duration_minutes: s.duration_minutes || 30
-              })));
-            } catch (e) {
-              console.error(`Error fetching services for doctor ${doctor.id}:`, e);
-            }
-          }
-        }));
-        setDoctorServiceMap(serviceMap);
-
-        const servicesList = Array.isArray(srvData) ? srvData : (srvData.services || srvData.data || srvData.result || []);
-        setAllServices(servicesList.map((s: any) => ({
-          ...s,
-          id: String(s.id),
-          duration_minutes: s.duration_minutes || 30
-        })));
-
-        if (userId && !patient) {
-          try {
-            const userData = await api.get(API_ROUTES.USERS, { id: userId });
-            let user: UserType | null = null;
-            if (Array.isArray(userData) && userData.length > 0) {
-              user = userData[0].json?.data?.[0] || userData[0].data?.[0] || userData[0] || null;
-            } else if (userData?.data) {
-              user = Array.isArray(userData.data) ? userData.data[0] : userData.data;
-            } else if (userData?.json?.data) {
-              user = Array.isArray(userData.json.data) ? userData.json.data[0] : userData.json.data;
-            }
-
-            if (user) {
-              setPatientUser({
-                id: String(user.id),
-                name: user.name || 'Unknown',
-                email: user.email || '',
-                phone_number: user.phone_number || '',
-                is_active: user.is_active !== undefined ? user.is_active : true,
-                avatar: user.avatar || '',
-              });
-            }
-          } catch (e) {
-            console.error("Error fetching patient user:", e);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching data for AppointmentFormDialog in OrderItemsTable:", error);
-      }
+        setCalendars(calData.calendars || calData || []);
+        const docs = docData.data || docData || [];
+        setDoctors(docs.map((d: any) => ({ ...d, id: String(d.id) })));
+        setAllServices(srvData.items || srvData || []);
+      } catch (e) { console.error(e); }
     };
-
     fetchData();
-  }, [userId, isSales, patient]);
+  }, [isSales]);
 
-  const handleActionClick = (item: OrderItem, type: ActionType) => {
+  const handleActionClick = (item: OrderItem, type: 'schedule' | 'complete') => {
     setSelectedItem(item);
     setActionType(type);
-    if (type === 'schedule') {
-      setIsAppointmentDialogOpen(true);
-    } else {
-      setSelectedDate(new Date());
-      setIsDatePickerOpen(true);
-    }
+    if (type === 'schedule') setIsAppointmentDialogOpen(true);
+    else { setSelectedDate(new Date()); setIsDatePickerOpen(true); }
   };
 
   const handleDateSave = async () => {
     if (!selectedItem || !actionType || !selectedDate || !quoteId) return;
-
     try {
-      const queryPayload = {
+      const payload = {
         action: actionType,
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_date_time: selectedDate.toISOString(),
         user_id: userId,
       };
-
-      const apiRoute = isSales
-        ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE
-        : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
-
-      await api.post(apiRoute, {
-        query: JSON.stringify(queryPayload),
+      await api.post(isSales ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE, {
+        query: JSON.stringify(payload),
         quote_number: parseInt(quoteId, 10),
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_complete: actionType,
         is_sales: isSales,
       });
-
-      toast({
-        title: t(actionType === 'schedule' ? 'toast.scheduledTitle' : 'toast.completedTitle'),
-        description: t('toast.updateSuccess'),
-      });
-
-      if (onItemsUpdate) {
-        onItemsUpdate();
-      }
-
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('toast.error'),
-        description: error instanceof Error ? error.message : t('toast.updateError'),
-      });
-    } finally {
+      toast({ title: t(actionType === 'schedule' ? 'toast.scheduledTitle' : 'toast.completedTitle') });
+      if (onItemsUpdate) onItemsUpdate();
       setIsDatePickerOpen(false);
-      setSelectedItem(null);
-      setActionType(null);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  const handleAppointmentSaveSuccess = async (appointment: any, selectedDate: Date) => {
-    if (!selectedItem || !quoteId) return;
+  if (isLoading) return <div className="space-y-4 pt-4"><Skeleton className="h-8 w-full" /><Skeleton className="h-12 w-full" /></div>;
 
-    try {
-      const queryPayload = {
-        action: 'schedule',
-        order_item_id: parseInt(selectedItem.id, 10),
-        schedule_date_time: selectedDate.toISOString(),
-        user_id: userId,
-        appointment_id: appointment.appointment_id || appointment.appointmentId || appointment.id,
-      };
-
-      const apiRoute = isSales
-        ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE
-        : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
-
-      await api.post(apiRoute, {
-        query: JSON.stringify(queryPayload),
-        quote_number: parseInt(quoteId, 10),
-        order_item_id: parseInt(selectedItem.id, 10),
-        schedule_complete: 'schedule',
-        is_sales: isSales,
-      });
-
-      toast({
-        title: t('toast.scheduledTitle'),
-        description: t('toast.updateSuccess'),
-      });
-
-      if (onItemsUpdate) {
-        onItemsUpdate();
-      }
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('toast.error'),
-        description: error instanceof Error ? error.message : t('toast.updateError'),
-      });
-    } finally {
-      setIsAppointmentDialogOpen(false);
-      setSelectedItem(null);
-      setActionType(null);
-    }
-  };
-
-  const columns: ColumnDef<OrderItem>[] = [
-    {
-      id: 'select',
-      header: () => null,
-      cell: ({ row, table }) => (
-        <RadioGroup
-          value={row.getIsSelected() ? row.id : ''}
-          onValueChange={() => {
-            table.toggleAllPageRowsSelected(false);
-            row.toggleSelected(true);
-          }}
-        >
-          <RadioGroupItem value={row.id} />
-        </RadioGroup>
-      ),
-      size: 40,
-    },
-    {
-      accessorKey: 'service_name',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.service')} />
-      ),
-    },
-    {
-      accessorKey: 'tooth_number',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.toothNumber')} />
-      ),
-      cell: ({ row }) => {
-        const toothNumber = row.getValue('tooth_number') as number;
-        return toothNumber ? <div className="font-medium">{toothNumber}</div> : <div className="text-muted-foreground">-</div>;
-      },
-    },
-    {
-      accessorKey: 'quantity',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.quantity')} />
-      ),
-    },
-    {
-      accessorKey: 'unit_price',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.unitPrice')} />
-      ),
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('unit_price'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: 'total',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.total')} />
-      ),
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('total'));
-        const formatted = new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-        }).format(amount);
-        return <div className="font-medium">{formatted}</div>;
-      },
-    },
-    {
-      accessorKey: 'status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.status')} />
-      ),
-      cell: ({ row }) => {
-        const status = row.getValue('status') as string;
-        const variant = {
-          completed: 'success',
-          scheduled: 'info',
-          cancelled: 'destructive',
-        }[status.toLowerCase()] ?? ('default' as any);
-
-        return (
-          <Badge variant={variant} className="capitalize">
-            {t(`status.${status.toLowerCase()}`)}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'scheduled_date',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.scheduled')} />
-      ),
-      cell: ({ row }) => <DateCell dateValue={row.getValue('scheduled_date')} />,
-    },
-    {
-      accessorKey: 'completed_date',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.completed')} />
-      ),
-      cell: ({ row }) => <DateCell dateValue={row.getValue('completed_date')} />,
-    },
-    {
-      accessorKey: 'invoiced_date',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.invoiced')} />
-      ),
-      cell: ({ row }) => <DateCell dateValue={row.getValue('invoiced_date')} />,
-    },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4 pt-4">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
   return (
     <>
       <Card className="h-full flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
         <CardContent className="flex-1 flex flex-col min-h-0 p-4 bg-card">
-          <DataTable
-            columns={columns}
-            data={items}
-            filterColumnId="service_name"
+          <DataTableAdvancedToolbar
+            table={table}
             filterPlaceholder={t('filterPlaceholder')}
-            enableSingleRowSelection={true}
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
-            columnTranslations={{
-              service_name: t('columns.service'),
-              tooth_number: t('columns.toothNumber'),
-              quantity: t('columns.quantity'),
-              unit_price: t('columns.unitPrice'),
-              total: t('columns.total'),
-              status: t('columns.status'),
-              scheduled_date: t('columns.scheduled'),
-              completed_date: t('columns.completed'),
-              invoiced_date: t('columns.invoiced'),
-            }}
+            searchQuery={(table.getState().columnFilters.find((f: any) => f.id === 'service_name')?.value as string) || ''}
+            onSearchChange={(value) => table.getColumn('service_name')?.setFilterValue(value)}
+            onRefresh={onItemsUpdate}
+            isRefreshing={isLoading}
             extraButtons={selectedRowItem && (
               <div className="flex items-center gap-1 mr-2 px-2 border-r">
                 {!selectedRowItem.scheduled_date && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleActionClick(selectedRowItem, 'schedule')}
-                    className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
-                  >
-                    <CalendarIcon className="h-3.5 w-3.5" />
-                    {t('actions.schedule')}
+                  <Button variant="ghost" size="sm" onClick={() => handleActionClick(selectedRowItem, 'schedule')} className="h-8 px-2 gap-1 text-xs font-bold text-primary">
+                    <CalendarIcon className="h-3.5 w-3.5" /> {t('actions.schedule')}
                   </Button>
                 )}
                 {!selectedRowItem.completed_date && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleActionClick(selectedRowItem, 'complete')}
-                    className="h-8 px-2 gap-1 text-xs font-bold text-green-600 hover:text-green-600 hover:bg-green-50"
-                  >
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    {t('actions.complete')}
+                  <Button variant="ghost" size="sm" onClick={() => handleActionClick(selectedRowItem, 'complete')} className="h-8 px-2 gap-1 text-xs font-bold text-green-600">
+                    <CheckCircle className="h-3.5 w-3.5" /> {t('actions.complete')}
                   </Button>
                 )}
               </div>
             )}
           />
+          <div className="rounded-md border overflow-auto flex-1 min-h-0 relative mt-4">
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id}>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</TableHead>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="cursor-pointer">
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow><TableCell colSpan={columns.length} className="h-24 text-center">No results.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <DataTablePagination table={table} />
         </CardContent>
       </Card>
-
       <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {actionType === 'schedule' ? t('dialog.scheduleTitle') : t('dialog.completeTitle')}
-            </DialogTitle>
-            <DialogDescription>
-              {actionType === 'schedule' ? t('dialog.scheduleDescription') : t('dialog.completeDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center py-4">
-            <DatePicker
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border shadow"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>
-              {t('actions.cancel')}
-            </Button>
-            <Button onClick={handleDateSave}>{t('actions.save')}</Button>
-          </DialogFooter>
+          <DialogHeader><DialogTitle>{t(`dialog.${actionType === 'schedule' ? 'scheduleTitle' : 'completeTitle'}`)}</DialogTitle></DialogHeader>
+          <div className="flex justify-center py-4"><DatePicker mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus /></div>
+          <DialogFooter><Button onClick={handleDateSave}>Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
-
       <AppointmentFormDialog
         open={isAppointmentDialogOpen}
         onOpenChange={setIsAppointmentDialogOpen}
         initialData={{
           user: patient || patientUser || undefined,
-          summary: selectedItem?.service_name || '',
-          description: selectedItem?.service_name || '',
           services: selectedItem ? allServices.filter(s => String(s.id) === String(selectedItem.service_id)) : []
         }}
-        onSaveSuccess={handleAppointmentSaveSuccess}
+        onSaveSuccess={() => { if (onItemsUpdate) onItemsUpdate(); setIsAppointmentDialogOpen(false); }}
         calendars={calendars}
         doctors={doctors}
         doctorServiceMap={doctorServiceMap}

@@ -36,23 +36,21 @@ import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { Loader2, MoreHorizontal, Printer, Send } from 'lucide-react';
+import { Loader2, MoreHorizontal, Printer, Send, Edit3, Trash2, Check, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
-import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 
 const getColumns = (
-  t: (key: string) => string,
-  onEdit: (quote: Quote) => void,
-  onDelete: (quote: Quote) => void,
-  onQuoteAction: (quote: Quote, action: 'confirm' | 'reject') => void,
-  onPrint: (quote: Quote) => void,
-  onSendEmail: (quote: Quote) => void
+  t: any,
+  tQuotes: any,
+  onRowSelectionChange?: (selectedRows: Quote[]) => void,
+  onPrint?: (quote: Quote) => void,
+  onSendEmail?: (quote: Quote) => void
 ): ColumnDef<Quote>[] => [
     {
       id: 'select',
@@ -65,6 +63,9 @@ const getColumns = (
             onValueChange={() => {
               table.toggleAllPageRowsSelected(false);
               row.toggleSelected(true);
+              if (onRowSelectionChange) {
+                onRowSelectionChange([row.original]);
+              }
             }}
           >
             <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
@@ -118,16 +119,6 @@ const getColumns = (
       cell: ({ row }) => row.original.currency || 'N/A',
     },
     {
-      accessorKey: 'exchange_rate',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('QuoteColumns.exchangeRate')} />
-      ),
-      cell: ({ row }) => {
-        const rate = row.original.exchange_rate;
-        return rate ? <div className="font-medium">{rate.toFixed(2)}</div> : <div className="text-muted-foreground">-</div>;
-      },
-    },
-    {
       accessorKey: 'status',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('UserColumns.status')} />
@@ -143,136 +134,16 @@ const getColumns = (
           rejected: 'destructive',
         }[status.toLowerCase()] ?? ('default' as any);
 
-        const translationKey = `QuotesPage.quoteDialog.${status.toLowerCase()}`;
-        const translatedStatus = t(translationKey as any);
+        const translatedStatus = tQuotes(`quoteDialog.${status.toLowerCase()}` as any);
 
         return (
           <Badge variant={variant} className="capitalize">
-            {translatedStatus === translationKey ? status : translatedStatus}
+            {translatedStatus}
           </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'billing_status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('QuoteColumns.billingStatus')} />
-      ),
-      cell: ({ row }) => {
-        const status = (row.getValue('billing_status') as string) || '';
-
-        const statusKeyMap: { [key: string]: string } = {
-          'invoiced': 'invoiced',
-          'partially invoiced': 'partiallyInvoiced',
-          'not invoiced': 'notInvoiced',
-          'partially_invoiced': 'partially_invoiced',
-          'not_invoiced': 'not_invoiced',
-        };
-        const variantMap: { [key: string]: any } = {
-          'invoiced': 'success',
-          'partially invoiced': 'info',
-          'not invoiced': 'outline',
-          'partially_invoiced': 'info',
-          'not_invoiced': 'outline',
-        };
-
-        const normalizedStatus = status.toLowerCase();
-        const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus.replace(/\s+/g, '_')}`;
-        const translatedStatus = t(translationKey as any);
-
-        return (
-          <Badge variant={variantMap[normalizedStatus] ?? 'default'} className="capitalize">
-            {translatedStatus === translationKey ? status : translatedStatus}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: 'payment_status',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Navigation.Payments')} />
-      ),
-      cell: ({ row }) => {
-        const status = (row.getValue('payment_status') as string) || '';
-        const variant = {
-          paid: 'success',
-          partial: 'info',
-          unpaid: 'outline',
-          partially_paid: 'info',
-          'not invoiced': 'outline',
-          'not_invoiced': 'outline',
-        }[status.toLowerCase()] ?? ('default' as any);
-
-        const statusKeyMap: { [key: string]: string } = {
-          'partially_paid': 'partiallyPaid',
-          'unpaid': 'unpaid',
-          'not_paid': 'not_paid',
-          'paid': 'paid',
-          'partial': 'partial',
-          'not invoiced': 'notInvoiced',
-          'not_invoiced': 'not_invoiced',
-        };
-
-        const normalizedStatus = status.toLowerCase();
-        const translationKey = `QuotesPage.quoteDialog.${statusKeyMap[normalizedStatus] || normalizedStatus.replace(/\s+/g, '_')}`;
-        const translatedStatus = t(translationKey as any);
-
-        return (
-          <Badge variant={variant} className="capitalize">
-            {translatedStatus === translationKey ? status : translatedStatus}
-          </Badge>
-        );
-      },
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const t = useTranslations('UserColumns');
-        const tQuotes = useTranslations('QuotesPage');
-        const quote = row.original;
-        const status = (quote.status || '').toLowerCase();
-        const isDraft = status === 'draft';
-        const isPending = status === 'pending';
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{tQuotes('itemDialog.actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrint(quote); }}>
-                <Printer className="mr-2 h-4 w-4" />
-                <span>{tQuotes('print')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSendEmail(quote); }}>
-                <Send className="mr-2 h-4 w-4" />
-                <span>{tQuotes('sendEmail')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(quote); }} disabled={!isDraft}>
-                {tQuotes('edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(quote); }} className="text-destructive" disabled={!isDraft}>
-                {tQuotes('delete')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteAction(quote, 'confirm'); }} disabled={!isDraft && !isPending}>
-                {tQuotes('confirm')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteAction(quote, 'reject'); }} className="text-destructive" disabled={!isDraft && !isPending}>
-                {tQuotes('reject')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         );
       },
     },
   ];
-
 
 interface RecentQuotesTableProps {
   quotes: Quote[];
@@ -314,6 +185,7 @@ export function RecentQuotesTable({
   setIsSendingEmail,
 }: RecentQuotesTableProps) {
   const t = useTranslations();
+  const tQuotes = useTranslations('QuotesPage');
   const { toast } = useToast();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
@@ -324,11 +196,11 @@ export function RecentQuotesTable({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-  const handlePrintQuote = async (quote: Quote) => {
+  const handlePrintQuote = React.useCallback(async (quote: Quote) => {
     const fileName = getDocumentFileName(quote, 'quote');
     toast({
-      title: t('QuotesPage.generatingPdf'),
-      description: t('QuotesPage.pleaseWait', { id: fileName }),
+      title: tQuotes('generatingPdf'),
+      description: tQuotes('pleaseWait', { id: fileName }),
     });
 
     try {
@@ -343,31 +215,57 @@ export function RecentQuotesTable({
       a.remove();
 
       toast({
-        title: t('QuotesPage.downloadStarted'),
-        description: t('QuotesPage.pdfDownloading', { id: fileName }),
+        title: tQuotes('downloadStarted'),
+        description: tQuotes('pdfDownloading', { id: fileName }),
       });
 
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: t('QuotesPage.printError'),
-        description: error instanceof Error ? error.message : t('QuotesPage.couldNotPrint'),
+        title: tQuotes('printError'),
+        description: error instanceof Error ? error.message : tQuotes('couldNotPrint'),
       });
     }
-  };
+  }, [tQuotes, toast]);
 
-  const handleSendEmailClick = (quote: Quote) => {
+  const handleSendEmailClick = React.useCallback((quote: Quote) => {
     setSelectedQuoteForEmail(quote);
     setEmailRecipients(quote.userEmail || '');
     setIsSendEmailDialogOpen(true);
-  };
+  }, []);
+
+  const columns = React.useMemo(() => getColumns(t, tQuotes, onRowSelectionChange, handlePrintQuote, handleSendEmailClick), [t, tQuotes, onRowSelectionChange, handlePrintQuote, handleSendEmailClick]);
+
+  const table = useReactTable({
+    data: quotes,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      rowSelection: rowSelection ?? {},
+    },
+    enableRowSelection: true,
+    enableMultiRowSelection: false,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
+  const selectedQuote = React.useMemo(() => {
+    const rows = table.getFilteredSelectedRowModel().rows;
+    return rows.length > 0 ? rows[0].original : null;
+  }, [rowSelection, quotes]);
 
   const handleConfirmSendEmail = async () => {
     if (!selectedQuoteForEmail) return;
 
     const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
     if (emails.length === 0) {
-      toast({ variant: 'destructive', title: t('QuotesPage.emailError'), description: t('QuotesPage.atLeastOneEmail') });
+      toast({ variant: 'destructive', title: tQuotes('emailError'), description: tQuotes('atLeastOneEmail') });
       return;
     }
 
@@ -377,8 +275,8 @@ export function RecentQuotesTable({
     if (invalidEmails.length > 0) {
       toast({
         variant: 'destructive',
-        title: t('QuotesPage.invalidEmail'),
-        description: t('QuotesPage.invalidEmails', { emails: invalidEmails.join(', ') }),
+        title: tQuotes('invalidEmail'),
+        description: tQuotes('invalidEmails', { emails: invalidEmails.join(', ') }),
       });
       return;
     }
@@ -398,31 +296,22 @@ export function RecentQuotesTable({
   const sendEmail = async (emails: string[]) => {
     if (!selectedQuoteForEmail) return;
 
-    const handleSetSending = (sending: boolean) => {
-      if (setIsSendingEmail) {
-        setIsSendingEmail(sending);
-      }
-    };
-
-    handleSetSending(true);
+    if (setIsSendingEmail) setIsSendingEmail(true);
     try {
       await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
-
       toast({
-        title: t('QuotesPage.emailSent'),
-        description: t('QuotesPage.emailSentSuccess', { emails: emails.join(', ') }),
+        title: tQuotes('emailSent'),
+        description: tQuotes('emailSentSuccess', { emails: emails.join(', ') }),
       });
-
       setIsSendEmailDialogOpen(false);
-
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: t('QuotesPage.emailError'),
-        description: error instanceof Error ? error.message : t('QuotesPage.unexpectedError'),
+        title: tQuotes('emailError'),
+        description: error instanceof Error ? error.message : tQuotes('unexpectedError'),
       });
     } finally {
-      handleSetSending(false);
+      if (setIsSendingEmail) setIsSendingEmail(false);
     }
   };
 
@@ -433,45 +322,13 @@ export function RecentQuotesTable({
     setIsWarningDialogOpen(false);
   };
 
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick), [t, onEdit, onDelete, onQuoteAction]);
-
-  const table = useReactTable({
-    data: quotes,
-    columns,
-    state: {
-      sorting,
-      columnFilters,
-      rowSelection: rowSelection ?? {},
-    },
-    enableRowSelection: true,
-    enableMultiRowSelection: !true,
-    onRowSelectionChange: setRowSelection,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
-
-  React.useEffect(() => {
-    if (onRowSelectionChange) {
-      const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
-      onRowSelectionChange(selectedRows);
-    }
-  }, [rowSelection, table, onRowSelectionChange]);
-
-
   const columnTranslations = {
     id: t('QuoteColumns.quoteId'),
     user_name: t('UserColumns.name'),
     createdAt: t('QuoteColumns.createdAt'),
     total: t('QuoteColumns.total'),
     currency: t('QuoteColumns.currency'),
-    exchange_rate: t('QuoteColumns.exchangeRate'),
     status: t('UserColumns.status'),
-    billing_status: t('QuoteColumns.billingStatus'),
-    payment_status: t('Navigation.Payments'),
   };
 
   return (
@@ -492,37 +349,59 @@ export function RecentQuotesTable({
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
-            {standalone ? (
-              <DataTableAdvancedToolbar
-                table={table}
-                isCompact={isCompact}
-                filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
-                searchQuery={(columnFilters.find(f => f.id === 'user_name')?.value as string) || ''}
-                onSearchChange={(value) => {
-                  setColumnFilters((prev) => {
-                    const newFilters = prev.filter((f) => f.id !== 'user_name');
-                    if (value) {
-                      newFilters.push({ id: 'user_name', value });
-                    }
-                    return newFilters;
-                  });
-                }}
-                onCreate={onCreate}
-                onRefresh={onRefresh}
-                isRefreshing={isRefreshing}
-                columnTranslations={columnTranslations}
-              />
-            ) : (
-              <DataTableToolbar
-                table={table}
-                filterColumnId="user_name"
-                filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
-                onRefresh={onRefresh}
-                isRefreshing={isRefreshing}
-                onCreate={onCreate}
-                columnTranslations={columnTranslations}
-              />
-            )}
+            <DataTableAdvancedToolbar
+              table={table}
+              isCompact={isCompact}
+              filterPlaceholder={t('RecentQuotesTable.filterPlaceholder')}
+              searchQuery={(columnFilters.find(f => f.id === 'user_name')?.value as string) || ''}
+              onSearchChange={(value) => {
+                setColumnFilters((prev) => {
+                  const newFilters = prev.filter((f) => f.id !== 'user_name');
+                  if (value) {
+                    newFilters.push({ id: 'user_name', value });
+                  }
+                  return newFilters;
+                });
+              }}
+              onCreate={onCreate}
+              onRefresh={onRefresh}
+              isRefreshing={isRefreshing}
+              columnTranslations={columnTranslations}
+              extraButtons={selectedQuote && (
+                <div className="flex items-center gap-1 mr-2 px-2 border-r">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(selectedQuote)}
+                    disabled={selectedQuote.status.toLowerCase() !== 'draft'}
+                    className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    {tQuotes('edit')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(selectedQuote)}
+                    disabled={selectedQuote.status.toLowerCase() !== 'draft'}
+                    className="h-8 px-2 gap-1 text-xs font-bold text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {tQuotes('delete')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onQuoteAction(selectedQuote, 'confirm')}
+                    disabled={selectedQuote.status.toLowerCase() !== 'draft' && selectedQuote.status.toLowerCase() !== 'pending'}
+                    className="h-8 px-2 gap-1 text-xs font-bold text-green-600 hover:text-green-600 hover:bg-green-50"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    {tQuotes('confirm')}
+                  </Button>
+                </div>
+              )}
+            />
             <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
               <table className={cn("w-full caption-bottom text-sm")}>
                 <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
@@ -549,13 +428,7 @@ export function RecentQuotesTable({
                       <TableRow
                         key={row.id}
                         data-state={row.getIsSelected() && 'selected'}
-                        onClick={() => {
-                          if (onRowSelectionChange) {
-                            table.toggleAllPageRowsSelected(false);
-                            row.toggleSelected(true);
-                          }
-                        }}
-                        className={onRowSelectionChange ? 'cursor-pointer' : ''}
+                        className="cursor-pointer"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
@@ -590,29 +463,29 @@ export function RecentQuotesTable({
       <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('QuotesPage.sendEmailDialog.title')}</DialogTitle>
-            <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
+            <DialogTitle>{tQuotes('sendEmailDialog.title')}</DialogTitle>
+            <DialogDescription>{tQuotes('sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
           </DialogHeader>
           <div className="py-4 px-6">
-            <Label htmlFor="email-recipients">{t('QuotesPage.sendEmailDialog.recipients')}</Label>
+            <Label htmlFor="email-recipients">{tQuotes('sendEmailDialog.recipients')}</Label>
             <Input
               id="email-recipients"
               value={emailRecipients}
               onChange={(e) => setEmailRecipients(e.target.value)}
-              placeholder={t('QuotesPage.sendEmailDialog.placeholder')}
+              placeholder={tQuotes('sendEmailDialog.placeholder')}
             />
-            <p className="text-sm text-muted-foreground mt-1">{t('QuotesPage.sendEmailDialog.helperText')}</p>
+            <p className="text-sm text-muted-foreground mt-1">{tQuotes('sendEmailDialog.helperText')}</p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</Button>
+            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{tQuotes('quoteDialog.cancel')}</Button>
             <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
               {isSendingEmail ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('QuotesPage.sendEmailDialog.sending')}
+                  {tQuotes('sendEmailDialog.sending')}
                 </>
               ) : (
-                t('QuotesPage.sendEmail')
+                tQuotes('sendEmail')
               )}
             </Button>
           </DialogFooter>
