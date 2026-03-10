@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -8,21 +7,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
-import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { CalendarIcon, CheckCircle, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
@@ -67,6 +60,12 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
   const [actionType, setActionType] = React.useState<ActionType | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  const selectedRowItem = React.useMemo(() => {
+    const selectedIndex = Object.keys(rowSelection)[0];
+    return selectedIndex !== undefined ? items[parseInt(selectedIndex)] : null;
+  }, [rowSelection, items]);
 
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [doctors, setDoctors] = React.useState<UserType[]>([]);
@@ -120,7 +119,6 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         }));
         setDoctors(doctorsMapped);
 
-        // Fetch services for each doctor to populate doctorServiceMap
         const serviceMap = new Map<string, Service[]>();
         await Promise.all(doctorsMapped.map(async (doctor) => {
           if (doctor.id) {
@@ -146,7 +144,6 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           duration_minutes: s.duration_minutes || 30
         })));
 
-        // Fetch user details for the patient if userId is provided and patient prop is not
         if (userId && !patient) {
           try {
             const userData = await api.get(API_ROUTES.USERS, { id: userId });
@@ -179,7 +176,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     };
 
     fetchData();
-  }, [userId, isSales]);
+  }, [userId, isSales, patient]);
 
   const handleActionClick = (item: OrderItem, type: ActionType) => {
     setSelectedItem(item);
@@ -284,10 +281,20 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
   const columns: ColumnDef<OrderItem>[] = [
     {
-      accessorKey: 'id',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('columns.id')} />
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => (
+        <RadioGroup
+          value={row.getIsSelected() ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
+          }}
+        >
+          <RadioGroupItem value={row.id} />
+        </RadioGroup>
       ),
+      size: 40,
     },
     {
       accessorKey: 'service_name',
@@ -380,27 +387,6 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       ),
       cell: ({ row }) => <DateCell dateValue={row.getValue('invoiced_date')} />,
     },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const item = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">{t('actions.openMenu')}</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-              {!item.scheduled_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'schedule')}>{t('actions.schedule')}</DropdownMenuItem>}
-              {!item.completed_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'complete')}>{t('actions.complete')}</DropdownMenuItem>}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    }
   ];
 
   if (isLoading) {
@@ -415,15 +401,17 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   }
   return (
     <>
-      <Card className="h-full flex flex-col min-h-0">
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4">
+      <Card className="h-full flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 bg-card">
           <DataTable
             columns={columns}
             data={items}
             filterColumnId="service_name"
             filterPlaceholder={t('filterPlaceholder')}
+            enableSingleRowSelection={true}
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
             columnTranslations={{
-              id: t('columns.id'),
               service_name: t('columns.service'),
               tooth_number: t('columns.toothNumber'),
               quantity: t('columns.quantity'),
@@ -434,6 +422,32 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
               completed_date: t('columns.completed'),
               invoiced_date: t('columns.invoiced'),
             }}
+            extraButtons={selectedRowItem && (
+              <div className="flex items-center gap-1 mr-2 px-2 border-r">
+                {!selectedRowItem.scheduled_date && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleActionClick(selectedRowItem, 'schedule')}
+                    className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                  >
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {t('actions.schedule')}
+                  </Button>
+                )}
+                {!selectedRowItem.completed_date && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleActionClick(selectedRowItem, 'complete')}
+                    className="h-8 px-2 gap-1 text-xs font-bold text-green-600 hover:text-green-600 hover:bg-green-50"
+                  >
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    {t('actions.complete')}
+                  </Button>
+                )}
+              </div>
+            )}
           />
         </CardContent>
       </Card>

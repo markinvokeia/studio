@@ -431,6 +431,7 @@ function QuotesPageContent() {
     const [invoiceRowSelection, setInvoiceRowSelection] = React.useState<RowSelectionState>({});
 
     const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -556,6 +557,7 @@ function QuotesPageContent() {
             setOrderRowSelection({});
             setSelectedInvoice(null);
             setInvoiceRowSelection({});
+            setPaymentRowSelection({});
         } else {
             setQuoteItems([]);
             setOrders([]);
@@ -940,7 +942,6 @@ function QuotesPageContent() {
     };
 
     const handleAddPaymentClick = (invoice: Invoice) => {
-        // Implement payment logic or trigger existing one
         toast({ title: "Pago", description: "Iniciando proceso de pago..." });
     };
 
@@ -1075,19 +1076,27 @@ function QuotesPageContent() {
                                         <TabsList className="flex-none px-4 bg-muted/20 border-b h-auto py-1.5 gap-2">
                                             <TabsTrigger value="items" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                                                 <DollarSign className="h-3.5 w-3.5" />
-                                                {t('tabs.items')}
+                                                <div className="flex flex-col items-center">
+                                                    <span>{t('tabs.items')}</span>
+                                                </div>
                                             </TabsTrigger>
                                             <TabsTrigger value="orders" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                                                 <ShoppingCart className="h-3.5 w-3.5" />
-                                                {t('tabs.orders')}
+                                                <div className="flex flex-col items-center">
+                                                    <span>{t('tabs.orders')}</span>
+                                                </div>
                                             </TabsTrigger>
                                             <TabsTrigger value="invoices" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                                                 <Receipt className="h-3.5 w-3.5" />
-                                                {t('tabs.invoices')}
+                                                <div className="flex flex-col items-center">
+                                                    <span>{t('tabs.invoices')}</span>
+                                                </div>
                                             </TabsTrigger>
                                             <TabsTrigger value="payments" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                                                 <CreditCard className="h-3.5 w-3.5" />
-                                                {t('tabs.payments')}
+                                                <div className="flex flex-col items-center">
+                                                    <span>{t('tabs.payments')}</span>
+                                                </div>
                                             </TabsTrigger>
                                         </TabsList>
                                         
@@ -1155,6 +1164,8 @@ function QuotesPageContent() {
                                                         onRefresh={loadPayments}
                                                         isRefreshing={isLoadingPayments}
                                                         columnsToHide={['quote_id', 'order_id', 'user_name']}
+                                                        rowSelection={paymentRowSelection}
+                                                        setRowSelection={setPaymentRowSelection}
                                                     />
                                                 </div>
                                             </TabsContent>

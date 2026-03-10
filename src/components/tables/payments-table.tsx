@@ -1,10 +1,10 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -18,14 +18,29 @@ import { Skeleton } from '../ui/skeleton';
 const getColumns = (
   t: (key: string) => string,
   tTransactionType: (key: string) => string,
-  tActions: (key: string) => string,
   tPaymentMethods: (key: string) => string,
-  onPrint?: (payment: Payment) => void,
-  onSendEmail?: (payment: Payment) => void
+  onRowSelectionChange?: (selectedRows: Payment[]) => void
 ): ColumnDef<Payment>[] => {
 
-
   const columns: ColumnDef<Payment>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => (
+        <RadioGroup
+          value={row.getIsSelected() ? row.id : ''}
+          onValueChange={() => {
+            if (onRowSelectionChange) {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }
+          }}
+        >
+          <RadioGroupItem value={row.id} />
+        </RadioGroup>
+      ),
+      size: 40,
+    },
     {
       accessorKey: 'doc_no',
       header: ({ column }) => (
@@ -142,7 +157,6 @@ const getColumns = (
           return <div>N/A</div>;
         }
 
-        // Try to get translated payment method, fallback to original value
         const translatedMethod = tPaymentMethods(methodCode) || methodCode;
         return <div className="capitalize">{translatedMethod}</div>;
       },
@@ -157,42 +171,7 @@ const getColumns = (
         return <Badge variant="secondary" className="capitalize">{tTransactionType(type || 'direct_payment')}</Badge>;
       }
     },
-
   ];
-
-  if (onPrint || onSendEmail) {
-    columns.push({
-      id: 'actions',
-      cell: ({ row }) => {
-        const payment = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">{tActions('openMenu')}</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{tActions('title')}</DropdownMenuLabel>
-              {onPrint && (
-                <DropdownMenuItem onClick={() => onPrint(payment)}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  {tActions('print')}
-                </DropdownMenuItem>
-              )}
-              {onSendEmail && (
-                <DropdownMenuItem onClick={() => onSendEmail(payment)}>
-                  <Send className="mr-2 h-4 w-4" />
-                  <span>{tActions('sendEmail')}</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    });
-  }
 
   return columns;
 };
@@ -222,7 +201,13 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
   const tActions = useTranslations('PaymentsPage.actions');
   const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
-  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail]);
+  const columns = React.useMemo(() => getColumns(t, tTransactionType, tPaymentMethods, onRowSelectionChange), [t, tTransactionType, tPaymentMethods, onRowSelectionChange]);
+
+  const selectedPayment = React.useMemo(() => {
+    if (!rowSelection) return null;
+    const selectedIndex = Object.keys(rowSelection)[0];
+    return selectedIndex !== undefined ? payments[parseInt(selectedIndex)] : null;
+  }, [rowSelection, payments]);
 
   if (isLoading) {
     return (
@@ -237,8 +222,8 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
   return (
-    <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
-      <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
+    <Card className={cn("h-full flex-1 flex flex-col min-h-0 rounded-t-none shadow-none border-t-0", className)}>
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-card">
         <DataTable
           columns={filteredColumns}
           data={payments}
@@ -266,10 +251,32 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
           manualPagination={manualPagination}
-          enableSingleRowSelection={!!onRowSelectionChange}
+          enableSingleRowSelection={true}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           onRowSelectionChange={onRowSelectionChange}
+          extraButtons={selectedPayment && (onPrint || onSendEmail) && (
+            <div className="flex items-center gap-1 mr-2 px-2 border-r">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onPrint?.(selectedPayment)}
+                className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                {tActions('print')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onSendEmail?.(selectedPayment)}
+                className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Send className="h-3.5 w-3.5" />
+                {tActions('sendEmail')}
+              </Button>
+            </div>
+          )}
         />
       </CardContent>
     </Card>

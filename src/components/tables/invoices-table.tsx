@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -31,9 +30,9 @@ import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState, flexRender } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, CreditCard, Edit3, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -41,14 +40,14 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DatePicker } from '../ui/date-picker';
-import { DialogDescription } from '../ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().min(0, t('validation.amountPositive')),
@@ -101,39 +100,27 @@ type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
 const getColumns = (
   t: (key: string) => string,
   tStatus: (key: string) => string,
-  tMethods: (key: string) => string,
   columnTranslations: { [key: string]: string },
-  onPrint?: (invoice: Invoice) => void,
-  onSendEmail?: (invoice: Invoice) => void,
-  onAddPayment?: (invoice: Invoice) => void,
-  onConfirm?: (invoice: Invoice) => void,
-  onEdit?: (invoice: Invoice) => void
+  onRowSelectionChange?: (selectedRows: Invoice[]) => void
 ): ColumnDef<Invoice>[] => {
-  const isPaymentActionVisible = (invoice: Invoice) => {
-    const status = invoice.status.toLowerCase();
-    const paymentStatus = invoice.payment_status?.toLowerCase();
-    return status === 'booked' && paymentStatus !== 'paid';
-  };
   return [
     {
       id: 'select',
       header: () => null,
-      cell: ({ row, table }) => {
-        const isSelected = row.getIsSelected();
-        return (
-          <RadioGroup
-            value={isSelected ? row.id : ''}
-            onValueChange={() => {
+      cell: ({ row, table }) => (
+        <RadioGroup
+          value={row.getIsSelected() ? row.id : ''}
+          onValueChange={() => {
+            if (onRowSelectionChange) {
               table.toggleAllPageRowsSelected(false);
               row.toggleSelected(true);
-            }}
-          >
-            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
-          </RadioGroup>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false,
+            }
+          }}
+        >
+          <RadioGroupItem value={row.id} />
+        </RadioGroup>
+      ),
+      size: 40,
     },
     {
       accessorKey: 'doc_no',
@@ -225,54 +212,6 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
       ),
       cell: ({ row }) => formatDateTime(row.original.createdAt),
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const invoice = row.original;
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">{t('actions.openMenu')}</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-                {onAddPayment && isPaymentActionVisible(invoice) && (
-                  <DropdownMenuItem onClick={() => onAddPayment(invoice)}>
-                    {t('paymentDialog.add')}
-                  </DropdownMenuItem>
-                )}
-                {onConfirm && invoice.status.toLowerCase() === 'draft' && (
-                  <DropdownMenuItem onClick={() => onConfirm(invoice)}>
-                    {t('confirmInvoice')}
-                  </DropdownMenuItem>
-                )}
-                {onEdit && invoice.status.toLowerCase() === 'draft' && (
-                  <DropdownMenuItem onClick={() => onEdit(invoice)}>
-                    {t('actions.edit') || 'Edit'}
-                  </DropdownMenuItem>
-                )}
-                {onPrint && (
-                  <DropdownMenuItem onClick={() => onPrint(invoice)}>
-                    <Printer className="mr-2 h-4 w-4" />
-                    <span>{t('actions.print')}</span>
-                  </DropdownMenuItem>
-                )}
-                {onSendEmail && (
-                  <DropdownMenuItem onClick={() => onSendEmail(invoice)}>
-                    <Send className="mr-2 h-4 w-4" />
-                    <span>{t('actions.sendEmail')}</span>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      },
     },
   ];
 };
@@ -627,17 +566,21 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const columns = React.useMemo(() => getColumns(
     t,
     tStatus,
-    tMethods,
     columnTranslations,
-    onPrint,
-    onSendEmail,
-    handleAddPaymentClick,
-    (inv) => { setConfirmingInvoice(inv); setIsConfirmDialogOpen(true); },
-    (invoice) => {
-      setEditingInvoice(invoice);
-      setIsFormDialogOpen(true);
-    }
-  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
+    onRowSelectionChange
+  ), [t, tStatus, columnTranslations, onRowSelectionChange]);
+
+  const internalSelectedInvoice = React.useMemo(() => {
+    if (!rowSelection) return null;
+    const selectedIndex = Object.keys(rowSelection)[0];
+    return selectedIndex !== undefined ? invoices[parseInt(selectedIndex)] : null;
+  }, [rowSelection, invoices]);
+
+  const isPaymentActionVisible = (invoice: Invoice) => {
+    const status = invoice.status.toLowerCase();
+    const paymentStatus = invoice.payment_status?.toLowerCase();
+    return status === 'booked' && paymentStatus !== 'paid';
+  };
 
   if (isLoading) {
     return (
@@ -662,7 +605,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         isSales={isSales}
         invoice={editingInvoice}
       />
-      <Card className={cn("h-full flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm", className)}>
+      <Card className={cn("h-full flex-1 flex flex-col min-h-0 rounded-t-none shadow-none border-t-0", className)}>
         {title && (
           <CardHeader className="flex-none p-4">
             <div className="flex items-start gap-3">
@@ -682,7 +625,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             data={invoices}
             filterColumnId="doc_no"
             onRowSelectionChange={onRowSelectionChange}
-            enableSingleRowSelection={!!onRowSelectionChange}
+            enableSingleRowSelection={true}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
             onCreate={canCreate ? () => {
@@ -733,15 +676,61 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   paid_amount: t('columns.paidAmount'),
                   createdAt: t('columns.createdAt'),
                 }}
-                extraButtons={
-                  <>
-                    {onImport && (
-                      <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
-                        <FileUp className="mr-2 h-4 w-4" /> {t('import')}
+                extraButtons={internalSelectedInvoice && (
+                  <div className="flex items-center gap-1 mr-2 px-2 border-r">
+                    {isPaymentActionVisible(internalSelectedInvoice) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAddPaymentClick(internalSelectedInvoice)}
+                        className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                        {t('paymentDialog.add')}
                       </Button>
                     )}
-                  </>
-                }
+                    {internalSelectedInvoice.status.toLowerCase() === 'draft' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setConfirmingInvoice(internalSelectedInvoice); setIsConfirmDialogOpen(true); }}
+                        className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                      >
+                        <Check className="h-3.5 w-3.5" />
+                        {t('confirmInvoice')}
+                      </Button>
+                    )}
+                    {internalSelectedInvoice.status.toLowerCase() === 'draft' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setEditingInvoice(internalSelectedInvoice); setIsFormDialogOpen(true); }}
+                        className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        {t('actions.edit')}
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onPrint?.(internalSelectedInvoice)}
+                      className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      {t('actions.print')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onSendEmail?.(internalSelectedInvoice)}
+                      className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {t('actions.sendEmail')}
+                    </Button>
+                  </div>
+                )}
               />
             ) : undefined}
             columnTranslations={{
@@ -1543,6 +1532,7 @@ interface InvoicesTableProps {
   isLoading?: boolean;
   onRowSelectionChange?: (selectedRows: Invoice[]) => void;
   onRefresh?: () => void;
+  isRefreshing?: boolean;
   onPrint?: (invoice: Invoice) => void;
   onSendEmail?: (invoice: Invoice) => void;
   onCreate?: () => void;

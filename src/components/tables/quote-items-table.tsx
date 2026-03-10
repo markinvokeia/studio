@@ -1,16 +1,17 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { QuoteItem } from '@/lib/types';
-import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { Edit3, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 interface QuoteItemsTableProps {
   items: QuoteItem[];
@@ -26,17 +27,24 @@ interface QuoteItemsTableProps {
 
 const getColumns = (
   t: (key: string) => string,
-  onEdit: (item: QuoteItem) => void,
-  onDelete: (item: QuoteItem) => void,
-  canEdit: boolean,
   showToothNumber: boolean = true
 ): ColumnDef<QuoteItem>[] => {
   const baseColumns: ColumnDef<QuoteItem>[] = [
     {
-      accessorKey: 'id',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('id')} />
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => (
+        <RadioGroup
+          value={row.getIsSelected() ? row.id : ''}
+          onValueChange={() => {
+            table.toggleAllPageRowsSelected(false);
+            row.toggleSelected(true);
+          }}
+        >
+          <RadioGroupItem value={row.id} />
+        </RadioGroup>
       ),
+      size: 40,
     },
     {
       accessorKey: 'service_name',
@@ -80,30 +88,8 @@ const getColumns = (
         return <div className="font-medium">{formatted}</div>;
       },
     },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const item = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0" disabled={!canEdit}>
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onEdit(item)}>{t('edit')}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(item)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
   ];
 
-  // Insert tooth_number column after service_name if needed
   if (showToothNumber) {
     const toothNumberColumn: ColumnDef<QuoteItem> = {
       accessorKey: 'tooth_number',
@@ -115,7 +101,7 @@ const getColumns = (
         return toothNumber ? <div className="font-medium">{toothNumber}</div> : <div className="text-muted-foreground">-</div>;
       },
     };
-    baseColumns.splice(2, 0, toothNumberColumn); // Insert at index 2 (after service_name)
+    baseColumns.splice(2, 0, toothNumberColumn);
   }
 
   return baseColumns;
@@ -124,7 +110,14 @@ const getColumns = (
 export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
-  const columns = getColumns(
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  const selectedItem = React.useMemo(() => {
+    const selectedIndex = Object.keys(rowSelection)[0];
+    return selectedIndex !== undefined ? items[parseInt(selectedIndex)] : null;
+  }, [rowSelection, items]);
+
+  const columns = React.useMemo(() => getColumns(
     (key) => {
       try {
         return t(key);
@@ -132,11 +125,8 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
         return tShared(key);
       }
     },
-    onEdit,
-    onDelete,
-    canEdit,
     showToothNumber
-  );
+  ), [t, tShared, showToothNumber]);
 
   if (isLoading) {
     return (
@@ -148,9 +138,10 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
       </div>
     );
   }
+
   return (
-    <Card className="h-full flex flex-col min-h-0">
-      <CardContent className="flex-1 flex flex-col min-h-0 p-4">
+    <Card className="h-full flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4 bg-card">
         <DataTable
           columns={columns}
           data={items}
@@ -159,14 +150,38 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
+          enableSingleRowSelection={true}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
           columnTranslations={{
-            id: t('id'),
             service_name: t('service'),
             ...(showToothNumber && { tooth_number: t('toothNumber') }),
             quantity: t('quantity'),
             unit_price: t('unitPrice'),
             total: t('total'),
           }}
+          extraButtons={selectedItem && canEdit && (
+            <div className="flex items-center gap-1 mr-2 px-2 border-r">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEdit(selectedItem)}
+                className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                {t('edit')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(selectedItem)}
+                className="h-8 px-2 gap-1 text-xs font-bold text-destructive hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {t('delete')}
+              </Button>
+            </div>
+          )}
         />
       </CardContent>
     </Card>

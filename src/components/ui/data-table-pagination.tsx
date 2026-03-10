@@ -24,16 +24,12 @@ interface DataTablePaginationProps<TData> {
 
 export function DataTablePagination<TData>({
   table,
-}: DataTablePaginationProps<TData>) {
+}: {
+  table: Table<TData>;
+}) {
   const t = useTranslations('DataTablePagination');
   return (
-    <div className="flex items-center justify-between px-2">
-      <div className="hidden flex-1 text-sm text-muted-foreground sm:block">
-        {t('selected', {
-          count: table.getFilteredSelectedRowModel().rows.length,
-          total: table.getFilteredRowModel().rows.length,
-        })}
-      </div>
+    <div className="flex items-center justify-end px-2">
       <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-8">
         <div className="flex items-center space-x-2">
           <p className="hidden text-sm font-medium md:block">{t('rowsPerPage')}</p>

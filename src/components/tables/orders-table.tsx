@@ -5,43 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Order, Quote, User } from '@/lib/types';
+import { Order } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal, ShoppingCart } from 'lucide-react';
+import { AlertTriangle, Receipt, ShoppingCart } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DatePicker } from '../ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Skeleton } from '../ui/skeleton';
-
-const orderFormSchema = (t: (key: string) => string) => z.object({
-  user_id: z.string().min(1, 'User is required'),
-  quote_id: z.string().min(1, 'Quote is required'),
-  status: z.enum(['pending', 'processing', 'completed', 'cancelled']),
-});
-
-type OrderFormValues = z.infer<ReturnType<typeof orderFormSchema>>;
 
 interface OrdersTableProps {
   orders: Order[];
@@ -127,24 +108,20 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     {
       id: 'select',
       header: () => null,
-      cell: ({ row, table }) => {
-        const isSelected = row.getIsSelected();
-        return (
-          <RadioGroup
-            value={isSelected ? row.id : ''}
-            onValueChange={() => {
-              if (onRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
-              }
-            }}
-          >
-            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
-          </RadioGroup>
-        );
-      },
-      enableSorting: false,
-      enableHiding: false,
+      cell: ({ row, table }) => (
+        <RadioGroup
+          value={row.getIsSelected() ? row.id : ''}
+          onValueChange={() => {
+            if (onRowSelectionChange) {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }
+          }}
+        >
+          <RadioGroupItem value={row.id} />
+        </RadioGroup>
+      ),
+      size: 40,
     },
     {
       accessorKey: 'doc_no',
@@ -200,30 +177,6 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       ),
       cell: ({ row }) => formatDateTime(row.original.createdAt),
     },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const order = row.original;
-        return (
-          <div onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
-                  {t('Navigation.InvoiceAction')}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      }
-    }
   ];
 
   if (isLoading) {
@@ -241,15 +194,20 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
     return !key || !columnsToHide.includes(key);
   });
 
-  // Check if doc_no column exists in filtered columns, otherwise use the first available column
   const availableFilterColumns = filteredColumns
     .map(col => (col as any).accessorKey)
     .filter(key => key);
   const filterColumnId = availableFilterColumns.includes('doc_no') ? 'doc_no' : (availableFilterColumns[0] || '');
 
+  const internalSelectedOrder = React.useMemo(() => {
+    if (!rowSelection) return null;
+    const selectedIndex = Object.keys(rowSelection)[0];
+    return selectedIndex !== undefined ? orders[parseInt(selectedIndex)] : null;
+  }, [rowSelection, orders]);
+
   return (
     <div className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
-      <Card className="h-full flex-1 flex flex-col min-h-0">
+      <Card className="h-full flex-1 flex flex-col min-h-0 rounded-t-none shadow-none border-t-0">
         {title && (
           <CardHeader className="flex-none p-4">
             <div className="flex items-start gap-3">
@@ -263,13 +221,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             </div>
           </CardHeader>
         )}
-        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
+        <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-card">
           <DataTable
             columns={filteredColumns}
             data={orders}
             filterColumnId={filterColumnId}
             onRowSelectionChange={onRowSelectionChange}
-            enableSingleRowSelection={onRowSelectionChange ? true : false}
+            enableSingleRowSelection={true}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
             onCreate={onCreate}
@@ -301,6 +259,19 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                   status: tUserColumns('status'),
                   createdAt: tOrderColumns('createdAt'),
                 }}
+                extraButtons={internalSelectedOrder && (
+                  <div className="flex items-center gap-1 mr-2 px-2 border-r">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleInvoiceClick(internalSelectedOrder)}
+                      className="h-8 px-2 gap-1 text-xs font-bold text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      <Receipt className="h-3.5 w-3.5" />
+                      {t('Navigation.InvoiceAction')}
+                    </Button>
+                  </div>
+                )}
               />
             ) : undefined}
             columnTranslations={{
@@ -345,201 +316,5 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-interface CreateOrderDialogProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  onOrderCreated: () => void;
-  isSales?: boolean;
-}
-
-export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSales = true }: CreateOrderDialogProps) {
-  const t = useTranslations('OrdersPage');
-  const [users, setUsers] = React.useState<User[]>([]);
-  const [quotes, setQuotes] = React.useState<Quote[]>([]);
-  const [selectedUserId, setSelectedUserId] = React.useState<string | null>(null);
-  const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
-  const [isQuoteSearchOpen, setQuoteSearchOpen] = React.useState(false);
-  const { toast } = useToast();
-
-  const form = useForm<OrderFormValues>({
-    resolver: zodResolver(orderFormSchema(t)),
-    defaultValues: {
-      status: 'pending',
-    },
-  });
-
-  React.useEffect(() => {
-    if (isOpen) {
-      const fetchUsers = async () => {
-        try {
-          const data = await api.get(API_ROUTES.USERS);
-          const usersData = (Array.isArray(data) && data.length > 0) ? data[0].data : (data.data || []);
-          setUsers(usersData);
-        } catch (error) {
-          console.error('Failed to fetch users', error);
-        }
-      };
-      fetchUsers();
-    }
-  }, [isOpen]);
-
-  React.useEffect(() => {
-    if (selectedUserId) {
-      const fetchQuotes = async () => {
-        try {
-          const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: selectedUserId });
-          setQuotes(data || []);
-        } catch (error) {
-          console.error('Failed to fetch quotes', error);
-          setQuotes([]);
-        }
-      };
-      fetchQuotes();
-      form.setValue('user_id', selectedUserId || '');
-      form.setValue('quote_id', '');
-    }
-  }, [selectedUserId, form]);
-
-  const onSubmit = async (values: OrderFormValues) => {
-    try {
-      const apiRoute = isSales ? API_ROUTES.SALES.ORDERS_UPSERT : API_ROUTES.PURCHASES.ORDERS_UPSERT;
-      await api.post(apiRoute, values);
-      toast({ title: t('createSuccess'), description: t('createSuccessDesc') });
-      onOrderCreated();
-      onOpenChange(false);
-    } catch (error) {
-      toast({ variant: 'destructive', title: t('createError'), description: error instanceof Error ? error.message : t('createErrorDesc') });
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t('createTitle')}</DialogTitle>
-          <DialogDescription>{t('createDescription')}</DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="user_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('selectUser')}</FormLabel>
-                  <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? users.find((user) => String(user.id) === field.value)?.name : t('selectUser')}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder={t('searchUser')} />
-                        <CommandList>
-                          <CommandEmpty>{t('noUserFound')}</CommandEmpty>
-                          <CommandGroup>
-                            {users.map((user) => (
-                              <CommandItem
-                                value={user.name}
-                                key={String(user.id)}
-                                onSelect={() => {
-                                  setSelectedUserId(String(user.id));
-                                  setUserSearchOpen(false);
-                                }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", String(user.id) === field.value ? "opacity-100" : "opacity-0")} />
-                                {user.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="quote_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('selectQuote')}</FormLabel>
-                  <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" role="combobox" disabled={!selectedUserId} className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                          {field.value ? quotes.find((quote) => String(quote.id) === field.value)?.doc_no || `Quote #${field.value}` : t('selectQuote')}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder={t('searchQuote')} />
-                        <CommandList>
-                          <CommandEmpty>{t('noQuoteFound')}</CommandEmpty>
-                          <CommandGroup>
-                            {quotes.map((quote) => (
-                              <CommandItem
-                                value={String(quote.id)}
-                                key={String(quote.id)}
-                                onSelect={() => {
-                                  form.setValue('quote_id', String(quote.id));
-                                  setQuoteSearchOpen(false);
-                                }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4", String(quote.id) === field.value ? "opacity-100" : "opacity-0")} />
-                                {`${quote.doc_no || `Quote #${quote.id}`} - $${quote.total}`}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('status.label')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('status.select')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="pending">{t('status.pending')}</SelectItem>
-                      <SelectItem value="processing">{t('status.processing')}</SelectItem>
-                      <SelectItem value="completed">{t('status.completed')}</SelectItem>
-                      <SelectItem value="cancelled">{t('status.cancelled')}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type="submit">{t('create')}</Button>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
   );
 }
