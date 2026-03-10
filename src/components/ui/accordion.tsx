@@ -1,8 +1,8 @@
 'use client';
 
-import * as React from 'react';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
+import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -38,7 +38,7 @@ const AccordionTrigger = React.forwardRef<
         className={cn(
           'h-4 w-4 shrink-0 transition-transform duration-200',
           // Special class to prevent rotation if trigger is centered
-          props.className?.includes('justify-center') && 'no-rotate'
+          className?.includes('justify-center') && 'no-rotate'
         )}
       />
     </AccordionPrimitive.Trigger>
@@ -61,4 +61,4 @@ const AccordionContent = React.forwardRef<
 
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };
+export { Accordion, AccordionContent, AccordionItem, AccordionTrigger };

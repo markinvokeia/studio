@@ -1,11 +1,13 @@
 
 'use client';
 
+import examples from 'libphonenumber-js/examples.mobile.json';
+import { AsYouType, CountryCode, Examples, getCountryCallingCode, getExampleNumber } from 'libphonenumber-js/min';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
-import { AsYouType, CountryCode, getCountryCallingCode, getExampleNumber, Examples } from 'libphonenumber-js/min';
-import examples from 'libphonenumber-js/examples.mobile.json';
 
+import { countries } from '@/lib/countries';
+import { cn } from '@/lib/utils';
 import {
   Button,
   Command,
@@ -20,8 +22,6 @@ import {
   PopoverTrigger,
 } from '.';
 import { ScrollArea } from './scroll-area';
-import { cn } from '@/lib/utils';
-import { countries } from '@/lib/countries';
 
 export type PhoneInputProps = Omit<React.ComponentPropsWithoutRef<typeof Input>, 'onChange'> & {
   value?: string;
@@ -44,8 +44,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     if (valueProp) {
       const asYouType = new AsYouType();
       asYouType.input(valueProp);
-      if (asYouType.country) {
-        setCountry(asYouType.country);
+      const detectedCountry = asYouType.getCountry();
+      if (detectedCountry) {
+        setCountry(detectedCountry);
         setInputValue(asYouType.getNumber()?.formatNational() || '');
       } else {
         setInputValue(valueProp);
@@ -75,10 +76,10 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 
   const placeholder = React.useMemo(() => {
     if (country && examples) {
-        const example = getExampleNumber(country, examples as Examples);
-        if (example) {
-            return example.formatNational();
-        }
+      const example = getExampleNumber(country, examples as Examples);
+      if (example) {
+        return example.formatNational();
+      }
     }
     return 'Phone number';
   }, [country]);
@@ -135,3 +136,4 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
 };
 
 export * from './input';
+

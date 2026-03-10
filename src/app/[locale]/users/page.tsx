@@ -13,6 +13,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { DatePicker } from '@/components/ui/date-picker';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -1108,125 +1109,127 @@ export default function UsersPage() {
             <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('UsersPage.createDialog.validation.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 px-6 py-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('UsersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
-                    <FormControl>
-                      <PhoneInput
-                        {...field}
-                        defaultCountry="UY"
-                        placeholder={t('UsersPage.createDialog.phonePlaceholder')}
-                        onChange={field.onChange}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="identity_document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="birth_date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
-                        {...field}
-                        max={new Date().toISOString().split('T')[0]}
-                        min="1900-01-01"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('UsersPage.createDialog.notes.title')}</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder={t('UsersPage.createDialog.notes.placeholder')}
-                        className="resize-none"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          placeholder={t('UsersPage.createDialog.phonePlaceholder')}
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="identity_document"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="birth_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
+                          {...field}
+                          max={new Date().toISOString().split('T')[0]}
+                          min="1900-01-01"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.notes.title')}</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder={t('UsersPage.createDialog.notes.placeholder')}
+                          className="resize-none"
+                          rows={3}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </DialogBody>
+              <DialogFooter>
                 <Button type="submit">{editingUser ? t('UsersPage.createDialog.editSave') : t('UsersPage.createDialog.save')}</Button>
-              </div>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UsersPage.createDialog.cancel')}</Button>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>
@@ -1302,18 +1305,18 @@ export default function UsersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsDischargeDialogOpen(false);
-              setDischargeDate(null);
-            }}>
-              {t('ClinicHistoryPage.discharge.cancelButton')}
-            </Button>
             <Button
               onClick={handleSaveDischarge}
               disabled={!dischargeDate || isSubmittingDischarge}
             >
               {isSubmittingDischarge ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {t('ClinicHistoryPage.discharge.saveButton')}
+            </Button>
+            <Button variant="outline" onClick={() => {
+              setIsDischargeDialogOpen(false);
+              setDischargeDate(null);
+            }}>
+              {t('ClinicHistoryPage.discharge.cancelButton')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -312,7 +312,7 @@
             "allCalendars": "Todos los Calendarios",
             "endTime": "Hora de Fin",
             "descriptionLabel": "Descripción",
-            "cancelAppointmentDescription": "Cancelar Cita",
+            "cancelAppointmentDescription": "Está seguro que desea cancelar la cita?",
             "close": "Cerrar",
             "cancelAppointmentTitle": "Cancelar Cita",
             "servicesSelected": "Servicios Seleccionados",
@@ -2658,7 +2658,11 @@
                 "manage": "Gestionar"
             }
         },
-        "validation": {},
+        "validation": {
+            "nameRequired": "El nombre es requerido",
+            "actionRequired": "La acción es requerida",
+            "resourceRequired": "El recurso es requerido"
+        },
         "deleteDialog": {
             "title": "Eliminar Permiso",
             "description": "¿Está seguro de que desea eliminar este permiso? Esta acción no se puede deshacer.",
@@ -3055,7 +3059,8 @@
             "photos": "Fotos"
         },
         "searching": "Buscando...",
-        "uploadDocument": "Subir Documento"
+        "uploadDocument": "Subir Documento",
+        "upload": "Subir"
     },
     "UserQuotes": {
         "filterPlaceholder": "Filtrar aquí..."
@@ -3177,6 +3182,7 @@
     },
     "AlertsCenterPage": {
         "title": "Centro de Alertas",
+        "cancel": "Cancelar",
         "description": "Ver y gestionar todas las alertas generadas por el sistema.",
         "reload": "Recargar",
         "summary": {

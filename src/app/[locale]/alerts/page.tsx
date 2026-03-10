@@ -245,9 +245,9 @@ function AlertsCenterPageContent() {
     const sendEmail = React.useCallback(async (alertIds: string[]) => {
         const alertsToCheck = alerts.filter(a => alertIds.includes(a.id));
         const userIds = alertsToCheck.map(a => a.patient_id).filter(Boolean) as string[];
-        
+
         const uniqueUserIds = [...new Set(userIds)];
-        
+
         if (uniqueUserIds.length > 0) {
             const disabledIds: string[] = [];
             for (const userId of uniqueUserIds) {
@@ -320,10 +320,10 @@ function AlertsCenterPageContent() {
 
     const registerCall = async (alertIds: string[], scheduledAt: string, reason: string) => {
         try {
-            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_CALL_REGISTER, { 
-                ids: alertIds, 
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_CALL_REGISTER, {
+                ids: alertIds,
                 details_json: { scheduled_at: scheduledAt },
-                reason 
+                reason
             });
             refreshAlerts();
             await loadAlerts();
@@ -437,45 +437,45 @@ function AlertsCenterPageContent() {
                             </Button>
                             <Can permission={ALERT_CENTER_PERMISSIONS.FILTER}>
                                 <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-80">
-                                    <div className="space-y-4 p-4">
-                                        <div>
-                                            <Label htmlFor="status">{t('filters.status')}</Label>
-                                            <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('filters.all')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">{t('filters.all')}</SelectItem>
-                                                    <SelectItem value="PENDING">{t('filters.statusOptions.pending')}</SelectItem>
-                                                    <SelectItem value="COMPLETED">{t('filters.statusOptions.completed')}</SelectItem>
-                                                    <SelectItem value="ACTION_TAKEN">{t('filters.statusOptions.actionTaken')}</SelectItem>
-                                                    <SelectItem value="IGNORED">{t('filters.statusOptions.ignored')}</SelectItem>
-                                                    <SelectItem value="SUPPRESSED">{t('filters.statusOptions.suppressed')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent className="w-80">
+                                        <div className="space-y-4 p-4">
+                                            <div>
+                                                <Label htmlFor="status">{t('filters.status')}</Label>
+                                                <Select value={statusFilter || 'all'} onValueChange={(value) => setStatusFilter(value === 'all' ? '' : value)}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('filters.all')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">{t('filters.all')}</SelectItem>
+                                                        <SelectItem value="PENDING">{t('filters.statusOptions.pending')}</SelectItem>
+                                                        <SelectItem value="COMPLETED">{t('filters.statusOptions.completed')}</SelectItem>
+                                                        <SelectItem value="ACTION_TAKEN">{t('filters.statusOptions.actionTaken')}</SelectItem>
+                                                        <SelectItem value="IGNORED">{t('filters.statusOptions.ignored')}</SelectItem>
+                                                        <SelectItem value="SUPPRESSED">{t('filters.statusOptions.suppressed')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label htmlFor="priority">{t('filters.priority')}</Label>
+                                                <Select value={priorityFilter || 'all'} onValueChange={(value) => setPriorityFilter(value === 'all' ? '' : value)}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('filters.all')} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="all">{t('filters.all')}</SelectItem>
+                                                        <SelectItem value="LOW">{t('filters.priorityOptions.low')}</SelectItem>
+                                                        <SelectItem value="MEDIUM">{t('filters.priorityOptions.medium')}</SelectItem>
+                                                        <SelectItem value="HIGH">{t('filters.priorityOptions.high')}</SelectItem>
+                                                        <SelectItem value="CRITICAL">{t('filters.priorityOptions.critical')}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <Label htmlFor="priority">{t('filters.priority')}</Label>
-                                            <Select value={priorityFilter || 'all'} onValueChange={(value) => setPriorityFilter(value === 'all' ? '' : value)}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('filters.all')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="all">{t('filters.all')}</SelectItem>
-                                                    <SelectItem value="LOW">{t('filters.priorityOptions.low')}</SelectItem>
-                                                    <SelectItem value="MEDIUM">{t('filters.priorityOptions.medium')}</SelectItem>
-                                                    <SelectItem value="HIGH">{t('filters.priorityOptions.high')}</SelectItem>
-                                                    <SelectItem value="CRITICAL">{t('filters.priorityOptions.critical')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                    </div>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </Can>
                         </div>
                     </div>
@@ -615,6 +615,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('ignoreAlert.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setIgnoreDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -665,6 +666,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('snoozeAlert.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setSnoozeDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -707,6 +709,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('registerCall.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setRegisterCallDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -739,6 +742,7 @@ function AlertsCenterPageContent() {
                         >
                             {t('addNote.submit')}
                         </Button>
+                        <Button variant="outline" type="button" onClick={() => setAddNoteDialogOpen(false)}>{t('cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

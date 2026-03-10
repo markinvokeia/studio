@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -123,7 +124,8 @@ export default function DentalSurfacesPage() {
 
     const handleDelete = (surface: DentalSurface) => {
         setDeletingSurface(surface);
-        setIsDialogOpen(true);
+        setIsDialogOpen(false);
+        setIsDeleteDialogOpen(true);
     };
 
     const confirmDelete = async () => {
@@ -200,43 +202,45 @@ export default function DentalSurfacesPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={form.control}
-                                name="nombre"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.name')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
                                 )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="codigo"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.code')}</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder={t('createDialog.codePlaceholder')} {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                <FormField
+                                    control={form.control}
+                                    name="nombre"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.name')}</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="codigo"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('createDialog.code')}</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder={t('createDialog.codePlaceholder')} {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
                                 <Button type="submit">{editingSurface ? t('createDialog.editSave') : t('createDialog.save')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -252,8 +256,8 @@ export default function DentalSurfacesPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

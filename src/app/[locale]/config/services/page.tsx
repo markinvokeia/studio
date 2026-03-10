@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -15,11 +16,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +31,6 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { normalizeApiResponse } from '@/lib/api-utils';
 import { ServicesColumnsWrapper } from './columns';
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
@@ -89,7 +91,7 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
 
 async function upsertService(serviceData: ServiceFormValues) {
   const responseData = await api.post(API_ROUTES.SERVICES_UPSERT, { ...serviceData, is_sales: true });
-  
+
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -98,7 +100,7 @@ async function upsertService(serviceData: ServiceFormValues) {
       throw new Error(message);
     }
   }
-  
+
   // Check for error responses in object format
   if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
     if (responseData.error || responseData.code >= 400) {
@@ -106,13 +108,13 @@ async function upsertService(serviceData: ServiceFormValues) {
       throw new Error(message);
     }
   }
-  
+
   return responseData;
 }
 
 async function deleteService(id: string) {
   const responseData = await api.delete(API_ROUTES.SERVICES_DELETE, { id, is_sales: true });
-  
+
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -121,7 +123,7 @@ async function deleteService(id: string) {
       throw new Error(message);
     }
   }
-  
+
   // Check for error responses in object format
   if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
     if (responseData.error || responseData.code >= 400) {
@@ -129,7 +131,7 @@ async function deleteService(id: string) {
       throw new Error(message);
     }
   }
-  
+
   return responseData;
 }
 
@@ -285,184 +287,151 @@ export default function ServicesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 px-6 py-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.category')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="price"
-                  render={({ field: { onChange, value } }) => {
-                    const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                    React.useEffect(() => {
-                      setInputValue(value ? String(value) : '');
-                    }, [value]);
-
-                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                      const rawValue = e.target.value;
-                      const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                      const parts = sanitized.split('.');
-                      let formatted = parts[0];
-                      if (parts.length > 1) {
-                        formatted += '.' + parts[1].slice(0, 2);
-                      }
-                      setInputValue(formatted);
-                      const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                      onChange(isNaN(numValue) ? 0 : numValue);
-                    };
-
-                    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                      const numValue = parseFloat(e.target.value);
-                      if (!isNaN(numValue) && numValue >= 0) {
-                        onChange(numValue);
-                        setInputValue(numValue.toFixed(2));
-                      } else if (e.target.value !== '') {
-                        onChange(0);
-                        setInputValue('');
-                      }
-                    };
-
-                    return (
-                      <FormItem>
-                        <FormLabel>{t('createDialog.price')}</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="text"
-                            inputMode="decimal"
-                            value={inputValue}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            placeholder="0.00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
                 <FormField
                   control={form.control}
-                  name="currency"
+                  name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('createDialog.currency')}</FormLabel>
+                      <FormLabel>{t('createDialog.category')}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t('createDialog.selectCurrency')} />
+                            <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <FormField
-                control={form.control}
-                name="duration_minutes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.duration')}</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="60" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.color')}</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input type="color" className="p-1 h-10 w-14" {...field} value={field.value || ''} />
-                        <Input placeholder="#FFFFFF" {...field} value={field.value || ''} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder={t('createDialog.descriptionPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="indications"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.indicationsLabel')}</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder={t('createDialog.indicationsPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field: { onChange, value } }) => (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.price')}</FormLabel>
+                        <FormControl>
+                          <FormattedNumberInput
+                            value={value}
+                            onChange={onChange}
+                            placeholder="0.00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.currency')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('createDialog.selectCurrency')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="duration_minutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.duration')}</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="60" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.color')}</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-2">
+                          <Input type="color" className="p-1 h-10 w-14" {...field} value={field.value || ''} />
+                          <Input placeholder="#FFFFFF" {...field} value={field.value || ''} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder={t('createDialog.descriptionPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="indications"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createDialog.indicationsLabel')}</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder={t('createDialog.indicationsPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </DialogBody>
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
                 <Button type="submit">{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -478,12 +447,11 @@ export default function ServicesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   );
 }
-

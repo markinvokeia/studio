@@ -1,20 +1,8 @@
 
 'use client';
 
-import * as React from 'react';
-import { addMinutes, format, parse, parseISO, isWithinInterval, isValid, startOfDay, endOfDay } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Appointment, Calendar as CalendarType, User as UserType, Service } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, RefreshCw, ChevronsUpDown, Check, X, ChevronDown, Edit, Trash2 } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from '@/components/ui/dialog';
+import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import Calendar from '@/components/calendar/Calendar';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -25,25 +13,33 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ColumnDef } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useTranslations } from 'next-intl';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
-import Calendar from '@/components/calendar/Calendar';
-import { cn } from '@/lib/utils';
-import { getAppointmentColumns } from './columns';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import {
+    Dialog,
+    DialogBody,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { useToast } from '@/hooks/use-toast';
+import { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import api from '@/services/api';
+import { ColumnDef } from '@tanstack/react-table';
+import { format, isValid, parseISO } from 'date-fns';
+import { ChevronDown, Edit, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
+import { getAppointmentColumns } from './columns';
 
 
 const CALENDAR_COLORS = [
@@ -732,8 +728,8 @@ export default function AppointmentsPage() {
                         <AlertDialogDescription>{t('createDialog.cancelAppointmentDescription', { serviceName: deletingAppointment?.service_name, date: deletingAppointment?.date })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
+                        <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
                         <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteAppointment}>{t('AppointmentsColumns.cancel')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -742,29 +738,22 @@ export default function AppointmentsPage() {
                     <DialogHeader>
                         <DialogTitle>{selectedAppointment?.service_name}</DialogTitle>
                     </DialogHeader>
-                    {selectedAppointment && (
-                        <div className="grid gap-4 py-4">
-                            <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
-                            <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
-                            <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
-                            <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
-                            <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
-                            <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
-                            <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
-                        </div>
-                    )}
+                    <DialogBody className="px-6 py-4">
+                        {selectedAppointment && (
+                            <div className="grid gap-4 py-4">
+                                <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                                <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                                <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
+                                <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
+                                <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
+                                <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
+                                <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
+                            </div>
+                        )}
+                    </DialogBody>
                     <DialogFooter className="justify-between">
                         <Button variant="outline" onClick={() => setIsDetailViewOpen(false)} className="w-24">{t('createDialog.close')}</Button>
                         <div className="flex gap-2">
-                            <Button variant="destructive" onClick={() => {
-                                if (selectedAppointment) {
-                                    handleCancel(selectedAppointment);
-                                    setIsDetailViewOpen(false);
-                                }
-                            }} className="w-28">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {t('AppointmentsColumns.cancel')}
-                            </Button>
                             <Button onClick={() => {
                                 if (selectedAppointment) {
                                     handleEdit(selectedAppointment);
@@ -774,6 +763,15 @@ export default function AppointmentsPage() {
                                 <Edit className="mr-2 h-4 w-4" />
                                 {tColumns('edit')}
                             </Button>
+                            <Button variant="destructive" onClick={() => {
+                                if (selectedAppointment) {
+                                    handleCancel(selectedAppointment);
+                                    setIsDetailViewOpen(false);
+                                }
+                            }} className="w-28">
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                {t('AppointmentsColumns.cancel')}
+                            </Button>
                         </div>
                     </DialogFooter>
                 </DialogContent>
@@ -781,4 +779,3 @@ export default function AppointmentsPage() {
         </Card>
     );
 }
-

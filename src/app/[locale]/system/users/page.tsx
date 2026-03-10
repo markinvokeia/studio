@@ -9,8 +9,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar, FilterOption } from '@/components/ui/data-table-advanced-toolbar';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -169,6 +171,36 @@ export default function SystemUsersPage() {
   const router = useRouter();
   const locale = useLocale();
   const tCommon = useTranslations('Common');
+  const { toast } = useToast();
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [userCount, setUserCount] = React.useState(0);
+  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
+  const [isRolesLoading, setIsRolesLoading] = React.useState(false);
+  const [editingUser, setEditingUser] = React.useState<User | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
+
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [showOnlyActive, setShowOnlyActive] = React.useState(true);
+
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema(t)),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+    },
+  });
 
   // Route-level permission checks
   const canViewList = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_LIST);
@@ -209,38 +241,6 @@ export default function SystemUsersPage() {
       </div>
     );
   }
-
-  const { toast } = useToast();
-  const [users, setUsers] = React.useState<User[]>([]);
-  const [userCount, setUserCount] = React.useState(0);
-  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
-  const [isRolesLoading, setIsRolesLoading] = React.useState(false);
-  const [editingUser, setEditingUser] = React.useState<User | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-  const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
-
-
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [showOnlyActive, setShowOnlyActive] = React.useState(true);
-
-  const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t)),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      identity_document: '',
-      is_active: true,
-    },
-  });
 
   const loadUsers = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -564,88 +564,90 @@ export default function SystemUsersPage() {
             <DialogDescription>{editingUser ? t('SystemUsersPage.createDialog.editDescription') : t('SystemUsersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('SystemUsersPage.createDialog.validation.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('SystemUsersPage.createDialog.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('SystemUsersPage.createDialog.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 px-6 py-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('SystemUsersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('SystemUsersPage.createDialog.email')}</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder={t('SystemUsersPage.createDialog.emailPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('SystemUsersPage.createDialog.phone')}</FormLabel>
-                    <FormControl>
-                      <PhoneInput
-                        {...field}
-                        defaultCountry="UY"
-                        placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')}
-                        onChange={field.onChange}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="identity_document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel>{t('SystemUsersPage.createDialog.isActive')}</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('SystemUsersPage.createDialog.cancel')}</Button>
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('SystemUsersPage.createDialog.name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('SystemUsersPage.createDialog.namePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('SystemUsersPage.createDialog.email')}</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder={t('SystemUsersPage.createDialog.emailPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('SystemUsersPage.createDialog.phone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')}
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="identity_document"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel>{t('SystemUsersPage.createDialog.isActive')}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </DialogBody>
+              <DialogFooter>
                 <Button type="submit">{editingUser ? t('SystemUsersPage.createDialog.editSave') : t('SystemUsersPage.createDialog.save')}</Button>
-              </div>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('SystemUsersPage.createDialog.cancel')}</Button>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>

@@ -23,12 +23,12 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal, ShoppingCart } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
-import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { DatePicker } from '../ui/date-picker';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
+import { DatePicker } from '../ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -214,13 +214,13 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-<DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
-                {t('Navigation.InvoiceAction')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+                <DropdownMenuLabel>{tUserColumns('actions')}</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleInvoiceClick(order)}>
+                  {t('Navigation.InvoiceAction')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       }
     }
@@ -339,8 +339,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
             <Button onClick={handleConfirmInvoice}>{tOrdersPage('invoiceDialog.confirm')}</Button>
+            <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{tOrdersPage('cancel')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -534,8 +534,8 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
               <Button type="submit">{t('create')}</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
             </DialogFooter>
           </form>
         </Form>

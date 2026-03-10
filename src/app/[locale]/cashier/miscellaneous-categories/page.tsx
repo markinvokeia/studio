@@ -1,35 +1,34 @@
 'use client';
 
-import * as React from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { MiscellaneousCategory } from '@/lib/types';
-import { MiscellaneousCategoriesColumnsWrapper } from './columns';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
-    DialogTitle,
+    DialogTitle
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { normalizeApiResponse } from '@/lib/api-utils';
+import { MiscellaneousCategory } from '@/lib/types';
+import { api } from '@/services/api';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { AlertTriangle, Tags } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { api } from '@/services/api';
-import { API_ROUTES } from '@/constants/routes';
-import { normalizeApiResponse } from '@/lib/api-utils';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { MiscellaneousCategoriesColumnsWrapper } from './columns';
 
 const categoryFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -58,7 +57,7 @@ async function getMiscellaneousCategories(pagination: PaginationState, searchQue
         if (!data) return { categories: [], total: 0 };
 
         const normalized = normalizeApiResponse(data);
-        
+
         return {
             categories: normalized.items.map((c: any) => ({
                 ...c,
@@ -75,7 +74,7 @@ async function getMiscellaneousCategories(pagination: PaginationState, searchQue
 
 async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
     const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_UPSERT, categoryData);
-    
+
     // Check for error responses in array format
     if (Array.isArray(response) && response.length > 0) {
         const firstItem = response[0];
@@ -84,7 +83,7 @@ async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
             throw new Error(message);
         }
     }
-    
+
     // Check for error responses in object format
     if (response && typeof response === 'object' && !Array.isArray(response)) {
         if (response.error || response.code >= 400) {
@@ -92,13 +91,13 @@ async function upsertMiscellaneousCategory(categoryData: CategoryFormValues) {
             throw new Error(message);
         }
     }
-    
+
     return response;
 }
 
 async function deleteMiscellaneousCategory(id: string) {
     const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_DELETE, { id });
-    
+
     // Check for error responses in array format
     if (Array.isArray(response) && response.length > 0) {
         const firstItem = response[0];
@@ -107,7 +106,7 @@ async function deleteMiscellaneousCategory(id: string) {
             throw new Error(message);
         }
     }
-    
+
     // Check for error responses in object format
     if (response && typeof response === 'object' && !Array.isArray(response)) {
         if (response.error || response.code >= 400) {
@@ -115,7 +114,7 @@ async function deleteMiscellaneousCategory(id: string) {
             throw new Error(message);
         }
     }
-    
+
     return response;
 }
 
@@ -344,8 +343,8 @@ export default function MiscellaneousCategoriesPage() {
                                 )}
                             />
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingCategory ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -365,8 +364,8 @@ export default function MiscellaneousCategoriesPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

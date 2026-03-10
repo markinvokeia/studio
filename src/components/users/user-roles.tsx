@@ -184,8 +184,8 @@ export function UserRoles({ userId, initialUserRoles, isLoading, onRolesChange, 
             </ScrollArea>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
             <Button onClick={handleAssignRoles}>{t('dialog.assign')}</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

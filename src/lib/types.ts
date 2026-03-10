@@ -592,6 +592,11 @@ export type CajaSesion = {
   }>;
   currency?: string;
   date_rate?: number;
+  amounts?: Array<{
+    currency: 'UYU' | 'USD' | string;
+    opening_amount: number;
+    cash_on_hand?: number;
+  }>;
 };
 
 export type CajaMovimiento = {

@@ -1,5 +1,6 @@
 'use client';
 
+import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -18,18 +21,17 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserRoles } from '@/components/users/user-roles';
 import { UserServices } from '@/components/users/user-services';
-import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
-import { usePermissions } from '@/hooks/usePermissions';
-import { PrivateRoute } from '@/components/auth/PrivateRoute';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { User, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, X, Briefcase } from 'lucide-react';
+import { AlertTriangle, Briefcase, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -432,88 +434,90 @@ function ProvidersPageContent() {
             <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('ProvidersPage.createDialog.name')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('ProvidersPage.createDialog.namePlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 px-6 py-4">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('ProvidersPage.createDialog.email')}</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder={t('ProvidersPage.createDialog.emailPlaceholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel>
-                    <FormControl>
-                      <PhoneInput
-                        {...field}
-                        defaultCountry="UY"
-                        placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
-                        onChange={field.onChange}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="identity_document"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                    <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
-                  </FormItem>
-                )}
-              />
-              <div className="flex justify-end space-x-2 pt-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.name')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('ProvidersPage.createDialog.namePlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.email')}</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder={t('ProvidersPage.createDialog.emailPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          placeholder={t('ProvidersPage.createDialog.phonePlaceholder')}
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="identity_document"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </DialogBody>
+              <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>
                 <Button type="submit">{editingProvider ? t('ProvidersPage.createDialog.editSave') : t('ProvidersPage.createDialog.save')}</Button>
-              </div>
+              </DialogFooter>
             </form>
           </Form>
         </DialogContent>

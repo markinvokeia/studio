@@ -312,7 +312,7 @@
       "allCalendars": "All Calendars",
       "endTime": "End Time",
       "descriptionLabel": "Description",
-      "cancelAppointmentDescription": "Cancel Appointment",
+      "cancelAppointmentDescription": "Are you sure you want to cancel the appointment?",
       "close": "Close",
       "cancelAppointmentTitle": "Cancel Appointment",
       "servicesSelected": "Services Selected",
@@ -2658,7 +2658,11 @@
         "manage": "Manage"
       }
     },
-    "validation": {},
+    "validation": {
+      "nameRequired": "Name is required",
+      "actionRequired": "Action is required",
+      "resourceRequired": "Resource is required"
+    },
     "deleteDialog": {
       "title": "Delete Permission",
       "description": "Are you sure you want to delete this permission? This action cannot be undone.",
@@ -3177,6 +3181,7 @@
   },
   "AlertsCenterPage": {
     "title": "Alerts Center",
+    "cancel": "Cancel",
     "description": "View and manage all system-generated alerts.",
     "reload": "Reload",
     "summary": {

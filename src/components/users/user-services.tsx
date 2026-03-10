@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -291,8 +290,8 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
             </ScrollArea>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
             <Button onClick={handleAssignServices}>{t('UserServices.dialog.assign')}</Button>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>{t('UserServices.dialog.cancel')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

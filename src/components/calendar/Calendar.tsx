@@ -1,35 +1,33 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-} from 'lucide-react';
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuTrigger
+} from "@/components/ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import './Calendar.css';
-import { Skeleton } from '../ui/skeleton';
-import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDate, getDay, getDaysInMonth, getHours, getMinutes, isSameDay, startOfDay, startOfMonth, startOfWeek, startOfYear, getYear, set, parseISO } from 'date-fns';
-import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import { useTranslations, useLocale } from 'next-intl';
+import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDay, getDaysInMonth, getHours, getMinutes, getYear, isSameDay, parseISO, set, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Skeleton } from '../ui/skeleton';
+import './Calendar.css';
 
 const GOOGLE_CALENDAR_COLORS = [
   { id: "1", hex: "#a4bdfc" }, // Lavender
@@ -182,6 +180,11 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     }
   }, [currentDate, view, dateLocale]);
 
+  const formatEventTime = useCallback((value: Date | string) => {
+    const dateValue = typeof value === 'string' ? parseISO(value) : value;
+    return format(dateValue, 'p', { locale: dateLocale });
+  }, [dateLocale]);
+
   const EventComponent = ({ event }: { event: CalendarEvent }) => (
     <ContextMenu>
       <ContextMenuTrigger>
@@ -195,7 +198,8 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
           }}
         >
           <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
-          {event.title}
+          <span className="event-time">{formatEventTime(event.start)}</span>
+          <span className="event-title">{event.title}</span>
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>
@@ -216,43 +220,53 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     </ContextMenu>
   );
 
-  const EventInDayViewComponent = ({ event, style }: { event: CalendarEvent; style: React.CSSProperties }) => (
-    <ContextMenu>
-      <ContextMenuTrigger>
-        <div
-          className="event-in-day-view"
-          style={{
-            ...style,
-            left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
-            width: `${(1 / (event.totalColumns || 1)) * 100}%`,
-            paddingRight: '4px', // Add some gap between events
-          }}
-          onClick={(e) => {
-            if (e.button !== 0) return;
-            e.stopPropagation(); // prevent triggering other click listeners
-            onEventClick(event.data);
-          }}
-        >
-          {event.title}
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <div className="grid grid-cols-4 gap-2 p-2">
-          {GOOGLE_CALENDAR_COLORS.map(color => (
-            <div
-              key={color.id}
-              className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-              style={{ backgroundColor: color.hex }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventColorChange(event.data, color.id);
-              }}
-            />
-          ))}
-        </div>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
+  const EventInDayViewComponent = ({ event, style }: { event: CalendarEvent; style: React.CSSProperties }) => {
+    const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+    const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
+    const durationMinutes = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60));
+    const showTimeOnSecondLine = durationMinutes >= 30;
+
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div
+            className={cn("event-in-day-view", !showTimeOnSecondLine && "event-in-day-view-compact")}
+            style={{
+              ...style,
+              left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
+              width: `${(1 / (event.totalColumns || 1)) * 100}%`,
+              paddingRight: '4px', // Add some gap between events
+            }}
+            onClick={(e) => {
+              if (e.button !== 0) return;
+              e.stopPropagation(); // prevent triggering other click listeners
+              onEventClick(event.data);
+            }}
+          >
+            <span className="event-day-title">{event.title}</span>
+            {showTimeOnSecondLine && (
+              <span className="event-day-time">{`${formatEventTime(event.start)} - ${formatEventTime(event.end)}`}</span>
+            )}
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <div className="grid grid-cols-4 gap-2 p-2">
+            {GOOGLE_CALENDAR_COLORS.map(color => (
+              <div
+                key={color.id}
+                className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+                style={{ backgroundColor: color.hex }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEventColorChange(event.data, color.id);
+                }}
+              />
+            ))}
+          </div>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  };
 
   const getEventsWithLayout = useCallback((dayEvents: any[]) => {
     if (dayEvents.length === 0) return [];

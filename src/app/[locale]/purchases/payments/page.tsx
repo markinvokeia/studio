@@ -9,12 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
-import { usePermissions } from '@/hooks/usePermissions';
+import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -287,7 +287,6 @@ function PaymentsPageContent() {
                         <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
                         <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
                             {isSendingEmail ? (
                                 <>
@@ -298,6 +297,7 @@ function PaymentsPageContent() {
                                 'Send Email'
                             )}
                         </Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

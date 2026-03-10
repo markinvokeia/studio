@@ -68,7 +68,7 @@ async function getCashPoints(pagination: PaginationState, searchQuery: string): 
 async function upsertCashPoint(cashPointData: CashPointFormValues) {
     const response = await api.post(API_ROUTES.CASHIER.CASH_POINTS_UPSERT, cashPointData);
     if (Array.isArray(response) && response[0]?.code >= 400) {
-        const message = response[0]?.message || 'Failed to save cash point'; 
+        const message = response[0]?.message || 'Failed to save cash point';
         throw new Error(message);
     }
     if (response.error) {
@@ -153,7 +153,7 @@ export default function CashPointsPage() {
             await deleteCashPoint(deletingCashPoint.id);
             toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription', { name: deletingCashPoint.name }) });
             setIsDeleteDialogOpen(false);
-            setDeletingPoint(null);
+            setDeletingCashPoint(null);
             loadCashPoints();
         } catch (error) {
             toast({
@@ -257,8 +257,8 @@ export default function CashPointsPage() {
                                 )}
                             />
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingCashPoint ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -278,8 +278,8 @@ export default function CashPointsPage() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

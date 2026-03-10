@@ -10,20 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePicker } from '@/components/ui/date-picker';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { API_ROUTES } from '@/constants/routes';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
-import { usePermissions } from '@/hooks/usePermissions';
+import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
 import { cn, getDocumentFileName } from '@/lib/utils';
 import api from '@/services/api';
@@ -477,152 +478,119 @@ export default function PaymentsPage() {
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="space-y-4 px-6 py-4">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>Error</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField
-                                control={form.control}
-                                name="user_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('prepaidDialog.client')}</FormLabel>
-                                        <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? users.find(u => u.id === field.value)?.name : t('prepaidDialog.selectClient')}
-                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                <Command>
-                                                    <CommandInput placeholder={t('prepaidDialog.searchClient')} />
-                                                    <CommandList>
-                                                        <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
-                                                        <CommandGroup>
-                                                            {users.map((user) => (
-                                                                <CommandItem
-                                                                    value={user.name}
-                                                                    key={user.id}
-                                                                    onSelect={() => {
-                                                                        form.setValue("user_id", user.id);
-                                                                        setIsUserPopoverOpen(false);
-                                                                    }}
-                                                                >
-                                                                    <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                    {user.name}
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
+                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>Error</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
                                 )}
-                            />
-                            <div className="grid grid-cols-3 gap-4">
-                                <FormField control={form.control} name="payment_amount" render={({ field: { onChange, value } }) => {
-                                    const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                                    React.useEffect(() => {
-                                        setInputValue(value ? String(value) : '');
-                                    }, [value]);
-
-                                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                                        const rawValue = e.target.value;
-                                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                                        const parts = sanitized.split('.');
-                                        let formatted = parts[0];
-                                        if (parts.length > 1) {
-                                            formatted += '.' + parts[1].slice(0, 2);
-                                        }
-                                        setInputValue(formatted);
-                                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                                        onChange(isNaN(numValue) ? 0 : numValue);
-                                    };
-
-                                    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                                        const numValue = parseFloat(e.target.value);
-                                        if (!isNaN(numValue) && numValue >= 0) {
-                                            onChange(numValue);
-                                            setInputValue(numValue.toFixed(2));
-                                        } else if (e.target.value !== '') {
-                                            onChange(0);
-                                            setInputValue('');
-                                        }
-                                    };
-
-                                    return (
+                                <FormField
+                                    control={form.control}
+                                    name="user_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('prepaidDialog.client')}</FormLabel>
+                                            <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? users.find(u => u.id === field.value)?.name : t('prepaidDialog.selectClient')}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder={t('prepaidDialog.searchClient')} />
+                                                        <CommandList>
+                                                            <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {users.map((user) => (
+                                                                    <CommandItem
+                                                                        value={user.name}
+                                                                        key={user.id}
+                                                                        onSelect={() => {
+                                                                            form.setValue("user_id", user.id);
+                                                                            setIsUserPopoverOpen(false);
+                                                                        }}
+                                                                    >
+                                                                        <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                        {user.name}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="grid grid-cols-3 gap-4">
+                                    <FormField control={form.control} name="payment_amount" render={({ field: { onChange, value } }) => (
                                         <FormItem className="col-span-2">
                                             <FormLabel>{t('prepaidDialog.amount')}</FormLabel>
                                             <FormControl>
-                                                <Input
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    value={inputValue}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
+                                                <FormattedNumberInput
+                                                    value={value}
+                                                    onChange={onChange}
                                                     placeholder="0.00"
                                                 />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
-                                    );
-                                }} />
-                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                            </div>
-                            <FormField
-                                control={form.control}
-                                name="payment_method_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('prepaidDialog.paymentMethod')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                            <FormControl><SelectTrigger><SelectValue placeholder={t('prepaidDialog.selectMethod')} /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                {paymentMethods.map(method => <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="created_at"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel>{t('prepaidDialog.paymentDate')}</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PPP") : <span>{t('prepaidDialog.pickDate')}</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <DatePicker
-                                                    mode="single"
-                                                    selected={field.value}
-                                                    onSelect={field.onChange}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                    )} />
+                                    <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="payment_method_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('prepaidDialog.paymentMethod')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl><SelectTrigger><SelectValue placeholder={t('prepaidDialog.selectMethod')} /></SelectTrigger></FormControl>
+                                                <SelectContent>
+                                                    {paymentMethods.map(method => <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="created_at"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>{t('prepaidDialog.paymentDate')}</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "PPP") : <span>{t('prepaidDialog.pickDate')}</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <DatePicker
+                                                        mode="single"
+                                                        selected={field.value}
+                                                        onSelect={field.onChange}
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsPrepaidDialogOpen(false)}>{t('prepaidDialog.cancel')}</Button>
                                 <Button type="submit">{t('prepaidDialog.save')}</Button>

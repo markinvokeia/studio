@@ -111,13 +111,13 @@ const DentalClinicalSystem = () => {
   const userId = params.user_id as string;
 
   const [activeView, setActiveView] = useState('anamnesis');
-  const [selectedTooth, setSelectedTooth] = useState(null);
+  const [selectedTooth, setSelectedTooth] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState('2024-11-15');
   const [hoveredTooth, setHoveredTooth] = useState(null);
   const [compareMode, setCompareMode] = useState(false);
   const [compareDate, setCompareDate] = useState('2024-01-15');
   const [isRecording, setIsRecording] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImage, setSelectedImage] = useState<any | null>(null);
   const [showAIChat, setShowAIChat] = useState(false);
   const [aiMessages, setAiMessages] = useState([]);
   const [hoveredPoint, setHoveredPoint] = useState(null);

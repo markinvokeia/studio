@@ -3,9 +3,26 @@
 @tailwind utilities;
 
 @keyframes bell-ring {
-  0%, 100% { transform: rotate(0deg); }
-  10%, 30%, 50%, 70%, 90% { transform: rotate(-8deg); }
-  20%, 40%, 60%, 80% { transform: rotate(8deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: rotate(-8deg);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: rotate(8deg);
+  }
 }
 
 .animate-bell-ring {
@@ -13,34 +30,42 @@
 }
 
 @layer base {
-  html, body {
+
+  html,
+  body {
     height: 100%;
     overflow: hidden;
   }
 }
 
 @layer base {
+
   /* TEMA INVOKE (Violeta) - Configuración Base */
   :root {
-    --background: 260 30% 98%; 
+    --background: 260 30% 98%;
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
     --popover: 0 0% 100%;
     --popover-foreground: 260 60% 5%;
-    --primary: 263 67% 35%; /* Violeta Profundo */
+    --primary: 263 67% 35%;
+    /* Violeta Profundo */
     --primary-foreground: 0 0% 100%;
-    --secondary: 341 90% 60%; /* Rosa brillante */
+    --secondary: 341 90% 60%;
+    /* Rosa brillante */
     --secondary-foreground: 0 0% 100%;
-    --muted: 260 20% 95%; 
-    --muted-foreground: 240 5% 45%; /* Gris para cabeceras y elementos secundarios */
-    --accent: 263 67% 45%; 
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --muted: 260 20% 95%;
+    --muted-foreground: 240 5% 45%;
+    /* Gris para cabeceras y elementos secundarios */
+    --accent: 263 67% 45%;
     --accent-foreground: 0 0% 100%;
     --border: 260 20% 90%;
     --input: 260 20% 90%;
     --ring: 263 67% 35%;
     --radius: 0.75rem;
-    
+
     /* Semantic Nav Tokens */
     --nav-bg: #2e1065;
     --nav-foreground: #ffffff;
@@ -56,11 +81,16 @@
     --exchange-rate-text: 0 0% 0%;
 
     /* Dashboard Chart Colors */
-    --chart-1: 0 84% 60%;   /* Rojo */
-    --chart-2: 142 76% 36%; /* Verde */
-    --chart-3: 217 91% 60%; /* Azul */
-    --chart-4: 47 95% 55%;  /* Amarillo/Naranja */
-    --chart-5: 262 83% 58%; /* Púrpura */
+    --chart-1: 0 84% 60%;
+    /* Rojo */
+    --chart-2: 142 76% 36%;
+    /* Verde */
+    --chart-3: 217 91% 60%;
+    /* Azul */
+    --chart-4: 47 95% 55%;
+    /* Amarillo/Naranja */
+    --chart-5: 262 83% 58%;
+    /* Púrpura */
   }
 
   /* TEMA CLARO */
@@ -71,22 +101,26 @@
     --card-foreground: 240 10% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 10%;
-    --primary: 221 83% 33%; /* Azul oscuro */
+    --primary: 221 83% 33%;
+    /* Azul oscuro */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 20% 96%;
     --secondary-foreground: 240 10% 10%;
-    --muted: 240 5% 96%; 
-    --muted-foreground: 240 5% 45%; /* Gris para cabeceras y elementos secundarios */
-    --accent: 240 5% 96%; 
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 5% 45%;
+    /* Gris para cabeceras y elementos secundarios */
+    --accent: 240 5% 96%;
     --accent-foreground: 240 10% 10%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
     --ring: 221 83% 33%;
-    
+
     /* Semantic Nav Tokens */
     --nav-bg: #efeff1;
     --nav-foreground: #111827;
-    --header-bg: #efeff1; 
+    --header-bg: #efeff1;
     --header-foreground: #111827;
 
     --card-header-bg: 240 5% 96%;
@@ -105,9 +139,9 @@
 
   /* TEMA OSCURO */
   .dark {
-    --background: 240 10% 15%; 
+    --background: 240 10% 15%;
     --foreground: 240 5% 95%;
-    --card: 240 10% 18%; 
+    --card: 240 10% 18%;
     --card-foreground: 240 5% 95%;
     --popover: 240 10% 16%;
     --popover-foreground: 240 5% 95%;
@@ -115,14 +149,16 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 240 10% 20%;
     --secondary-foreground: 240 5% 95%;
-    --muted: 240 10% 22%; 
+    --destructive: 0 63% 44%;
+    --destructive-foreground: 0 0% 100%;
+    --muted: 240 10% 22%;
     --muted-foreground: 240 5% 75%;
     --accent: 240 10% 25%;
     --accent-foreground: 0 0% 100%;
     --border: 240 10% 20%;
     --input: 240 10% 20%;
     --ring: 240 10% 35%;
-    
+
     /* Semantic Nav Tokens */
     --nav-bg: #1a1a1a;
     --nav-foreground: #ffffff;
@@ -148,6 +184,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -156,7 +193,7 @@
 .header-icon-circle {
   @apply flex items-center justify-center w-10 h-10 rounded-full shrink-0;
   background-color: var(--bar-icons-bg, rgba(0, 0, 0, 0.05));
-  color: var(--card-header-foreground); 
+  color: var(--card-header-foreground);
 }
 
 .dark .header-icon-circle {
@@ -164,7 +201,8 @@
 }
 
 /* Forzar color de placeholders con opacidad reducida para mayor sutileza */
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   opacity: 0.5 !important;
   color: hsl(var(--muted-foreground)) !important;
 }

@@ -1,11 +1,11 @@
 'use client';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
@@ -13,14 +13,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { API_ROUTES } from '@/constants/routes';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { handleApiErrorEnhanced } from '@/lib/error-utils';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
 import { Sequence } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Filter, Info, PlusCircle, RefreshCw, Search, X, List } from 'lucide-react';
+import { Check, Filter, List, PlusCircle, RefreshCw, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -129,7 +128,7 @@ async function deleteSequence(id: number) {
   if (responseData && typeof responseData === 'object') {
     // Handle array-based error responses
     if (Array.isArray(responseData)) {
-      const errorItem = responseData.find(item => 
+      const errorItem = responseData.find(item =>
         item?.code >= 400 || item?.error || item?.message
       );
       if (errorItem) {
@@ -145,7 +144,7 @@ async function deleteSequence(id: number) {
 
     if ('message' in responseData && typeof responseData.message === 'string') {
       // Check if it's actually an error message by looking at context
-      const hasErrorIndicators = 
+      const hasErrorIndicators =
         responseData.message.toLowerCase().includes('error') ||
         responseData.message.toLowerCase().includes('failed') ||
         responseData.message.toLowerCase().includes('invalid') ||
@@ -457,118 +456,64 @@ export default function SequencesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-4 py-4 px-6">
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="mb-0">
-                      <FormLabel>{t('createDialog.name')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="document_type"
-                  render={({ field }) => (
-                    <FormItem className="mb-0">
-                      <FormLabel>{t('createDialog.documentType')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="mb-0">
+                        <FormLabel>{t('createDialog.name')}</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('createDialog.selectDocumentType')} />
-                          </SelectTrigger>
+                          <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="invoice">{t('documentTypes.invoice')}</SelectItem>
-                          <SelectItem value="quote">{t('documentTypes.quote')}</SelectItem>
-                          <SelectItem value="order">{t('documentTypes.order')}</SelectItem>
-                          <SelectItem value="payment">{t('documentTypes.payment')}</SelectItem>
-                          <SelectItem value="credit_note">{t('documentTypes.credit_note')}</SelectItem>
-                          <SelectItem value="purchase_order">{t('documentTypes.purchase_order')}</SelectItem>
-                          <SelectItem value="miscellaneous">{t('documentTypes.miscellaneous')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="pattern"
-                render={({ field }) => (
-                  <FormItem className="mb-0">
-                    <FormLabel>{t('createDialog.pattern')}</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder={t('createDialog.patternPlaceholder')}
-                        {...field}
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {preview && (
-                <Alert className="py-2 flex items-center justify-center">
-                  <AlertDescription className="text-xs p-0 pl-0 translate-y-0">
-                    {t('createDialog.previewExample')}
-                    <code className="bg-muted px-2 py-0.5 rounded mx-1 font-bold">{preview}</code>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('createDialog.variables')}</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {SEQUENCE_VARIABLES.map((variable) => (
-                    <Button
-                      key={variable.key}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addToPattern('{' + variable.key + '}')}
-                      className="justify-start text-xs h-auto p-2"
-                    >
-                      <div className="flex flex-col items-start text-left">
-                        <div className="font-mono font-bold text-primary">{'{' + variable.key + '}'}</div>
-                        <div className="text-[10px] text-muted-foreground leading-tight">
-                          {variable.key.startsWith('COUNTER:')
-                            ? t(`variables.COUNTER:${variable.key.split(':')[1]}`) || t(`variables.COUNTER:N`)
-                            : t(`variables.${variable.key}`)
-                          }
-                        </div>
-                      </div>
-                    </Button>
-                  ))}
+                  <FormField
+                    control={form.control}
+                    name="document_type"
+                    render={({ field }) => (
+                      <FormItem className="mb-0">
+                        <FormLabel>{t('createDialog.documentType')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('createDialog.selectDocumentType')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="invoice">{t('documentTypes.invoice')}</SelectItem>
+                            <SelectItem value="quote">{t('documentTypes.quote')}</SelectItem>
+                            <SelectItem value="order">{t('documentTypes.order')}</SelectItem>
+                            <SelectItem value="payment">{t('documentTypes.payment')}</SelectItem>
+                            <SelectItem value="credit_note">{t('documentTypes.credit_note')}</SelectItem>
+                            <SelectItem value="purchase_order">{t('documentTypes.purchase_order')}</SelectItem>
+                            <SelectItem value="miscellaneous">{t('documentTypes.miscellaneous')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="current_counter"
+                  name="pattern"
                   render={({ field }) => (
                     <FormItem className="mb-0">
-                      <FormLabel>{t('createDialog.currentCounter')}</FormLabel>
+                      <FormLabel>{t('createDialog.pattern')}</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
-                          min="1"
+                          placeholder={t('createDialog.patternPlaceholder')}
                           {...field}
-                          onChange={(e) => field.onChange(Number(e.target.value))}
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -576,55 +521,111 @@ export default function SequencesPage() {
                   )}
                 />
 
+                {preview && (
+                  <Alert className="py-2 flex items-center justify-center">
+                    <AlertDescription className="text-xs p-0 pl-0 translate-y-0">
+                      {t('createDialog.previewExample')}
+                      <code className="bg-muted px-2 py-0.5 rounded mx-1 font-bold">{preview}</code>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('createDialog.variables')}</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {SEQUENCE_VARIABLES.map((variable) => (
+                      <Button
+                        key={variable.key}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => addToPattern('{' + variable.key + '}')}
+                        className="justify-start text-xs h-auto p-2"
+                      >
+                        <div className="flex flex-col items-start text-left">
+                          <div className="font-mono font-bold text-primary">{'{' + variable.key + '}'}</div>
+                          <div className="text-[10px] text-muted-foreground leading-tight">
+                            {variable.key.startsWith('COUNTER:')
+                              ? t(`variables.COUNTER:${variable.key.split(':')[1]}`) || t(`variables.COUNTER:N`)
+                              : t(`variables.${variable.key}`)
+                            }
+                          </div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="current_counter"
+                    render={({ field }) => (
+                      <FormItem className="mb-0">
+                        <FormLabel>{t('createDialog.currentCounter')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            {...field}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="reset_period"
+                    render={({ field }) => (
+                      <FormItem className="mb-0">
+                        <FormLabel>{t('createDialog.resetPeriod')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('createDialog.selectResetPeriod')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="never">{t('resetPeriods.never')}</SelectItem>
+                            <SelectItem value="yearly">{t('resetPeriods.yearly')}</SelectItem>
+                            <SelectItem value="monthly">{t('resetPeriods.monthly')}</SelectItem>
+                            <SelectItem value="daily">{t('resetPeriods.daily')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="reset_period"
+                  name="is_active"
                   render={({ field }) => (
-                    <FormItem className="mb-0">
-                      <FormLabel>{t('createDialog.resetPeriod')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('createDialog.selectResetPeriod')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="never">{t('resetPeriods.never')}</SelectItem>
-                          <SelectItem value="yearly">{t('resetPeriods.yearly')}</SelectItem>
-                          <SelectItem value="monthly">{t('resetPeriods.monthly')}</SelectItem>
-                          <SelectItem value="daily">{t('resetPeriods.daily')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 mb-0">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm font-bold">{t('createDialog.isActive')}</FormLabel>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 mb-0">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-sm font-bold">{t('createDialog.isActive')}</FormLabel>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              </DialogBody>
 
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
-                  {t('createDialog.cancel')}
-                </Button>
                 <Button type="submit">
                   {editingSequence ? t('createDialog.editSave') : t('createDialog.save')}
+                </Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
+                  {t('createDialog.cancel')}
                 </Button>
               </DialogFooter>
             </form>
@@ -641,10 +642,10 @@ export default function SequencesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
               {t('deleteDialog.confirm')}
             </AlertDialogAction>
+            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

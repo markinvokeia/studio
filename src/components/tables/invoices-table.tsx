@@ -9,18 +9,23 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
-import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -28,24 +33,20 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2, CreditCard, Check } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { DatePicker } from '../ui/date-picker';
 import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
+import { DatePicker } from '../ui/date-picker';
 import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { ScrollArea } from '../ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '../ui/skeleton';
 
 
@@ -400,7 +401,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     return invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency;
   }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, creditsTotalInInvoiceCurrency]);
 
-  const fetchPaymentMethods = async () => {
+  const fetchPaymentMethods = React.useCallback(async () => {
     try {
       const data = await api.get(API_ROUTES.PAYMENT_METHODS);
       const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
@@ -413,7 +414,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         description: 'Could not load payment methods.'
       });
     }
-  };
+  }, [toast]);
 
   const fetchUserCredits = React.useCallback(async (userId: string | undefined) => {
     if (!userId) {
@@ -429,7 +430,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   }, []);
 
-  const handleAddPaymentClick = async (invoice: Invoice) => {
+  const handleAddPaymentClick = React.useCallback(async (invoice: Invoice) => {
     if (!user) return;
 
     try {
@@ -479,7 +480,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         description: t('toast.sessionCheckError'),
       });
     }
-  };
+  }, [user, validateActiveSession, form, toast, t, fetchPaymentMethods, fetchUserCredits]);
 
   const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
     try {
@@ -906,54 +907,19 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   <FormField
                     control={form.control}
                     name="amount"
-                    render={({ field: { onChange, value } }) => {
-                      const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                      React.useEffect(() => {
-                        setInputValue(value ? String(value) : '');
-                      }, [value]);
-
-                      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                        const rawValue = e.target.value;
-                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                        const parts = sanitized.split('.');
-                        let formatted = parts[0];
-                        if (parts.length > 1) {
-                          formatted += '.' + parts[1].slice(0, 2);
-                        }
-                        setInputValue(formatted);
-                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                        onChange(isNaN(numValue) ? 0 : numValue);
-                      };
-
-                      const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                        const numValue = parseFloat(e.target.value);
-                        if (!isNaN(numValue) && numValue >= 0) {
-                          onChange(numValue);
-                          setInputValue(numValue.toFixed(2));
-                        } else if (e.target.value !== '') {
-                          onChange(0);
-                          setInputValue('');
-                        }
-                      };
-
-                      return (
-                        <FormItem>
-                          <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              inputMode="decimal"
-                              value={inputValue}
-                              onChange={handleChange}
-                              onBlur={handleBlur}
-                              placeholder="0.00"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field: { onChange, value } }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
+                        <FormControl>
+                          <FormattedNumberInput
+                            value={value}
+                            onChange={onChange}
+                            placeholder="0.00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                   <FormField
                     control={form.control}
@@ -984,54 +950,19 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   <FormField
                     control={form.control}
                     name="exchange_rate"
-                    render={({ field: { onChange, value } }) => {
-                      const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                      React.useEffect(() => {
-                        setInputValue(value ? String(value) : '');
-                      }, [value]);
-
-                      const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                        const rawValue = e.target.value;
-                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                        const parts = sanitized.split('.');
-                        let formatted = parts[0];
-                        if (parts.length > 1) {
-                          formatted += '.' + parts[1].slice(0, 2);
-                        }
-                        setInputValue(formatted);
-                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                        onChange(isNaN(numValue) ? 0 : numValue);
-                      };
-
-                      const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                        const numValue = parseFloat(e.target.value);
-                        if (!isNaN(numValue) && numValue >= 0) {
-                          onChange(numValue);
-                          setInputValue(numValue.toFixed(2));
-                        } else if (e.target.value !== '') {
-                          onChange(0);
-                          setInputValue('');
-                        }
-                      };
-
-                      return (
-                        <FormItem>
-                          <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              inputMode="decimal"
-                              value={inputValue}
-                              onChange={handleChange}
-                              onBlur={handleBlur}
-                              placeholder="0.00"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field: { onChange, value } }) => (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
+                        <FormControl>
+                          <FormattedNumberInput
+                            value={value}
+                            onChange={onChange}
+                            placeholder="0.00"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                   {equivalentAmount !== null && (
                     <FormItem>
@@ -1381,215 +1312,217 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
           </div>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
-            {submissionError && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{t('errors.title')}</AlertTitle>
-                <AlertDescription>{submissionError}</AlertDescription>
-              </Alert>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <DialogBody className="space-y-4 py-4 px-6">
+              {submissionError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{t('errors.title')}</AlertTitle>
+                  <AlertDescription>{submissionError}</AlertDescription>
+                </Alert>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('type')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
+                          <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="currency" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('type')}</FormLabel>
+                    <FormLabel>{t('currency')}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
-                        <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
-                        <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="UYU">UYU</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
-                )}
-              />
-              <FormField control={form.control} name="currency" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('currency')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="UYU">UYU</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <div className="text-right pt-7">
-                <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
-              </div>
-            </div>
-            {invoiceType === 'credit_note' && (
-              <FormField
-                control={form.control}
-                name="parent_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('parentInvoice')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t('selectParentInvoice')} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {bookedInvoices.map(inv => (
-                          <SelectItem key={inv.id} value={String(inv.id)}>
-                            {inv.doc_no} - {inv.user_name} - ${inv.total}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="user_id" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {invoiceType === 'credit_note'
-                      ? (isSales ? t('client') : t('provider'))
-                      : t('user')}
-                  </FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
-                    <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )} />
-
-            </div>
-
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>{t('items.title')}</CardTitle>
-                  {invoiceType !== 'credit_note' && (
-                    <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
-                  )}
+                )} />
+                <div className="text-right pt-7">
+                  <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
                 </div>
-              </CardHeader>
-              <CardContent className="bg-card">
-                <div className="space-y-4">
-                  <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                    <div className="flex-1">{t('items.service')}</div>
-                    <div className="w-20">{t('items.quantity')}</div>
-                    <div className="w-28">{t('items.unitPrice')}</div>
-                    <div className="w-28">{t('items.total')}</div>
-                    <div className="w-10"></div>
+              </div>
+              {invoiceType === 'credit_note' && (
+                <FormField
+                  control={form.control}
+                  name="parent_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('parentInvoice')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('selectParentInvoice')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {bookedInvoices.map(inv => (
+                            <SelectItem key={inv.id} value={String(inv.id)}>
+                              {inv.doc_no} - {inv.user_name} - ${inv.total}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="user_id" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {invoiceType === 'credit_note'
+                        ? (isSales ? t('client') : t('provider'))
+                        : t('user')}
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
+                      <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>{t('items.title')}</CardTitle>
+                    {invoiceType !== 'credit_note' && (
+                      <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                    )}
                   </div>
-                  {items.map((item, index) => (
-                    <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
-                      <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <Select
-                            onValueChange={(value) => {
-                              field.onChange(value);
-                              const service = services.find(s => s.id === value);
-                              if (service) {
-                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                form.setValue(`items.${index}.unit_price`, service.price);
-                                form.setValue(`items.${index}.total`, service.price * quantity);
-                              }
-                            }}
-                            value={field.value}
-                            disabled={invoiceType === 'credit_note'}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder={t('items.selectService')} />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                        <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} readOnly={invoiceType === 'credit_note'} onChange={(e) => {
-                          if (invoiceType !== 'credit_note') {
-                            field.onChange(e);
-                            const price = form.getValues(`items.${index}.unit_price`) || 0;
-                            form.setValue(`items.${index}.total`, price * Number(e.target.value));
-                          }
-                        }} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field: { onChange, value } }) => {
-                        const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+                </CardHeader>
+                <CardContent className="bg-card">
+                  <div className="space-y-4">
+                    <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                      <div className="flex-1">{t('items.service')}</div>
+                      <div className="w-20">{t('items.quantity')}</div>
+                      <div className="w-28">{t('items.unitPrice')}</div>
+                      <div className="w-28">{t('items.total')}</div>
+                      <div className="w-10"></div>
+                    </div>
+                    {items.map((item, index) => (
+                      <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
+                        <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
+                          <FormItem className="flex-1">
+                            <Select
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                const service = services.find(s => s.id === value);
+                                if (service) {
+                                  const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                  form.setValue(`items.${index}.unit_price`, service.price);
+                                  form.setValue(`items.${index}.total`, service.price * quantity);
+                                }
+                              }}
+                              value={field.value}
+                              disabled={invoiceType === 'credit_note'}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder={t('items.selectService')} />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
+                        <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                          <FormItem className="w-full md:w-20"><FormControl><Input type="number" {...field} readOnly={invoiceType === 'credit_note'} onChange={(e) => {
+                            if (invoiceType !== 'credit_note') {
+                              field.onChange(e);
+                              const price = form.getValues(`items.${index}.unit_price`) || 0;
+                              form.setValue(`items.${index}.total`, price * Number(e.target.value));
+                            }
+                          }} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name={`items.${index}.unit_price`} render={({ field: { onChange, value } }) => {
+                          const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
 
-                        React.useEffect(() => {
-                          setInputValue(value ? String(value) : '');
-                        }, [value]);
+                          React.useEffect(() => {
+                            setInputValue(value ? String(value) : '');
+                          }, [value]);
 
-                        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                          const rawValue = e.target.value;
-                          const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                          const parts = sanitized.split('.');
-                          let formatted = parts[0];
-                          if (parts.length > 1) {
-                            formatted += '.' + parts[1].slice(0, 2);
-                          }
-                          setInputValue(formatted);
-                          const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                          onChange(isNaN(numValue) ? 0 : numValue);
-                          if (invoiceType !== 'credit_note') {
-                            const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                            form.setValue(`items.${index}.total`, quantity * numValue);
-                          }
-                        };
-
-                        const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                          const numValue = parseFloat(e.target.value);
-                          if (!isNaN(numValue) && numValue >= 0) {
-                            onChange(numValue);
-                            setInputValue(numValue.toFixed(2));
+                          const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                            const rawValue = e.target.value;
+                            const sanitized = rawValue.replace(/[^0-9.]/g, '');
+                            const parts = sanitized.split('.');
+                            let formatted = parts[0];
+                            if (parts.length > 1) {
+                              formatted += '.' + parts[1].slice(0, 2);
+                            }
+                            setInputValue(formatted);
+                            const numValue = formatted === '' ? 0 : parseFloat(formatted);
+                            onChange(isNaN(numValue) ? 0 : numValue);
                             if (invoiceType !== 'credit_note') {
                               const quantity = form.getValues(`items.${index}.quantity`) || 1;
                               form.setValue(`items.${index}.total`, quantity * numValue);
                             }
-                          } else if (e.target.value !== '') {
-                            onChange(0);
-                            setInputValue('');
-                          }
-                        };
+                          };
 
-                        return (
-                          <FormItem className="w-full md:w-28">
-                            <FormControl>
-                              <Input
-                                type="text"
-                                inputMode="decimal"
-                                value={inputValue}
-                                onChange={handleChange}
-                                onBlur={handleBlur}
-                                readOnly={invoiceType === 'credit_note'}
-                                placeholder="0.00"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }} />
-                      <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
-                        <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  ))}
-                  <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
-                </div>
-              </CardContent>
-            </Card>
+                          const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+                            const numValue = parseFloat(e.target.value);
+                            if (!isNaN(numValue) && numValue >= 0) {
+                              onChange(numValue);
+                              setInputValue(numValue.toFixed(2));
+                              if (invoiceType !== 'credit_note') {
+                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                form.setValue(`items.${index}.total`, quantity * numValue);
+                              }
+                            } else if (e.target.value !== '') {
+                              onChange(0);
+                              setInputValue('');
+                            }
+                          };
+
+                          return (
+                            <FormItem className="w-full md:w-28">
+                              <FormControl>
+                                <Input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={inputValue}
+                                  onChange={handleChange}
+                                  onBlur={handleBlur}
+                                  readOnly={invoiceType === 'credit_note'}
+                                  placeholder="0.00"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          );
+                        }} />
+                        <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
+                          <FormItem className="w-full md:w-28"><FormControl><Input type="number" readOnly disabled {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                        <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    ))}
+                    <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
+                  </div>
+                </CardContent>
+              </Card>
+            </DialogBody>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -14,14 +15,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
-import { usePermissions } from '@/hooks/usePermissions';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import { api } from '@/services/api';
@@ -315,178 +317,145 @@ function ServicesPageContent() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3 py-4 px-6">
-              {submissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                  <AlertDescription>{submissionError}</AlertDescription>
-                </Alert>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('createDialog.name')}</FormLabel>
-                      <FormControl>
-                        <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="category_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('createDialog.category')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogBody className="space-y-3 py-4 px-6">
+                {submissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                    <AlertDescription>{submissionError}</AlertDescription>
+                  </Alert>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.name')}</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
-                          </SelectTrigger>
+                          <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
                         </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field: { onChange, value } }) => {
-                    const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                    React.useEffect(() => {
-                      setInputValue(value ? String(value) : '');
-                    }, [value]);
-
-                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                      const rawValue = e.target.value;
-                      const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                      const parts = sanitized.split('.');
-                      let formatted = parts[0];
-                      if (parts.length > 1) {
-                        formatted += '.' + parts[1].slice(0, 2);
-                      }
-                      setInputValue(formatted);
-                      const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                      onChange(isNaN(numValue) ? 0 : numValue);
-                    };
-
-                    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                      const numValue = parseFloat(e.target.value);
-                      if (!isNaN(numValue) && numValue >= 0) {
-                        onChange(numValue);
-                        setInputValue(numValue.toFixed(2));
-                      } else if (e.target.value !== '') {
-                        onChange(0);
-                        setInputValue('');
-                      }
-                    };
-
-                    return (
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.category')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('createDialog.categoryPlaceholder')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field: { onChange, value } }) => (
                       <FormItem>
                         <FormLabel>{t('createDialog.price')}</FormLabel>
                         <FormControl>
-                          <Input
-                            type="text"
-                            inputMode="decimal"
-                            value={inputValue}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
+                          <FormattedNumberInput
+                            value={value}
+                            onChange={onChange}
                             placeholder="0.00"
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
-                    );
-                  }}
-                />
-                <FormField
-                  control={form.control}
-                  name="currency"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('createDialog.currency')}</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="currency"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.currency')}</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('createDialog.selectCurrency')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="USD">USD</SelectItem>
+                            <SelectItem value="UYU">UYU</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('createDialog.colorLabel')}</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('createDialog.selectCurrency')} />
-                          </SelectTrigger>
+                          <Input
+                            type="color"
+                            className="h-10 w-full cursor-pointer"
+                            {...field}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="USD">USD</SelectItem>
-                          <SelectItem value="UYU">UYU</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="color"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('createDialog.colorLabel')}</FormLabel>
+                      <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="color"
-                          className="h-10 w-full cursor-pointer"
-                          {...field}
-                        />
+                        <Textarea placeholder={t('createDialog.descriptionPlaceholder')} className="resize-none" rows={2} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('createDialog.descriptionLabel')}</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder={t('createDialog.descriptionPlaceholder')} className="resize-none" rows={2} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="is_active"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">{t('createDialog.activeLabel')}</FormLabel>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="is_active"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">{t('createDialog.activeLabel')}</FormLabel>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </DialogBody>
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
                 <Button type="submit">{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -502,8 +471,8 @@ function ServicesPageContent() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

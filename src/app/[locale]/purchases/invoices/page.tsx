@@ -1,34 +1,34 @@
 
 'use client';
 
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
 import { CreditNotesTable } from '@/components/tables/credit-notes-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
-import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
+import { API_ROUTES } from '@/constants/routes';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
-import { Invoice, InvoiceItem, InvoiceAllocation, Payment, Service, CreditNote } from '@/lib/types';
+import { getCreditNotesForInvoice } from '@/lib/credit-notes';
+import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { File, FileUp, Loader2, PlusCircle, RefreshCw, X, Receipt, Send, Trash2, Check } from 'lucide-react';
+import { Check, File, FileUp, Loader2, PlusCircle, Receipt, RefreshCw, Send, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -738,7 +738,6 @@ function InvoicesPageContent() {
                         <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('createDialog.cancel')}</Button>
                         <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
                             {isSendingEmail ? (
                                 <>
@@ -749,6 +748,7 @@ function InvoicesPageContent() {
                                 t('sendEmailDialog.send')
                             )}
                         </Button>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('createDialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -800,7 +800,6 @@ function InvoicesPageContent() {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('createDialog.cancel')}</Button>
                         <Button onClick={handleImportSubmit} disabled={!importFile || isProcessingImport}>
                             {isProcessingImport ? (
                                 <>
@@ -811,6 +810,7 @@ function InvoicesPageContent() {
                                 t('importDialog.createInvoice')
                             )}
                         </Button>
+                        <Button variant="outline" onClick={() => setIsImportDialogOpen(false)} disabled={isProcessingImport}>{t('createDialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -838,8 +838,8 @@ function InvoicesPageContent() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -857,6 +857,7 @@ function InvoicesPageContent() {
                         </div>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
+                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
@@ -925,70 +926,72 @@ const ItemFormDialog = ({
                     </div>
                 ) : (
                     <Form {...itemForm}>
-                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="space-y-4 px-6 py-4">
-                            <FormField
-                                control={itemForm.control}
-                                name="service_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('InvoiceItemsTable.form.service')}</FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            value={field.value || ""}
-                                        >
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                <FormField
+                                    control={itemForm.control}
+                                    name="service_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('InvoiceItemsTable.form.service')}</FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                value={field.value || ""}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('InvoiceItemsTable.form.selectService')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {services.map((service) => (
+                                                        <SelectItem key={service.id} value={String(service.id)}>
+                                                            {service.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                    {field.value && !services.find(s => String(s.id) === String(field.value)) && (
+                                                        <SelectItem value={String(field.value)}>
+                                                            [ID: {field.value}] - {t('InvoiceItemsTable.form.notInList') || 'No en la lista'}
+                                                        </SelectItem>
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={itemForm.control}
+                                    name="quantity"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('InvoiceItemsTable.form.quantity')}</FormLabel>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('InvoiceItemsTable.form.selectService')} />
-                                                </SelectTrigger>
+                                                <Input type="number" {...field} />
                                             </FormControl>
-                                            <SelectContent>
-                                                {services.map((service) => (
-                                                    <SelectItem key={service.id} value={String(service.id)}>
-                                                        {service.name}
-                                                    </SelectItem>
-                                                ))}
-                                                {field.value && !services.find(s => String(s.id) === String(field.value)) && (
-                                                    <SelectItem value={String(field.value)}>
-                                                        [ID: {field.value}] - {t('InvoiceItemsTable.form.notInList') || 'No en la lista'}
-                                                    </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={itemForm.control}
-                                name="quantity"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('InvoiceItemsTable.form.quantity')}</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={itemForm.control}
-                                name="unit_price"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('InvoiceItemsTable.form.unitPrice')}</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={itemForm.control}
+                                    name="unit_price"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('InvoiceItemsTable.form.unitPrice')}</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" step="0.01" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </DialogBody>
                             <DialogFooter>
+                                <Button type="submit">{t('createDialog.save')}</Button>
                                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                                     {t('createDialog.cancel')}
                                 </Button>
-                                <Button type="submit">{t('createDialog.save')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

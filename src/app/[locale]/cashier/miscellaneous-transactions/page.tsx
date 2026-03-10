@@ -23,6 +23,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -38,7 +39,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal, Coins } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Coins, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -556,54 +557,19 @@ export default function MiscellaneousTransactionsPage() {
                                 />
                             </div>
                             <div className="grid grid-cols-3 gap-4">
-                                <FormField control={form.control} name="amount" render={({ field: { onChange, value } }) => {
-                                    const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
-
-                                    React.useEffect(() => {
-                                      setInputValue(value ? String(value) : '');
-                                    }, [value]);
-
-                                    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                                        const rawValue = e.target.value;
-                                        const sanitized = rawValue.replace(/[^0-9.]/g, '');
-                                        const parts = sanitized.split('.');
-                                        let formatted = parts[0];
-                                        if (parts.length > 1) {
-                                            formatted += '.' + parts[1].slice(0, 2);
-                                        }
-                                        setInputValue(formatted);
-                                        const numValue = formatted === '' ? 0 : parseFloat(formatted);
-                                        onChange(isNaN(numValue) ? 0 : numValue);
-                                    };
-
-                                    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-                                        const numValue = parseFloat(e.target.value);
-                                        if (!isNaN(numValue) && numValue >= 0) {
-                                            onChange(numValue);
-                                            setInputValue(numValue.toFixed(2));
-                                        } else if (e.target.value !== '') {
-                                            onChange(0);
-                                            setInputValue('');
-                                        }
-                                    };
-
-                                    return (
-                                        <FormItem className="col-span-2">
-                                            <FormLabel>{t('dialog.amount')}</FormLabel>
-                                            <FormControl>
-                                                <Input 
-                                                    type="text"
-                                                    inputMode="decimal"
-                                                    value={inputValue}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    placeholder="0.00"
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    );
-                                }} />
+                                <FormField control={form.control} name="amount" render={({ field: { onChange, value } }) => (
+                                    <FormItem className="col-span-2">
+                                        <FormLabel>{t('dialog.amount')}</FormLabel>
+                                        <FormControl>
+                                            <FormattedNumberInput
+                                                value={value}
+                                                onChange={onChange}
+                                                placeholder="0.00"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
                                 <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                             </div>
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -612,8 +578,8 @@ export default function MiscellaneousTransactionsPage() {
                                 <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>{t('dialog.tags')}</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                                 <Button type="submit">{editingTransaction ? t('dialog.save') : t('dialog.create')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -628,8 +594,8 @@ export default function MiscellaneousTransactionsPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('dialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('dialog.deleteAction')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('dialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

@@ -522,12 +522,12 @@ export default function AlertCategoriesPage() {
                             </div>
                         </form>
                     </Form>
-                    <DialogFooter className="bottom-0 bg-background pt-4">
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                            {t('dialog.cancel')}
-                        </Button>
+                    <DialogFooter>
                         <Button disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>
                             {isSubmitting ? t('dialog.saving') : editingCategory ? t('dialog.save') : t('dialog.create')}
+                        </Button>
+                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            {t('dialog.cancel')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -542,13 +542,13 @@ export default function AlertCategoriesPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={confirmDelete}
                             className="bg-destructive hover:bg-destructive/90"
                         >
                             {t('deleteDialog.confirm')}
                         </AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { DatePicker } from '@/components/ui/date-picker';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -94,27 +95,29 @@ const getAttachmentUrl = (path: string | null | undefined) => {
 };
 
 type PersonalHistoryItem = {
-    id: number;
-    padecimiento_id: string;
+    id?: number;
+    padecimiento_id?: string;
     nombre: string;
+    categoria?: string;
+    nivel_alerta?: number;
     comentarios: string;
 };
 type FamilyHistoryItem = {
-    id: number;
-    padecimiento_id: string;
+    id?: number;
+    padecimiento_id?: string;
     nombre: string;
     parentesco: string;
     comentarios: string;
 };
 type AllergyItem = {
-    id: number;
+    id?: number;
     alergeno: string;
     reaccion_descrita: string;
-    snomed_ct_id: string;
+    snomed_ct_id?: string;
 };
 type MedicationItem = {
-    id: number;
-    medicamento_id: string;
+    id?: number;
+    medicamento_id?: string;
     medicamento_nombre: string;
     dosis: string;
     frecuencia: string;
@@ -557,8 +560,8 @@ const AnamnesisDashboard = ({
             reaccion_descrita: allergyData.reaccion_descrita,
         };
 
-        if (editingAllergy && allergyData.id) { // Fix: use allergyData.id or similar if available
-            payload.id = (editingAllergy as any).id;
+        if (editingAllergy?.id) {
+            payload.id = editingAllergy.id;
         }
 
         try {
@@ -716,6 +719,15 @@ const AnamnesisDashboard = ({
             return;
         }
 
+        if (!body.id) {
+            toast({
+                variant: 'destructive',
+                title: t('anamnesis.toast.error'),
+                description: t('anamnesis.toast.genericError'),
+            });
+            return;
+        }
+
         try {
             const response = await api.delete(endpoint, body);
 
@@ -834,9 +846,9 @@ const AnamnesisDashboard = ({
                             familyHistory.map((item, index) => (
                                 <div key={index} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                     <div>
-                                        <div className="font-semibold text-foreground">{item.condition}</div>
-                                        <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.relative}</div>
-                                        <div className="text-sm text-muted-foreground">{item.comments}</div>
+                                        <div className="font-semibold text-foreground">{item.nombre}</div>
+                                        <div className="text-sm text-muted-foreground">{t('anamnesis.relative')}: {item.parentesco}</div>
+                                        <div className="text-sm text-muted-foreground">{item.comentarios}</div>
                                     </div>
                                     <div className="flex items-center space-x-1">
                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditFamilyClick(item)}>
@@ -871,15 +883,15 @@ const AnamnesisDashboard = ({
                                 <div key={index} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
                                     <div className="grid grid-cols-3 gap-4 items-start flex-1">
                                         <div className="col-span-2">
-                                            <div className="font-semibold text-foreground">{item.name}</div>
+                                            <div className="font-semibold text-foreground">{item.medicamento_nombre}</div>
                                             <div className="text-sm text-muted-foreground mt-1">
-                                                {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : t('anamnesis.present')}
+                                                {formatDate(item.fecha_inicio)} - {item.fecha_fin ? formatDate(item.fecha_fin) : t('anamnesis.present')}
                                             </div>
-                                            <div className="text-sm text-muted-foreground mt-1">{item.reason}</div>
+                                            <div className="text-sm text-muted-foreground mt-1">{item.motivo}</div>
                                         </div>
                                         <div className="text-right text-xs text-muted-foreground">
-                                            <div>{item.dose}</div>
-                                            <div>{item.frequency}</div>
+                                            <div>{item.dosis}</div>
+                                            <div>{item.frecuencia}</div>
                                         </div>
                                     </div>
                                     <div className="flex items-center space-x-1 pl-4">
@@ -918,9 +930,9 @@ const AnamnesisDashboard = ({
                                 <div key={index} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
                                     <div>
                                         <div className="flex justify-between items-center">
-                                            <div className="font-semibold text-destructive">{item.allergen}</div>
+                                            <div className="font-semibold text-destructive">{item.alergeno}</div>
                                         </div>
-                                        {item.reaction && <div className="text-sm text-destructive/80">{item.reaction}</div>}
+                                        {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
                                     </div>
                                     <div className="flex items-center space-x-1">
                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditAllergyClick(item)}>
@@ -942,7 +954,7 @@ const AnamnesisDashboard = ({
 
             {/* Personal History Dialog */}
             <Dialog open={isPersonalHistoryDialogOpen} onOpenChange={setIsPersonalHistoryDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent maxWidth="md">
                     <DialogHeader>
                         <DialogTitle>
                             {editingPersonalHistory ? t('anamnesis.dialogs.personal.editTitle') : t('anamnesis.dialogs.personal.addTitle')}
@@ -951,63 +963,65 @@ const AnamnesisDashboard = ({
                             {editingPersonalHistory ? t('anamnesis.dialogs.personal.editDescription') : t('anamnesis.dialogs.personal.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitPersonalHistory} className="space-y-4 px-6 py-4">
-                        <div>
-                            <Label htmlFor="personal-ailment">{t('anamnesis.dialogs.ailment')}</Label>
-                            <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" role="combobox" className="w-full justify-between">
-                                        {selectedPersonalAilmentName || t('anamnesis.dialogs.selectAilment')}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
-                                    <Command>
-                                        <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
-                                        <CommandList>
-                                            <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {ailmentsCatalog.map((ailment) => (
-                                                    <CommandItem
-                                                        key={ailment.id}
-                                                        value={ailment.nombre}
-                                                        onSelect={(value) => {
-                                                            setSelectedPersonalAilmentName(value);
-                                                            setIsPersonalHistoryComboboxOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", selectedPersonalAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
-                                                        {ailment.nombre}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div>
-                            <Label htmlFor="personal-comments">{t('anamnesis.dialogs.comments')}</Label>
-                            <Textarea
-                                id="personal-comments"
-                                value={personalComentarios}
-                                onChange={(e) => setPersonalComentarios(e.target.value)}
-                                placeholder={t('anamnesis.dialogs.commentsPlaceholder')}
-                            />
-                        </div>
-                        {personalSubmissionError && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>{personalSubmissionError}</AlertDescription>
-                            </Alert>
-                        )}
+                    <form onSubmit={handleSubmitPersonalHistory} className="flex flex-col h-full">
+                        <DialogBody className="space-y-4 px-6 py-4">
+                            <div>
+                                <Label htmlFor="personal-ailment">{t('anamnesis.dialogs.ailment')}</Label>
+                                <Popover open={isPersonalHistoryComboboxOpen} onOpenChange={setIsPersonalHistoryComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                            {selectedPersonalAilmentName || t('anamnesis.dialogs.selectAilment')}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
+                                            <CommandList>
+                                                <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
+                                                <CommandGroup>
+                                                    {ailmentsCatalog.map((ailment) => (
+                                                        <CommandItem
+                                                            key={ailment.id}
+                                                            value={ailment.nombre}
+                                                            onSelect={(value) => {
+                                                                setSelectedPersonalAilmentName(value);
+                                                                setIsPersonalHistoryComboboxOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", selectedPersonalAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
+                                                            {ailment.nombre}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div>
+                                <Label htmlFor="personal-comments">{t('anamnesis.dialogs.comments')}</Label>
+                                <Textarea
+                                    id="personal-comments"
+                                    value={personalComentarios}
+                                    onChange={(e) => setPersonalComentarios(e.target.value)}
+                                    placeholder={t('anamnesis.dialogs.commentsPlaceholder')}
+                                />
+                            </div>
+                            {personalSubmissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertDescription>{personalSubmissionError}</AlertDescription>
+                                </Alert>
+                            )}
+                        </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsPersonalHistoryDialogOpen(false)} disabled={isSubmittingPersonal}>
-                                {t('anamnesis.dialogs.cancel')}
-                            </Button>
                             <Button type="submit" disabled={isSubmittingPersonal}>
                                 {isSubmittingPersonal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmittingPersonal ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setIsPersonalHistoryDialogOpen(false)} disabled={isSubmittingPersonal}>
+                                {t('anamnesis.dialogs.cancel')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1016,7 +1030,7 @@ const AnamnesisDashboard = ({
 
             {/* Family History Dialog */}
             <Dialog open={isFamilyHistoryDialogOpen} onOpenChange={setIsFamilyHistoryDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent maxWidth="md">
                     <DialogHeader>
                         <DialogTitle>
                             {editingFamilyHistory ? t('anamnesis.dialogs.family.editTitle') : t('anamnesis.dialogs.family.addTitle')}
@@ -1025,72 +1039,74 @@ const AnamnesisDashboard = ({
                             {editingFamilyHistory ? t('anamnesis.dialogs.family.editDescription') : t('anamnesis.dialogs.family.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitFamilyHistory} className="space-y-4 px-6 py-4">
-                        <div>
-                            <Label htmlFor="family-ailment">{t('anamnesis.dialogs.ailment')}</Label>
-                            <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" role="combobox" className="w-full justify-between">
-                                        {selectedFamilyAilmentName || t('anamnesis.dialogs.selectAilment')}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
-                                    <Command>
-                                        <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
-                                        <CommandList>
-                                            <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
-                                            <CommandGroup>
-                                                {ailmentsCatalog.map((ailment) => (
-                                                    <CommandItem
-                                                        key={ailment.id}
-                                                        value={ailment.nombre}
-                                                        onSelect={(value) => {
-                                                            setSelectedFamilyAilmentName(value);
-                                                            setIsFamilyHistoryComboboxOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", selectedFamilyAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
-                                                        {ailment.nombre}
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div>
-                            <Label htmlFor="family-relationship">{t('anamnesis.dialogs.family.relationship')}</Label>
-                            <Input
-                                id="family-relationship"
-                                value={familyParentesco}
-                                onChange={(e) => setFamilyParentesco(e.target.value)}
-                                placeholder={t('anamnesis.dialogs.family.selectRelationship')}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="family-comments">{t('anamnesis.dialogs.comments')}</Label>
-                            <Textarea
-                                id="family-comments"
-                                value={familyComentarios}
-                                onChange={(e) => setFamilyComentarios(e.target.value)}
-                                placeholder={t('anamnesis.dialogs.family.commentsPlaceholder')}
-                            />
-                        </div>
-                        {familySubmissionError && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>{familySubmissionError}</AlertDescription>
-                            </Alert>
-                        )}
+                    <form onSubmit={handleSubmitFamilyHistory} className="flex flex-col h-full">
+                        <DialogBody className="space-y-4 px-6 py-4">
+                            <div>
+                                <Label htmlFor="family-ailment">{t('anamnesis.dialogs.ailment')}</Label>
+                                <Popover open={isFamilyHistoryComboboxOpen} onOpenChange={setIsFamilyHistoryComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                            {selectedFamilyAilmentName || t('anamnesis.dialogs.selectAilment')}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0">
+                                        <Command>
+                                            <CommandInput placeholder={t('anamnesis.dialogs.searchAilment')} />
+                                            <CommandList>
+                                                <CommandEmpty>{t('anamnesis.dialogs.noAilmentFound')}</CommandEmpty>
+                                                <CommandGroup>
+                                                    {ailmentsCatalog.map((ailment) => (
+                                                        <CommandItem
+                                                            key={ailment.id}
+                                                            value={ailment.nombre}
+                                                            onSelect={(value) => {
+                                                                setSelectedFamilyAilmentName(value);
+                                                                setIsFamilyHistoryComboboxOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", selectedFamilyAilmentName === ailment.nombre ? "opacity-100" : "opacity-0")} />
+                                                            {ailment.nombre}
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div>
+                                <Label htmlFor="family-relationship">{t('anamnesis.dialogs.family.relationship')}</Label>
+                                <Input
+                                    id="family-relationship"
+                                    value={familyParentesco}
+                                    onChange={(e) => setFamilyParentesco(e.target.value)}
+                                    placeholder={t('anamnesis.dialogs.family.selectRelationship')}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="family-comments">{t('anamnesis.dialogs.comments')}</Label>
+                                <Textarea
+                                    id="family-comments"
+                                    value={familyComentarios}
+                                    onChange={(e) => setFamilyComentarios(e.target.value)}
+                                    placeholder={t('anamnesis.dialogs.family.commentsPlaceholder')}
+                                />
+                            </div>
+                            {familySubmissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertDescription>{familySubmissionError}</AlertDescription>
+                                </Alert>
+                            )}
+                        </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsFamilyHistoryDialogOpen(false)} disabled={isSubmittingFamily}>
-                                {t('anamnesis.dialogs.cancel')}
-                            </Button>
                             <Button type="submit" disabled={isSubmittingFamily}>
                                 {isSubmittingFamily && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmittingFamily ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setIsFamilyHistoryDialogOpen(false)} disabled={isSubmittingFamily}>
+                                {t('anamnesis.dialogs.cancel')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1099,7 +1115,7 @@ const AnamnesisDashboard = ({
 
             {/* Allergy Dialog */}
             <Dialog open={isAllergyDialogOpen} onOpenChange={setIsAllergyDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent maxWidth="md">
                     <DialogHeader>
                         <DialogTitle>
                             {editingAllergy ? t('anamnesis.dialogs.allergy.editTitle') : t('anamnesis.dialogs.allergy.addTitle')}
@@ -1108,38 +1124,40 @@ const AnamnesisDashboard = ({
                             {editingAllergy ? t('anamnesis.dialogs.allergy.editDescription') : t('anamnesis.dialogs.allergy.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitAllergy} className="space-y-4 px-6 py-4">
-                        <div>
-                            <Label htmlFor="allergen">{t('anamnesis.dialogs.allergy.allergen')}</Label>
-                            <Input
-                                id="allergen"
-                                value={allergyData.alergeno}
-                                onChange={(e) => setAllergyData(prev => ({ ...prev, alergeno: e.target.value }))}
-                                placeholder={t('anamnesis.dialogs.allergy.allergen')}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="reaction">{t('anamnesis.dialogs.allergy.reaction')}</Label>
-                            <Textarea
-                                id="reaction"
-                                value={allergyData.reaccion_descrita}
-                                onChange={(e) => setAllergyData(prev => ({ ...prev, reaccion_descrita: e.target.value }))}
-                                placeholder={t('anamnesis.dialogs.allergy.reaction')}
-                            />
-                        </div>
-                        {allergySubmissionError && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>{allergySubmissionError}</AlertDescription>
-                            </Alert>
-                        )}
+                    <form onSubmit={handleSubmitAllergy} className="flex flex-col h-full">
+                        <DialogBody className="space-y-4 px-6 py-4">
+                            <div>
+                                <Label htmlFor="allergen">{t('anamnesis.dialogs.allergy.allergen')}</Label>
+                                <Input
+                                    id="allergen"
+                                    value={allergyData.alergeno}
+                                    onChange={(e) => setAllergyData(prev => ({ ...prev, alergeno: e.target.value }))}
+                                    placeholder={t('anamnesis.dialogs.allergy.allergen')}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="reaction">{t('anamnesis.dialogs.allergy.reaction')}</Label>
+                                <Textarea
+                                    id="reaction"
+                                    value={allergyData.reaccion_descrita}
+                                    onChange={(e) => setAllergyData(prev => ({ ...prev, reaccion_descrita: e.target.value }))}
+                                    placeholder={t('anamnesis.dialogs.allergy.reaction')}
+                                />
+                            </div>
+                            {allergySubmissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertDescription>{allergySubmissionError}</AlertDescription>
+                                </Alert>
+                            )}
+                        </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsAllergyDialogOpen(false)} disabled={isSubmittingAllergy}>
-                                {t('anamnesis.dialogs.cancel')}
-                            </Button>
                             <Button type="submit" disabled={isSubmittingAllergy}>
                                 {isSubmittingAllergy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmittingAllergy ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setIsAllergyDialogOpen(false)} disabled={isSubmittingAllergy}>
+                                {t('anamnesis.dialogs.cancel')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1148,7 +1166,7 @@ const AnamnesisDashboard = ({
 
             {/* Medication Dialog */}
             <Dialog open={isMedicationDialogOpen} onOpenChange={setIsMedicationDialogOpen}>
-                <DialogContent className="max-w-md">
+                <DialogContent maxWidth="md">
                     <DialogHeader>
                         <DialogTitle>
                             {editingMedication ? t('anamnesis.dialogs.medication.editTitle') : t('anamnesis.dialogs.medication.addTitle')}
@@ -1157,117 +1175,119 @@ const AnamnesisDashboard = ({
                             {editingMedication ? t('anamnesis.dialogs.medication.editDescription') : t('anamnesis.dialogs.medication.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitMedication} className="space-y-4 px-6 py-4">
-                        <div>
-                            <Label htmlFor="medication">{t('anamnesis.dialogs.medication.name')}</Label>
-                            <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" role="combobox" className="w-full justify-between">
-                                        {selectedMedication?.name || t('anamnesis.dialogs.medication.selectMedication')}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
-                                    <Command>
-                                        <CommandInput
-                                            placeholder={t('anamnesis.dialogs.medication.searchMedication')}
-                                            value={medicationSearchTerm}
-                                            onValueChange={setMedicationSearchTerm}
-                                        />
-                                        <CommandList>
-                                            {!medicationSearchTerm ? (
-                                                <div className="py-6 text-center text-sm text-muted-foreground">
-                                                    {t('anamnesis.dialogs.medication.typeToSearch')}
-                                                </div>
-                                            ) : medicationsCatalog.length === 0 ? (
-                                                <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
-                                            ) : (
-                                                <CommandGroup>
-                                                    {medicationsCatalog.map((med) => {
-                                                        const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
-                                                        return (
-                                                            <CommandItem
-                                                                key={med.id}
-                                                                value={displayName}
-                                                                onSelect={() => {
-                                                                    setSelectedMedication({ id: med.id, name: displayName });
-                                                                    setIsMedicationComboboxOpen(false);
-                                                                }}
-                                                            >
-                                                                <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
-                                                                {displayName}
-                                                            </CommandItem>
-                                                        );
-                                                    })}
-                                                </CommandGroup>
-                                            )}
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmitMedication} className="flex flex-col h-full">
+                        <DialogBody className="space-y-4 px-6 py-4">
                             <div>
-                                <Label htmlFor="dosage">{t('anamnesis.dialogs.medication.dose')}</Label>
-                                <Input
-                                    id="dosage"
-                                    value={medicationData.dosis}
-                                    onChange={(e) => setMedicationData(prev => ({ ...prev, dosis: e.target.value }))}
-                                    placeholder="500mg"
-                                />
+                                <Label htmlFor="medication">{t('anamnesis.dialogs.medication.name')}</Label>
+                                <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                            {selectedMedication?.name || t('anamnesis.dialogs.medication.selectMedication')}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-full p-0" align="start" style={{ width: 'var(--radix-popover-trigger-width)' }}>
+                                        <Command>
+                                            <CommandInput
+                                                placeholder={t('anamnesis.dialogs.medication.searchMedication')}
+                                                value={medicationSearchTerm}
+                                                onValueChange={setMedicationSearchTerm}
+                                            />
+                                            <CommandList>
+                                                {!medicationSearchTerm ? (
+                                                    <div className="py-6 text-center text-sm text-muted-foreground">
+                                                        {t('anamnesis.dialogs.medication.typeToSearch')}
+                                                    </div>
+                                                ) : medicationsCatalog.length === 0 ? (
+                                                    <CommandEmpty>{t('anamnesis.dialogs.medication.noMedicationFound')}</CommandEmpty>
+                                                ) : (
+                                                    <CommandGroup>
+                                                        {medicationsCatalog.map((med) => {
+                                                            const displayName = med.nombre_comercial ? `${med.nombre_generico} - ${med.nombre_comercial}` : med.nombre_generico;
+                                                            return (
+                                                                <CommandItem
+                                                                    key={med.id}
+                                                                    value={displayName}
+                                                                    onSelect={() => {
+                                                                        setSelectedMedication({ id: med.id, name: displayName });
+                                                                        setIsMedicationComboboxOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <Check className={cn("mr-2 h-4 w-4", selectedMedication?.id === med.id ? "opacity-100" : "opacity-0")} />
+                                                                    {displayName}
+                                                                </CommandItem>
+                                                            );
+                                                        })}
+                                                    </CommandGroup>
+                                                )}
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="dosage">{t('anamnesis.dialogs.medication.dose')}</Label>
+                                    <Input
+                                        id="dosage"
+                                        value={medicationData.dosis}
+                                        onChange={(e) => setMedicationData(prev => ({ ...prev, dosis: e.target.value }))}
+                                        placeholder="500mg"
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="frequency">{t('anamnesis.dialogs.medication.frequency')}</Label>
+                                    <Input
+                                        id="frequency"
+                                        value={medicationData.frecuencia}
+                                        onChange={(e) => setMedicationData(prev => ({ ...prev, frecuencia: e.target.value }))}
+                                        placeholder="Cada 8 horas"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label htmlFor="start-date">{t('anamnesis.dialogs.medication.startDate')}</Label>
+                                    <Input
+                                        id="start-date"
+                                        type="date"
+                                        value={medicationData.fecha_inicio}
+                                        onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="end-date">{t('anamnesis.dialogs.medication.endDate')}</Label>
+                                    <Input
+                                        id="end-date"
+                                        type="date"
+                                        value={medicationData.fecha_fin}
+                                        onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_fin: e.target.value }))}
+                                    />
+                                </div>
                             </div>
                             <div>
-                                <Label htmlFor="frequency">{t('anamnesis.dialogs.medication.frequency')}</Label>
-                                <Input
-                                    id="frequency"
-                                    value={medicationData.frecuencia}
-                                    onChange={(e) => setMedicationData(prev => ({ ...prev, frecuencia: e.target.value }))}
-                                    placeholder="Cada 8 horas"
+                                <Label htmlFor="reason">{t('anamnesis.dialogs.medication.reason')}</Label>
+                                <Textarea
+                                    id="reason"
+                                    value={medicationData.motivo}
+                                    onChange={(e) => setMedicationData(prev => ({ ...prev, motivo: e.target.value }))}
+                                    placeholder={t('anamnesis.dialogs.medication.reason')}
                                 />
                             </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <Label htmlFor="start-date">{t('anamnesis.dialogs.medication.startDate')}</Label>
-                                <Input
-                                    id="start-date"
-                                    type="date"
-                                    value={medicationData.fecha_inicio}
-                                    onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
-                                />
-                            </div>
-                            <div>
-                                <Label htmlFor="end-date">{t('anamnesis.dialogs.medication.endDate')}</Label>
-                                <Input
-                                    id="end-date"
-                                    type="date"
-                                    value={medicationData.fecha_fin}
-                                    onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_fin: e.target.value }))}
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <Label htmlFor="reason">{t('anamnesis.dialogs.medication.reason')}</Label>
-                            <Textarea
-                                id="reason"
-                                value={medicationData.motivo}
-                                onChange={(e) => setMedicationData(prev => ({ ...prev, motivo: e.target.value }))}
-                                placeholder={t('anamnesis.dialogs.medication.reason')}
-                            />
-                        </div>
-                        {medicationSubmissionError && (
-                            <Alert variant="destructive">
-                                <AlertTriangle className="h-4 w-4" />
-                                <AlertDescription>{medicationSubmissionError}</AlertDescription>
-                            </Alert>
-                        )}
+                            {medicationSubmissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertDescription>{medicationSubmissionError}</AlertDescription>
+                                </Alert>
+                            )}
+                        </DialogBody>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsMedicationDialogOpen(false)} disabled={isSubmittingMedication}>
-                                {t('anamnesis.dialogs.cancel')}
-                            </Button>
                             <Button type="submit" disabled={isSubmittingMedication}>
                                 {isSubmittingMedication && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmittingMedication ? t('anamnesis.dialogs.saving') : t('anamnesis.dialogs.save')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setIsMedicationDialogOpen(false)} disabled={isSubmittingMedication}>
+                                {t('anamnesis.dialogs.cancel')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1279,15 +1299,15 @@ const AnamnesisDashboard = ({
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('anamnesis.deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t('anamnesis.deleteDialog.description')}
-                        </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <AlertDialogDescription>
+                        {t('anamnesis.deleteDialog.description')}
+                    </AlertDialogDescription>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('anamnesis.deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
                             {t('anamnesis.deleteDialog.confirm')}
                         </AlertDialogAction>
+                        <AlertDialogCancel>{t('anamnesis.deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -1483,7 +1503,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent
-                className="max-w-4xl"
+                maxWidth="4xl"
+                showMaximize
                 onDragOver={(e: React.DragEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1536,206 +1557,208 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSave)} className="space-y-3 px-4 py-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
-                            <div className="space-y-3">
-                                <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
-                                    <FormItem className="flex flex-col mb-2">
-                                        <FormLabel className="text-xs font-semibold">{t('date')}</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8", !field.value && "text-muted-foreground")}>
-                                                        {field.value ? format(field.value, "PPP") : <span>{t('pickDate')}</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus translationsNamespace="DatePicker" />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <FormMessage className="text-[10px]" />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="doctor_name" render={({ field }) => (
-                                    <FormItem className="mb-2">
-                                        <FormLabel className="text-xs font-semibold">{t('doctor')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value ?? ''}>
-                                            <FormControl>
-                                                <SelectTrigger className="h-8">
-                                                    <SelectValue placeholder={t('selectDoctor')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {doctors.map(doc => <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
-                                    <FormItem className="mb-2">
-                                        <FormLabel className="text-xs font-semibold">{t('procedure')}</FormLabel>
-                                        <FormControl><Input {...field} value={field.value ?? ''} className="h-8" /></FormControl>
-                                        <FormMessage className="text-[10px]" />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="diagnostico" render={({ field }) => (
-                                    <FormItem className="mb-2">
-                                        <FormLabel className="text-xs font-semibold">{t('diagnosis')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
-                                    <FormItem className="mb-2">
-                                        <FormLabel className="text-xs font-semibold">{t('notes')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
-                                    <FormItem className="mb-2">
-                                        <FormLabel className="text-xs font-semibold">{t('nextSessionPlan')}</FormLabel>
-                                        <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
-                                    </FormItem>
-                                )} />
-                            </div>
-                            <div className="space-y-3">
-                                <Card className="shadow-none border bg-muted/5">
-                                    <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
-                                        <CardTitle className="text-sm font-bold">{t('treatments')}</CardTitle>
-                                        <Button type="button" variant="ghost" size="sm" onClick={() => append({ tratamiento_id: undefined, descripcion: '', numero_diente: '' })} className="h-7 px-2 text-xs">
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            {t('addTreatment')}
-                                        </Button>
-                                    </CardHeader>
-                                    <CardContent className="p-2 pt-0">
-                                        <ScrollArea className="h-40 pr-2">
-                                            <div className="space-y-2">
-                                                {fields.length === 0 ? (
-                                                    <div className="flex items-center justify-center py-8 text-xs text-muted-foreground italic border border-dashed rounded-md">
-                                                        No treatments added yet.
-                                                    </div>
-                                                ) : fields.map((field, index) => (
-                                                    <div key={field.id} className="flex gap-2 items-start p-2 bg-background border rounded-md">
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`treatments.${index}.numero_diente`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="w-16 mb-0">
-                                                                    <FormControl>
-                                                                        <Input type="number" placeholder={t('tooth')} {...field} value={field.value ?? ''} className="h-7 text-xs px-1" />
-                                                                    </FormControl>
-                                                                    <FormMessage className="text-[9px]" />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                        <FormField
-                                                            control={form.control}
-                                                            name={`treatments.${index}.descripcion`}
-                                                            render={({ field }) => (
-                                                                <FormItem className="flex-1 mb-0">
-                                                                    <FormControl>
-                                                                        <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-7 text-xs p-1" value={field.value ?? ''} />
-                                                                    </FormControl>
-                                                                    <FormMessage className="text-[9px]" />
-                                                                </FormItem>
-                                                            )}
-                                                        />
-                                                        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => remove(index)}>
-                                                            <Trash2 className="h-3 w-3" />
+                    <form onSubmit={form.handleSubmit(handleSave)} className="flex flex-col h-full overflow-hidden">
+                        <DialogBody className="space-y-3 px-6 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
+                                <div className="space-y-3">
+                                    <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
+                                        <FormItem className="flex flex-col mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('date')}</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "PPP") : <span>{t('pickDate')}</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                         </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus translationsNamespace="DatePicker" />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage className="text-[10px]" />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="doctor_name" render={({ field }) => (
+                                        <FormItem className="mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('doctor')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value ?? ''}>
+                                                <FormControl>
+                                                    <SelectTrigger className="h-8">
+                                                        <SelectValue placeholder={t('selectDoctor')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {doctors.map(doc => <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
+                                        <FormItem className="mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('procedure')}</FormLabel>
+                                            <FormControl><Input {...field} value={field.value ?? ''} className="h-8" /></FormControl>
+                                            <FormMessage className="text-[10px]" />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="diagnostico" render={({ field }) => (
+                                        <FormItem className="mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('diagnosis')}</FormLabel>
+                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
+                                        <FormItem className="mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('notes')}</FormLabel>
+                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
+                                        <FormItem className="mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('nextSessionPlan')}</FormLabel>
+                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                </div>
+                                <div className="space-y-3">
+                                    <Card className="shadow-none border bg-muted/5">
+                                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
+                                            <CardTitle className="text-sm font-bold">{t('treatments')}</CardTitle>
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => append({ tratamiento_id: undefined, descripcion: '', numero_diente: '' })} className="h-7 px-2 text-xs">
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                {t('addTreatment')}
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent className="p-2 pt-0">
+                                            <ScrollArea className="h-40 pr-2">
+                                                <div className="space-y-2">
+                                                    {fields.length === 0 ? (
+                                                        <div className="flex items-center justify-center py-8 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                            No treatments added yet.
+                                                        </div>
+                                                    ) : fields.map((field, index) => (
+                                                        <div key={field.id} className="flex gap-2 items-start p-2 bg-background border rounded-md">
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`treatments.${index}.numero_diente`}
+                                                                render={({ field }) => (
+                                                                    <FormItem className="w-16 mb-0">
+                                                                        <FormControl>
+                                                                            <Input type="number" placeholder={t('tooth')} {...field} value={field.value ?? ''} className="h-7 text-xs px-1" />
+                                                                        </FormControl>
+                                                                        <FormMessage className="text-[9px]" />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                            <FormField
+                                                                control={form.control}
+                                                                name={`treatments.${index}.descripcion`}
+                                                                render={({ field }) => (
+                                                                    <FormItem className="flex-1 mb-0">
+                                                                        <FormControl>
+                                                                            <Textarea placeholder={t('treatmentPlaceholder')} {...field} className="min-h-[32px] h-7 text-xs p-1" value={field.value ?? ''} />
+                                                                        </FormControl>
+                                                                        <FormMessage className="text-[9px]" />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => remove(index)}>
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </ScrollArea>
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="shadow-none border bg-muted/5">
+                                        <CardHeader className="py-2 px-3">
+                                            <CardTitle className="text-sm font-bold">{t('attachments')}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-3">
+                                            {/* Área de drag and drop optimizada */}
+                                            <label
+                                                id="session-attachments-label"
+                                                htmlFor="session-attachments"
+                                                className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
+                                                    ? 'border-primary bg-primary/10 scale-[1.01]'
+                                                    : 'border-muted-foreground/25 bg-muted/50 hover:bg-muted'
+                                                    }`}
+                                            >
+                                                <div className="flex flex-col items-center justify-center py-2">
+                                                    <Upload className="w-5 h-5 mb-1 text-muted-foreground" />
+                                                    <p className="text-[10px] text-muted-foreground text-center">
+                                                        <span className="font-semibold">{tPage('dragDropBold')}</span><br />{tPage('dragDropNormal')}
+                                                    </p>
+                                                </div>
+                                                <Input
+                                                    id="session-attachments"
+                                                    type="file"
+                                                    multiple
+                                                    className="hidden"
+                                                    onChange={handleAttachmentFileChange}
+                                                />
+                                            </label>
+                                            <div className="mt-3 space-y-2">
+                                                {existingAttachments.length > 0 && (
+                                                    <div>
+                                                        <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('existingFiles')}</h4>
+                                                        <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
+                                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                                                                {existingAttachments.map((file) => (
+                                                                    <div key={`existing-${file.id}`} className="relative group aspect-square">
+                                                                        {file.thumbnail_url ? (
+                                                                            <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'attachment'} layout="fill" className="rounded-md object-cover" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                                            </div>
+                                                                        )}
+                                                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeExistingAttachment(String(file.id))}>
+                                                                            <X className="h-2 w-2" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </ScrollArea>
                                                     </div>
-                                                ))}
+                                                )}
+                                                {newAttachments.length > 0 && (
+                                                    <div>
+                                                        <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('newFiles')}</h4>
+                                                        <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
+                                                            <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
+                                                                {newAttachments.map((file, index) => (
+                                                                    <div key={`new-${index}`} className="relative group aspect-square">
+                                                                        {file.type.startsWith('image/') ? (
+                                                                            <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="rounded-md object-cover" />
+                                                                        ) : (
+                                                                            <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
+                                                                                <FileText className="h-4 w-4 text-muted-foreground" />
+                                                                            </div>
+                                                                        )}
+                                                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeNewAttachment(index)}>
+                                                                            <X className="h-2 w-2" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </ScrollArea>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                                <Card className="shadow-none border bg-muted/5">
-                                    <CardHeader className="py-2 px-3">
-                                        <CardTitle className="text-sm font-bold">{t('attachments')}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="p-3">
-                                        {/* Área de drag and drop optimizada */}
-                                        <label
-                                            id="session-attachments-label"
-                                            htmlFor="session-attachments"
-                                            className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
-                                                ? 'border-primary bg-primary/10 scale-[1.01]'
-                                                : 'border-muted-foreground/25 bg-muted/50 hover:bg-muted'
-                                                }`}
-                                        >
-                                            <div className="flex flex-col items-center justify-center py-2">
-                                                <Upload className="w-5 h-5 mb-1 text-muted-foreground" />
-                                                <p className="text-[10px] text-muted-foreground text-center">
-                                                    <span className="font-semibold">{tPage('dragDropBold')}</span><br />{tPage('dragDropNormal')}
-                                                </p>
-                                            </div>
-                                            <Input
-                                                id="session-attachments"
-                                                type="file"
-                                                multiple
-                                                className="hidden"
-                                                onChange={handleAttachmentFileChange}
-                                            />
-                                        </label>
-                                        <div className="mt-3 space-y-2">
-                                            {existingAttachments.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('existingFiles')}</h4>
-                                                    <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
-                                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
-                                                            {existingAttachments.map((file) => (
-                                                                <div key={`existing-${file.id}`} className="relative group aspect-square">
-                                                                    {file.thumbnail_url ? (
-                                                                        <Image src={getAttachmentUrl(file.thumbnail_url)} alt={file.file_name || 'attachment'} layout="fill" className="rounded-md object-cover" />
-                                                                    ) : (
-                                                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                                                                            <FileText className="h-4 w-4 text-muted-foreground" />
-                                                                        </div>
-                                                                    )}
-                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeExistingAttachment(String(file.id))}>
-                                                                        <X className="h-2 w-2" />
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </ScrollArea>
-                                                </div>
-                                            )}
-                                            {newAttachments.length > 0 && (
-                                                <div>
-                                                    <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('newFiles')}</h4>
-                                                    <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
-                                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
-                                                            {newAttachments.map((file, index) => (
-                                                                <div key={`new-${index}`} className="relative group aspect-square">
-                                                                    {file.type.startsWith('image/') ? (
-                                                                        <Image src={URL.createObjectURL(file)} alt={file.name} layout="fill" className="rounded-md object-cover" />
-                                                                    ) : (
-                                                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center">
-                                                                            <FileText className="h-4 w-4 text-muted-foreground" />
-                                                                        </div>
-                                                                    )}
-                                                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-4 w-4 rounded-full opacity-0 group-hover:opacity-100" onClick={() => removeNewAttachment(index)}>
-                                                                        <X className="h-2 w-2" />
-                                                                    </Button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </ScrollArea>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </div>
-                        </div>
-                        <DialogFooter className="py-3 px-4">
-                            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
+                        </DialogBody>
+                        <DialogFooter>
                             <Button type="submit" size="sm" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? t('saving') : t('save')}
                             </Button>
+                            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -1805,21 +1828,23 @@ const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }
     }
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-4 border-b">
+            <DialogContent maxWidth="4xl" showMaximize className="h-[90vh] flex flex-col p-0">
+                <DialogHeader>
                     <DialogTitle>{document?.name}</DialogTitle>
                 </DialogHeader>
-                {documentContent ? (
-                    document?.mimeType?.startsWith('image/') ? (
-                        <ImageViewer src={documentContent} alt={document.name} />
+                <DialogBody className="p-0 overflow-hidden flex-1 flex flex-col">
+                    {documentContent ? (
+                        document?.mimeType?.startsWith('image/') ? (
+                            <ImageViewer src={documentContent} alt={document.name} />
+                        ) : (
+                            <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
+                        )
                     ) : (
-                        <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
-                    )
-                ) : (
-                    <div className="flex-1 flex items-center justify-center h-full">
-                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                    </div>
-                )}
+                        <div className="flex-1 flex items-center justify-center h-full">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                    )}
+                </DialogBody>
             </DialogContent>
         </Dialog>
     );
@@ -1995,11 +2020,11 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
             </div>
 
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-                <DialogContent>
+                <DialogContent maxWidth="md">
                     <DialogHeader>
                         <DialogTitle>{t('uploadDocument')}</DialogTitle>
                     </DialogHeader>
-                    <div className="py-4 px-6 space-y-4">
+                    <DialogBody className="space-y-4 px-6 py-4">
                         <div className="flex items-center justify-center w-full">
                             <label htmlFor="dropzone-file" className={cn("flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted hover:bg-muted/50", isDragging && "border-primary bg-primary/10")} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
                                 {uploadFile ? (
@@ -2020,12 +2045,14 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                                 <Input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} />
                             </label>
                         </div>
-                    </div>
+                    </DialogBody>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>{t('sessionDialog.cancel')}</Button>
                         <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
                             {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {isUploading ? t('sessionDialog.saving') : t('uploadDocument')}
+                            {isUploading ? t('sessionDialog.saving') : t('upload')}
+                        </Button>
+                        <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)} disabled={isUploading}>
+                            {t('sessionDialog.cancel')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -2034,13 +2061,15 @@ const ImageGallery = ({ userId, onViewDocument }: { userId: string, onViewDocume
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This will permanently delete the document "{deletingDocument?.name}". This action cannot be undone.
-                        </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <AlertDialogDescription>
+                        This will permanently delete the document "{deletingDocument?.name}". This action cannot be undone.
+                    </AlertDialogDescription>
                     <AlertDialogFooter>
+                        <AlertDialogAction onClick={confirmDeleteDocument} className="bg-destructive hover:bg-destructive/90">
+                            Delete
+                        </AlertDialogAction>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDeleteDocument} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -2085,6 +2114,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
 
             const mappedHistory = historyData.map((item: any): PersonalHistoryItem => ({
+                id: Number(item.id ?? item.antecedente_id ?? item.antecedente_personal_id) || undefined,
+                padecimiento_id: item.padecimiento_id ? String(item.padecimiento_id) : undefined,
                 nombre: item.nombre || 'N/A',
                 categoria: item.categoria || 'N/A',
                 nivel_alerta: Number(item.nivel_alerta) || 1,
@@ -2107,9 +2138,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const historyData = Array.isArray(data) ? data : (data.antecedentes_familiares || data.data || []);
 
             const mappedHistory = historyData.map((item: any): FamilyHistoryItem => ({
-                condition: item.nombre || 'N/A',
-                relative: item.parentesco || 'N/A',
-                comments: item.comentarios || '',
+                id: Number(item.id) || undefined,
+                padecimiento_id: item.padecimiento_id ? String(item.padecimiento_id) : undefined,
+                nombre: item.nombre || 'N/A',
+                parentesco: item.parentesco || 'N/A',
+                comentarios: item.comentarios || '',
             }));
             setFamilyHistory(mappedHistory);
         } catch (error) {
@@ -2128,9 +2161,10 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
 
             const mappedAllergies = allergyData.map((item: any): AllergyItem => ({
-                allergen: item.alergeno || 'N/A',
-                reaction: item.reaccion_descrita || '',
-                snomed: item.snomed_ct_id || '',
+                id: Number(item.id) || undefined,
+                alergeno: item.alergeno || 'N/A',
+                reaccion_descrita: item.reaccion_descrita || '',
+                snomed_ct_id: item.snomed_ct_id || '',
             }));
             setAllergies(mappedAllergies);
         } catch (error) {
@@ -2149,13 +2183,14 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             const medicationData = Array.isArray(data) ? data : (data.antecedentes_medicamentos || data.data || []);
 
             const mappedMedications = medicationData.map((item: any): MedicationItem => ({
-                name: item.nombre_medicamento || 'N/A',
-                dose: item.dosis || 'N/A',
-                frequency: item.frecuencia || 'N/A',
-                since: item.fecha_inicio || null,
-                endDate: item.fecha_fin || null,
-                reason: item.motivo || '',
-                code: item.snomed_ct_id || '',
+                id: Number(item.id) || undefined,
+                medicamento_id: item.medicamento_id ? String(item.medicamento_id) : undefined,
+                medicamento_nombre: item.nombre_medicamento || 'N/A',
+                dosis: item.dosis || 'N/A',
+                frecuencia: item.frecuencia || 'N/A',
+                fecha_inicio: item.fecha_inicio || null,
+                fecha_fin: item.fecha_fin || null,
+                motivo: item.motivo || '',
             }));
             setMedications(mappedMedications);
         } catch (error) {
@@ -2667,13 +2702,15 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('timeline.deleteDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t('timeline.deleteDialog.description')}
-                        </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <AlertDialogDescription>
+                        {t('timeline.deleteDialog.description')}
+                    </AlertDialogDescription>
                     <AlertDialogFooter>
+                        <AlertDialogAction onClick={handleConfirmDeleteSession} className="bg-destructive hover:bg-destructive/90">
+                            {t('timeline.deleteDialog.confirm')}
+                        </AlertDialogAction>
                         <AlertDialogCancel>{t('timeline.deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmDeleteSession}>{t('timeline.deleteDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

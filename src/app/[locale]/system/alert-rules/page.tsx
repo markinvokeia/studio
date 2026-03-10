@@ -140,7 +140,6 @@ export default function AlertRulesPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_DELETE);
-    const canToggleStatus = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_TOGGLE_STATUS);
 
     const [rules, setRules] = React.useState<AlertRule[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
@@ -855,9 +854,9 @@ export default function AlertRulesPage() {
                             </div>
                         </form>
                     </Form>
-                    <DialogFooter className="pt-4 px-6">
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
+                    <DialogFooter>
                         <Button disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
+                        <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -869,8 +868,8 @@ export default function AlertRulesPage() {
                         <AlertDialogDescription>{t('deleteDialog.description', { name: deletingRule?.name })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isDeleting}>{t('deleteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDelete} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">{isDeleting ? t('deleteDialog.deleting') : t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel disabled={isDeleting}>{t('deleteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

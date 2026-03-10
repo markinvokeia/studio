@@ -296,8 +296,8 @@ export function RoleUsers({ roleId, canAddUser = true, canRemoveUser = true }: R
                 )}
               />
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                 <Button type="submit">Assign User</Button>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -313,8 +313,8 @@ export function RoleUsers({ roleId, canAddUser = true, canRemoveUser = true }: R
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
