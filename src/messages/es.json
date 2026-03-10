@@ -1012,8 +1012,22 @@
             "items": "Artículos",
             "orders": "Órdenes",
             "invoices": "Facturas",
-            "payments": "Pagos"
+            "payments": "Pagos",
+            "total": "Total"
         },
+        "UserColumns": {
+            "status": "Estado"
+        },
+        "QuoteColumns": {
+            "billingStatus": "Estado de Facturación"
+        },
+        "Navigation": {
+            "Payments": "Pagos"
+        },
+        "editTooltip": "Editar",
+        "confirmTooltip": "Confirmar",
+        "rejectTooltip": "Rechazar",
+        "deleteTooltip": "Eliminar",
         "itemDialog": {
             "searchService": "Buscar Servicio",
             "selectService": "Seleccionar Servicio",

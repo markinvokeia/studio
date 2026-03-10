@@ -1012,8 +1012,22 @@
       "items": "Items",
       "orders": "Orders",
       "invoices": "Invoices",
-      "payments": "Payments"
+      "payments": "Payments",
+      "total": "Total"
     },
+    "UserColumns": {
+      "status": "Status"
+    },
+    "QuoteColumns": {
+      "billingStatus": "Billing Status"
+    },
+    "Navigation": {
+      "Payments": "Payments"
+    },
+    "editTooltip": "Edit",
+    "confirmTooltip": "Confirm",
+    "rejectTooltip": "Reject",
+    "deleteTooltip": "Delete",
     "itemDialog": {
       "searchService": "Search Service",
       "selectService": "Select Service",

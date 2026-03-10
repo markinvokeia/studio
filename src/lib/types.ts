@@ -113,7 +113,7 @@ export type Quote = {
   user_id: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
-  payment_status: 'unpaid' | 'paid' | 'partial';
+  payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
   billing_status: string;
   currency?: 'UYU' | 'USD';
   user_name?: string;

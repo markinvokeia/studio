@@ -1,5 +1,6 @@
 'use client';
 
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,8 +31,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
-import { useToast } from '@/hooks/use-toast';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
+import { useToast } from '@/hooks/use-toast';
 import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -44,7 +45,6 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 
 const getColumns = (
   t: (key: string) => string,
@@ -52,7 +52,8 @@ const getColumns = (
   onDelete: (quote: Quote) => void,
   onQuoteAction: (quote: Quote, action: 'confirm' | 'reject') => void,
   onPrint: (quote: Quote) => void,
-  onSendEmail: (quote: Quote) => void
+  onSendEmail: (quote: Quote) => void,
+  isCompact: boolean = false
 ): ColumnDef<Quote>[] => [
     {
       id: 'select',
@@ -109,6 +110,7 @@ const getColumns = (
         }).format(roundedAmount);
         return <div className="font-medium">{formatted}</div>;
       },
+      enableHiding: !isCompact,
     },
     {
       accessorKey: 'currency',
@@ -116,6 +118,7 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('QuoteColumns.currency')} />
       ),
       cell: ({ row }) => row.original.currency || 'N/A',
+      enableHiding: !isCompact,
     },
     {
       accessorKey: 'exchange_rate',
@@ -126,6 +129,7 @@ const getColumns = (
         const rate = row.original.exchange_rate;
         return rate ? <div className="font-medium">{rate.toFixed(2)}</div> : <div className="text-muted-foreground">-</div>;
       },
+      enableHiding: !isCompact,
     },
     {
       accessorKey: 'status',
@@ -152,6 +156,7 @@ const getColumns = (
           </Badge>
         );
       },
+      enableHiding: !isCompact,
     },
     {
       accessorKey: 'billing_status',
@@ -186,6 +191,7 @@ const getColumns = (
           </Badge>
         );
       },
+      enableHiding: !isCompact,
     },
     {
       accessorKey: 'payment_status',
@@ -223,6 +229,7 @@ const getColumns = (
           </Badge>
         );
       },
+      enableHiding: !isCompact,
     },
     {
       id: 'actions',
@@ -270,6 +277,7 @@ const getColumns = (
           </DropdownMenu>
         );
       },
+      enableHiding: false,
     },
   ];
 
@@ -433,7 +441,7 @@ export function RecentQuotesTable({
     setIsWarningDialogOpen(false);
   };
 
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick), [t, onEdit, onDelete, onQuoteAction]);
+  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick, isCompact), [t, onEdit, onDelete, onQuoteAction, isCompact]);
 
   const table = useReactTable({
     data: quotes,
@@ -453,6 +461,29 @@ export function RecentQuotesTable({
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
+
+  // Hide columns when isCompact is true
+  React.useEffect(() => {
+    if (isCompact) {
+      // Hide the columns that will be shown in detail header
+      const columnsToHide = ['total', 'currency', 'exchange_rate', 'status', 'billing_status', 'payment_status'];
+      columnsToHide.forEach(colId => {
+        const column = table.getColumn(colId);
+        if (column) {
+          column.toggleVisibility(false);
+        }
+      });
+    } else {
+      // Show all columns when not compact
+      const columnsToShow = ['total', 'currency', 'exchange_rate', 'status', 'billing_status', 'payment_status'];
+      columnsToShow.forEach(colId => {
+        const column = table.getColumn(colId);
+        if (column) {
+          column.toggleVisibility(true);
+        }
+      });
+    }
+  }, [isCompact, table]);
 
   React.useEffect(() => {
     if (onRowSelectionChange) {

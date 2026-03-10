@@ -8,11 +8,13 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
+import { ActionButton } from '@/components/ui/action-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DetailHeader } from '@/components/ui/detail-header';
 import {
     Dialog,
     DialogBody,
@@ -44,7 +46,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, Loader2, Receipt, RefreshCw, ShoppingCart, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, FileText, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -592,7 +594,7 @@ function QuotesPageContent() {
         setEditingQuote(quote);
         const sessionRate = getSessionExchangeRate();
         const exchangeRate = quote.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
-        
+
         const items = await getQuoteItems(quote.id, t);
         const mappedItems = items.map(item => ({
             id: item.id,
@@ -601,7 +603,7 @@ function QuotesPageContent() {
             unit_price: item.unit_price,
             total: item.total
         }));
-        
+
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, items: mappedItems });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
@@ -905,20 +907,80 @@ function QuotesPageContent() {
                     rightPanel={
                         selectedQuote && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
-                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                                        <div className="header-icon-circle mt-0.5">
-                                            <FileText className="h-5 w-5" />
-                                        </div>
-                                        <div className="flex flex-col truncate text-left">
-                                            <CardTitle className="text-lg truncate">{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
-                                            <CardDescription className="text-xs truncate">{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
-                                        </div>
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 shrink-0">
-                                        <X className="h-5 w-5" />
-                                        <span className="sr-only">{t('common.closeDetails')}</span>
-                                    </Button>
+                                <CardHeader className="flex-none p-4">
+                                    <DetailHeader
+                                        icon={FileText}
+                                        title={t('detailsFor', { name: selectedQuote.user_name })}
+                                        subtitle={`${t('quoteId')}: ${selectedQuote.doc_no || selectedQuote.id}`}
+                                        fields={[
+                                            {
+                                                label: t('tabs.total'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(selectedQuote.total),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: t('UserColumns.status'),
+                                                value: selectedQuote.status.charAt(0).toUpperCase() + selectedQuote.status.slice(1),
+                                                variant: selectedQuote.status === 'accepted' || selectedQuote.status === 'confirmed' ? 'success' :
+                                                    selectedQuote.status === 'rejected' ? 'destructive' :
+                                                        selectedQuote.status === 'pending' ? 'info' : 'outline',
+                                            },
+                                            {
+                                                label: t('QuoteColumns.billingStatus'),
+                                                value: selectedQuote.billing_status.charAt(0).toUpperCase() + selectedQuote.billing_status.slice(1),
+                                                variant: selectedQuote.billing_status === 'invoiced' ? 'success' :
+                                                    selectedQuote.billing_status === 'partially invoiced' ? 'info' : 'outline',
+                                            },
+                                            {
+                                                label: t('Navigation.Payments'),
+                                                value: selectedQuote.payment_status.charAt(0).toUpperCase() + selectedQuote.payment_status.slice(1).replace('_', ' '),
+                                                variant: selectedQuote.payment_status === 'paid' || selectedQuote.payment_status === 'partial' ? 'success' :
+                                                    selectedQuote.payment_status === 'partially_paid' ? 'info' : 'outline',
+                                            },
+                                        ]}
+                                        actions={
+                                            <>
+                                                {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                                    <ActionButton
+                                                        icon={Pencil}
+                                                        label={t('edit')}
+                                                        tooltip={t('editTooltip') || t('edit')}
+                                                        onClick={() => handleEditQuote(selectedQuote)}
+                                                    />
+                                                )}
+                                                {canConfirmQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                                    <>
+                                                        <ActionButton
+                                                            icon={CheckCircle}
+                                                            label={t('confirm')}
+                                                            tooltip={t('confirmTooltip') || t('confirm')}
+                                                            onClick={() => handleQuoteAction(selectedQuote, 'confirm')}
+                                                        />
+                                                        <ActionButton
+                                                            icon={XCircle}
+                                                            label={t('reject')}
+                                                            tooltip={t('rejectTooltip') || t('reject')}
+                                                            destructive
+                                                            onClick={() => handleQuoteAction(selectedQuote, 'reject')}
+                                                        />
+                                                    </>
+                                                )}
+                                                {canDeleteQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                                    <ActionButton
+                                                        icon={Trash2}
+                                                        label={t('delete')}
+                                                        tooltip={t('deleteTooltip') || t('delete')}
+                                                        destructive
+                                                        onClick={() => handleDeleteQuote(selectedQuote)}
+                                                    />
+                                                )}
+                                            </>
+                                        }
+                                        onClose={handleCloseDetails}
+                                    />
                                 </CardHeader>
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0 bg-card">
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
