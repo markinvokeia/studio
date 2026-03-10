@@ -1,6 +1,5 @@
 'use client';
 
-import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -147,20 +146,7 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 }
 
 export default function ProvidersPage() {
-  return (
-    <PrivateRoute requiredAnyPermission={[
-      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU,
-      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_LIST,
-      PURCHASES_PERMISSIONS.SUPPLIERS_CREATE,
-      PURCHASES_PERMISSIONS.SUPPLIERS_UPDATE,
-      PURCHASES_PERMISSIONS.SUPPLIERS_DELETE,
-      PURCHASES_PERMISSIONS.SUPPLIERS_TOGGLE_STATUS,
-      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_DETAIL,
-      PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_SERVICES
-    ]}>
-      <ProvidersPageContent />
-    </PrivateRoute>
-  );
+  return <ProvidersPageContent />;
 }
 
 function ProvidersPageContent() {

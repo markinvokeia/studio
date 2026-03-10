@@ -145,7 +145,7 @@ export const navItems: NavItem[] = [
       { title: 'PurchaseOrders', href: '/purchases/orders', icon: ShoppingCart, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.ORDERS_VIEW_MENU },
       { title: 'PurchaseInvoices', href: '/purchases/invoices', icon: Receipt, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.INVOICES_VIEW_MENU },
       { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.PAYMENTS_VIEW_MENU },
-      { title: 'Providers', href: '/providers', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU },
+      { title: 'Providers', href: '/purchases/providers', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU },
       { title: 'ProviderProducts', href: '/purchases/services', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.PRODUCTS_VIEW_MENU },
     ],
   },
