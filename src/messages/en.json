@@ -953,7 +953,18 @@
       "not_paid": "Not Paid",
       "partial": "Partial",
       "partially_invoiced": "Partially Invoiced",
-      "not_invoiced": "Not Invoiced"
+      "not_invoiced": "Not Invoiced",
+      "addItem": "Add Item",
+      "atLeastOneItem": "You must add at least one item.",
+      "items": {
+        "title": "Items",
+        "service": "Service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "total": "Total",
+        "selectService": "Select Service",
+        "toothNumber": "Tooth Number"
+      }
     },
     "toast": {
       "quoteDeleted": "Quote Deleted",

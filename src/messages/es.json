@@ -953,7 +953,18 @@
             "not_paid": "Impago",
             "partial": "Parcial",
             "partially_invoiced": "Facturado Parcialmente",
-            "not_invoiced": "Sin Facturar"
+            "not_invoiced": "Sin Facturar",
+            "addItem": "Agregar Artículo",
+            "atLeastOneItem": "Debe agregar al menos un artículo.",
+            "items": {
+                "title": "Artículos",
+                "service": "Servicio",
+                "quantity": "Cantidad",
+                "unitPrice": "Precio Unitario",
+                "total": "Total",
+                "selectService": "Seleccionar Servicio",
+                "toothNumber": "Número de Diente"
+            }
         },
         "toast": {
             "quoteDeleted": "Presupuesto Eliminado",

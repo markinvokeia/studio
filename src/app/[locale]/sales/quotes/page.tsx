@@ -44,7 +44,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, Receipt, RefreshCw, ShoppingCart, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, Loader2, Receipt, RefreshCw, ShoppingCart, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -60,6 +60,14 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
+    items: z.array(z.object({
+        id: z.string().optional(),
+        service_id: z.string().min(1, t('validation.serviceRequired')),
+        quantity: z.coerce.number().min(1, t('validation.quantityMinOne')),
+        unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
+        total: z.coerce.number().min(0, t('validation.totalPositive')),
+        tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
+    })).default([]),
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
@@ -558,16 +566,28 @@ export default function QuotesPage() {
         }
     }, [t, toast]);
 
+    const loadServicesForQuoteDialog = React.useCallback(async () => {
+        try {
+            const fetchedServices = await getServices();
+            setAllServices(fetchedServices);
+        } catch (error) {
+            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
+        }
+    }, [t, toast]);
+
     const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
-        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate });
+        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
         if (allUsers.length === 0) {
             void loadUsersForQuoteDialog();
+        }
+        if (allServices.length === 0) {
+            void loadServicesForQuoteDialog();
         }
     };
 
@@ -579,11 +599,25 @@ export default function QuotesPage() {
         setEditingQuote(quote);
         const sessionRate = getSessionExchangeRate();
         const exchangeRate = quote.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate });
+        
+        const items = await getQuoteItems(quote.id, t);
+        const mappedItems = items.map(item => ({
+            id: item.id,
+            service_id: String(item.service_id),
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.total,
+            tooth_number: item.tooth_number ? Number(item.tooth_number) : ('' as const)
+        }));
+        
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, items: mappedItems });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
         if (allUsers.length === 0) {
             void loadUsersForQuoteDialog();
+        }
+        if (allServices.length === 0) {
+            void loadServicesForQuoteDialog();
         }
     };
 
@@ -613,13 +647,41 @@ export default function QuotesPage() {
     const onQuoteSubmit = async (values: QuoteFormValues) => {
         setQuoteSubmissionError(null);
         try {
-            await upsertQuote(values, t);
+            if (!editingQuote && (!values.items || values.items.length === 0)) {
+                throw new Error(t('quoteDialog.atLeastOneItem'));
+            }
+            const itemsToSubmit = values.items.map(item => ({
+                id: item.id,
+                service_id: item.service_id,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total: item.total,
+                tooth_number: item.tooth_number ? Number(item.tooth_number) : null
+            }));
+            const payload = {
+                ...values,
+                items: itemsToSubmit
+            };
+            await upsertQuote(payload as any, t);
             toast({ title: editingQuote ? t('toast.quoteUpdated') : t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             setIsQuoteDialogOpen(false);
             loadQuotes();
         } catch (error) {
             setQuoteSubmissionError(error instanceof Error ? error.message : t('toast.quoteError'));
         }
+    };
+
+    const quoteFormItems = quoteForm.watch('items') || [];
+    const quoteFormTotal = quoteForm.watch('total') || 0;
+
+    const handleAddQuoteItem = () => {
+        const currentItems = quoteForm.getValues('items') || [];
+        quoteForm.setValue('items', [...currentItems, { service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' }]);
+    };
+
+    const handleRemoveQuoteItem = (index: number) => {
+        const currentItems = quoteForm.getValues('items') || [];
+        quoteForm.setValue('items', currentItems.filter((_, i) => i !== index));
     };
 
     const getSessionExchangeRate = React.useCallback(() => {
@@ -1111,6 +1173,100 @@ export default function QuotesPage() {
                                         </FormItem>
                                     )}
                                 />
+                                <Card>
+                                    <CardHeader>
+                                        <div className="flex justify-between items-center">
+                                            <CardTitle>{t('quoteDialog.items.title')}</CardTitle>
+                                            <Button type="button" size="sm" variant="outline" onClick={handleAddQuoteItem}>{t('quoteDialog.addItem')}</Button>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent className="bg-card">
+                                        <div className="space-y-4">
+                                            <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                                                <div className="flex-1">{t('quoteDialog.items.service')}</div>
+                                                <div className="w-20">{t('quoteDialog.items.quantity')}</div>
+                                                <div className="w-28">{t('quoteDialog.items.unitPrice')}</div>
+                                                <div className="w-28">{t('quoteDialog.items.total')}</div>
+                                                <div className="w-24">{t('quoteDialog.items.toothNumber')}</div>
+                                                <div className="w-10"></div>
+                                            </div>
+                                            {quoteFormItems.map((item, index) => (
+                                                <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
+                                                    <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                                        <FormItem className="flex-1">
+                                                            <Select onValueChange={(value) => {
+                                                                field.onChange(value);
+                                                                const service = allServices.find(s => s.id === value);
+                                                                if (service) {
+                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                    quoteForm.setValue(`items.${index}.unit_price`, Number(service.price));
+                                                                    quoteForm.setValue(`items.${index}.total`, Number(service.price) * quantity);
+                                                                }
+                                                            }} value={field.value}>
+                                                                <FormControl>
+                                                                    <SelectTrigger>
+                                                                        <SelectValue placeholder={t('quoteDialog.items.selectService')} />
+                                                                    </SelectTrigger>
+                                                                </FormControl>
+                                                                <SelectContent>
+                                                                    {allServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                                                                </SelectContent>
+                                                            </Select>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                                        <FormItem className="w-full md:w-20">
+                                                            <FormControl>
+                                                                <Input type="number" {...field} onChange={(e) => {
+                                                                    field.onChange(e);
+                                                                    const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
+                                                                    quoteForm.setValue(`items.${index}.total`, price * Number(e.target.value));
+                                                                }} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={quoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                                        <FormItem className="w-full md:w-28">
+                                                            <FormControl>
+                                                                <Input type="number" {...field} onChange={(e) => {
+                                                                    field.onChange(e);
+                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                    quoteForm.setValue(`items.${index}.total`, Number(e.target.value) * quantity);
+                                                                }} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={quoteForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                                        <FormItem className="w-full md:w-28">
+                                                            <FormControl>
+                                                                <Input type="number" {...field} readOnly disabled />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <FormField control={quoteForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
+                                                        <FormItem className="w-full md:w-24">
+                                                            <FormControl>
+                                                                <Input type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
+                                                            </FormControl>
+                                                            <FormMessage />
+                                                        </FormItem>
+                                                    )} />
+                                                    <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveQuoteItem(index)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                            <FormMessage>{quoteForm.formState.errors.items?.root?.message}</FormMessage>
+                                            <div className="text-right pt-2">
+                                                <span className="font-semibold text-lg">{t('quoteDialog.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteForm.watch('currency') || 'USD' }).format(quoteFormItems.reduce((sum, item) => sum + (item.total || 0), 0))}</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
