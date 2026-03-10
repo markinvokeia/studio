@@ -44,7 +44,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, Receipt, RefreshCw, ShoppingCart, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, Receipt, RefreshCw, ShoppingCart, X, Star, Printer, Send, Edit3, DollarSign, CreditCard, LayoutDashboard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -372,6 +372,10 @@ async function getClinic(): Promise<Clinic | null> {
 
 
 export default function QuotesPage() {
+    return <QuotesPageContent />;
+}
+
+function QuotesPageContent() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
     const tVal = useTranslations('QuotesPage');
@@ -379,23 +383,17 @@ export default function QuotesPage() {
     const { user, activeCashSession } = useAuth();
     const { hasPermission } = usePermissions();
 
-    // Permission checks for UI elements (used in this page and child components)
+    // Permission checks
     const canViewList = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_LIST);
     const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
     const canUpdateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE);
     const canDeleteQuote = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE);
     const canConfirmQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CONFIRM);
     const canRejectQuote = hasPermission(SALES_PERMISSIONS.QUOTES_REJECT);
-    const canSendEmail = hasPermission(SALES_PERMISSIONS.QUOTES_SEND_EMAIL);
-    const canPrint = hasPermission(SALES_PERMISSIONS.QUOTES_PRINT);
-    const canViewDetail = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_DETAIL);
-    const canViewItems = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_ITEMS);
     const canAddItem = hasPermission(SALES_PERMISSIONS.QUOTES_ADD_ITEM);
     const canUpdateItem = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE_ITEM);
     const canDeleteItem = hasPermission(SALES_PERMISSIONS.QUOTES_DELETE_ITEM);
-    const canViewOrders = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_ORDERS);
-    const canViewInvoices = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_INVOICES);
-    const canViewPayments = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_PAYMENTS);
+
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -825,6 +823,22 @@ export default function QuotesPage() {
         }
     }, [watchedServiceId, watchedQuantity, watchedQuoteExchangeRate, allServices, selectedQuote, quoteItemForm, getSessionExchangeRate]);
 
+    const ActionButton = ({ onClick, icon: Icon, label, variant = "ghost", disabled = false, className = "" }: { onClick: () => void, icon: any, label: string, variant?: any, disabled?: boolean, className?: string }) => (
+        <Button
+            variant={variant}
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+            disabled={disabled}
+            className={cn(
+                "flex items-center gap-0 w-9 hover:w-32 transition-all duration-300 overflow-hidden group justify-start px-2",
+                className
+            )}
+        >
+            <Icon className="h-4 w-4 shrink-0" />
+            <span className="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">{label}</span>
+        </Button>
+    );
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -842,7 +856,7 @@ export default function QuotesPage() {
                             onEdit={canUpdateQuote ? handleEditQuote : undefined}
                             onDelete={canDeleteQuote ? handleDeleteQuote : undefined}
                             onQuoteAction={(canConfirmQuote || canRejectQuote) ? handleQuoteAction : undefined}
-                            isCompact={!!selectedQuote}
+                            isCompact={true}
                             standalone={true}
                             title={t('title')}
                             description={t('description')}
@@ -853,150 +867,234 @@ export default function QuotesPage() {
                     }
                     rightPanel={
                         selectedQuote && (
-                            <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
-                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                                        <div className="header-icon-circle mt-0.5">
-                                            <FileText className="h-5 w-5" />
+                            <div className="flex h-full min-h-0 bg-background overflow-hidden">
+                                <Tabs defaultValue="items" className="flex flex-1 min-h-0 overflow-hidden" orientation="vertical">
+                                    {/* Sidebar Vertical Tabs */}
+                                    <TabsList className="vertical-tabs-list shrink-0 border-r bg-muted/10 p-0 rounded-none w-14">
+                                        <TabsTrigger value="items" className="vertical-tab-trigger" title={t('tabs.items')}>
+                                            <DollarSign className="h-5 w-5" />
+                                        </TabsTrigger>
+                                        <TabsTrigger value="orders" className="vertical-tab-trigger" title={t('tabs.orders')}>
+                                            <ShoppingCart className="h-5 w-5" />
+                                        </TabsTrigger>
+                                        <TabsTrigger value="invoices" className="vertical-tab-trigger" title={t('tabs.invoices')}>
+                                            <Receipt className="h-5 w-5" />
+                                        </TabsTrigger>
+                                        <TabsTrigger value="payments" className="vertical-tab-trigger" title={t('tabs.payments')}>
+                                            <CreditCard className="h-5 w-5" />
+                                        </TabsTrigger>
+                                        <div className="mt-auto pb-4">
+                                            {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                                <TabsTrigger value="edit" className="vertical-tab-trigger" title={t('edit')}>
+                                                    <Edit3 className="h-5 w-5" />
+                                                </TabsTrigger>
+                                            )}
                                         </div>
-                                        <div className="flex flex-col truncate text-left">
-                                            <CardTitle className="text-lg truncate">{t('detailsFor', { name: selectedQuote.user_name })}</CardTitle>
-                                            <CardDescription className="text-xs truncate">{t('quoteId')}: {selectedQuote.doc_no || selectedQuote.id}</CardDescription>
+                                    </TabsList>
+
+                                    {/* Main Content Area */}
+                                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+                                        {/* Header */}
+                                        <div className="flex flex-col flex-none p-6 border-b bg-card">
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                                                    <div className="flex flex-col">
+                                                        <h2 className="text-2xl font-bold tracking-tight">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
+                                                        <span className="text-sm text-muted-foreground font-medium">{selectedQuote.user_name}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center gap-2">
+                                                    {/* Confirm/Reject Actions */}
+                                                    {(selectedQuote.status.toLowerCase() === 'draft' || selectedQuote.status.toLowerCase() === 'pending') && (
+                                                        <div className="flex items-center gap-1 mr-2 pr-2 border-r">
+                                                            <ActionButton 
+                                                                onClick={() => handleQuoteAction(selectedQuote, 'confirm')} 
+                                                                icon={Check} 
+                                                                label={t('confirm')} 
+                                                                variant="default"
+                                                                className="bg-green-600 hover:bg-green-700 text-white"
+                                                            />
+                                                            <ActionButton 
+                                                                onClick={() => handleQuoteAction(selectedQuote, 'reject')} 
+                                                                icon={X} 
+                                                                label={t('reject')} 
+                                                                className="text-rose-600 hover:bg-rose-50"
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {/* Common Actions */}
+                                                    <ActionButton onClick={() => {}} icon={Printer} label={t('print')} />
+                                                    <ActionButton onClick={() => {}} icon={Send} label={t('sendEmail')} />
+                                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2">
+                                                        <X className="h-5 w-5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {/* Summary Stats / KPIs */}
+                                            <div className="grid grid-cols-3 gap-4 p-3 bg-muted/20 rounded-lg border">
+                                                <div className="flex flex-col gap-1 border-r pr-4">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.status')}</span>
+                                                    <Badge variant={
+                                                        selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted' ? 'success' :
+                                                        selectedQuote.status.toLowerCase() === 'draft' ? 'outline' : 'secondary'
+                                                    } className="w-fit h-5 text-[10px] uppercase">{t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}</Badge>
+                                                </div>
+                                                <div className="flex flex-col gap-1 border-r pr-4">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.billingStatus')}</span>
+                                                    <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-blue-200 text-blue-700 bg-blue-50">
+                                                        {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.paymentStatus')}</span>
+                                                    <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50">
+                                                        {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Content Tabs */}
+                                        <div className="flex-1 overflow-hidden p-6 bg-card/50">
+                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                                        <DollarSign className="h-5 w-5 text-primary" />
+                                                        {t('tabs.items')}
+                                                    </h3>
+                                                    {canEditQuote && canAddItem && (
+                                                        <Button onClick={handleCreateQuoteItem} size="sm" className="gap-2">
+                                                            <Check className="h-4 w-4" /> {t('addItem')}
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 min-h-0">
+                                                    <QuoteItemsTable
+                                                        items={quoteItems}
+                                                        isLoading={isLoadingItems}
+                                                        onRefresh={loadQuoteItems}
+                                                        isRefreshing={isLoadingItems}
+                                                        canEdit={canEditQuote && canUpdateItem}
+                                                        onCreate={handleCreateQuoteItem}
+                                                        onEdit={handleEditQuoteItem}
+                                                        onDelete={handleDeleteQuoteItem}
+                                                        showToothNumber={true}
+                                                    />
+                                                </div>
+                                            </TabsContent>
+
+                                            <TabsContent value="orders" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                                        <ShoppingCart className="h-5 w-5 text-primary" />
+                                                        {t('tabs.orders')}
+                                                    </h3>
+                                                </div>
+                                                <div className="flex-1 min-h-0">
+                                                    <OrdersTable
+                                                        orders={orders}
+                                                        isLoading={isLoadingOrders}
+                                                        onRowSelectionChange={handleOrderSelectionChange}
+                                                        onRefresh={loadOrders}
+                                                        isRefreshing={isLoadingOrders}
+                                                        columnsToHide={['user_name', 'quote_id']}
+                                                        isCompact={true}
+                                                    />
+                                                </div>
+                                            </TabsContent>
+
+                                            <TabsContent value="invoices" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                                        <Receipt className="h-5 w-5 text-primary" />
+                                                        {t('tabs.invoices')}
+                                                    </h3>
+                                                </div>
+                                                <div className="flex-1 min-h-0">
+                                                    <InvoicesTable
+                                                        invoices={invoices}
+                                                        isLoading={isLoadingInvoices}
+                                                        onRowSelectionChange={handleInvoiceSelectionChange}
+                                                        onRefresh={loadInvoices}
+                                                        isRefreshing={isLoadingInvoices}
+                                                        isCompact={true}
+                                                        canCreate={false}
+                                                        columnTranslations={{
+                                                            doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                            user_name: tRoot('InvoicesPage.columns.userName'),
+                                                            total: tRoot('InvoicesPage.columns.total'),
+                                                            currency: tRoot('InvoicesPage.columns.currency'),
+                                                            status: tRoot('InvoicesPage.columns.status'),
+                                                            type: tRoot('InvoicesPage.columns.type'),
+                                                            payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                            paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                            createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                        }}
+                                                    />
+                                                </div>
+                                            </TabsContent>
+
+                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                                        <CreditCard className="h-5 w-5 text-primary" />
+                                                        {t('tabs.payments')}
+                                                    </h3>
+                                                </div>
+                                                <div className="flex-1 min-h-0">
+                                                    <PaymentsTable
+                                                        payments={payments}
+                                                        isLoading={isLoadingPayments}
+                                                        onRefresh={loadPayments}
+                                                        isRefreshing={isLoadingPayments}
+                                                        columnsToHide={['quote_id', 'order_id', 'user_name']}
+                                                    />
+                                                </div>
+                                            </TabsContent>
+
+                                            <TabsContent value="edit" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-bold text-lg flex items-center gap-2">
+                                                        <Edit3 className="h-5 w-5 text-primary" />
+                                                        {t('edit')}
+                                                    </h3>
+                                                </div>
+                                                <ScrollArea className="flex-1 bg-background rounded-lg border p-6">
+                                                    {/* Integration of the edit form could go here, or just a placeholder for now */}
+                                                    <p className="text-muted-foreground text-center pt-20">Utilice el botón Editar del encabezado o modifique los items directamente en la pestaña correspondiente.</p>
+                                                </ScrollArea>
+                                            </TabsContent>
+                                        </div>
+
+                                        {/* Footer Totals */}
+                                        <div className="flex flex-none items-center justify-end p-6 border-t bg-muted/5">
+                                            <div className="flex items-center gap-12">
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Monto Total</span>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-sm font-semibold text-muted-foreground">{selectedQuote.currency}</span>
+                                                        <span className="text-4xl font-black tracking-tight">
+                                                            {new Intl.NumberFormat('es-UY', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2
+                                                            }).format(Number(selectedQuote.total))}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails} className="ml-2 shrink-0">
-                                        <X className="h-5 w-5" />
-                                        <span className="sr-only">{t('common.closeDetails')}</span>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0 bg-card">
-                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                        <TabsList>
-                                            <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
-                                            <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger>
-                                            <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
-                                            <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
-                                        </TabsList>
-                                        <div className="flex-1 min-h-0 mt-4 flex flex-col">
-                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <QuoteItemsTable
-                                                    items={quoteItems}
-                                                    isLoading={isLoadingItems}
-                                                    onRefresh={loadQuoteItems}
-                                                    isRefreshing={isLoadingItems}
-                                                    canEdit={canEditQuote && canUpdateItem}
-                                                    onCreate={canAddItem ? handleCreateQuoteItem : () => { }}
-                                                    onEdit={canUpdateItem ? handleEditQuoteItem : () => { }}
-                                                    onDelete={canDeleteItem ? handleDeleteQuoteItem : () => { }}
-                                                    showToothNumber={true}
-                                                />
-                                            </TabsContent>
-                                            <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <ShoppingCart className="h-4 w-4" />
-                                                            {t('tabs.orders')}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0">
-                                                        <OrdersTable
-                                                            orders={orders}
-                                                            isLoading={isLoadingOrders}
-                                                            onRowSelectionChange={handleOrderSelectionChange}
-                                                            onRefresh={loadOrders}
-                                                            isRefreshing={isLoadingOrders}
-                                                            columnsToHide={['user_name', 'quote_id']}
-                                                            isCompact={true}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                {selectedOrder && (
-                                                    <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold">{tRoot('OrderItemsTable.title', { id: selectedOrder.doc_no || selectedOrder.id })}</h4>
-                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
-                                                                <RefreshCw className={`h-4 w-4 ${isLoadingOrderItems ? 'animate-spin' : ''}`} />
-                                                            </Button>
-                                                        </div>
-                                                        <OrderItemsTable
-                                                            items={orderItems}
-                                                            isLoading={isLoadingOrderItems}
-                                                            onItemsUpdate={loadOrderItems}
-                                                            quoteId={selectedQuote.id}
-                                                            userId={selectedOrder.user_id}
-                                                            patient={{
-                                                                id: selectedQuote.user_id,
-                                                                name: selectedQuote.user_name || 'Patient',
-                                                                email: selectedQuote.userEmail || '',
-                                                                phone_number: '', // We don't have it here but ID and Name are enough for pre-selection
-                                                                is_active: true,
-                                                                avatar: ''
-                                                            }}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </TabsContent>
-                                            <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px]">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <Receipt className="h-4 w-4" />
-                                                            {t('tabs.invoices')}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0">
-                                                        <InvoicesTable
-                                                            invoices={invoices}
-                                                            isLoading={isLoadingInvoices}
-                                                            onRowSelectionChange={handleInvoiceSelectionChange}
-                                                            onRefresh={loadInvoices}
-                                                            isRefreshing={isLoadingInvoices}
-                                                            isCompact={true}
-                                                            canCreate={false}
-                                                            columnTranslations={{
-                                                                doc_no: tRoot('InvoicesPage.columns.docNo'),
-                                                                user_name: tRoot('InvoicesPage.columns.userName'),
-                                                                total: tRoot('InvoicesPage.columns.total'),
-                                                                currency: tRoot('InvoicesPage.columns.currency'),
-                                                                status: tRoot('InvoicesPage.columns.status'),
-                                                                type: tRoot('InvoicesPage.columns.type'),
-                                                                payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
-                                                                paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
-                                                                createdAt: tRoot('InvoicesPage.columns.createdAt'),
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                {selectedInvoice && (
-                                                    <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold">{tRoot('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
-                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                            </Button>
-                                                        </div>
-                                                        <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                                    </div>
-                                                )}
-                                            </TabsContent>
-                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <PaymentsTable
-                                                    payments={payments}
-                                                    isLoading={isLoadingPayments}
-                                                    onRefresh={loadPayments}
-                                                    isRefreshing={isLoadingPayments}
-                                                    columnsToHide={['quote_id', 'order_id', 'user_name']}
-                                                />
-                                            </TabsContent>
-                                        </div>
-                                    </Tabs>
-                                </CardContent>
-                            </Card>
+                                </Tabs>
+                            </div>
                         )
                     }
                 />
             </div>
+
             <Dialog open={isQuoteDialogOpen} onOpenChange={setIsQuoteDialogOpen}>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
@@ -1085,36 +1183,38 @@ export default function QuotesPage() {
                                         )}
                                     />
                                 </div>
-                                <FormField
-                                    control={quoteForm.control}
-                                    name="exchange_rate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder={t('placeholders.exchangeRate')}
-                                                    value={field.value ? Number(field.value).toFixed(2) : ''}
-                                                    disabled={isClinicCurrency}
-                                                    onChange={(e) => {
-                                                        if (isClinicCurrency) {
-                                                            field.onChange(1);
-                                                        } else {
-                                                            field.onChange(parseFloat(e.target.value) || 0);
-                                                        }
-                                                    }}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {editingQuote && (
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="exchange_rate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder={t('placeholders.exchangeRate')}
+                                                        value={field.value ? Number(field.value).toFixed(2) : ''}
+                                                        disabled={isClinicCurrency}
+                                                        onChange={(e) => {
+                                                            if (isClinicCurrency) {
+                                                                field.onChange(1);
+                                                            } else {
+                                                                field.onChange(parseFloat(e.target.value) || 0);
+                                                            }
+                                                        }}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>
@@ -1129,8 +1229,8 @@ export default function QuotesPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
                         <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -1188,27 +1288,7 @@ export default function QuotesPage() {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={quoteItemForm.control}
-                                    name="tooth_number"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    placeholder={t('placeholders.toothNumber')}
-                                                    {...field}
-                                                    onChange={(e) => {
-                                                        const value = e.target.value;
-                                                        field.onChange(value === '' ? '' : Number(value));
-                                                    }}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+
                                 {showConversion && (
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormItem>
@@ -1219,7 +1299,32 @@ export default function QuotesPage() {
                                                 disabled
                                             />
                                         </FormItem>
-
+                                        <FormField
+                                            control={quoteItemForm.control}
+                                            name="exchange_rate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('itemDialog.exchangeRate')}</FormLabel>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.0001"
+                                                        {...field}
+                                                        value={field.value ?? exchangeRate}
+                                                        onChange={(e) => {
+                                                            const value = Number(e.target.value) || 1;
+                                                            const roundedValue = Math.round(value * 10000) / 10000;
+                                                            setExchangeRate(roundedValue);
+                                                            field.onChange(roundedValue);
+                                                        }}
+                                                        onBlur={async () => {
+                                                            field.onBlur();
+                                                            await quoteItemForm.trigger('exchange_rate');
+                                                        }}
+                                                    />
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
                                     </div>
                                 )}
                                 <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
@@ -1228,7 +1333,6 @@ export default function QuotesPage() {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                placeholder={t('placeholders.quantity')}
                                                 {...field}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
@@ -1256,7 +1360,6 @@ export default function QuotesPage() {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                placeholder={t('placeholders.unitPrice')}
                                                 value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
@@ -1286,7 +1389,7 @@ export default function QuotesPage() {
                                 <FormField control={quoteItemForm.control} name="total" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.total')}</FormLabel>
-                                        <FormControl><Input type="number" placeholder={t('placeholders.total')} readOnly disabled value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''} /></FormControl>
+                                        <FormControl><Input type="number" readOnly disabled value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />
