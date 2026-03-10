@@ -1,3 +1,4 @@
+
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
@@ -46,7 +47,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, ChevronsUpDown, FileText, Receipt, RefreshCw, ShoppingCart, X, Star, Printer, Send, Edit3, DollarSign, CreditCard, LayoutDashboard } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, FileText, Receipt, RefreshCw, ShoppingCart, X, Star, Printer, Send, Edit3, DollarSign, CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -832,12 +833,12 @@ function QuotesPageContent() {
             onClick={(e) => { e.stopPropagation(); onClick(); }}
             disabled={disabled}
             className={cn(
-                "flex items-center gap-0 w-9 hover:w-32 transition-all duration-300 overflow-hidden group justify-start px-2",
+                "flex flex-col items-center justify-center h-14 w-16 p-1 gap-1 text-[10px] font-bold uppercase transition-colors hover:bg-accent/50",
                 className
             )}
         >
-            <Icon className="h-4 w-4 shrink-0" />
-            <span className="ml-2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300">{label}</span>
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="whitespace-nowrap text-center leading-none">{label}</span>
         </Button>
     );
 
@@ -872,23 +873,38 @@ function QuotesPageContent() {
                             <div className="flex h-full min-h-0 bg-background overflow-hidden">
                                 <Tabs defaultValue="items" className="flex flex-1 min-h-0 overflow-hidden" orientation="vertical">
                                     {/* Sidebar Vertical Tabs */}
-                                    <TabsList className="vertical-tabs-list shrink-0 border-r bg-muted/10 p-0 rounded-none w-14">
-                                        <TabsTrigger value="items" className="vertical-tab-trigger" title={t('tabs.items')}>
-                                            <DollarSign className="h-5 w-5" />
+                                    <TabsList className="vertical-tabs-list shrink-0 border-r bg-muted/10 p-0 rounded-none w-20">
+                                        <TabsTrigger value="items" className="vertical-tab-trigger h-16 w-20" title={t('tabs.items')}>
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <DollarSign className="h-5 w-5" />
+                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.items')}</span>
+                                            </div>
                                         </TabsTrigger>
-                                        <TabsTrigger value="orders" className="vertical-tab-trigger" title={t('tabs.orders')}>
-                                            <ShoppingCart className="h-5 w-5" />
+                                        <TabsTrigger value="orders" className="vertical-tab-trigger h-16 w-20" title={t('tabs.orders')}>
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <ShoppingCart className="h-5 w-5" />
+                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.orders')}</span>
+                                            </div>
                                         </TabsTrigger>
-                                        <TabsTrigger value="invoices" className="vertical-tab-trigger" title={t('tabs.invoices')}>
-                                            <Receipt className="h-5 w-5" />
+                                        <TabsTrigger value="invoices" className="vertical-tab-trigger h-16 w-20" title={t('tabs.invoices')}>
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <Receipt className="h-5 w-5" />
+                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.invoices')}</span>
+                                            </div>
                                         </TabsTrigger>
-                                        <TabsTrigger value="payments" className="vertical-tab-trigger" title={t('tabs.payments')}>
-                                            <CreditCard className="h-5 w-5" />
+                                        <TabsTrigger value="payments" className="vertical-tab-trigger h-16 w-20" title={t('tabs.payments')}>
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <CreditCard className="h-5 w-5" />
+                                                <span className="text-[9px] font-bold uppercase tracking-tight">{t('tabs.payments')}</span>
+                                            </div>
                                         </TabsTrigger>
                                         <div className="mt-auto pb-4">
                                             {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                <TabsTrigger value="edit" className="vertical-tab-trigger" title={t('edit')}>
-                                                    <Edit3 className="h-5 w-5" />
+                                                <TabsTrigger value="edit" className="vertical-tab-trigger h-16 w-20" title={t('edit')}>
+                                                    <div className="flex flex-col items-center gap-1.5">
+                                                        <Edit3 className="h-5 w-5" />
+                                                        <span className="text-[9px] font-bold uppercase tracking-tight">{t('edit')}</span>
+                                                    </div>
                                                 </TabsTrigger>
                                             )}
                                         </div>
@@ -899,7 +915,7 @@ function QuotesPageContent() {
                                         {/* Header */}
                                         <div className="flex flex-col flex-none p-6 border-b bg-card">
                                             <div className="flex items-start justify-between mb-4">
-                                                <div className="flex items-center gap-3 min-w-0">
+                                                <div className="flex items-center gap-3 min-w-0 flex-1">
                                                     <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
                                                     <div className="flex flex-col">
                                                         <h2 className="text-2xl font-bold tracking-tight">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
@@ -937,25 +953,41 @@ function QuotesPageContent() {
                                             </div>
 
                                             {/* Summary Stats / KPIs */}
-                                            <div className="grid grid-cols-3 gap-4 p-3 bg-muted/20 rounded-lg border">
-                                                <div className="flex flex-col gap-1 border-r pr-4">
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.status')}</span>
-                                                    <Badge variant={
-                                                        selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted' ? 'success' :
-                                                        selectedQuote.status.toLowerCase() === 'draft' ? 'outline' : 'secondary'
-                                                    } className="w-fit h-5 text-[10px] uppercase">{t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}</Badge>
+                                            <div className="flex items-center justify-between gap-4 p-3 bg-muted/20 rounded-lg border">
+                                                <div className="flex gap-6">
+                                                    <div className="flex flex-col gap-1 border-r pr-6">
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.status')}</span>
+                                                        <Badge variant={
+                                                            selectedQuote.status.toLowerCase() === 'confirmed' || selectedQuote.status.toLowerCase() === 'accepted' ? 'success' :
+                                                            selectedQuote.status.toLowerCase() === 'draft' ? 'outline' : 'secondary'
+                                                        } className="w-fit h-5 text-[10px] uppercase">{t(`quoteDialog.${selectedQuote.status.toLowerCase()}` as any)}</Badge>
+                                                    </div>
+                                                    <div className="flex flex-col gap-1 border-r pr-6">
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.billingStatus')}</span>
+                                                        <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-blue-200 text-blue-700 bg-blue-50">
+                                                            {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.paymentStatus')}</span>
+                                                        <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50">
+                                                            {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
+                                                        </Badge>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col gap-1 border-r pr-4">
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.billingStatus')}</span>
-                                                    <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-blue-200 text-blue-700 bg-blue-50">
-                                                        {t(`quoteDialog.${selectedQuote.billing_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
-                                                    </Badge>
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t('quoteDialog.paymentStatus')}</span>
-                                                    <Badge variant="outline" className="w-fit h-5 text-[10px] uppercase border-emerald-200 text-emerald-700 bg-emerald-50">
-                                                        {t(`quoteDialog.${selectedQuote.payment_status.toLowerCase().replace(/\s+/g, '_')}` as any)}
-                                                    </Badge>
+
+                                                {/* Total Amount Moved here */}
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Monto Total</span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-sm font-semibold text-muted-foreground">{selectedQuote.currency}</span>
+                                                        <span className="text-2xl font-black tracking-tight">
+                                                            {new Intl.NumberFormat('es-UY', {
+                                                                minimumFractionDigits: 2,
+                                                                maximumFractionDigits: 2
+                                                            }).format(Number(selectedQuote.total))}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1066,28 +1098,9 @@ function QuotesPageContent() {
                                                     </h3>
                                                 </div>
                                                 <ScrollArea className="flex-1 bg-background rounded-lg border p-6">
-                                                    {/* Integration of the edit form could go here, or just a placeholder for now */}
                                                     <p className="text-muted-foreground text-center pt-20">Utilice el botón Editar del encabezado o modifique los items directamente en la pestaña correspondiente.</p>
                                                 </ScrollArea>
                                             </TabsContent>
-                                        </div>
-
-                                        {/* Footer Totals */}
-                                        <div className="flex flex-none items-center justify-end p-6 border-t bg-muted/5">
-                                            <div className="flex items-center gap-12">
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Monto Total</span>
-                                                    <div className="flex items-baseline gap-2">
-                                                        <span className="text-sm font-semibold text-muted-foreground">{selectedQuote.currency}</span>
-                                                        <span className="text-4xl font-black tracking-tight">
-                                                            {new Intl.NumberFormat('es-UY', {
-                                                                minimumFractionDigits: 2,
-                                                                maximumFractionDigits: 2
-                                                            }).format(Number(selectedQuote.total))}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </Tabs>
@@ -1329,33 +1342,48 @@ function QuotesPageContent() {
                                         />
                                     </div>
                                 )}
-                                <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('itemDialog.quantity')}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                {...field}
-                                                onChange={(e) => {
-                                                    const value = e.target.value;
-                                                    field.onChange(value === '' ? '' : Number(value));
-                                                }}
-                                                onBlur={async (e) => {
-                                                    field.onBlur();
-                                                    const value = e.target.value;
-                                                    if (value !== '') {
-                                                        const quantity = Number(value);
-                                                        const unitPrice = quoteItemForm.getValues('unit_price') || 0;
-                                                        const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
-                                                        quoteItemForm.setValue('total', nameTotal);
-                                                    }
-                                                    await quoteItemForm.trigger('quantity');
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <FormField control={quoteItemForm.control} name="quantity" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('itemDialog.quantity')}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    {...field}
+                                                    onChange={(e) => {
+                                                        const value = e.target.value;
+                                                        field.onChange(value === '' ? '' : Number(value));
+                                                    }}
+                                                    onBlur={async (e) => {
+                                                        field.onBlur();
+                                                        const value = e.target.value;
+                                                        if (value !== '') {
+                                                            const quantity = Number(value);
+                                                            const unitPrice = quoteItemForm.getValues('unit_price') || 0;
+                                                            const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
+                                                            quoteItemForm.setValue('total', nameTotal);
+                                                        }
+                                                        await quoteItemForm.trigger('quantity');
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={quoteItemForm.control} name="tooth_number" render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('itemDialog.toothNumber')}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder={t('placeholders.toothNumber')}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
                                 <FormField control={quoteItemForm.control} name="unit_price" render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>{t('itemDialog.unitPrice')} ({selectedQuote?.currency})</FormLabel>
