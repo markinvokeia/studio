@@ -102,7 +102,7 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
         const quotesData = normalized.items;
 
         return quotesData.map((apiQuote: any) => ({
-            id: apiQuote.id ? String(apiQuote.id) : t('defaults.notAvailable'),
+            id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
             total: apiQuote.total || 0,
@@ -187,7 +187,7 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
             user_name: apiOrder.user_name || apiOrder.name || t('defaults.notAvailable'),
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
-            updatedAt: apiOrder.updated_at || apiOrder.updatedAt || new Date().toISOString().split('T')[0],
+            updatedAt: apiOrder.updated_at || apiOrder.updatedAt || new Date().toISOString(),
             currency: apiOrder.currency || 'UYU',
         }));
     } catch (error) {
@@ -420,10 +420,12 @@ function QuotesPageContent() {
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+    const [orderRowSelection, setOrderRowSelection] = React.useState<RowSelectionState>({});
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
+    const [invoiceRowSelection, setInvoiceRowSelection] = React.useState<RowSelectionState>({});
 
     const [payments, setPayments] = React.useState<Payment[]>([]);
 
@@ -542,7 +544,9 @@ function QuotesPageContent() {
             loadInvoices();
             loadPayments();
             setSelectedOrder(null);
+            setOrderRowSelection({});
             setSelectedInvoice(null);
+            setInvoiceRowSelection({});
         } else {
             setQuoteItems([]);
             setOrders([]);
@@ -621,7 +625,7 @@ function QuotesPageContent() {
             setIsDeleteQuoteDialogOpen(false);
             setDeletingQuote(null);
             loadQuotes();
-            if (selectedQuote?.id === deletingQuote.id) setSelectedQuote(null);
+            if (selectedQuote?.id === deletingQuote.id) handleCloseDetails();
         } catch (error) {
             toast({ variant: 'destructive', title: t('errors.errorTitle'), description: error instanceof Error ? error.message : t('toast.quoteDeleteError') });
         }
@@ -924,20 +928,22 @@ function QuotesPageContent() {
                     rightPanel={
                         selectedQuote && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0 overflow-hidden">
-                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4 border-b bg-card">
+                                <CardHeader className="flex flex-row items-center justify-between flex-none p-4 border-b">
                                     <div className="flex items-start gap-3 min-w-0 flex-1">
-                                        <div className="header-icon-circle mt-0.5">
+                                        <div className="header-icon-circle">
                                             <FileText className="h-5 w-5" />
                                         </div>
                                         <div className="flex flex-col min-w-0">
-                                            <h2 className="text-lg font-bold tracking-tight truncate">{selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}</h2>
-                                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wide">
-                                                <UserIcon className="h-3.5 w-3.5" />
+                                            <h2 className="text-sm font-bold tracking-tight truncate">
+                                                {selectedQuote.doc_no || `Presupuesto #${selectedQuote.id}`}
+                                            </h2>
+                                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-bold uppercase tracking-wide">
+                                                <UserIcon className="h-3 w-3" />
                                                 <span className="truncate">{selectedQuote.user_name}</span>
                                             </div>
                                             
-                                            {/* Compact Status Line */}
-                                            <div className="flex items-center gap-2 px-2 py-1 bg-accent/5 rounded-full border border-accent/10 w-fit mt-2 shadow-sm text-[9px] font-bold uppercase">
+                                            {/* Linea de estados compacta estilo píldora */}
+                                            <div className="flex items-center gap-2 px-2.5 py-1 bg-primary/10 rounded-full border border-primary/20 w-fit mt-1.5 shadow-sm text-[9px] font-black uppercase">
                                                 <div className="flex items-center gap-1">
                                                     <div className={cn(
                                                         "h-1.5 w-1.5 rounded-full",
@@ -952,7 +958,7 @@ function QuotesPageContent() {
                                                     </span>
                                                 </div>
                                                 
-                                                <div className="h-3 w-px bg-border" />
+                                                <div className="h-3 w-px bg-primary/20" />
                                                 
                                                 <div className="flex items-center gap-1">
                                                     <FileText className="h-3 w-3 text-blue-600" />
@@ -961,7 +967,7 @@ function QuotesPageContent() {
                                                     </span>
                                                 </div>
                                                 
-                                                <div className="h-3 w-px bg-border" />
+                                                <div className="h-3 w-px bg-primary/20" />
                                                 
                                                 <div className="flex items-center gap-1">
                                                     <CreditCard className="h-3 w-3 text-emerald-600" />
@@ -970,11 +976,11 @@ function QuotesPageContent() {
                                                     </span>
                                                 </div>
                                                 
-                                                <div className="h-3 w-px bg-border" />
+                                                <div className="h-3 w-px bg-primary/20" />
                                                 
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-primary">{selectedQuote.currency}</span>
-                                                    <span className="text-primary font-black">
+                                                <div className="flex items-baseline gap-1 text-primary">
+                                                    <span>{selectedQuote.currency}</span>
+                                                    <span className="text-[11px]">
                                                         {new Intl.NumberFormat('es-UY', {
                                                             minimumFractionDigits: 2,
                                                             maximumFractionDigits: 2
@@ -986,7 +992,7 @@ function QuotesPageContent() {
                                     </div>
                                     
                                     <div className="flex items-center gap-1">
-                                        {/* Confirm/Reject Actions */}
+                                        {/* Acciones de Confirmación/Rechazo */}
                                         {(selectedQuote.status.toLowerCase() === 'draft' || selectedQuote.status.toLowerCase() === 'pending') && (
                                             <div className="flex items-center gap-1 mr-2 pr-2 border-r">
                                                 <ActionButton 
@@ -996,16 +1002,18 @@ function QuotesPageContent() {
                                                     variant="default"
                                                     className="bg-green-600 hover:bg-green-700 text-white rounded-lg"
                                                 />
-                                                <ActionButton 
-                                                    onClick={() => handleQuoteAction(selectedQuote, 'reject')} 
-                                                    icon={X} 
-                                                    label={t('reject')} 
-                                                    className="text-rose-600 hover:bg-rose-50 rounded-lg"
-                                                />
+                                                {canRejectQuote && (
+                                                    <ActionButton 
+                                                        onClick={() => handleQuoteAction(selectedQuote, 'reject')} 
+                                                        icon={X} 
+                                                        label={t('reject')} 
+                                                        className="text-rose-600 hover:bg-rose-50 rounded-lg"
+                                                    />
+                                                )}
                                             </div>
                                         )}
                                         
-                                        {/* Common Actions: Edit -> Print -> Send Email */}
+                                        {/* Acciones Comunes */}
                                         <div className="flex items-center gap-1">
                                             {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
                                                 <ActionButton onClick={() => handleEditQuote(selectedQuote)} icon={Edit3} label={t('edit')} className="rounded-lg" />
@@ -1020,28 +1028,29 @@ function QuotesPageContent() {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="flex-1 flex flex-col min-h-0 p-0 bg-card/30 overflow-hidden">
+                                <CardContent className="flex-1 flex flex-col min-h-0 p-0 overflow-hidden">
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
                                         <TabsList className="flex-none px-4 bg-muted/20 border-b h-auto py-1.5 gap-2">
-                                            <TabsTrigger value="items" className="text-xs font-bold uppercase tracking-wider">{t('tabs.items')}</TabsTrigger>
-                                            <TabsTrigger value="orders" className="text-xs font-bold uppercase tracking-wider">{t('tabs.orders')}</TabsTrigger>
-                                            <TabsTrigger value="invoices" className="text-xs font-bold uppercase tracking-wider">{t('tabs.invoices')}</TabsTrigger>
-                                            <TabsTrigger value="payments" className="text-xs font-bold uppercase tracking-wider">{t('tabs.payments')}</TabsTrigger>
+                                            <TabsTrigger value="items" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                <DollarSign className="h-3.5 w-3.5" />
+                                                {t('tabs.items')}
+                                            </TabsTrigger>
+                                            <TabsTrigger value="orders" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                <ShoppingCart className="h-3.5 w-3.5" />
+                                                {t('tabs.orders')}
+                                            </TabsTrigger>
+                                            <TabsTrigger value="invoices" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                <Receipt className="h-3.5 w-3.5" />
+                                                {t('tabs.invoices')}
+                                            </TabsTrigger>
+                                            <TabsTrigger value="payments" className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                                                <CreditCard className="h-3.5 w-3.5" />
+                                                {t('tabs.payments')}
+                                            </TabsTrigger>
                                         </TabsList>
                                         
                                         <div className="flex-1 overflow-hidden">
-                                            <TabsContent value="items" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-black text-lg flex items-center gap-2 text-primary">
-                                                        <DollarSign className="h-5 w-5" />
-                                                        {t('tabs.items')}
-                                                    </h3>
-                                                    {canEditQuote && canAddItem && (
-                                                        <Button onClick={handleCreateQuoteItem} size="sm" className="gap-2 font-bold uppercase text-[10px] h-8">
-                                                            <PlusCircle className="h-4 w-4" /> {t('addItem')}
-                                                        </Button>
-                                                    )}
-                                                </div>
+                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex-1 min-h-0">
                                                     <QuoteItemsTable
                                                         items={quoteItems}
@@ -1057,17 +1066,11 @@ function QuotesPageContent() {
                                                 </div>
                                             </TabsContent>
 
-                                            <TabsContent value="orders" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
+                                            <TabsContent value="orders" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <TwoPanelLayout
                                                     isRightPanelOpen={!!selectedOrder}
                                                     leftPanel={
                                                         <div className="h-full flex flex-col min-h-0">
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <h3 className="font-black text-lg flex items-center gap-2 text-primary">
-                                                                    <ShoppingCart className="h-5 w-5" />
-                                                                    {t('tabs.orders')}
-                                                                </h3>
-                                                            </div>
                                                             <div className="flex-1 min-h-0">
                                                                 <OrdersTable
                                                                     orders={orders}
@@ -1077,6 +1080,8 @@ function QuotesPageContent() {
                                                                     isRefreshing={isLoadingOrders}
                                                                     columnsToHide={['user_name', 'quote_id']}
                                                                     isCompact={true}
+                                                                    rowSelection={orderRowSelection}
+                                                                    setRowSelection={setOrderRowSelection}
                                                                 />
                                                             </div>
                                                         </div>
@@ -1092,7 +1097,10 @@ function QuotesPageContent() {
                                                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadOrderItems} disabled={isLoadingOrderItems}>
                                                                             <RefreshCw className={cn("h-4 w-4", isLoadingOrderItems && "animate-spin")} />
                                                                         </Button>
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedOrder(null)}>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                                                                            setSelectedOrder(null);
+                                                                            setOrderRowSelection({});
+                                                                        }}>
                                                                             <X className="h-4 w-4" />
                                                                         </Button>
                                                                     </div>
@@ -1121,17 +1129,11 @@ function QuotesPageContent() {
                                                 />
                                             </TabsContent>
 
-                                            <TabsContent value="invoices" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
+                                            <TabsContent value="invoices" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <TwoPanelLayout
                                                     isRightPanelOpen={!!selectedInvoice}
                                                     leftPanel={
                                                         <div className="h-full flex flex-col min-h-0">
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <h3 className="font-black text-lg flex items-center gap-2 text-primary">
-                                                                    <Receipt className="h-5 w-5" />
-                                                                    {t('tabs.invoices')}
-                                                                </h3>
-                                                            </div>
                                                             <div className="flex-1 min-h-0">
                                                                 <InvoicesTable
                                                                     invoices={invoices}
@@ -1141,6 +1143,8 @@ function QuotesPageContent() {
                                                                     isRefreshing={isLoadingInvoices}
                                                                     isCompact={true}
                                                                     canCreate={false}
+                                                                    rowSelection={invoiceRowSelection}
+                                                                    setRowSelection={setInvoiceRowSelection}
                                                                     columnTranslations={{
                                                                         doc_no: tRoot('InvoicesPage.columns.docNo'),
                                                                         user_name: tRoot('InvoicesPage.columns.userName'),
@@ -1167,7 +1171,10 @@ function QuotesPageContent() {
                                                                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
                                                                             <RefreshCw className={cn("h-4 w-4", isLoadingInvoiceItems && "animate-spin")} />
                                                                         </Button>
-                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setSelectedInvoice(null)}>
+                                                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                                                                            setSelectedInvoice(null);
+                                                                            setInvoiceRowSelection({});
+                                                                        }}>
                                                                             <X className="h-4 w-4" />
                                                                         </Button>
                                                                     </div>
@@ -1181,13 +1188,7 @@ function QuotesPageContent() {
                                                 />
                                             </TabsContent>
 
-                                            <TabsContent value="payments" className="m-0 h-full p-6 data-[state=active]:flex data-[state=active]:flex-col">
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <h3 className="font-black text-lg flex items-center gap-2 text-primary">
-                                                        <CreditCard className="h-5 w-5" />
-                                                        {t('tabs.payments')}
-                                                    </h3>
-                                                </div>
+                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
                                                 <div className="flex-1 min-h-0">
                                                     <PaymentsTable
                                                         payments={payments}
@@ -1544,3 +1545,4 @@ function QuotesPageContent() {
         </>
     );
 }
+
