@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/command';
 import {
     Dialog,
+    DialogBody,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -34,13 +35,16 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
 import { PatientSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import Image from 'next/image';
 import {
     AlertTriangle,
+    Calendar as CalendarIcon,
     Check,
     ChevronsUpDown,
     Clock,
@@ -826,20 +830,20 @@ function AnamnesisSection({
                     <DialogHeader>
                         <DialogTitle>{editingPersonalItem ? t('dialogs.personal.editTitle') : t('dialogs.personal.addTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitPersonal} className="pt-2">
-                        <div className="space-y-4">
-                            <div>
-                                <Label>{t('dialogs.ailment')}</Label>
+                    <form onSubmit={handleSubmitPersonal}>
+                        <DialogBody className="space-y-6 px-6 py-6">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.ailment')}</Label>
                                 <Popover open={isPersonalComboboxOpen} onOpenChange={setIsPersonalComboboxOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        <Button variant="outline" role="combobox" className="w-full justify-between h-10 border-input hover:bg-accent hover:text-accent-foreground">
                                             {personalAilmentName || t('dialogs.selectAilment')}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
+                                    <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                         <Command>
-                                            <CommandInput placeholder={t('dialogs.searchAilment')} />
+                                            <CommandInput placeholder={t('dialogs.searchAilment')} className="h-9" />
                                             <CommandList>
                                                 <CommandEmpty>{t('dialogs.noAilmentFound')}</CommandEmpty>
                                                 <CommandGroup>
@@ -862,17 +866,21 @@ function AnamnesisSection({
                                     </PopoverContent>
                                 </Popover>
                             </div>
-                            <div>
-                                <Label>{t('dialogs.comments')}</Label>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.comments')}</Label>
                                 <Textarea
                                     value={personalComentarios}
                                     onChange={(e) => setPersonalComentarios(e.target.value)}
                                     placeholder={t('dialogs.commentsPlaceholder')}
+                                    className="min-h-[120px] resize-none"
                                 />
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit" disabled={isSubmittingPersonal}>
+                        </DialogBody>
+                        <DialogFooter className="px-6 py-4 border-t gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsPersonalDialogOpen(false)}>
+                                {t('dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingPersonal} className="px-8">
                                 {isSubmittingPersonal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {t('dialogs.save')}
                             </Button>
@@ -887,20 +895,20 @@ function AnamnesisSection({
                     <DialogHeader>
                         <DialogTitle>{editingFamilyItem ? t('dialogs.family.editTitle') : t('dialogs.family.addTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitFamily} className="pt-2">
-                        <div className="space-y-4">
-                            <div>
-                                <Label>{t('dialogs.ailment')}</Label>
+                    <form onSubmit={handleSubmitFamily}>
+                        <DialogBody className="space-y-6 px-6 py-6">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.ailment')}</Label>
                                 <Popover open={isFamilyComboboxOpen} onOpenChange={setIsFamilyComboboxOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        <Button variant="outline" role="combobox" className="w-full justify-between h-10 border-input">
                                             {familyAilmentName || t('dialogs.selectAilment')}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
+                                    <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                         <Command>
-                                            <CommandInput placeholder={t('dialogs.searchAilment')} />
+                                            <CommandInput placeholder={t('dialogs.searchAilment')} className="h-9" />
                                             <CommandList>
                                                 <CommandEmpty>{t('dialogs.noAilmentFound')}</CommandEmpty>
                                                 <CommandGroup>
@@ -923,25 +931,30 @@ function AnamnesisSection({
                                     </PopoverContent>
                                 </Popover>
                             </div>
-                            <div>
-                                <Label>{t('dialogs.family.relationship')}</Label>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.family.relationship')}</Label>
                                 <Input
                                     value={familyParentesco}
                                     onChange={(e) => setFamilyParentesco(e.target.value)}
                                     placeholder={t('dialogs.family.selectRelationship')}
+                                    className="h-10"
                                 />
                             </div>
-                            <div>
-                                <Label>{t('dialogs.comments')}</Label>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.comments')}</Label>
                                 <Textarea
                                     value={familyComentarios}
                                     onChange={(e) => setFamilyComentarios(e.target.value)}
                                     placeholder={t('dialogs.commentsPlaceholder')}
+                                    className="min-h-[120px] resize-none"
                                 />
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit" disabled={isSubmittingFamily}>
+                        </DialogBody>
+                        <DialogFooter className="px-6 py-4 border-t gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsFamilyDialogOpen(false)}>
+                                {t('dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingFamily} className="px-8">
                                 {isSubmittingFamily && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {t('dialogs.save')}
                             </Button>
@@ -956,27 +969,32 @@ function AnamnesisSection({
                     <DialogHeader>
                         <DialogTitle>{editingAllergyItem ? t('dialogs.allergy.editTitle') : t('dialogs.allergy.addTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitAllergy} className="pt-2">
-                        <div className="space-y-4">
-                            <div>
-                                <Label>{t('dialogs.allergy.alergeno')}</Label>
+                    <form onSubmit={handleSubmitAllergy}>
+                        <DialogBody className="space-y-6 px-6 py-6">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.allergy.allergen')}</Label>
                                 <Input
                                     value={allergyAlergeno}
                                     onChange={(e) => setAllergyAlergeno(e.target.value)}
-                                    placeholder={t('dialogs.allergy.alergenoPlaceholder')}
+                                    placeholder={t('dialogs.allergy.allergenPlaceholder')}
+                                    className="h-10"
                                 />
                             </div>
-                            <div>
-                                <Label>{t('dialogs.allergy.reaction')}</Label>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.allergy.reaction')}</Label>
                                 <Textarea
                                     value={allergyReaccion}
                                     onChange={(e) => setAllergyReaccion(e.target.value)}
                                     placeholder={t('dialogs.allergy.reactionPlaceholder')}
+                                    className="min-h-[120px] resize-none"
                                 />
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit" disabled={isSubmittingAllergy}>
+                        </DialogBody>
+                        <DialogFooter className="px-6 py-4 border-t gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsAllergyDialogOpen(false)}>
+                                {t('dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingAllergy} className="px-8">
                                 {isSubmittingAllergy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {t('dialogs.save')}
                             </Button>
@@ -991,23 +1009,24 @@ function AnamnesisSection({
                     <DialogHeader>
                         <DialogTitle>{editingMedicationItem ? t('dialogs.medication.editTitle') : t('dialogs.medication.addTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSubmitMedication} className="pt-2">
-                        <div className="space-y-4">
-                            <div>
-                                <Label>{t('dialogs.medication.name')}</Label>
+                    <form onSubmit={handleSubmitMedication}>
+                        <DialogBody className="space-y-6 px-6 py-6">
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.medication.name')}</Label>
                                 <Popover open={isMedicationComboboxOpen} onOpenChange={setIsMedicationComboboxOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">
+                                        <Button variant="outline" role="combobox" className="w-full justify-between h-10 border-input">
                                             {selectedMedication?.nombre_generico || medicationSearchTerm || t('dialogs.medication.selectMedication')}
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                     </PopoverTrigger>
-                                    <PopoverContent className="w-full p-0">
+                                    <PopoverContent className="w-full p-0" style={{ width: 'var(--radix-popover-trigger-width)' }}>
                                         <Command>
                                             <CommandInput
-                                                placeholder={t('dialogs.medication.searchPlaceholder')}
+                                                placeholder={t('dialogs.medication.searchMedication')}
                                                 value={medicationSearchTerm}
                                                 onValueChange={setMedicationSearchTerm}
+                                                className="h-9"
                                             />
                                             <CommandList>
                                                 <CommandEmpty>{t('dialogs.medication.noMedicationFound')}</CommandEmpty>
@@ -1024,7 +1043,7 @@ function AnamnesisSection({
                                                         >
                                                             <Check className={cn("mr-2 h-4 w-4", selectedMedication?.nombre_generico === med.nombre_generico ? "opacity-100" : "opacity-0")} />
                                                             {med.nombre_generico}
-                                                            {med.nombre_comercial && <span className="text-muted-foreground ml-1">({med.nombre_comercial})</span>}
+                                                            {med.nombre_comercial && <span className="text-muted-foreground ml-1 text-xs">({med.nombre_comercial})</span>}
                                                         </CommandItem>
                                                     ))}
                                                 </CommandGroup>
@@ -1034,37 +1053,39 @@ function AnamnesisSection({
                                 </Popover>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label>{t('dialogs.medication.dosis')}</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">{t('dialogs.medication.dose')}</Label>
                                     <Input
                                         value={medicationDosis}
                                         onChange={(e) => setMedicationDosis(e.target.value)}
-                                        placeholder={t('dialogs.medication.dosisPlaceholder')}
+                                        placeholder={t('dialogs.medication.dosePlaceholder')}
+                                        className="h-10"
                                     />
                                 </div>
-                                <div>
-                                    <Label>{t('dialogs.medication.frecuencia')}</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">{t('dialogs.medication.frequency')}</Label>
                                     <Input
                                         value={medicationFrecuencia}
                                         onChange={(e) => setMedicationFrecuencia(e.target.value)}
-                                        placeholder={t('dialogs.medication.frecuenciaPlaceholder')}
+                                        placeholder={t('dialogs.medication.frequencyPlaceholder')}
+                                        className="h-10"
                                     />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label>{t('dialogs.medication.fechaInicio') || 'Start Date'}</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">{t('dialogs.medication.startDate')}</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 className={cn(
-                                                    "w-full justify-start text-left font-normal",
+                                                    "w-full justify-start text-left font-normal h-10 border-input",
                                                     !medicationFechaInicio && "text-muted-foreground"
                                                 )}
                                             >
-                                                <Calendar className="mr-2 h-4 w-4" />
-                                                {medicationFechaInicio ? medicationFechaInicio : t('dialogs.selectDate') || 'Select date'}
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {medicationFechaInicio ? medicationFechaInicio : t('dialogs.medication.startDatePlaceholder')}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
@@ -1077,19 +1098,19 @@ function AnamnesisSection({
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                                <div>
-                                    <Label>{t('dialogs.medication.fechaFin') || 'End Date'}</Label>
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">{t('dialogs.medication.endDate')}</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 className={cn(
-                                                    "w-full justify-start text-left font-normal",
+                                                    "w-full justify-start text-left font-normal h-10 border-input",
                                                     !medicationFechaFin && "text-muted-foreground"
                                                 )}
                                             >
-                                                <Calendar className="mr-2 h-4 w-4" />
-                                                {medicationFechaFin ? medicationFechaFin : t('dialogs.selectDate') || 'Select date'}
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {medicationFechaFin ? medicationFechaFin : t('dialogs.medication.endDatePlaceholder')}
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
@@ -1103,17 +1124,21 @@ function AnamnesisSection({
                                     </Popover>
                                 </div>
                             </div>
-                            <div>
-                                <Label>{t('dialogs.medication.motivo')}</Label>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold">{t('dialogs.medication.reason')}</Label>
                                 <Textarea
                                     value={medicationMotivo}
                                     onChange={(e) => setMedicationMotivo(e.target.value)}
-                                    placeholder={t('dialogs.medication.motivoPlaceholder')}
+                                    placeholder={t('dialogs.medication.reasonPlaceholder')}
+                                    className="min-h-[100px] resize-none"
                                 />
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit" disabled={isSubmittingMedication}>
+                        </DialogBody>
+                        <DialogFooter className="px-6 py-4 border-t gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsMedicationDialogOpen(false)}>
+                                {t('dialogs.cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingMedication} className="px-8">
                                 {isSubmittingMedication && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {t('dialogs.save')}
                             </Button>
@@ -1134,6 +1159,7 @@ interface TreatmentTimelineProps {
 
 function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
+    const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [openItems, setOpenItems] = React.useState<string[]>([]);
@@ -1327,8 +1353,8 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent>
-                                                                <DropdownMenuItem onClick={() => handleEditSession(session)}>{t('edit')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleDeleteSession(session)} className="text-destructive">{t('delete')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleEditSession(session)}>{tPage('common.edit')}</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleDeleteSession(session)} className="text-destructive">{tPage('common.delete')}</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     )}
@@ -1352,69 +1378,74 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
             <Dialog open={isSessionDialogOpen} onOpenChange={setIsSessionDialogOpen}>
                 <DialogContent maxWidth="md">
                     <DialogHeader>
-                        <DialogTitle>{editingSession ? t('edit') : t('addSession')}</DialogTitle>
+                        <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSaveSession} className="pt-2">
-                        <div className="space-y-4">
+                    <form onSubmit={handleSaveSession}>
+                        <DialogBody className="space-y-4 pt-4">
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label>{t('date')}</Label>
+                                <div className="space-y-2">
+                                    <Label>{tDialog('date')}</Label>
                                     <Input
                                         type="date"
                                         value={sessionForm.fecha_sesion}
                                         onChange={(e) => setSessionForm({ ...sessionForm, fecha_sesion: e.target.value })}
                                     />
                                 </div>
-                                <div>
-                                    <Label>{t('doctor')}</Label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                <div className="space-y-2">
+                                    <Label>{tDialog('doctor')}</Label>
+                                    <Select
                                         value={sessionForm.doctor_name}
-                                        onChange={(e) => setSessionForm({ ...sessionForm, doctor_name: e.target.value })}
+                                        onValueChange={(value) => setSessionForm({ ...sessionForm, doctor_name: value })}
                                     >
-                                        <option value="">{t('selectDoctor')}</option>
-                                        {doctors.map((doc) => (
-                                            <option key={doc.id} value={doc.name}>{doc.name}</option>
-                                        ))}
-                                    </select>
+                                        <SelectTrigger className="w-full">
+                                            <SelectValue placeholder={tDialog('selectDoctor')} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {doctors.map((doc) => (
+                                                <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
-                            <div>
-                                <Label>{t('procedure')}</Label>
+                            <div className="space-y-2">
+                                <Label>{tDialog('procedure')}</Label>
                                 <Input
                                     value={sessionForm.procedimiento_realizado}
                                     onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
-                                    placeholder={t('procedurePlaceholder')}
+                                    placeholder={tDialog('procedurePlaceholder')}
                                 />
                             </div>
-                            <div>
-                                <Label>{t('diagnosis')}</Label>
+                            <div className="space-y-2">
+                                <Label>{tDialog('diagnosis')}</Label>
                                 <Textarea
                                     value={sessionForm.diagnostico}
                                     onChange={(e) => setSessionForm({ ...sessionForm, diagnostico: e.target.value })}
-                                    placeholder={t('diagnosisPlaceholder')}
+                                    placeholder={tDialog('diagnosisPlaceholder')}
+                                    className="min-h-[80px]"
                                 />
                             </div>
-                            <div>
-                                <Label>{t('notes')}</Label>
+                            <div className="space-y-2">
+                                <Label>{tDialog('notes')}</Label>
                                 <Textarea
                                     value={sessionForm.notas_clinicas}
                                     onChange={(e) => setSessionForm({ ...sessionForm, notas_clinicas: e.target.value })}
-                                    placeholder={t('notesPlaceholder')}
+                                    placeholder={tDialog('notesPlaceholder')}
+                                    className="min-h-[80px]"
                                 />
                             </div>
-                            <div>
-                                <Label>{t('nextSessionPlan')}</Label>
+                            <div className="space-y-2">
+                                <Label>{tDialog('nextSessionPlan')}</Label>
                                 <Input
                                     value={sessionForm.plan_proxima_cita}
                                     onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
-                                    placeholder={t('nextSessionPlanPlaceholder')}
+                                    placeholder={tDialog('nextSessionPlanPlaceholder')}
                                 />
                             </div>
 
                             {/* Attachments Section */}
                             <div className="space-y-3">
-                                <Label>{t('attachments') || 'Attachments'}</Label>
+                                <Label>{tDialog('attachments')}</Label>
 
                                 {/* Drag and Drop Area */}
                                 <div
@@ -1434,7 +1465,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                 >
                                     <div className="flex flex-col items-center text-center">
                                         <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                                        <p className="text-sm text-muted-foreground">{t('dragDropFiles') || 'Drag & drop files here'}</p>
+                                        <p className="text-sm text-muted-foreground">{tDialog('dragDropFiles')}</p>
                                         <Input
                                             type="file"
                                             multiple
@@ -1443,7 +1474,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                             onChange={handleFileChange}
                                         />
                                         <Label htmlFor="session-file-upload" className="mt-2 cursor-pointer text-primary hover:underline">
-                                            {t('browseFiles') || 'Browse files'}
+                                            {tDialog('browseFiles')}
                                         </Label>
                                     </div>
                                 </div>
@@ -1451,7 +1482,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                 {/* Existing Attachments */}
                                 {existingAttachments.length > 0 && (
                                     <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground">{t('existingAttachments') || 'Existing attachments'}</Label>
+                                        <Label className="text-xs text-muted-foreground">{tDialog('existingAttachments')}</Label>
                                         <div className="flex flex-wrap gap-2">
                                             {existingAttachments.map((attachment: any, idx: number) => (
                                                 <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-sm">
@@ -1474,7 +1505,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                 {/* New Attached Files */}
                                 {attachedFiles.length > 0 && (
                                     <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground">{t('newAttachments') || 'New attachments'}</Label>
+                                        <Label className="text-xs text-muted-foreground">{tDialog('newAttachments')}</Label>
                                         <div className="flex flex-wrap gap-2">
                                             {attachedFiles.map((file, idx) => (
                                                 <div key={idx} className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-sm">
@@ -1494,11 +1525,14 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                     </div>
                                 )}
                             </div>
-                        </div>
-                        <DialogFooter>
-                            <Button type="submit" disabled={isSubmittingSession}>
+                        </DialogBody>
+                        <DialogFooter className="px-6 py-4 border-t gap-2">
+                            <Button type="button" variant="outline" onClick={() => setIsSessionDialogOpen(false)}>
+                                {tDialog('cancel')}
+                            </Button>
+                            <Button type="submit" disabled={isSubmittingSession} className="px-8">
                                 {isSubmittingSession && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {t('save')}
+                                {tDialog('save')}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -1509,14 +1543,18 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
             <Dialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
                 <DialogContent maxWidth="sm">
                     <DialogHeader>
-                        <DialogTitle>{t('delete')}</DialogTitle>
+                        <DialogTitle>{tPage('common.delete')}</DialogTitle>
                     </DialogHeader>
-                    <div className="py-2">
-                        <p>{t('deleteConfirm')}</p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setDeletingSession(null)}>{t('cancel')}</Button>
-                        <Button variant="destructive" onClick={confirmDeleteSession}>{t('delete')}</Button>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">{tDialog('deleteConfirm')}</p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingSession(null)}>
+                            {tDialog('cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeleteSession} className="px-8">
+                            {tPage('common.delete')}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -1582,7 +1620,7 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
                 <DialogHeader>
                     <DialogTitle>{document?.name}</DialogTitle>
                 </DialogHeader>
-                <div className="flex-1 overflow-hidden flex flex-col p-0 relative"
+                <DialogBody className="p-0 overflow-hidden flex-1 flex flex-col relative"
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
                     onMouseLeave={handleMouseUp}
@@ -1591,13 +1629,15 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
                     {documentContent ? (
                         document?.type?.startsWith('image/') || document?.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                             <div className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20">
-                                <img
+                                <Image
                                     ref={imageRef}
                                     src={documentContent}
                                     alt={document?.name || 'Document'}
-                                    className="max-w-none max-h-none cursor-grab transform-gpu"
+                                    fill
+                                    className="object-contain cursor-grab transform-gpu"
                                     style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
                                     onMouseDown={handleMouseDown}
+                                    unoptimized
                                 />
                                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
                                     <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
@@ -1614,7 +1654,7 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                         </div>
                     )}
-                </div>
+                </DialogBody>
             </DialogContent>
         </Dialog>
     );
@@ -1724,10 +1764,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
                             <Card key={idx} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewDocument(doc)}>
                                 <div className="h-28 bg-muted flex items-center justify-center relative group">
                                     {isImageFile(doc.nombre || doc.name) ? (
-                                        <img
+                                        <Image
                                             src={doc.thumbnail_url || doc.ruta ? `${process.env.NEXT_PUBLIC_API_URL}${doc.thumbnail_url || doc.ruta}` : ''}
-                                            alt={doc.nombre || doc.name}
-                                            className="w-full h-full object-cover"
+                                            alt={doc.nombre || doc.name || 'Document'}
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
                                             onError={(e) => {
                                                 (e.target as HTMLImageElement).style.display = 'none';
                                             }}
@@ -1770,12 +1812,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
                 <DialogContent maxWidth="md">
                     <DialogHeader>
-                        <DialogTitle>{t('documents.upload')}</DialogTitle>
+                        <DialogTitle>{t('documents.upload') || t('tabs.documents')}</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 pt-2">
+                    <DialogBody className="space-y-6 px-6 py-6">
                         <div
                             className={cn(
-                                "flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                                "flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:border-primary/50 hover:bg-accent/30",
                                 isDragOver ? "border-primary bg-primary/10" : "border-muted-foreground/25"
                             )}
                             onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
@@ -1787,36 +1829,48 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
                                     setUploadFile(e.dataTransfer.files[0]);
                                 }
                             }}
+                            onClick={() => {
+                                const input = document.getElementById('document-file-input');
+                                if (input) input.click();
+                            }}
                         >
                             {uploadFile ? (
-                                <div className="flex flex-col items-center">
-                                    <File className="w-8 h-8 mb-2 text-primary" />
-                                    <p className="text-sm font-medium">{uploadFile.name}</p>
-                                    <Button variant="ghost" size="sm" onClick={() => setUploadFile(null)} className="mt-1">
-                                        <X className="w-3 h-3 mr-1" /> Remove
+                                <div className="flex flex-col items-center text-center p-4">
+                                    <FileText className="w-12 h-12 mb-4 text-primary" />
+                                    <p className="text-sm font-semibold truncate max-w-[250px]">{uploadFile.name}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{(uploadFile.size / 1024).toFixed(1)} KB</p>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setUploadFile(null); }} className="mt-4 text-destructive hover:text-destructive hover:bg-destructive/10">
+                                        <X className="w-4 h-4 mr-2" /> {t('common.cancel') || 'Remove'}
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center text-muted-foreground">
-                                    <Upload className="w-8 h-8 mb-2" />
-                                    <p className="text-sm">Drag & drop or click to select</p>
+                                <div className="flex flex-col items-center text-muted-foreground p-4">
+                                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                        <Upload className="w-8 h-8" />
+                                    </div>
+                                    <div className="text-center">
+                                        <p className="text-base font-medium text-foreground">{t('documentDragDropBold') || 'Click to upload'}</p>
+                                        <p className="text-sm mt-1">{t('documentDragDropNormal') || 'or drag and drop'}</p>
+                                        <p className="text-xs mt-2 opacity-70">{t('documentDragDropSubtext') || 'PDF, PNG, JPG or GIF (MAX. 10MB)'}</p>
+                                    </div>
                                 </div>
                             )}
-                            <Input
+                            <input
+                                id="document-file-input"
                                 type="file"
                                 className="hidden"
                                 onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                                 accept="image/*,.pdf,.doc,.docx"
                             />
                         </div>
-                    </div>
-                    <DialogFooter>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
                         <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
-                            {t('cancel')}
+                            {t('common.cancel')}
                         </Button>
-                        <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
+                        <Button onClick={handleUpload} disabled={!uploadFile || isUploading} className="px-8">
                             {isUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                            {t('upload')}
+                            {t('common.save')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

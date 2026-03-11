@@ -1237,60 +1237,71 @@ export default function UsersPage() {
       </Dialog>
 
       <Dialog open={isDischargeDialogOpen} onOpenChange={setIsDischargeDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t('ClinicHistoryPage.discharge.dialogTitle')}</DialogTitle>
             <DialogDescription>
               {t('ClinicHistoryPage.discharge.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 px-6">
-            <div className="grid gap-2">
-              <Label>{t('ClinicHistoryPage.discharge.optionsLabel')}</Label>
+          <DialogBody className="space-y-6 px-6 py-4">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t('ClinicHistoryPage.discharge.optionsLabel')}
+              </Label>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 1))}
                 >
                   {t('ClinicHistoryPage.discharge.option1Month')}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 3))}
                 >
                   {t('ClinicHistoryPage.discharge.option3Months')}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 6))}
                 >
                   {t('ClinicHistoryPage.discharge.option6Months')}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 12))}
                 >
                   {t('ClinicHistoryPage.discharge.option1Year')}
                 </Button>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label>{t('ClinicHistoryPage.discharge.dateLabel')}</Label>
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t('ClinicHistoryPage.discharge.dateLabel')}
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full h-12 justify-start text-left font-normal border-muted-foreground/20 hover:border-primary/50 transition-colors",
                       !dischargeDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
+                    <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                    <span className="text-base font-medium">
+                      {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -1304,19 +1315,23 @@ export default function UsersPage() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
+          </DialogBody>
           <DialogFooter>
             <Button
+              className="px-8"
               onClick={handleSaveDischarge}
               disabled={!dischargeDate || isSubmittingDischarge}
             >
-              {isSubmittingDischarge ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isSubmittingDischarge ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {t('ClinicHistoryPage.discharge.saveButton')}
             </Button>
-            <Button variant="outline" onClick={() => {
-              setIsDischargeDialogOpen(false);
-              setDischargeDate(null);
-            }}>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDischargeDialogOpen(false);
+                setDischargeDate(null);
+              }}
+            >
               {t('ClinicHistoryPage.discharge.cancelButton')}
             </Button>
           </DialogFooter>

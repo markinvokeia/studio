@@ -2878,11 +2878,29 @@
     },
     "searchPlaceholder": "Search medical history...",
     "tabs": {
-      "anamnesis": "Anamnesis",
+      "anamnesis": "Medical History",
       "timeline": "Timeline",
       "odontogram": "Odontogram",
       "images": "Images",
       "documents": "Documents"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "documents": {
+      "upload": "Upload Document",
+      "add": "Add document",
+      "noDocuments": "No documents available",
+      "view": "View",
+      "download": "Download",
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this document?",
+      "dragDropBold": "Click to upload",
+      "dragDropNormal": "or drag and drop",
+      "dragDropSubtext": "PDF, PNG, JPG or GIF (MAX. 10MB)"
     },
     "selectPatientTitle": "Select a Patient",
     "selectPatientDescription": "Please select a patient to view their medical history",
@@ -2935,8 +2953,17 @@
       "tooth": "Tooth",
       "saving": "Saving",
       "nextSessionPlan": "Next Session Plan",
+      "nextSessionPlanPlaceholder": "Enter the plan for the next appointment...",
       "attachments": "Attachments",
-      "addTreatment": "Add Treatment"
+      "addTreatment": "Add Treatment",
+      "procedurePlaceholder": "Enter the procedure performed...",
+      "diagnosisPlaceholder": "Enter the diagnosis...",
+      "notesPlaceholder": "Enter additional notes...",
+      "dragDropFiles": "Drag and drop files here",
+      "browseFiles": "or browse files",
+      "existingAttachments": "Existing attachments",
+      "newAttachments": "New attachments",
+      "deleteConfirm": "Are you sure you want to delete this session? This action cannot be undone."
     },
     "newFiles": "New Files",
     "existingFiles": "Existing Files",
@@ -2971,7 +2998,8 @@
         "deleteSuccess": "Deleted successfully"
       },
       "nextSessionPlan": "Next Session Plan",
-      "addSession": "Add Session"
+      "addSession": "Add Session",
+      "noSessions": "No sessions recorded"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",
@@ -3021,7 +3049,12 @@
           "reason": "Reason (Optional)",
           "searchMedication": "Search Medication",
           "noMedicationFound": "No medication found",
-          "typeToSearch": "Type to search medications"
+          "typeToSearch": "Type to search medications",
+          "dosePlaceholder": "e.g. 500mg",
+          "frequencyPlaceholder": "e.g. Every 8 hours",
+          "reasonPlaceholder": "Reason for medication",
+          "startDatePlaceholder": "Select start date",
+          "endDatePlaceholder": "Select end date"
         },
         "allergy": {
           "addTitle": "Add Allergy",
@@ -3029,7 +3062,9 @@
           "editTitle": "Edit Allergy",
           "editDescription": "Edit allergy for the patient",
           "allergen": "Allergen",
-          "reaction": "Reaction"
+          "allergenPlaceholder": "e.g. Penicillin",
+          "reaction": "Reaction",
+          "reactionPlaceholder": "Describe the allergic reaction..."
         },
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found"
