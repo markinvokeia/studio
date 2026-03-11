@@ -18,13 +18,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserRoles } from '@/components/users/user-roles';
+import { Textarea } from '@/components/ui/textarea';
 import { UserServices } from '@/components/users/user-services';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { User, UserRole } from '@/lib/types';
+import { User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,10 +48,17 @@ const providerFormSchema = (t: (key: string) => string) => z.object({
     if (!val || val.trim() === '') return true;
     return isValidPhoneNumber(val);
   }, { message: t('ProvidersPage.createDialog.validation.phoneInvalid') }),
+  alternative_phone: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return isValidPhoneNumber(val);
+  }, { message: t('ProvidersPage.createDialog.validation.alternativePhoneInvalid') }),
   identity_document: z.string()
     .min(1, { message: t('ProvidersPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('ProvidersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('ProvidersPage.createDialog.validation.identityMaxLength') }),
+  address: z.string().optional(),
+  notes: z.string().optional(),
+  bank_account: z.string().optional(),
   is_active: z.boolean().default(false),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
@@ -101,8 +108,12 @@ async function getProviders(pagination: PaginationState, searchQuery: string): P
       name: apiUser.name || '',
       email: apiUser.email || '',
       phone_number: apiUser.phone_number || '',
+      alternative_phone: apiUser.alternative_phone || '',
+      address: apiUser.address || '',
+      bank_account: apiUser.bank_account || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
+      notes: apiUser.notes || '',
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
 
@@ -128,22 +139,118 @@ async function upsertProvider(providerData: ProviderFormValues) {
   return responseData;
 }
 
-async function getRolesForUser(userId: string): Promise<UserRole[]> {
-  if (!userId) return [];
-  try {
-    const data = await api.get(API_ROUTES.ROLES_USER_ROLES, { user_id: userId });
-    const userRolesData = Array.isArray(data) ? (Object.keys(data[0]).length === 0 ? [] : data) : (data.user_roles || data.data || data.result || []);
-    return userRolesData.map((apiRole: any) => ({
-      user_role_id: apiRole.user_role_id,
-      role_id: apiRole.role_id,
-      name: apiRole.name || 'Unknown Role',
-      is_active: apiRole.is_active,
-    }));
-  } catch (error) {
-    console.error("Failed to fetch user roles:", error);
-    return [];
-  }
-}
+const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) => void }) => {
+  const t = useTranslations();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [notes, setNotes] = React.useState(user.notes || '');
+  const [isSaving, setIsSaving] = React.useState(false);
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    setNotes(user.notes || '');
+  }, [user.notes]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdate(notes);
+      setIsEditing(false);
+      toast({
+        title: t('ProvidersPage.notes.saveSuccess'),
+        description: t('ProvidersPage.notes.saveSuccessDescription'),
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('ProvidersPage.notes.saveError'),
+        description: t('ProvidersPage.notes.saveErrorDescription'),
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setNotes(user.notes || '');
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="h-full flex flex-col shadow-none border-0">
+      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-lg text-foreground font-bold">{t('ProvidersPage.notes.title')}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            {t('ProvidersPage.notes.description')}
+          </CardDescription>
+        </div>
+        <div className="flex items-center gap-2 ml-2">
+          {!isEditing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+            >
+              {t('ProvidersPage.notes.edit')}
+            </Button>
+          )}
+          {isEditing && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                {t('ProvidersPage.notes.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                {isSaving ? t('ProvidersPage.notes.saving') : t('ProvidersPage.notes.save')}
+              </Button>
+            </>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-4 pt-0 bg-card">
+        {isEditing ? (
+          <div className="h-full flex flex-col">
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t('ProvidersPage.notes.placeholder')}
+              className="flex-1 min-h-[200px] resize-none"
+            />
+          </div>
+        ) : (
+          <div className="h-full">
+            {notes ? (
+              <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                {notes}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <p className="text-center mb-4">
+                  {t('ProvidersPage.notes.noNotes')}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  {t('ProvidersPage.notes.addFirstNote')}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function ProvidersPage() {
   return <ProvidersPageContent />;
@@ -166,8 +273,6 @@ function ProvidersPageContent() {
   const [providers, setProviders] = React.useState<User[]>([]);
   const [providerCount, setProviderCount] = React.useState(0);
   const [selectedProvider, setSelectedProvider] = React.useState<User | null>(null);
-  const [selectedProviderRoles, setSelectedProviderRoles] = React.useState<UserRole[]>([]);
-  const [isRolesLoading, setIsRolesLoading] = React.useState(false);
   const [editingProvider, setEditingProvider] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -187,7 +292,11 @@ function ProvidersPageContent() {
       name: '',
       email: '',
       phone: '',
+      alternative_phone: '',
       identity_document: '',
+      address: '',
+      notes: '',
+      bank_account: '',
       is_active: true,
     },
   });
@@ -200,13 +309,6 @@ function ProvidersPageContent() {
     setProviderCount(total);
     setIsRefreshing(false);
   }, [pagination, columnFilters]);
-
-  const loadProviderRoles = React.useCallback(async (userId: string) => {
-    setIsRolesLoading(true);
-    const roles = await getRolesForUser(userId);
-    setSelectedProviderRoles(roles);
-    setIsRolesLoading(false);
-  }, []);
 
   React.useEffect(() => {
     const debounce = setTimeout(() => {
@@ -244,7 +346,11 @@ function ProvidersPageContent() {
       name: '',
       email: '',
       phone: '',
+      alternative_phone: '',
       identity_document: '',
+      address: '',
+      notes: '',
+      bank_account: '',
       is_active: true,
     });
     setSubmissionError(null);
@@ -258,7 +364,11 @@ function ProvidersPageContent() {
       name: provider.name,
       email: provider.email,
       phone: provider.phone_number,
+      alternative_phone: provider.alternative_phone || '',
       identity_document: provider.identity_document || '',
+      address: provider.address || '',
+      notes: provider.notes || '',
+      bank_account: provider.bank_account || '',
       is_active: provider.is_active,
     });
     setSubmissionError(null);
@@ -272,17 +382,45 @@ function ProvidersPageContent() {
     setSelectedProvider(user);
   };
 
-  React.useEffect(() => {
-    if (selectedProvider) {
-      loadProviderRoles(selectedProvider.id);
-    } else {
-      setSelectedProviderRoles([]);
-    }
-  }, [selectedProvider, loadProviderRoles]);
-
   const handleCloseDetails = () => {
     setSelectedProvider(null);
     setRowSelection({});
+  };
+
+  const handleUpdateNotes = async (notes: string) => {
+    if (!selectedProvider) return;
+
+    try {
+      const updatedProviderData = {
+        ...selectedProvider,
+        notes,
+      };
+
+      await upsertProvider({
+        id: selectedProvider.id,
+        name: selectedProvider.name,
+        email: selectedProvider.email,
+        phone: selectedProvider.phone_number,
+        alternative_phone: selectedProvider.alternative_phone || '',
+        identity_document: selectedProvider.identity_document || '',
+        address: selectedProvider.address || '',
+        notes,
+        bank_account: selectedProvider.bank_account || '',
+        is_active: selectedProvider.is_active,
+      });
+
+      setSelectedProvider(updatedProviderData);
+
+      setProviders(prevProviders =>
+        prevProviders.map(provider =>
+          provider.id === selectedProvider.id ? { ...provider, notes } : provider
+        )
+      );
+
+    } catch (error) {
+      console.error('Failed to update notes:', error);
+      throw error;
+    }
   };
 
   const onSubmit = async (data: ProviderFormValues) => {
@@ -388,19 +526,67 @@ function ProvidersPageContent() {
                 </div>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
-                <Tabs defaultValue="roles" className="flex-1 flex flex-col min-h-0">
+                <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
                   <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
-                    <TabsTrigger value="roles" className="text-xs">{t('ProvidersPage.tabs.roles')}</TabsTrigger>
+                    <TabsTrigger value="summary" className="text-xs">{t('ProvidersPage.tabs.summary')}</TabsTrigger>
+                    <TabsTrigger value="notes" className="text-xs">{t('ProvidersPage.tabs.notes')}</TabsTrigger>
                     <TabsTrigger value="services" className="text-xs">{t('UsersPage.tabs.services')}</TabsTrigger>
                   </TabsList>
                   <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
-                    <TabsContent value="roles" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
-                      <UserRoles
-                        userId={selectedProvider.id}
-                        initialUserRoles={selectedProviderRoles}
-                        isLoading={isRolesLoading}
-                        onRolesChange={() => loadProviderRoles(selectedProvider.id)}
-                      />
+                    <TabsContent value="summary" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                      <Card className="h-full flex flex-col shadow-none border-0">
+                        <CardHeader className="flex-none p-4 pb-2">
+                          <CardTitle className="text-lg text-foreground font-bold">{t('ProvidersPage.summary.title')}</CardTitle>
+                          <CardDescription className="text-sm text-muted-foreground">
+                            {t('ProvidersPage.summary.description')}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1 overflow-auto p-4 pt-0 bg-card">
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.name')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.name}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.identity_document')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.identity_document || '-'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.email')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.email || '-'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.phone')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.phone_number || '-'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.alternative_phone')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.alternative_phone || '-'}</p>
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.address')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.address || '-'}</p>
+                              </div>
+                              <div className="space-y-1 md:col-span-2">
+                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.bank_account')}</span>
+                                <p className="text-sm font-medium">{selectedProvider.bank_account || '-'}</p>
+                              </div>
+                            </div>
+                            <div className="space-y-1 pt-2 border-t">
+                              <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.status')}</span>
+                              <p className="text-sm font-medium">
+                                <span className={selectedProvider.is_active ? "text-green-600" : "text-red-600"}>
+                                  {selectedProvider.is_active ? t('ProvidersPage.summary.active') : t('ProvidersPage.summary.inactive')}
+                                </span>
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                    <TabsContent value="notes" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                      <NotesTab user={selectedProvider} onUpdate={handleUpdateNotes} />
                     </TabsContent>
                     <TabsContent value="services" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
                       <UserServices userId={selectedProvider.id} isSalesUser={false} />
@@ -482,6 +668,64 @@ function ProvidersPageContent() {
                       <FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel>
                       <FormControl>
                         <Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.address')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('ProvidersPage.createDialog.addressPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="alternative_phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.alternative_phone')}</FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          {...field}
+                          defaultCountry="UY"
+                          placeholder={t('ProvidersPage.createDialog.alternative_phonePlaceholder')}
+                          onChange={field.onChange}
+                          value={field.value}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="bank_account"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.bank_account')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('ProvidersPage.createDialog.bank_accountPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('ProvidersPage.createDialog.notes.title')}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={t('ProvidersPage.createDialog.notes.placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

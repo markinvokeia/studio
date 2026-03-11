@@ -16,6 +16,9 @@ export type User = {
   current_debt?: any;
   available_balance?: any;
   notes?: string;
+  address?: string;
+  alternative_phone?: string;
+  bank_account?: string;
 };
 
 export type UserPermission = {

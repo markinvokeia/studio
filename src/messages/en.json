@@ -1946,8 +1946,18 @@
       "emailPlaceholder": "e.g. john.doe@example.com",
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
+      "alternative_phone": "Alternative Phone",
+      "alternative_phonePlaceholder": "123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 1234567890",
+      "address": "Address",
+      "addressPlaceholder": "e.g. Main Street 123",
+      "bank_account": "Bank Account",
+      "bank_accountPlaceholder": "e.g. BBVA 1234-5678-90-123456789",
+      "notes": {
+        "title": "Notes",
+        "placeholder": "Add notes about the provider..."
+      },
       "isActive": "Is Active?",
       "cancel": "Cancel",
       "save": "Create",
@@ -1955,6 +1965,7 @@
         "nameRequired": "Name is required",
         "emailInvalid": "Invalid email address",
         "phoneInvalid": "Invalid phone number",
+        "alternativePhoneInvalid": "Invalid alternative phone number",
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
@@ -1976,7 +1987,37 @@
     },
     "detailsFor": "Details for {name}",
     "tabs": {
-      "roles": "Roles"
+      "summary": "Summary",
+      "notes": "Notes"
+    },
+    "summary": {
+      "title": "Provider Summary",
+      "description": "General information about the provider",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "alternative_phone": "Alternative Phone",
+      "identity_document": "Identity Document",
+      "address": "Address",
+      "bank_account": "Bank Account",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "notes": {
+      "title": "Notes",
+      "description": "Private notes about the provider",
+      "edit": "Edit",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "placeholder": "Write notes here...",
+      "noNotes": "There are no notes for this provider.",
+      "addFirstNote": "Add first note",
+      "saveSuccess": "Notes saved",
+      "saveSuccessDescription": "The provider notes have been updated.",
+      "saveError": "Error saving",
+      "saveErrorDescription": "Could not save the notes. Try again."
     },
     "setInitialPassword": "Set Initial Password",
     "close": "Close details"

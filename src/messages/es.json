@@ -1946,8 +1946,18 @@
             "emailPlaceholder": "ej. juan.perez@ejemplo.com",
             "phone": "Teléfono",
             "phonePlaceholder": "123-456-7890",
+            "alternative_phone": "Teléfono Alternativo",
+            "alternative_phonePlaceholder": "123-456-7890",
             "identity_document": "Documento de Identidad",
             "identity_document_placeholder": "ej. 1234567890",
+            "address": "Dirección",
+            "addressPlaceholder": "ej. Calle Principal 123",
+            "bank_account": "Cuenta Bancaria",
+            "bank_accountPlaceholder": "ej. BBVA 1234-5678-90-123456789",
+            "notes": {
+                "title": "Notas",
+                "placeholder": "Agregar notas sobre el proveedor..."
+            },
             "isActive": "¿Está Activo?",
             "cancel": "Cancelar",
             "save": "Crear",
@@ -1955,6 +1965,7 @@
                 "nameRequired": "El nombre es obligatorio",
                 "emailInvalid": "Correo electrónico inválido",
                 "phoneInvalid": "Número de teléfono inválido",
+                "alternativePhoneInvalid": "Número de teléfono alternativo inválido",
                 "identityInvalid": "El documento de identidad debe ser un número.",
                 "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
                 "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
@@ -1976,7 +1987,37 @@
         },
         "detailsFor": "Detalles para {name}",
         "tabs": {
-            "roles": "Roles"
+            "summary": "Resumen",
+            "notes": "Notas"
+        },
+        "summary": {
+            "title": "Resumen del Proveedor",
+            "description": "Información general del proveedor",
+            "name": "Nombre",
+            "email": "Correo Electrónico",
+            "phone": "Teléfono",
+            "alternative_phone": "Teléfono Alternativo",
+            "identity_document": "Documento de Identidad",
+            "address": "Dirección",
+            "bank_account": "Cuenta Bancaria",
+            "status": "Estado",
+            "active": "Activo",
+            "inactive": "Inactivo"
+        },
+        "notes": {
+            "title": "Notas",
+            "description": "Notas privadas sobre el proveedor",
+            "edit": "Editar",
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "saving": "Guardando...",
+            "placeholder": "Escribe las notas aquí...",
+            "noNotes": "No hay notas para este proveedor.",
+            "addFirstNote": "Agregar primera nota",
+            "saveSuccess": "Notas guardadas",
+            "saveSuccessDescription": "Las notas del proveedor han sido actualizadas.",
+            "saveError": "Error al guardar",
+            "saveErrorDescription": "No se pudieron guardar las notas. Intente de nuevo."
         },
         "setInitialPassword": "Establecer Contraseña Inicial",
         "close": "Cerrar detalles"
