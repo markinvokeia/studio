@@ -29,6 +29,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { MedicalHistory } from '@/components/users/medical-history';
+import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserInvoices } from '@/components/users/user-invoices';
@@ -1039,9 +1040,9 @@ export default function UsersPage() {
                   {canViewDetail && selectedUser ? (
                     <>
                       <UserStats user={selectedUser} t={t} onPrint={handlePrintFinancialSummary} />
-                      <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
+                      <Tabs defaultValue="clinical-history" className="w-full flex-1 flex flex-col min-h-0">
                         <TabsList className="gap-1">
-                          {canViewHistory && <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>}
+                          {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-2 py-1">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                             <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
                           )}
@@ -1056,8 +1057,8 @@ export default function UsersPage() {
                           <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
                         </TabsList>
                         <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                          <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                            <MedicalHistory user={selectedUser} />
+                          <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <ClinicHistoryViewer userId={selectedUser.id} userName={selectedUser.name} />
                           </TabsContent>
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                             <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">

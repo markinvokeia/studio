@@ -597,7 +597,7 @@
       "messages": "Messages",
       "preferences": "Preferences",
       "logs": "Logs",
-      "history": "Clinic History",
+      "clinicalHistory": "Clinical History",
       "orders": "Orders",
       "invoices": "Invoices",
       "payments": "Payments",
