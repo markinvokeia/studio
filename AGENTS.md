@@ -211,4 +211,35 @@ Los permisos se definen en el backend con códigos como:
 
 Para agregar permisos al menú o proteger rutas, consulta los códigos disponibles en el endpoint `/auth/me`.
 
+## Available Skills
+
+Este proyecto cuenta con skills especializados que debes cargar cuando trabajes en tareas específicas. Usa el comando `/load-skill` o la herramienta `skill` para activarlos.
+
+### Cuándo Usar Cada Skill
+
+| Skill | Cuándo Usarlo |
+|-------|---------------|
+| **frontend-design** | Cuando necesites crear interfaces de usuario de alta calidad, nuevos componentes, páginas completas, o mejorar el diseño existente. Genera código creativo y pulido evitando estéticos genéricos de IA. |
+| **interface-design** | Para diseñar dashboards, paneles de admin, aplicaciones y herramientas interactivas. Especialmente útil para crear pantallas desde cero o redesigns importantes. |
+| **vercel-react-best-practices** | Al escribir, revisar o refactorizar código React/Next.js. Optimiza patrones de rendimiento, uso de hooks, data fetching, y bundle optimization. Úsalo PROACTIVAMENTE en cualquier tarea de componentes o páginas. |
+| **tailwind-v4-shadcn** | Cuando tengas problemas con Tailwind v4, shadcn/ui, colores que no funcionan, errores de `@theme`, problemas de dark mode, o al inicial el proyecto con esta tecnología. Sigue el patrón de 4 pasos: CSS variables, Tailwind mapping, base styles, dark mode automático. |
+| **permissions-protection** | Ya documentado en la sección anterior. **SIEMPRE** cuando trabajes con control de acceso, permisos de usuario, o elementos de UI condicionales. |
+
+### Cómo Cargar un Skill
+
+Cuando necesites usar un skill, ejecútalo con la herramienta `skill`:
+
+```
+Usa el skill "frontend-design" para crear el componente de login
+```
+
+### Orden de Preferencia
+
+1. Primero carga `vercel-react-best-practices` para cualquier tarea de React/Next.js
+2. Para diseño UI, carga `frontend-design` o `interface-design`
+3. Para problemas de Tailwind/shadcn, carga `tailwind-v4-shadcn`
+4. Para permisos, siempre usa `permissions-protection`
+
+---
+
 This file should be updated as the codebase evolves and new patterns are established.
