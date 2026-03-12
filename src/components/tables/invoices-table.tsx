@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -33,7 +34,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -1133,6 +1134,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [userSearchOpen, setUserSearchOpen] = React.useState(false);
 
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -1390,10 +1392,39 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                         ? (isSales ? t('client') : t('provider'))
                         : t('user')}
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder={t('selectUser')} /></SelectTrigger></FormControl>
-                      <SelectContent>{users.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                            {field.value ? users.find(user => user.id === field.value)?.name : t('selectUser')}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder={tRoot('createDialog.searchUser')} />
+                          <CommandList>
+                            <CommandEmpty>{tRoot('createDialog.noUserFound')}</CommandEmpty>
+                            <CommandGroup>
+                              {users.map((user) => (
+                                <CommandItem
+                                  value={user.name}
+                                  key={user.id}
+                                  onSelect={() => {
+                                    form.setValue("user_id", user.id);
+                                    setUserSearchOpen(false);
+                                  }}
+                                >
+                                  <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                  {user.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )} />

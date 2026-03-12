@@ -1322,7 +1322,9 @@
       "selectParentInvoice": "Select Parent Invoice",
       "client": "Client",
       "provider": "Provider",
-      "atLeastOneItem": "You must add at least one item."
+      "atLeastOneItem": "You must add at least one item.",
+      "searchUser": "Search user...",
+      "noUserFound": "No users found."
     },
     "actions": {
       "openMenu": "Open menu",

@@ -1322,7 +1322,9 @@
             "selectParentInvoice": "Seleccionar Factura Padre",
             "client": "Cliente",
             "provider": "Proveedor",
-            "atLeastOneItem": "Debe agregar al menos un artículo."
+            "atLeastOneItem": "Debe agregar al menos un artículo.",
+            "searchUser": "Buscar usuario...",
+            "noUserFound": "No se encontraron usuarios."
         },
         "actions": {
             "openMenu": "Abrir menú",
