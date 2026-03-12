@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     Command,
     CommandEmpty,
@@ -11,6 +12,7 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogBody,
@@ -33,19 +35,20 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
 import { PatientSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
-import Image from 'next/image';
 import {
     AlertTriangle,
     Calendar as CalendarIcon,
     Check,
+    ChevronDown,
+    ChevronUp,
     ChevronsUpDown,
     Clock,
     Edit3,
@@ -73,6 +76,7 @@ import {
     ZoomOut,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import Image from 'next/image';
 import * as React from 'react';
 
 interface ClinicHistoryViewerProps {
@@ -121,17 +125,21 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
 
     return (
         <div className="flex flex-col h-full min-h-0">
-            <div className="flex space-x-1 pb-2 border-b">
+            <div className="flex space-x-0.5 bg-muted/40 rounded-lg p-1 mb-1">
                 {navItems.map(({ id, label, icon: Icon }) => (
-                    <Button
+                    <button
                         key={id}
-                        variant={activeView === id ? 'secondary' : 'ghost'}
                         onClick={() => setActiveView(id)}
-                        className="flex items-center space-x-2 text-xs rounded-md"
+                        className={cn(
+                            "flex items-center space-x-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all",
+                            activeView === id
+                                ? "bg-background text-foreground shadow-sm border border-border/50"
+                                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                        )}
                     >
                         <Icon className="w-3 h-3" />
-                        <span className="font-medium">{label}</span>
-                    </Button>
+                        <span>{label}</span>
+                    </button>
                 ))}
             </div>
 
@@ -745,84 +753,88 @@ function AnamnesisSection({
             </div>
 
             {/* Habits - Full Width */}
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0 md:col-span-2">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                        <Wind className="w-5 h-5 text-purple-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{tHabits('title')}</h3>
+            <Card className="md:col-span-2 shadow-sm border">
+                <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                            <Wind className="w-5 h-5 text-purple-500 mr-2" />
+                            <CardTitle className="text-lg font-bold">{tHabits('title')}</CardTitle>
+                        </div>
+                        <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
+                            <Edit3 className="h-4 w-4" />
+                        </Button>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
-                        <Edit3 className="h-4 w-4" />
-                    </Button>
-                </div>
-                {isLoadingPatientHabits ? (
-                    <p>Loading...</p>
-                ) : isHabitsEditing ? (
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="tabaquismo">{tHabits('smoking')}</Label>
-                            <Input
-                                id="tabaquismo"
-                                name="tabaquismo"
-                                value={habitsFormData.tabaquismo || ''}
-                                onChange={handleHabitsChange}
-                                placeholder={tHabits('smokingPlaceholder')}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="alcoholismo">{tHabits('alcohol')}</Label>
-                            <Input
-                                id="alcoholismo"
-                                name="alcoholismo"
-                                value={habitsFormData.alcoholismo || ''}
-                                onChange={handleHabitsChange}
-                                placeholder={tHabits('alcoholPlaceholder')}
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="bruxismo">{tHabits('bruxism')}</Label>
-                            <Input
-                                id="bruxismo"
-                                name="bruxismo"
-                                value={habitsFormData.bruxismo || ''}
-                                onChange={handleHabitsChange}
-                                placeholder={tHabits('bruxismPlaceholder')}
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setIsHabitsEditing(false)}>{tHabits('cancel')}</Button>
-                            <Button onClick={handleSaveHabits} disabled={isSubmittingHabits}>
-                                {isSubmittingHabits && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {tHabits('save')}
-                            </Button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        <div className="flex items-start gap-4">
-                            <Wind className="w-5 h-5 text-muted-foreground mt-1" />
+                </CardHeader>
+                <CardContent>
+                    {isLoadingPatientHabits ? (
+                        <p>Loading...</p>
+                    ) : isHabitsEditing ? (
+                        <div className="space-y-4">
                             <div>
-                                <h4 className="font-semibold">{tHabits('smoking')}</h4>
-                                <p className="text-sm text-foreground/80">{habitsFormData.tabaquismo || tHabits('noData')}</p>
+                                <Label htmlFor="tabaquismo">{tHabits('smoking')}</Label>
+                                <Input
+                                    id="tabaquismo"
+                                    name="tabaquismo"
+                                    value={habitsFormData.tabaquismo || ''}
+                                    onChange={handleHabitsChange}
+                                    placeholder={tHabits('smokingPlaceholder')}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="alcoholismo">{tHabits('alcohol')}</Label>
+                                <Input
+                                    id="alcoholismo"
+                                    name="alcoholismo"
+                                    value={habitsFormData.alcoholismo || ''}
+                                    onChange={handleHabitsChange}
+                                    placeholder={tHabits('alcoholPlaceholder')}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="bruxismo">{tHabits('bruxism')}</Label>
+                                <Input
+                                    id="bruxismo"
+                                    name="bruxismo"
+                                    value={habitsFormData.bruxismo || ''}
+                                    onChange={handleHabitsChange}
+                                    placeholder={tHabits('bruxismPlaceholder')}
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setIsHabitsEditing(false)}>{tHabits('cancel')}</Button>
+                                <Button onClick={handleSaveHabits} disabled={isSubmittingHabits}>
+                                    {isSubmittingHabits && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {tHabits('save')}
+                                </Button>
                             </div>
                         </div>
-                        <div className="flex items-start gap-4">
-                            <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
-                            <div>
-                                <h4 className="font-semibold">{tHabits('alcohol')}</h4>
-                                <p className="text-sm text-foreground/80">{habitsFormData.alcoholismo || tHabits('noData')}</p>
+                    ) : (
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-4">
+                                <Wind className="w-5 h-5 text-muted-foreground mt-1" />
+                                <div>
+                                    <h4 className="font-semibold">{tHabits('smoking')}</h4>
+                                    <p className="text-sm text-foreground/80">{habitsFormData.tabaquismo || tHabits('noData')}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4">
+                                <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
+                                <div>
+                                    <h4 className="font-semibold">{tHabits('alcohol')}</h4>
+                                    <p className="text-sm text-foreground/80">{habitsFormData.alcoholismo || tHabits('noData')}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-4">
+                                <Smile className="w-5 h-5 text-muted-foreground mt-1" />
+                                <div>
+                                    <h4 className="font-semibold">{tHabits('bruxism')}</h4>
+                                    <p className="text-sm text-foreground/80">{habitsFormData.bruxismo || tHabits('noData')}</p>
+                                </div>
                             </div>
                         </div>
-                        <div className="flex items-start gap-4">
-                            <Smile className="w-5 h-5 text-muted-foreground mt-1" />
-                            <div>
-                                <h4 className="font-semibold">{tHabits('bruxism')}</h4>
-                                <p className="text-sm text-foreground/80">{habitsFormData.bruxismo || tHabits('noData')}</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Personal History Dialog */}
             <Dialog open={isPersonalDialogOpen} onOpenChange={setIsPersonalDialogOpen}>
@@ -1188,6 +1200,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
         notas_clinicas: '',
         plan_proxima_cita: '',
     });
+    const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
 
     // Attachment states
     const [attachedFiles, setAttachedFiles] = React.useState<File[]>([]);
@@ -1209,6 +1222,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
             notas_clinicas: '',
             plan_proxima_cita: '',
         });
+        setSessionTreatments([]);
         setAttachedFiles([]);
         setExistingAttachments([]);
         setDeletedAttachmentIds([]);
@@ -1226,6 +1240,10 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
             notas_clinicas: session.notas_clinicas || '',
             plan_proxima_cita: session.plan_proxima_cita || '',
         });
+        setSessionTreatments((session.tratamientos || []).map(t => ({
+            numero_diente: t.numero_diente ? String(t.numero_diente) : '',
+            descripcion: t.descripcion || ''
+        })));
         // Load existing attachments
         setExistingAttachments((session as any).attachments || []);
         setAttachedFiles([]);
@@ -1253,10 +1271,18 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
     const handleSaveSession = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const dataToSave = {
+                ...sessionForm,
+                tratamientos: sessionTreatments.length > 0 ? JSON.stringify(sessionTreatments.map(t => ({
+                    numero_diente: t.numero_diente ? parseInt(t.numero_diente, 10) : null,
+                    descripcion: t.descripcion
+                }))) : undefined
+            };
+
             if (editingSession?.sesion_id) {
-                await updateSession(editingSession.sesion_id, userId, sessionForm, attachedFiles, deletedAttachmentIds);
+                await updateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds);
             } else {
-                await createSession(userId, sessionForm, attachedFiles);
+                await createSession(userId, dataToSave, attachedFiles);
             }
             toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
             setIsSessionDialogOpen(false);
@@ -1335,13 +1361,21 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                     <Card className="flex-1">
                                         <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start">
-                                                <div>
-                                                    <CardTitle className="text-base">{session.procedimiento_realizado}</CardTitle>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {formatDate(session.fecha_sesion)}
-                                                    </p>
+                                                <div className="flex-1 min-w-0 pr-2">
+                                                    <CardTitle className="text-base">{session.procedimiento_realizado || t('noTitle')}</CardTitle>
+                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {formatDate(session.fecha_sesion)}
+                                                        </p>
+                                                        {session.doctor_name && (
+                                                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                                                <User className="h-3 w-3" />
+                                                                {session.doctor_name}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-shrink-0">
                                                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
                                                         {session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : session.tipo_sesion}
                                                     </span>
@@ -1361,11 +1395,64 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                                 </div>
                                             </div>
                                         </CardHeader>
-                                        {session.diagnostico && (
-                                            <CardContent>
-                                                <p className="text-sm"><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
-                                            </CardContent>
-                                        )}
+                                        <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
+                                            <CollapsibleTrigger asChild>
+                                                <Button variant="ghost" size="sm" className="w-full justify-start px-4 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+                                                    {isOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
+                                                    {isOpen ? t('hideDetails') || 'Ocultar detalles' : t('showDetails') || 'Ver detalles'}
+                                                </Button>
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent>
+                                                <CardContent className="pt-0 pb-3 space-y-2">
+                                                    {session.diagnostico && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('diagnosis')}</p>
+                                                            <p className="text-sm">{session.diagnostico}</p>
+                                                        </div>
+                                                    )}
+                                                    {session.notas_clinicas && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('notes') || 'Notas clínicas'}</p>
+                                                            <p className="text-sm">{session.notas_clinicas}</p>
+                                                        </div>
+                                                    )}
+                                                    {session.plan_proxima_cita && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
+                                                            <p className="text-sm">{session.plan_proxima_cita}</p>
+                                                        </div>
+                                                    )}
+                                                    {session.tratamientos && session.tratamientos.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('treatments') || 'Tratamientos'}</p>
+                                                            <div className="space-y-1">
+                                                                {session.tratamientos.map((tr: any, i: number) => (
+                                                                    <div key={i} className="flex items-center gap-2 text-sm">
+                                                                        {tr.numero_diente && (
+                                                                            <span className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
+                                                                        )}
+                                                                        <span>{tr.descripcion}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {(session as any).attachments && (session as any).attachments.length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('attachments') || 'Adjuntos'}</p>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {(session as any).attachments.map((att: any, i: number) => (
+                                                                    <span key={i} className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">
+                                                                        <FileText className="h-3 w-3" />
+                                                                        {att.nombre || att.name || 'File'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </CollapsibleContent>
+                                        </Collapsible>
                                     </Card>
                                 </div>
                             );
@@ -1376,154 +1463,237 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
 
             {/* Session Dialog */}
             <Dialog open={isSessionDialogOpen} onOpenChange={setIsSessionDialogOpen}>
-                <DialogContent maxWidth="md">
+                <DialogContent maxWidth="4xl">
                     <DialogHeader>
                         <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveSession}>
-                        <DialogBody className="space-y-4 pt-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>{tDialog('date')}</Label>
-                                    <Input
-                                        type="date"
-                                        value={sessionForm.fecha_sesion}
-                                        onChange={(e) => setSessionForm({ ...sessionForm, fecha_sesion: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>{tDialog('doctor')}</Label>
-                                    <Select
-                                        value={sessionForm.doctor_name}
-                                        onValueChange={(value) => setSessionForm({ ...sessionForm, doctor_name: value })}
-                                    >
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder={tDialog('selectDoctor')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {doctors.map((doc) => (
-                                                <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{tDialog('procedure')}</Label>
-                                <Input
-                                    value={sessionForm.procedimiento_realizado}
-                                    onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
-                                    placeholder={tDialog('procedurePlaceholder')}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{tDialog('diagnosis')}</Label>
-                                <Textarea
-                                    value={sessionForm.diagnostico}
-                                    onChange={(e) => setSessionForm({ ...sessionForm, diagnostico: e.target.value })}
-                                    placeholder={tDialog('diagnosisPlaceholder')}
-                                    className="min-h-[80px]"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{tDialog('notes')}</Label>
-                                <Textarea
-                                    value={sessionForm.notas_clinicas}
-                                    onChange={(e) => setSessionForm({ ...sessionForm, notas_clinicas: e.target.value })}
-                                    placeholder={tDialog('notesPlaceholder')}
-                                    className="min-h-[80px]"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{tDialog('nextSessionPlan')}</Label>
-                                <Input
-                                    value={sessionForm.plan_proxima_cita}
-                                    onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
-                                    placeholder={tDialog('nextSessionPlanPlaceholder')}
-                                />
-                            </div>
-
-                            {/* Attachments Section */}
-                            <div className="space-y-3">
-                                <Label>{tDialog('attachments')}</Label>
-
-                                {/* Drag and Drop Area */}
-                                <div
-                                    className={cn(
-                                        "border-2 border-dashed rounded-lg p-4 transition-colors",
-                                        isDragOverSession ? "border-primary bg-primary/10" : "border-muted-foreground/25"
-                                    )}
-                                    onDragOver={(e) => { e.preventDefault(); setIsDragOverSession(true); }}
-                                    onDragLeave={() => setIsDragOverSession(false)}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        setIsDragOverSession(false);
-                                        if (e.dataTransfer.files?.length) {
-                                            setAttachedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-                                        }
-                                    }}
-                                >
-                                    <div className="flex flex-col items-center text-center">
-                                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                                        <p className="text-sm text-muted-foreground">{tDialog('dragDropFiles')}</p>
+                        <DialogBody className="space-y-4 px-6 py-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Left Column: General Info */}
+                                <div className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>{tDialog('date')}</Label>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className={cn(
+                                                            "w-full justify-start text-left font-normal h-10 border-input",
+                                                            !sessionForm.fecha_sesion && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                                        {sessionForm.fecha_sesion
+                                                            ? format(new Date(sessionForm.fecha_sesion + 'T00:00:00'), 'dd/MM/yyyy')
+                                                            : tDialog('date')}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <DatePicker
+                                                        mode="single"
+                                                        selected={sessionForm.fecha_sesion ? new Date(sessionForm.fecha_sesion + 'T00:00:00') : undefined}
+                                                        onSelect={(date) => setSessionForm({ ...sessionForm, fecha_sesion: date ? date.toISOString().split('T')[0] : '' })}
+                                                        initialFocus
+                                                    />
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>{tDialog('doctor')}</Label>
+                                            <Select
+                                                value={sessionForm.doctor_name}
+                                                onValueChange={(value) => setSessionForm({ ...sessionForm, doctor_name: value })}
+                                            >
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue placeholder={tDialog('selectDoctor')} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {doctors.map((doc) => (
+                                                        <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{tDialog('procedure')}</Label>
                                         <Input
-                                            type="file"
-                                            multiple
-                                            className="hidden"
-                                            id="session-file-upload"
-                                            onChange={handleFileChange}
+                                            value={sessionForm.procedimiento_realizado}
+                                            onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
+                                            placeholder={tDialog('procedurePlaceholder')}
                                         />
-                                        <Label htmlFor="session-file-upload" className="mt-2 cursor-pointer text-primary hover:underline">
-                                            {tDialog('browseFiles')}
-                                        </Label>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{tDialog('diagnosis')}</Label>
+                                        <Textarea
+                                            value={sessionForm.diagnostico}
+                                            onChange={(e) => setSessionForm({ ...sessionForm, diagnostico: e.target.value })}
+                                            placeholder={tDialog('diagnosisPlaceholder')}
+                                            className="min-h-[80px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{tDialog('notes')}</Label>
+                                        <Textarea
+                                            value={sessionForm.notas_clinicas}
+                                            onChange={(e) => setSessionForm({ ...sessionForm, notas_clinicas: e.target.value })}
+                                            placeholder={tDialog('notesPlaceholder')}
+                                            className="min-h-[80px]"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{tDialog('nextSessionPlan')}</Label>
+                                        <Input
+                                            value={sessionForm.plan_proxima_cita}
+                                            onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
+                                            placeholder={tDialog('nextSessionPlanPlaceholder')}
+                                        />
                                     </div>
                                 </div>
 
-                                {/* Existing Attachments */}
-                                {existingAttachments.length > 0 && (
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground">{tDialog('existingAttachments')}</Label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {existingAttachments.map((attachment: any, idx: number) => (
-                                                <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-sm">
-                                                    <File className="w-4 h-4" />
-                                                    <span className="truncate max-w-[100px]">{attachment.nombre || attachment.name || 'File'}</span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-5 w-5 text-destructive"
-                                                        onClick={() => handleDeleteExistingAttachment(attachment.id)}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                {/* Right Column: Treatments & Attachments */}
+                                <div className="space-y-4">
+                                    <Card className="shadow-none border bg-muted/5">
+                                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
+                                            <CardTitle className="text-sm font-bold">{tDialog('treatments') || 'Trabajos'}</CardTitle>
+                                            <Button type="button" variant="ghost" size="sm" onClick={() => setSessionTreatments([...sessionTreatments, { numero_diente: '', descripcion: '' }])} className="h-7 px-2 text-xs">
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                {tDialog('addTreatment') || 'Añadir'}
+                                            </Button>
+                                        </CardHeader>
+                                        <CardContent className="p-2 pt-0">
+                                            <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
+                                                {sessionTreatments.length === 0 ? (
+                                                    <div className="flex items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                        No treatments added yet.
+                                                    </div>
+                                                ) : sessionTreatments.map((treatment, index) => (
+                                                    <div key={index} className="flex gap-2 items-start p-2 bg-background border rounded-md">
+                                                        <Input
+                                                            type="number"
+                                                            placeholder={tDialog('tooth') || 'Diente'}
+                                                            value={treatment.numero_diente}
+                                                            onChange={(e) => {
+                                                                const newTreatments = [...sessionTreatments];
+                                                                newTreatments[index].numero_diente = e.target.value;
+                                                                setSessionTreatments(newTreatments);
+                                                            }}
+                                                            className="h-7 text-xs px-2 w-16"
+                                                        />
+                                                        <Textarea
+                                                            placeholder={tDialog('treatmentPlaceholder') || 'Descripción...'}
+                                                            value={treatment.descripcion}
+                                                            onChange={(e) => {
+                                                                const newTreatments = [...sessionTreatments];
+                                                                newTreatments[index].descripcion = e.target.value;
+                                                                setSessionTreatments(newTreatments);
+                                                            }}
+                                                            className="min-h-[28px] h-7 text-xs p-1 flex-1 resize-none"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-destructive"
+                                                            onClick={() => setSessionTreatments(sessionTreatments.filter((_, i) => i !== index))}
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
 
-                                {/* New Attached Files */}
-                                {attachedFiles.length > 0 && (
-                                    <div className="space-y-2">
-                                        <Label className="text-xs text-muted-foreground">{tDialog('newAttachments')}</Label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {attachedFiles.map((file, idx) => (
-                                                <div key={idx} className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-sm">
-                                                    <File className="w-4 h-4" />
-                                                    <span className="truncate max-w-[100px]">{file.name}</span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-5 w-5"
-                                                        onClick={() => handleRemoveNewFile(idx)}
-                                                    >
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
+                                    {/* Attachments Section */}
+                                    <Card className="shadow-none border bg-muted/5">
+                                        <CardHeader className="py-2 px-3">
+                                            <CardTitle className="text-sm font-bold">{tDialog('attachments')}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-3">
+                                            {/* Drag and Drop Area */}
+                                            <div
+                                                className={cn(
+                                                    "border-2 border-dashed rounded-lg p-4 transition-colors",
+                                                    isDragOverSession ? "border-primary bg-primary/10" : "border-muted-foreground/25"
+                                                )}
+                                                onDragOver={(e) => { e.preventDefault(); setIsDragOverSession(true); }}
+                                                onDragLeave={() => setIsDragOverSession(false)}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    setIsDragOverSession(false);
+                                                    if (e.dataTransfer.files?.length) {
+                                                        setAttachedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex flex-col items-center text-center">
+                                                    <Upload className="w-6 h-6 text-muted-foreground mb-2" />
+                                                    <p className="text-xs text-muted-foreground mb-2">{tDialog('dragDropFiles')}</p>
+                                                    <Input
+                                                        type="file"
+                                                        multiple
+                                                        className="hidden"
+                                                        id="session-file-upload"
+                                                        onChange={handleFileChange}
+                                                    />
+                                                    <Label htmlFor="session-file-upload" className="cursor-pointer text-xs font-semibold text-primary hover:underline">
+                                                        {tDialog('browseFiles')}
+                                                    </Label>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                            </div>
+
+                                            {/* Existing Attachments */}
+                                            {existingAttachments.length > 0 && (
+                                                <div className="mt-3 space-y-2">
+                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('existingAttachments')}</Label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {existingAttachments.map((attachment: any, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs">
+                                                                <File className="w-3 h-3" />
+                                                                <span className="truncate max-w-[100px]">{attachment.nombre || attachment.name || 'File'}</span>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-4 w-4 text-destructive"
+                                                                    onClick={() => handleDeleteExistingAttachment(attachment.id)}
+                                                                >
+                                                                    <X className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* New Attached Files */}
+                                            {attachedFiles.length > 0 && (
+                                                <div className="mt-3 space-y-2">
+                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('newAttachments')}</Label>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {attachedFiles.map((file, idx) => (
+                                                            <div key={idx} className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs">
+                                                                <File className="w-3 h-3" />
+                                                                <span className="truncate max-w-[100px]">{file.name}</span>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-4 w-4"
+                                                                    onClick={() => handleRemoveNewFile(idx)}
+                                                                >
+                                                                    <X className="h-3 w-3" />
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </div>
                         </DialogBody>
                         <DialogFooter className="px-6 py-4 border-t gap-2">
@@ -1570,10 +1740,11 @@ interface DocumentViewerModalProps {
     onOpenChange: (open: boolean) => void;
     document: { id: string; name: string; type?: string } | null;
     documentContent: string | null;
+    isLoadingDocument?: boolean;
     onLoadDocument: (doc: { id: string; name: string; type?: string }) => void;
 }
 
-function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, onLoadDocument }: DocumentViewerModalProps) {
+function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, isLoadingDocument, onLoadDocument }: DocumentViewerModalProps) {
     const [zoom, setZoom] = React.useState(1);
     const [position, setPosition] = React.useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = React.useState(false);
@@ -1626,7 +1797,12 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
                     onMouseLeave={handleMouseUp}
                     onWheel={handleWheel}
                 >
-                    {documentContent ? (
+                    {isLoadingDocument ? (
+                        <div className="flex-1 flex flex-col items-center justify-center h-full gap-3">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm text-muted-foreground">Cargando documento...</p>
+                        </div>
+                    ) : documentContent ? (
                         document?.type?.startsWith('image/') || document?.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                             <div className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20">
                                 <Image
@@ -1759,51 +1935,71 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
                 </div>
 
                 {documents.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {documents.map((doc, idx) => (
-                            <Card key={idx} className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleViewDocument(doc)}>
-                                <div className="h-28 bg-muted flex items-center justify-center relative group">
-                                    {isImageFile(doc.nombre || doc.name) ? (
-                                        <Image
-                                            src={doc.thumbnail_url || doc.ruta ? `${process.env.NEXT_PUBLIC_API_URL}${doc.thumbnail_url || doc.ruta}` : ''}
-                                            alt={doc.nombre || doc.name || 'Document'}
-                                            fill
-                                            className="object-cover"
-                                            unoptimized
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).style.display = 'none';
-                                            }}
-                                        />
-                                    ) : (
-                                        <File className="w-10 h-10 text-muted-foreground" />
-                                    )}
-                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <Eye className="w-6 h-6 text-white" />
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {documents.map((doc, idx) => {
+                            const isImage = isImageFile(doc.nombre || doc.name || '');
+                            const docName = doc.nombre || doc.name || 'Document';
+                            return (
+                                <Card
+                                    key={idx}
+                                    className="overflow-hidden cursor-pointer group transition-all hover:shadow-md hover:border-primary/30 border"
+                                    onClick={() => handleViewDocument(doc)}
+                                >
+                                    <div className="h-32 bg-muted/50 flex items-center justify-center relative">
+                                        {isImage ? (
+                                            <Image
+                                                src={doc.thumbnail_url || doc.ruta ? `${process.env.NEXT_PUBLIC_API_URL}${doc.thumbnail_url || doc.ruta}` : ''}
+                                                alt={docName}
+                                                fill
+                                                className="object-cover transition-transform group-hover:scale-105"
+                                                unoptimized
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                    <FileText className="w-6 h-6 text-primary" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <div className="bg-background/90 rounded-full p-2">
+                                                <Eye className="w-5 h-5 text-foreground" />
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <CardContent className="p-2">
-                                    <p className="text-xs truncate font-medium">{doc.nombre || doc.name || 'Document'}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {formatDate(doc.fecha_subida)}
-                                    </p>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-6 w-6 text-destructive mt-1"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDelete(doc.id);
-                                        }}
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    <CardContent className="p-2.5">
+                                        <p className="text-xs truncate font-semibold" title={docName}>{docName}</p>
+                                        <p className="text-xs text-muted-foreground mt-0.5">{formatDate(doc.fecha_subida)}</p>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-full mt-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs px-1"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(doc.id);
+                                            }}
+                                        >
+                                            <Trash2 className="h-3 w-3 mr-1" />
+                                            {t('documents.delete') || 'Eliminar'}
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
                     </div>
                 ) : (
-                    <div className="flex items-center justify-center h-40 text-muted-foreground border-2 border-dashed rounded-lg">
-                        <p>{t('documents.noDocuments')}</p>
+                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-xl gap-3">
+                        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+                            <FolderArchive className="w-7 h-7 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm">{t('documents.noDocuments')}</p>
+                        <Button size="sm" variant="outline" onClick={() => setIsUploadDialogOpen(true)}>
+                            <Plus className="w-3 h-3 mr-1" />
+                            {t('documents.add')}
+                        </Button>
                     </div>
                 )}
             </div>
@@ -1882,6 +2078,7 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
                 onOpenChange={setIsViewerOpen}
                 document={selectedDocument}
                 documentContent={documentContent}
+                isLoadingDocument={isLoadingDocument}
                 onLoadDocument={() => { }}
             />
         </>

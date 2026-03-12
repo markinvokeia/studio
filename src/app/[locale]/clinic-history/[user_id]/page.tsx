@@ -49,12 +49,15 @@ import {
     Check,
     ChevronDown, ChevronsUpDown,
     Clock,
+    Download,
     Edit3,
     Eye,
+    File,
     FileText,
     FolderArchive,
     GlassWater,
     Heart,
+    Image as ImageIcon,
     Loader2,
     Maximize, Minimize,
     MoreHorizontal,
@@ -1768,82 +1771,182 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
 };
 
 const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }: { isOpen: boolean, onOpenChange: (open: boolean) => void, document: Document | null, documentContent: string | null }) => {
-    const ImageViewer = ({ src, alt }: { src: string; alt: string; }) => {
-        const [zoom, setZoom] = useState(1);
-        const [position, setPosition] = useState({ x: 0, y: 0 });
-        const [isDragging, setIsDragging] = useState(false);
-        const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-        const imageRef = useRef<HTMLImageElement>(null);
+    const [zoom, setZoom] = useState(1);
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const imageRef = useRef<HTMLImageElement>(null);
 
-        const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
-            if (!imageRef.current) return;
-            e.preventDefault();
-            setIsDragging(true);
-            setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
-        };
+    useEffect(() => {
+        if (isOpen) {
+            setIsLoading(!documentContent);
+            setError(null);
+            setZoom(1);
+            setPosition({ x: 0, y: 0 });
+        }
+    }, [isOpen, documentContent]);
 
-        const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-            if (!isDragging || !imageRef.current) return;
-            e.preventDefault();
-            setPosition({
-                x: e.clientX - dragStart.x,
-                y: e.clientY - dragStart.y,
-            });
-        };
+    const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
+        if (!imageRef.current) return;
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    };
 
-        const handleMouseUp = () => {
-            setIsDragging(false);
-        };
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isDragging || !imageRef.current) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y,
+        });
+    };
 
-        const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-            setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
-        };
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
+    };
+
+    const isImage = document?.mimeType?.startsWith('image/');
+    const isPdf = document?.mimeType === 'application/pdf';
+    const mimeType = document?.mimeType || '';
+
+    const renderContent = () => {
+        if (isLoading || !documentContent) {
+            return (
+                <div className="flex-1 flex flex-col items-center justify-center h-full bg-muted/10">
+                    <div className="relative">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                        <div className="absolute inset-0 h-12 w-12 animate-ping rounded-full bg-primary/20" />
+                    </div>
+                    <p className="mt-4 text-sm text-muted-foreground">Cargando documento...</p>
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                <div className="flex-1 flex flex-col items-center justify-center h-full bg-destructive/5">
+                    <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                        <AlertTriangle className="h-10 w-10 text-destructive" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-destructive">Error al cargar</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{error}</p>
+                    <Button 
+                        variant="outline" 
+                        className="mt-4"
+                        onClick={() => setError(null)}
+                    >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Reintentar
+                    </Button>
+                </div>
+            );
+        }
+
+        if (isImage) {
+            return (
+                <div
+                    className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-gradient-to-br from-muted/10 to-muted/5"
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onWheel={handleWheel}
+                >
+                    <img
+                        ref={imageRef}
+                        src={documentContent}
+                        alt={document?.name || 'Documento'}
+                        className="max-w-none max-h-none cursor-grab active:cursor-grabbing select-none"
+                        style={{ 
+                            transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, 
+                            transition: isDragging ? 'none' : 'transform 0.1s ease-out' 
+                        }}
+                        onMouseDown={handleMouseDown}
+                        draggable={false}
+                    />
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg border">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}>
+                            <ZoomOut className="h-4 w-4" />
+                        </Button>
+                        <span className='text-xs font-medium w-14 text-center'>{Math.round(zoom * 100)}%</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}>
+                            <ZoomIn className="h-4 w-4" />
+                        </Button>
+                        <div className="w-px h-6 bg-border mx-1" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}>
+                            <RotateCcw className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            );
+        }
+
+        if (isPdf) {
+            return (
+                <iframe src={documentContent} className="h-full w-full border-0 flex-1 bg-muted/10" title={document?.name} />
+            );
+        }
 
         return (
-            <div
-                className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20"
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onWheel={handleWheel}
-            >
-                <img
-                    ref={imageRef}
-                    src={src}
-                    alt={alt}
-                    className="max-w-none max-h-none cursor-grab transform-gpu"
-                    style={{ transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`, transition: isDragging ? 'none' : 'transform 0.1s ease-out' }}
-                    onMouseDown={handleMouseDown}
-                />
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm">
-                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.max(prev - 0.2, 0.2))}><ZoomOut className="h-4 w-4" /></Button>
-                    <span className='text-sm font-medium w-16 text-center bg-transparent'>{(zoom * 100).toFixed(0)}%</span>
-                    <Button variant="outline" size="icon" onClick={() => setZoom(prev => Math.min(prev + 0.2, 5))}><ZoomIn className="h-4 w-4" /></Button>
-                    <Button variant="outline" size="icon" onClick={() => { setZoom(1); setPosition({ x: 0, y: 0 }); }}><RotateCcw className="h-4 w-4" /></Button>
+            <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-muted/10 to-muted/5 p-8">
+                <div className="text-center space-y-4 max-w-md">
+                    <div className="w-24 h-24 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+                        <FileText className="h-12 w-12 text-primary" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold text-foreground">{document?.name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">{mimeType}</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                        Este tipo de archivo no se puede previsualizar en el navegador.
+                    </p>
+                    <a
+                        href={documentContent}
+                        download={document?.name}
+                        className="inline-flex items-center justify-center gap-2 h-11 px-6 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                        <Download className="h-4 w-4" />
+                        Descargar archivo
+                    </a>
                 </div>
             </div>
         );
-    }
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent maxWidth="4xl" showMaximize className="h-[90vh] flex flex-col p-0">
-                <DialogHeader>
-                    <DialogTitle>{document?.name}</DialogTitle>
+            <DialogContent maxWidth="4xl" showMaximize className="h-[90vh] max-w-[95vw] flex flex-col p-0 gap-0">
+                <DialogHeader className="px-6 py-4 border-b bg-muted/10 flex-shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            {isImage ? <ImageIcon className="h-5 w-5 text-primary" /> : isPdf ? <FileText className="h-5 w-5 text-primary" /> : <File className="h-5 w-5 text-primary" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <DialogTitle className="text-base font-semibold truncate">{document?.name}</DialogTitle>
+                            <p className="text-xs text-muted-foreground">{mimeType}</p>
+                        </div>
+                        {documentContent && (
+                            <a
+                                href={documentContent}
+                                download={document?.name}
+                                className="inline-flex items-center gap-2 h-9 px-3 text-sm font-medium rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                            >
+                                <Download className="h-4 w-4" />
+                                Descargar
+                            </a>
+                        )}
+                    </div>
                 </DialogHeader>
                 <DialogBody className="p-0 overflow-hidden flex-1 flex flex-col">
-                    {documentContent ? (
-                        document?.mimeType?.startsWith('image/') ? (
-                            <ImageViewer src={documentContent} alt={document.name} />
-                        ) : (
-                            <iframe src={documentContent} className="h-full w-full border-0 flex-1" title={document?.name} />
-                        )
-                    ) : (
-                        <div className="flex-1 flex items-center justify-center h-full">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                        </div>
-                    )}
+                    {renderContent()}
                 </DialogBody>
             </DialogContent>
         </Dialog>
@@ -2405,13 +2508,19 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
         ];
 
         return (
-            <div className="flex space-x-1">
+            <div className="flex items-center gap-2 p-1 bg-muted/30 rounded-lg">
                 {navItems.map(({ id, label, icon: Icon }) => (
                     <Button
                         key={id}
                         variant={activeView === id ? 'default' : 'ghost'}
+                        size="sm"
                         onClick={() => setActiveView(id)}
-                        className="flex items-center space-x-2"
+                        className={cn(
+                            "gap-2 h-9 px-4 transition-all duration-200",
+                            activeView === id 
+                                ? "shadow-sm" 
+                                : "hover:bg-muted/50 text-muted-foreground"
+                        )}
                     >
                         <Icon className="w-4 h-4" />
                         <span className="font-medium">{label}</span>
@@ -2482,10 +2591,21 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                 </div>
                                 <div className="flex-1">
                                     <div className="bg-card rounded-lg border p-4 transition-colors duration-200">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <div>
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="space-y-1">
                                                 <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
-                                                <p className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</p>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                                                    <span className="flex items-center gap-1">
+                                                        <CalendarIcon className="h-3 w-3" />
+                                                        {session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : '-'}
+                                                    </span>
+                                                    {session.doctor_name && (
+                                                        <span className="flex items-center gap-1">
+                                                            <User className="h-3 w-3" />
+                                                            Dr. {session.doctor_name}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             {session.tipo_sesion !== 'odontograma' ? (
                                                 <DropdownMenu>
@@ -2501,10 +2621,25 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                 </DropdownMenu>
                                             ) : null}
                                         </div>
-                                        <div className="space-y-3 text-sm text-muted-foreground">
-                                            <p><strong>{t('diagnosis')}:</strong> {session.diagnostico}</p>
-                                            <p><strong>{t('notes')}:</strong> {session.notas_clinicas}</p>
-                                            {session.plan_proxima_cita && <p><strong>{t('nextSessionPlan')}:</strong> {session.plan_proxima_cita}</p>}
+                                        <div className="space-y-2.5 text-sm">
+                                            {session.diagnostico && (
+                                                <div className="flex items-start gap-2">
+                                                    <span className="font-medium text-foreground shrink-0">{t('diagnosis')}:</span>
+                                                    <span className="text-muted-foreground">{session.diagnostico}</span>
+                                                </div>
+                                            )}
+                                            {session.notas_clinicas && (
+                                                <div className="flex items-start gap-2">
+                                                    <span className="font-medium text-foreground shrink-0">{t('notes')}:</span>
+                                                    <span className="text-muted-foreground">{session.notas_clinicas}</span>
+                                                </div>
+                                            )}
+                                            {session.plan_proxima_cita && (
+                                                <div className="flex items-start gap-2">
+                                                    <span className="font-medium text-foreground shrink-0">{t('nextSessionPlan')}:</span>
+                                                    <span className="text-muted-foreground">{session.plan_proxima_cita}</span>
+                                                </div>
+                                            )}
                                             <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
                                                 {(session.tratamientos?.length > 0 || session.archivos_adjuntos?.length > 0 || session.estado_odontograma) && (
                                                     <CollapsibleTrigger asChild>
@@ -2635,12 +2770,13 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             {selectedPatient ? (
                 <>
                     <div className={cn("flex-1 flex flex-col min-h-0", !isFullscreen && "px-6 py-4")}>
-                        <div className={cn("flex-1 flex flex-col min-h-0",
-                            activeView !== 'odontogram' && 'space-y-6')}>
-
+                        <div className={cn(
+                            "flex-1 flex flex-col min-h-0 rounded-xl border overflow-hidden",
+                            activeView === 'odontogram' ? 'bg-background' : 'bg-gradient-to-br from-muted/20 to-muted/5'
+                        )}>
                             {activeView === 'anamnesis' &&
-                                <ScrollArea className='flex-1'>
-                                    <div className="pr-4">
+                                <ScrollArea className='flex-1 p-4'>
+                                    <div className="pr-4 space-y-6">
                                         <AnamnesisDashboard
                                             personalHistory={personalHistory}
                                             isLoadingPersonalHistory={isLoadingPersonalHistory}
@@ -2662,7 +2798,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     </div>
                                 </ScrollArea>
                             }
-                            {activeView === 'timeline' && <ScrollArea className='flex-1'><div className="pr-4"><TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} /></div></ScrollArea>}
+                            {activeView === 'timeline' && <ScrollArea className='flex-1 p-4'><div className="pr-4 space-y-6"><TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} /></div></ScrollArea>}
                             {activeView === 'odontogram' && (
                                 <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "flex-1 min-h-0 w-full")}>
                                     <Button
@@ -2676,7 +2812,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     <iframe src={`${process.env.NEXT_PUBLIC_ONDONTOGRAMA_URL || 'https://odontogramiia.invokeia.com'}?lang=${locale}&user_id=${userId}&token=${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`} className="w-full h-full border-0" title="Odontograma"></iframe>
                                 </div>
                             )}
-                            {activeView === 'documents' && <ScrollArea className='flex-1'><div className="pr-4"><ImageGallery userId={userId} onViewDocument={handleViewDocument} /></div></ScrollArea>}
+                            {activeView === 'documents' && <ScrollArea className='flex-1 p-4'><div className="pr-4 space-y-6"><ImageGallery userId={userId} onViewDocument={handleViewDocument} /></div></ScrollArea>}
                         </div>
                     </div>
                 </>
