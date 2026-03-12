@@ -39,6 +39,7 @@ import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/hooks/use-debounce';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
@@ -322,9 +323,13 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     }
 }
 
-async function getUsers(t: (key: string) => string): Promise<User[]> {
+async function getUsers(t: (key: string) => string, search?: string): Promise<User[]> {
     try {
-        const responseData = await api.get(API_ROUTES.SALES.USERS, { filter_type: 'PACIENTE' });
+        const params: any = { filter_type: 'PACIENTE' };
+        if (search?.trim()) {
+            params.search = search.trim();
+        }
+        const responseData = await api.get(API_ROUTES.SALES.USERS, params);
         const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
         const usersData = Array.isArray(data.data) ? data.data : [];
         return usersData.map((apiUser: any) => ({
@@ -442,6 +447,9 @@ export default function QuotesPage() {
     const [quoteItemSubmissionError, setQuoteItemSubmissionError] = React.useState<string | null>(null);
 
     const [allUsers, setAllUsers] = React.useState<User[]>([]);
+    const [userSearchTerm, setUserSearchTerm] = React.useState('');
+    const debouncedUserSearch = useDebounce(userSearchTerm, 300);
+    const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
     const [allServices, setAllServices] = React.useState<Service[]>([]);
     const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
@@ -562,11 +570,38 @@ export default function QuotesPage() {
 
     const loadUsersForQuoteDialog = React.useCallback(async () => {
         try {
-            setAllUsers(await getUsers(t));
+            const users = await getUsers(t);
+            setAllUsers(users);
         } catch (error) {
             toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadUsers') });
         }
     }, [t, toast]);
+
+    // Fetch users when search term changes (debounced) or when dialog opens
+    React.useEffect(() => {
+        const fetchUsers = async () => {
+            // Only fetch if dialog is open and either we have a search term or it's initial load
+            if (!isQuoteDialogOpen) return;
+            setIsLoadingUsers(true);
+            try {
+                const users = await getUsers(t, debouncedUserSearch);
+                setAllUsers(users);
+            } catch (error) {
+                console.error('Failed to fetch users:', error);
+            } finally {
+                setIsLoadingUsers(false);
+            }
+        };
+        fetchUsers();
+    }, [debouncedUserSearch, isQuoteDialogOpen, t]);
+
+    // Reset user search when dialog closes
+    React.useEffect(() => {
+        if (!isQuoteDialogOpen) {
+            setUserSearchTerm('');
+            setAllUsers([]);
+        }
+    }, [isQuoteDialogOpen]);
 
     const loadServicesForQuoteDialog = React.useCallback(async () => {
         try {
@@ -585,9 +620,6 @@ export default function QuotesPage() {
         quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
-        if (allUsers.length === 0) {
-            void loadUsersForQuoteDialog();
-        }
         if (allServices.length === 0) {
             void loadServicesForQuoteDialog();
         }
@@ -615,9 +647,6 @@ export default function QuotesPage() {
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, items: mappedItems });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
-        if (allUsers.length === 0) {
-            void loadUsersForQuoteDialog();
-        }
         if (allServices.length === 0) {
             void loadServicesForQuoteDialog();
         }
@@ -1155,18 +1184,24 @@ export default function QuotesPage() {
                                                     </FormControl>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command>
-                                                        <CommandInput placeholder={t('quoteDialog.searchUser')} />
+                                                    <Command shouldFilter={false}>
+                                                        <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
                                                         <CommandList>
-                                                            <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
-                                                            <CommandGroup>
-                                                                {allUsers.map((user) => (
-                                                                    <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
-                                                                        <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                        {user.name}
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
+                                                            {isLoadingUsers ? (
+                                                                <CommandEmpty>Searching...</CommandEmpty>
+                                                            ) : (
+                                                                <>
+                                                                    <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
+                                                                    <CommandGroup>
+                                                                        {allUsers.map((user) => (
+                                                                            <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
+                                                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                                {user.name}
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                    </CommandGroup>
+                                                                </>
+                                                            )}
                                                         </CommandList>
                                                     </Command>
                                                 </PopoverContent>
@@ -1334,10 +1369,10 @@ export default function QuotesPage() {
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
                                 <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
                             </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+                        </form >
+                    </Form >
+                </DialogContent >
+            </Dialog >
             <AlertDialog open={isDeleteQuoteDialogOpen} onOpenChange={setIsDeleteQuoteDialogOpen}>
                 <AlertDialogContent className="max-w-md">
                     <AlertDialogHeader>
