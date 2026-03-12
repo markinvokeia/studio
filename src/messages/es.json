@@ -1116,6 +1116,7 @@
         "columns": {
             "invoiceId": "ID de Factura",
             "provider": "Proveedor",
+            "patient": "Paciente",
             "userName": "Usuario",
             "orderId": "ID de Orden",
             "quoteId": "ID de Cotización",
@@ -1310,8 +1311,9 @@
                 "service": "Servicio",
                 "quantity": "Cantidad",
                 "unitPrice": "Precio Unitario",
-                "total": "Total",
-                "selectService": "Seleccionar Servicio"
+                "total": "Subtotal",
+                "selectService": "Seleccionar Servicio",
+                "searchService": "Buscar servicio..."
             },
             "types": {
                 "invoice": "Factura",
@@ -1320,10 +1322,15 @@
             "type": "Tipo",
             "parentInvoice": "Factura Padre",
             "selectParentInvoice": "Seleccionar Factura Padre",
-            "client": "Cliente",
+            "client": "Paciente",
             "provider": "Proveedor",
+            "selectPatient": "Seleccionar Paciente",
+            "selectProvider": "Seleccionar Proveedor",
             "atLeastOneItem": "Debe agregar al menos un artículo.",
             "searchUser": "Buscar usuario...",
+            "searchPatient": "Buscar paciente...",
+            "searchProvider": "Buscar proveedor...",
+            "searching": "Buscando...",
             "noUserFound": "No se encontraron usuarios."
         },
         "actions": {
@@ -1363,7 +1370,7 @@
                 "service": "Servicio",
                 "quantity": "Cantidad",
                 "unitPrice": "Precio Unitario",
-                "total": "Total"
+                "total": "Subtotal"
             },
             "createTitle": "Crear Artículo de Factura",
             "editTitle": "Editar Artículo de Factura",

@@ -38,7 +38,7 @@ import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, Cr
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
@@ -625,11 +625,24 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     }
   };
 
+  const mergedColumnTranslations = React.useMemo(() => ({
+    doc_no: "Doc. No",
+    user_name: isSales ? t('columns.patient') : t('columns.provider'),
+    total: t('columns.total'),
+    currency: t('columns.currency'),
+    status: t('columns.status'),
+    type: t('columns.type'),
+    payment_status: t('columns.paymentStatus'),
+    paid_amount: t('columns.paidAmount'),
+    createdAt: t('columns.createdAt'),
+    ...columnTranslations,
+  }), [t, isSales, columnTranslations]);
+
   const columns = React.useMemo(() => getColumns(
     t,
     tStatus,
     tMethods,
-    columnTranslations,
+    mergedColumnTranslations,
     onPrint,
     onSendEmail,
     handleAddPaymentClick,
@@ -638,7 +651,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       setEditingInvoice(invoice);
       setIsFormDialogOpen(true);
     }
-  ), [t, tStatus, tMethods, columnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
+  ), [t, tStatus, tMethods, mergedColumnTranslations, onPrint, onSendEmail, handleAddPaymentClick]);
 
   if (isLoading) {
     return (
@@ -723,17 +736,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                   })) || [])
                 ]}
                 onClearFilters={() => onFilterChange?.('')}
-                columnTranslations={{
-                  doc_no: "Doc. No",
-                  user_name: t('columns.userName'),
-                  total: t('columns.total'),
-                  currency: t('columns.currency'),
-                  status: t('columns.status'),
-                  type: t('columns.type'),
-                  payment_status: t('columns.paymentStatus'),
-                  paid_amount: t('columns.paidAmount'),
-                  createdAt: t('columns.createdAt'),
-                }}
+                columnTranslations={mergedColumnTranslations}
                 extraButtons={
                   <>
                     {onImport && (
@@ -745,17 +748,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 }
               />
             ) : undefined}
-            columnTranslations={{
-              doc_no: "Doc. No",
-              user_name: t('columns.userName'),
-              total: t('columns.total'),
-              currency: t('columns.currency'),
-              status: t('columns.status'),
-              type: t('columns.type'),
-              payment_status: t('columns.paymentStatus'),
-              paid_amount: t('columns.paidAmount'),
-              createdAt: t('columns.createdAt'),
-            }}
+            columnTranslations={mergedColumnTranslations}
             filterOptions={filterOptions}
             onFilterChange={onFilterChange}
             filterValue={filterValue}
@@ -1134,7 +1127,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSearchingUsers, setIsSearchingUsers] = React.useState(false);
   const [userSearchOpen, setUserSearchOpen] = React.useState(false);
+  const [userSearchQuery, setUserSearchQuery] = React.useState('');
+  const [serviceSearchOpen, setServiceSearchOpen] = React.useState<Record<number, boolean>>({});
+  const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
+  const [isSearchingServices, setIsSearchingServices] = React.useState(false);
 
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -1148,32 +1146,95 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   });
 
   const isEditing = !!invoice;
-
-  const items = form.watch('items');
+  const items = useWatch({ control: form.control, name: 'items' }) || [];
   const invoiceType = form.watch('type');
 
-  React.useEffect(() => {
-    const total = items.reduce((sum, item) => sum + (item.total || 0), 0);
-    form.setValue('total', total);
-  }, [items, form]);
+  const calculatedTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.total) || 0), 0);
 
+  React.useEffect(() => {
+    form.setValue('total', calculatedTotal);
+  }, [calculatedTotal, form]);
+
+  // Debounced User Search
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+      // Always fetch initially if open, or when searching
+      if (!isOpen) return;
+
+      setIsSearchingUsers(true);
+      try {
+        const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
+        const data = await api.get(API_ROUTES.USERS, { search: userSearchQuery, filter_type: filterType });
+
+        let usersData: any[] = [];
+        if (Array.isArray(data) && data.length > 0) {
+          const firstElement = data[0];
+          if (firstElement.json && typeof firstElement.json === 'object') {
+            usersData = firstElement.json.data || [];
+          } else if (firstElement.data) {
+            usersData = firstElement.data;
+          } else if (firstElement.result && Array.isArray(firstElement.result)) {
+            usersData = firstElement.result;
+          }
+        } else if (typeof data === 'object' && data !== null) {
+          usersData = data.data || data.users || data.result || [];
+        }
+
+        const normalizedUsers = usersData.map((u: any) => ({ ...u, id: String(u.id) }));
+
+        // If editing or one is already selected, ensure it stays in the list
+        const currentUserId = form.getValues('user_id');
+        if (currentUserId && !normalizedUsers.find((u: User) => u.id === currentUserId)) {
+          // If editing, we can get the name from the invoice
+          if (invoice && (Array.isArray(invoice.user_id) ? String(invoice.user_id[0]) : String(invoice.user_id)) === currentUserId) {
+            normalizedUsers.unshift({
+              id: currentUserId,
+              name: invoice.user_name || 'Selected User',
+              email: invoice.userEmail || '',
+              phone_number: '',
+              is_active: true,
+              avatar: '',
+            } as User);
+          }
+        }
+
+        setUsers(normalizedUsers);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setIsSearchingUsers(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [userSearchQuery, isSales, isOpen]);
+
+  // Debounced Service Search
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+      if (!isOpen) return;
+
+      setIsSearchingServices(true);
+      try {
+        const servicesData = await api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false', search: serviceSearchQuery });
+        const servicesDataNormalized = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
+        setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
+      } catch (error) {
+        console.error("Failed to fetch services:", error);
+      } finally {
+        setIsSearchingServices(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [serviceSearchQuery, isSales, isOpen]);
+
+  // Initial Data & Invoice Setup
   React.useEffect(() => {
     if (isOpen) {
       const fetchData = async () => {
         try {
-          const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
-          const [usersData, servicesData, invoicesData] = await Promise.all([
-            api.get(API_ROUTES.USERS, { filter_type: filterType }),
-            api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
-            api.get(isSales ? API_ROUTES.SALES.INVOICES_ALL : API_ROUTES.PURCHASES.INVOICES_ALL, { is_sales: isSales ? 'true' : 'false', status: 'booked', type: 'invoice' })
-          ]);
-
-          const usersDataNormalized = (Array.isArray(usersData) && usersData.length > 0) ? usersData[0].data : (usersData.data || []);
-          setUsers(usersDataNormalized.map((u: any) => ({ ...u, id: String(u.id) })));
-
-          const servicesDataNormalized = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
-          setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
-
+          const invoicesData = await api.get(isSales ? API_ROUTES.SALES.INVOICES_ALL : API_ROUTES.PURCHASES.INVOICES_ALL, { is_sales: isSales ? 'true' : 'false', status: 'booked', type: 'invoice' });
           const invoicesDataNormalized = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
           setBookedInvoices(invoicesDataNormalized);
 
@@ -1216,7 +1277,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       };
       fetchData();
     }
-  }, [isOpen, isSales, invoice, form]);
+  }, [isOpen, invoice, isSales, form]);
 
   const parentId = form.watch('parent_id');
 
@@ -1253,7 +1314,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
-    setIsSubmitting(false);
+    setIsSubmitting(true);
     try {
       if (values.type === 'invoice' && (!values.items || values.items.length === 0)) {
         throw new Error(t('atLeastOneItem') || 'Debe agregar al menos un artículo.');
@@ -1355,7 +1416,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   </FormItem>
                 )} />
                 <div className="text-right pt-7">
-                  <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(form.watch('total'))}</span>
+                  <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(calculatedTotal)}</span>
                 </div>
               </div>
               {invoiceType === 'credit_note' && (
@@ -1388,24 +1449,29 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                 <FormField control={form.control} name="user_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {invoiceType === 'credit_note'
-                        ? (isSales ? t('client') : t('provider'))
-                        : t('user')}
+                      {isSales ? t('client') : t('provider')}
                     </FormLabel>
                     <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
                       <PopoverTrigger asChild>
                         <FormControl>
                           <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                            {field.value ? users.find(user => user.id === field.value)?.name : t('selectUser')}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <span className="truncate mr-2 text-left">
+                              {field.value
+                                ? (users.find(user => user.id === field.value)?.name || (isEditing && invoice?.user_name) || (isSales ? t('selectPatient') : t('selectProvider')))
+                                : (isSales ? t('selectPatient') : t('selectProvider'))}
+                            </span>
+                            <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                         <Command>
-                          <CommandInput placeholder={tRoot('createDialog.searchUser')} />
+                          <CommandInput
+                            placeholder={isSales ? t('searchPatient') : t('searchProvider')}
+                            onValueChange={setUserSearchQuery}
+                          />
                           <CommandList>
-                            <CommandEmpty>{tRoot('createDialog.noUserFound')}</CommandEmpty>
+                            <CommandEmpty>{isSearchingUsers ? tRoot('createDialog.searching') : tRoot('createDialog.noUserFound')}</CommandEmpty>
                             <CommandGroup>
                               {users.map((user) => (
                                 <CommandItem
@@ -1453,28 +1519,60 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                       <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
                         <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                           <FormItem className="flex-1">
-                            <Select
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                const service = services.find(s => s.id === value);
-                                if (service) {
-                                  const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                  form.setValue(`items.${index}.unit_price`, service.price);
-                                  form.setValue(`items.${index}.total`, service.price * quantity);
-                                }
+                            <Popover 
+                              open={serviceSearchOpen[index]} 
+                              onOpenChange={(open) => {
+                                setServiceSearchOpen(prev => ({ ...prev, [index]: open }));
+                                if (open) setServiceSearchQuery('');
                               }}
-                              value={field.value}
-                              disabled={invoiceType === 'credit_note'}
                             >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t('items.selectService')} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
+                              <PopoverTrigger asChild>
+                                <FormControl>
+                                  <Button 
+                                    variant="outline" 
+                                    role="combobox" 
+                                    className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                                    disabled={invoiceType === 'credit_note'}
+                                  >
+                                    <span className="truncate mr-2 text-left">
+                                      {field.value
+                                        ? (services.find(s => s.id === field.value)?.name || t('items.selectService'))
+                                        : t('items.selectService')}
+                                    </span>
+                                    <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                                  </Button>
+                                </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                  <CommandInput
+                                    placeholder={t('items.searchService')}
+                                    onValueChange={setServiceSearchQuery}
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>{isSearchingServices ? t('searching') : t('noUserFound')}</CommandEmpty>
+                                    <CommandGroup>
+                                      {services.map((s) => (
+                                        <CommandItem
+                                          value={s.name}
+                                          key={s.id}
+                                          onSelect={() => {
+                                            field.onChange(s.id);
+                                            const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                            form.setValue(`items.${index}.unit_price`, s.price, { shouldValidate: true });
+                                            form.setValue(`items.${index}.total`, s.price * quantity, { shouldValidate: true });
+                                            setServiceSearchOpen(prev => ({ ...prev, [index]: false }));
+                                          }}
+                                        >
+                                          <Check className={cn("mr-2 h-4 w-4", s.id === field.value ? "opacity-100" : "opacity-0")} />
+                                          {s.name}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </CommandList>
+                                </Command>
+                              </PopoverContent>
+                            </Popover>
                             <FormMessage />
                           </FormItem>
                         )} />
@@ -1483,7 +1581,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                             if (invoiceType !== 'credit_note') {
                               field.onChange(e);
                               const price = form.getValues(`items.${index}.unit_price`) || 0;
-                              form.setValue(`items.${index}.total`, price * Number(e.target.value));
+                              form.setValue(`items.${index}.total`, price * Number(e.target.value), { shouldValidate: true });
                             }
                           }} /></FormControl><FormMessage /></FormItem>
                         )} />
@@ -1507,7 +1605,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                             onChange(isNaN(numValue) ? 0 : numValue);
                             if (invoiceType !== 'credit_note') {
                               const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                              form.setValue(`items.${index}.total`, quantity * numValue);
+                              form.setValue(`items.${index}.total`, quantity * numValue, { shouldValidate: true });
                             }
                           };
 
@@ -1518,7 +1616,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                               setInputValue(numValue.toFixed(2));
                               if (invoiceType !== 'credit_note') {
                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                form.setValue(`items.${index}.total`, quantity * numValue);
+                                form.setValue(`items.${index}.total`, quantity * numValue, { shouldValidate: true });
                               }
                             } else if (e.target.value !== '') {
                               onChange(0);

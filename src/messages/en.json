@@ -1116,6 +1116,7 @@
     "columns": {
       "invoiceId": "Invoice ID",
       "provider": "Provider",
+      "patient": "Patient",
       "userName": "User",
       "orderId": "Order ID",
       "quoteId": "Quote ID",
@@ -1309,8 +1310,9 @@
         "service": "Service",
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
-        "total": "Total",
-        "selectService": "Select Service"
+        "total": "Subtotal",
+        "selectService": "Select Service",
+        "searchService": "Search service..."
       },
       "types": {
         "invoice": "Invoice",
@@ -1320,10 +1322,15 @@
       "parentInvoice": "Parent Invoice",
       "save": "Save",
       "selectParentInvoice": "Select Parent Invoice",
-      "client": "Client",
+      "client": "Patient",
       "provider": "Provider",
+      "selectPatient": "Select Patient",
+      "selectProvider": "Select Provider",
       "atLeastOneItem": "You must add at least one item.",
       "searchUser": "Search user...",
+      "searchPatient": "Search patient...",
+      "searchProvider": "Search provider...",
+      "searching": "Searching...",
       "noUserFound": "No users found."
     },
     "actions": {
@@ -1363,7 +1370,7 @@
         "service": "Service",
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
-        "total": "Total"
+        "total": "Subtotal"
       },
       "createTitle": "Create Invoice Item",
       "editTitle": "Edit Invoice Item",
