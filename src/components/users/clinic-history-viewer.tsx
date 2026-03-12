@@ -108,6 +108,9 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
         documents,
         isLoadingDocuments,
         refreshAll,
+        uploadDocument,
+        deleteDocument,
+        getDocumentContent,
     } = useClinicHistory();
 
     React.useEffect(() => {
@@ -196,6 +199,9 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
                                 documents={documents}
                                 isLoading={isLoadingDocuments}
                                 userId={userId}
+                                uploadDocument={uploadDocument}
+                                deleteDocument={deleteDocument}
+                                getDocumentContent={getDocumentContent}
                             />
                         )}
                     </div>
@@ -1333,9 +1339,17 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
 
     return (
         <div className="space-y-4">
-            <div className="bg-card rounded-xl shadow-sm p-6 border-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg font-semibold">{t('title')}</h3>
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold">{t('title')}</h3>
+                            <p className="text-sm text-muted-foreground">{sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'} registradas</p>
+                        </div>
+                    </div>
                     <Button onClick={handleAddSession}>
                         <Plus className="h-4 w-4 mr-2" />
                         {t('addSession')}
@@ -1343,12 +1357,19 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                 </div>
 
                 {sessions.length === 0 ? (
-                    <div className="flex items-center justify-center h-40 text-muted-foreground">
-                        {t('noSessions')}
+                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-xl gap-3">
+                        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
+                            <Clock className="w-7 h-7" />
+                        </div>
+                        <p className="text-sm">{t('noSessions')}</p>
+                        <Button size="sm" variant="outline" onClick={handleAddSession}>
+                            <Plus className="w-3 h-3 mr-1" />
+                            {t('addFirstSession')}
+                        </Button>
                     </div>
                 ) : (
                     <div className="relative">
-                        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-muted"></div>
+                        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
                         {sessions.map((session, index) => {
                             const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
                             const isOpen = openItems.includes(String(session.sesion_id));
@@ -1356,27 +1377,28 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                             return (
                                 <div key={index} className="relative flex items-start mb-6 last:mb-0 pl-8">
                                     <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                                        <Icon className="h-4 w-4 text-primary" />
+                                        <Icon className="h-3.5 w-3.5 text-primary" />
                                     </div>
-                                    <Card className="flex-1">
+                                    <Card className="flex-1 hover:shadow-md transition-shadow duration-200 border-muted/60">
                                         <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1 min-w-0 pr-2">
-                                                    <CardTitle className="text-base">{session.procedimiento_realizado || t('noTitle')}</CardTitle>
-                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
-                                                        <p className="text-sm text-muted-foreground">
+                                                    <CardTitle className="text-base font-semibold">{session.procedimiento_realizado || t('noTitle')}</CardTitle>
+                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                            <CalendarIcon className="h-3.5 w-3.5" />
                                                             {formatDate(session.fecha_sesion)}
                                                         </p>
                                                         {session.doctor_name && (
-                                                            <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                                                <User className="h-3 w-3" />
+                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                                <User className="h-3.5 w-3.5" />
                                                                 {session.doctor_name}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                                                    <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
                                                         {session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : session.tipo_sesion}
                                                     </span>
                                                     {session.tipo_sesion !== 'odontograma' && (
@@ -1738,10 +1760,10 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
 interface DocumentViewerModalProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
-    document: { id: string; name: string; type?: string } | null;
+    document: { id: string; name: string; mimeType?: string } | null;
     documentContent: string | null;
     isLoadingDocument?: boolean;
-    onLoadDocument: (doc: { id: string; name: string; type?: string }) => void;
+    onLoadDocument: (doc: { id: string; name: string; mimeType?: string }) => void;
 }
 
 function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, isLoadingDocument, onLoadDocument }: DocumentViewerModalProps) {
@@ -1803,7 +1825,7 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
                             <p className="text-sm text-muted-foreground">Cargando documento...</p>
                         </div>
                     ) : documentContent ? (
-                        document?.type?.startsWith('image/') || document?.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                        document?.mimeType?.startsWith('image/') || document?.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
                             <div className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20">
                                 <Image
                                     ref={imageRef}
@@ -1841,21 +1863,23 @@ interface EnhancedDocumentsGalleryProps {
     documents: any[];
     isLoading: boolean;
     userId: string;
+    uploadDocument: (userId: string, file: File) => Promise<void>;
+    deleteDocument: (userId: string, docId: string) => Promise<void>;
+    getDocumentContent: (userId: string, docId: string) => Promise<Blob>;
 }
 
-function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocumentsGalleryProps) {
+function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent }: EnhancedDocumentsGalleryProps) {
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
     const [uploadFile, setUploadFile] = React.useState<File | null>(null);
     const [isUploading, setIsUploading] = React.useState(false);
     const [isDragOver, setIsDragOver] = React.useState(false);
-    const [selectedDocument, setSelectedDocument] = React.useState<{ id: string; name: string; type?: string } | null>(null);
+    const [selectedDocument, setSelectedDocument] = React.useState<{ id: string; name: string; mimeType?: string } | null>(null);
     const [documentContent, setDocumentContent] = React.useState<string | null>(null);
     const [isViewerOpen, setIsViewerOpen] = React.useState(false);
     const [isLoadingDocument, setIsLoadingDocument] = React.useState(false);
-
-    const { uploadDocument, deleteDocument, getDocumentContent } = useClinicHistory();
+    const [deletingDocument, setDeletingDocument] = React.useState<{ id: string; name: string } | null>(null);
 
     const handleUpload = async () => {
         if (!uploadFile || !userId) return;
@@ -1872,19 +1896,28 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
         }
     };
 
-    const handleDelete = async (docId: string) => {
-        if (confirm(t('documents.confirmDelete'))) {
-            try {
-                await deleteDocument(userId, docId);
-                toast({ title: t('documents.deleteSuccess') });
-            } catch (error) {
-                toast({ title: t('documents.deleteError'), variant: 'destructive' });
-            }
+    const handleDelete = (doc: { id: string; nombre?: string; name?: string }) => {
+        setDeletingDocument({ id: doc.id, name: doc.nombre || doc.name || 'Document' });
+    };
+
+    const confirmDeleteDocument = async () => {
+        if (!deletingDocument || !userId) return;
+        try {
+            await deleteDocument(userId, deletingDocument.id);
+            toast({ title: t('documents.deleteSuccess') });
+        } catch (error) {
+            toast({ title: t('documents.deleteError'), variant: 'destructive' });
+        } finally {
+            setDeletingDocument(null);
         }
     };
 
     const handleViewDocument = async (doc: any) => {
-        setSelectedDocument({ id: doc.id, name: doc.nombre || doc.name, type: doc.tipo || doc.type });
+        setSelectedDocument({ 
+            id: doc.id, 
+            name: doc.nombre || doc.name || 'Document', 
+            mimeType: doc.mimeType || doc.tipo || ''
+        });
         setIsViewerOpen(true);
         setDocumentContent(null);
         setIsLoadingDocument(true);
@@ -1925,66 +1958,67 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
 
     return (
         <>
-            <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold">{t('tabs.documents')}</h3>
-                    <Button size="sm" onClick={() => setIsUploadDialogOpen(true)}>
-                        <Plus className="w-4 h-4 mr-1" />
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-card-foreground">{t('tabs.documents')}</h3>
+                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
+                        <Upload className="h-4 w-4 mr-2" />
                         {t('documents.add')}
                     </Button>
                 </div>
 
-                {documents.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {isLoading ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(4)].map((_, i) => <Skeleton className="h-48 w-full" key={i} />)}
+                    </div>
+                ) : documents.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {documents.map((doc, idx) => {
                             const isImage = isImageFile(doc.nombre || doc.name || '');
                             const docName = doc.nombre || doc.name || 'Document';
                             return (
-                                <Card
-                                    key={idx}
-                                    className="overflow-hidden cursor-pointer group transition-all hover:shadow-md hover:border-primary/30 border"
-                                    onClick={() => handleViewDocument(doc)}
-                                >
-                                    <div className="h-32 bg-muted/50 flex items-center justify-center relative">
-                                        {isImage ? (
-                                            <Image
-                                                src={doc.thumbnail_url || doc.ruta ? `${process.env.NEXT_PUBLIC_API_URL}${doc.thumbnail_url || doc.ruta}` : ''}
-                                                alt={docName}
-                                                fill
-                                                className="object-cover transition-transform group-hover:scale-105"
-                                                unoptimized
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="flex flex-col items-center gap-2">
-                                                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                                                    <FileText className="w-6 h-6 text-primary" />
+                                <Card key={idx} className="overflow-hidden">
+                                    <CardContent className="p-0 flex flex-col justify-between h-full">
+                                        <div className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewDocument(doc)}>
+                                            {isImage ? (
+                                                <Image
+                                                    src={doc.thumbnail_url || doc.ruta ? `${process.env.NEXT_PUBLIC_API_URL}${doc.thumbnail_url || doc.ruta}` : ''}
+                                                    alt={docName}
+                                                    fill
+                                                    className="object-cover"
+                                                    unoptimized
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="flex items-center justify-center h-full">
+                                                    <FileText className="h-10 w-10 text-muted-foreground" />
                                                 </div>
-                                            </div>
-                                        )}
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <div className="bg-background/90 rounded-full p-2">
-                                                <Eye className="w-5 h-5 text-foreground" />
+                                            )}
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                <Eye className="h-6 w-6 text-white" />
                                             </div>
                                         </div>
-                                    </div>
-                                    <CardContent className="p-2.5">
-                                        <p className="text-xs truncate font-semibold" title={docName}>{docName}</p>
-                                        <p className="text-xs text-muted-foreground mt-0.5">{formatDate(doc.fecha_subida)}</p>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 w-full mt-1.5 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs px-1"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDelete(doc.id);
-                                            }}
-                                        >
-                                            <Trash2 className="h-3 w-3 mr-1" />
-                                            {t('documents.delete') || 'Eliminar'}
-                                        </Button>
+                                        <div className="p-3">
+                                            <p className="font-semibold text-sm truncate leading-tight" title={docName}>{docName}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">{doc.mimeType || doc.tipo || ''}</p>
+                                        </div>
+                                        <div className="flex justify-end p-1 pt-0">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={() => handleDelete(doc)} className="text-destructive">
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                        {t('documents.delete') || 'Delete'}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             );
@@ -2081,6 +2115,29 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId }: EnhancedDocu
                 isLoadingDocument={isLoadingDocument}
                 onLoadDocument={() => { }}
             />
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={!!deletingDocument} onOpenChange={(open) => !open && setDeletingDocument(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('documents.delete')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-4 px-1">
+                        <p className="text-muted-foreground text-base">
+                            {t('documents.confirmDelete')}
+                        </p>
+                    </DialogBody>
+                    <DialogFooter className="gap-2">
+                        <Button variant="outline" onClick={() => setDeletingDocument(null)}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeleteDocument}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t('documents.delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

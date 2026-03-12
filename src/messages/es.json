@@ -2897,6 +2897,10 @@
             "view": "Ver",
             "download": "Descargar",
             "delete": "Eliminar",
+            "deleteSuccess": "Documento eliminado exitosamente",
+            "deleteError": "Error al eliminar el documento",
+            "uploadSuccess": "Documento subido exitosamente",
+            "uploadError": "Error al subir el documento",
             "confirmDelete": "¿Estás seguro de que deseas eliminar este documento?",
             "dragDropBold": "Haz clic para subir",
             "dragDropNormal": "o arrastra y suelta",
@@ -2987,19 +2991,25 @@
             "tooth": "Diente",
             "odontogramUpdate": "Actualización de Odontograma",
             "showMore": "Mostrar más",
+            "showDetails": "Ver detalles",
+            "hideDetails": "Ocultar detalles",
+            "nextPlan": "Plan próxima cita",
             "attachments": "Adjuntos",
             "treatments": "Tratamientos",
             "showLess": "Mostrar menos",
             "edit": "Editar",
             "delete": "Eliminar",
             "odontogramTooltip": "Tipo de sesión: Odontograma",
+            "noSessions": "No hay sesiones registradas",
+            "addFirstSession": "Agregar primera sesión",
             "toast": {
                 "success": "Éxito",
                 "deleteSuccess": "Eliminado exitosamente"
             },
             "nextSessionPlan": "Plan para la Próxima Sesión",
             "addSession": "Agregar sesión",
-            "noSessions": "No hay sesiones registradas"
+            "noSessions": "No hay sesiones registradas",
+            "noTitle": "Sin título"
         },
         "anamnesis": {
             "personalTitle": "Información Personal",

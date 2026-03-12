@@ -2897,6 +2897,10 @@
       "view": "View",
       "download": "Download",
       "delete": "Delete",
+      "deleteSuccess": "Document deleted successfully",
+      "deleteError": "Error deleting document",
+      "uploadSuccess": "Document uploaded successfully",
+      "uploadError": "Error uploading document",
       "confirmDelete": "Are you sure you want to delete this document?",
       "dragDropBold": "Click to upload",
       "dragDropNormal": "or drag and drop",
@@ -2987,19 +2991,25 @@
       "tooth": "Tooth",
       "odontogramUpdate": "Odontogram Update",
       "showMore": "Show more",
+      "showDetails": "Show details",
+      "hideDetails": "Hide details",
+      "nextPlan": "Next appointment plan",
       "attachments": "Attachments",
       "treatments": "Treatments",
       "showLess": "Show less",
       "edit": "Edit",
       "delete": "Delete",
       "odontogramTooltip": "Session Type: Odontogram",
+      "noSessions": "No sessions recorded",
+      "addFirstSession": "Add first session",
       "toast": {
         "success": "Success",
         "deleteSuccess": "Deleted successfully"
       },
       "nextSessionPlan": "Next Session Plan",
       "addSession": "Add Session",
-      "noSessions": "No sessions recorded"
+      "noSessions": "No sessions recorded",
+      "noTitle": "Untitled"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",

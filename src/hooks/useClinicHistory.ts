@@ -12,6 +12,9 @@ export interface ClinicDocument {
     ruta: string;
     fecha_subida: string;
     tamaño: number;
+    thumbnail_url?: string;
+    mimeType?: string;
+    hasThumbnail?: boolean;
 }
 
 export interface PersonalHistoryItem {
@@ -339,15 +342,19 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         setIsLoadingDocuments(true);
         try {
             const data = await api.get(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENTS, { user_id: userId });
-            const docsData = Array.isArray(data) ? data : (data.documents || data.data || []);
+            const docsArray = Array.isArray(data) ? data : (data.documents || data.data || []);
+            const docsData = docsArray[0]?.items || docsArray[0] || [];
 
             const mappedDocs = docsData.map((doc: any): ClinicDocument => ({
                 id: doc.id,
                 nombre: doc.nombre || doc.name || '',
-                tipo: doc.tipo || doc.type || '',
-                ruta: doc.ruta || doc.path || '',
+                tipo: doc.mimeType || doc.tipo || doc.type || '',
+                ruta: doc.ruta || doc.path || doc.thumbnailLink || '',
                 fecha_subida: doc.fecha_subida || doc.created_at || '',
                 tamaño: doc.tamaño || doc.size || 0,
+                thumbnail_url: doc.thumbnailLink || doc.thumbnail_url || '',
+                mimeType: doc.mimeType || '',
+                hasThumbnail: doc.hasThumbnail || false,
             }));
             setDocuments(mappedDocs);
         } catch (error) {
@@ -661,10 +668,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const deleteDocument = useCallback(async (userId: string, docId: string) => {
         setIsUploadingDocument(true);
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENT, {
-                id: docId,
-                user_id: userId,
-            });
+            await api.delete(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENT, undefined, undefined, { id: docId, user_id: userId });
             await fetchDocuments(userId);
         } catch (error) {
             console.error("Failed to delete document:", error);
