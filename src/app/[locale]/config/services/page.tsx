@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
 import api from '@/services/api';
+import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -49,9 +50,8 @@ type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
 async function getServices(): Promise<Service[]> {
   try {
-    const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
-    const normalized = normalizeApiResponse(data);
-    const servicesData = normalized.items;
+    const result = await getSalesServices({ limit: 100 });
+    const servicesData = result.items;
 
     return servicesData.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,

@@ -34,6 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
+import { getSalesServices, getUserServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
 import { ChevronDown, Edit, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
@@ -243,9 +244,8 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getServices(): Promise<Service[]> {
     try {
-        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
-        const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
-        return servicesData.map((s: any) => ({ ...s, id: String(s.id) }));
+        const result = await getSalesServices({ limit: 100 });
+        return result.items.map((s: any) => ({ ...s, id: String(s.id) }));
     } catch (error) {
         console.error("Failed to fetch services:", error);
         return [];
@@ -277,8 +277,8 @@ async function getDoctors(): Promise<UserType[]> {
 
 async function getDoctorServices(doctorId: string): Promise<Service[]> {
     try {
-        const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: doctorId });
-        return Array.isArray(data) ? data : (data.user_services || []);
+        const result = await getUserServices(doctorId);
+        return Array.isArray(result) ? result : (result || []);
     } catch (error) {
         console.error(`Failed to fetch services for doctor ${doctorId}:`, error);
         return [];

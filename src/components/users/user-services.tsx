@@ -19,6 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Service } from '@/lib/types';
 import { api } from '@/services/api';
+import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -98,9 +99,8 @@ async function getServicesForUser(userId: string, t: any): Promise<Service[]> {
 
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
-    const data = await api.get(API_ROUTES.SERVICES, { is_sales: String(isSalesUser) });
-    const servicesData = Array.isArray(data) ? data : (data.services || data.data || []);
-    return servicesData.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active }));
+    const result = isSalesUser ? await getSalesServices({ limit: 100 }) : await getPurchaseServices({ limit: 100 });
+    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active }));
   } catch (error) {
     console.error("Failed to fetch all services:", error);
     return [];
