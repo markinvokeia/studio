@@ -370,19 +370,18 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     const currentAmount = form.getValues('amount') || 0;
     const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
 
-    if (appliedCredits.size > 0 || currentAmount > remainingBalance) {
-      let amountToSet = remainingBalance;
-      if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
-        if (invoiceCurrency === 'USD' && paymentCurrency === 'UYU') {
-          amountToSet = remainingBalance * sessionExchangeRate;
-        } else if (invoiceCurrency === 'UYU' && paymentCurrency === 'USD') {
-          amountToSet = remainingBalance / sessionExchangeRate;
-        }
+    // Automatically adjust the manual amount to cover the remaining balance whenever credits change
+    let amountToSet = remainingBalance;
+    if (paymentCurrency !== invoiceCurrency && sessionExchangeRate > 0) {
+      if (invoiceCurrency === 'USD' && paymentCurrency === 'UYU') {
+        amountToSet = remainingBalance * sessionExchangeRate;
+      } else if (invoiceCurrency === 'UYU' && paymentCurrency === 'USD') {
+        amountToSet = remainingBalance / sessionExchangeRate;
       }
-
-      amountToSet = Math.round(amountToSet * 100) / 100;
-      form.setValue('amount', amountToSet);
     }
+
+    amountToSet = Math.round(amountToSet * 100) / 100;
+    form.setValue('amount', amountToSet);
   }, [creditsTotalInInvoiceCurrency, selectedInvoiceForPayment, form, sessionExchangeRate, appliedCredits.size]);
 
   const remainingAmountToPay = React.useMemo(() => {
@@ -399,7 +398,11 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       }
     }
 
-    return invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency;
+    const balance = invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency;
+    // Round to 2 decimals to fix floating point issues (e.g., -0.00)
+    const roundedBalance = Math.round(balance * 100) / 100;
+    // Fix for -0.00 display: if balance is effectively 0, ensure it's positive 0
+    return roundedBalance === 0 ? 0 : roundedBalance;
   }, [selectedInvoiceForPayment, watchedAmount, showExchangeRate, equivalentAmount, creditsTotalInInvoiceCurrency]);
 
   const fetchPaymentMethods = React.useCallback(async () => {
@@ -757,35 +760,35 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       </Card>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-start gap-3">
-              <div className="header-icon-circle mt-0.5">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col text-left">
-                <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
-                <DialogDescription>
-                  {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.doc_no || selectedInvoiceForPayment?.id })}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
+        <DialogContent maxWidth="2xl">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="space-y-4 py-4 px-6">
-              {paymentSubmissionError && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>{t('toast.error')}</AlertTitle>
-                  <AlertDescription>{paymentSubmissionError}</AlertDescription>
-                </Alert>
-              )}
-              {selectedInvoiceForPayment?.type !== 'credit_note' && (
-                <div className="space-y-2">
-                  <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
-                  <ScrollArea className="h-32 border rounded-md p-2">
-                    {userCredits.length > 0 ? (
-                      userCredits.map(credit => (
+            <form onSubmit={form.handleSubmit(handlePaymentSubmit)} className="flex flex-col flex-1 w-full overflow-hidden">
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="header-icon-circle mt-0.5">
+                    <CreditCard className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <DialogTitle>{t('paymentDialog.title')}</DialogTitle>
+                    <DialogDescription>
+                      {t('paymentDialog.description', { invoiceId: selectedInvoiceForPayment?.doc_no || selectedInvoiceForPayment?.id })}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <DialogBody className="space-y-4 py-4 px-6">
+                {paymentSubmissionError && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>{t('toast.error')}</AlertTitle>
+                    <AlertDescription>{paymentSubmissionError}</AlertDescription>
+                  </Alert>
+                )}
+                {selectedInvoiceForPayment?.type !== 'credit_note' && userCredits.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">{t('paymentDialog.useCredits')}</h4>
+                    <ScrollArea className="h-32 border rounded-md p-2">
+                      {userCredits.map(credit => (
                         <div key={credit.source_id} className="flex items-center justify-between p-2">
                           <div className="flex items-center gap-2">
                             <Checkbox
@@ -823,228 +826,224 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                             <span className="text-sm text-muted-foreground">/ {Number(credit.available_balance).toFixed(2)}</span>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                        {t('paymentDialog.noCredits')}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-              )}
-              <div className="space-y-4 pt-4 border-t">
-                <h4 className="font-semibold text-sm">{t('paymentDialog.manualPayment')}</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="method"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.method')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('paymentDialog.selectMethod')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {paymentMethods.map(method => (
-                              <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="payment_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.date')}</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
+                      ))}
+                    </ScrollArea>
+                  </div>
+                )}
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="font-semibold text-sm">{t('paymentDialog.manualPayment')}</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="method"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.method')}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP")
-                                ) : (
-                                  <span>{t('paymentDialog.pickDate')}</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('paymentDialog.selectMethod')} />
+                              </SelectTrigger>
                             </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <DatePicker
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date: Date) =>
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="amount"
-                    render={({ field: { onChange, value } }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
-                        <FormControl>
-                          <FormattedNumberInput
-                            value={value}
-                            onChange={onChange}
-                            placeholder="0.00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="payment_currency"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.currency')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectContent>
+                              {paymentMethods.map(method => (
+                                <SelectItem key={method.id} value={method.id}>{method.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="payment_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.date')}</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value ? (
+                                    format(field.value, "PPP")
+                                  ) : (
+                                    <span>{t('paymentDialog.pickDate')}</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <DatePicker
+                                mode="single"
+                                selected={field.value}
+                                onSelect={field.onChange}
+                                disabled={(date: Date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="amount"
+                      render={({ field: { onChange, value } }) => (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.amount')} ({watchedPaymentCurrency})</FormLabel>
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
-                            </SelectTrigger>
+                            <FormattedNumberInput
+                              value={value}
+                              onChange={onChange}
+                              placeholder="0.00"
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="payment_currency"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.currency')}</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={t('paymentDialog.selectCurrency')} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="UYU">UYU</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-              </div>
-
-              {showExchangeRate && (
-                <div className="grid grid-cols-2 gap-4 rounded-md border p-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="exchange_rate"
-                    render={({ field: { onChange, value } }) => (
-                      <FormItem>
-                        <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
-                        <FormControl>
-                          <FormattedNumberInput
-                            value={value}
-                            onChange={onChange}
-                            placeholder="0.00"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {equivalentAmount !== null && (
-                    <FormItem>
-                      <FormLabel>{t('paymentDialog.equivalentAmount')} ({watchedInvoiceCurrency})</FormLabel>
-                      <FormControl>
-                        <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                </div>
-              )}
-              <div className="rounded-md border p-4 bg-muted/50 space-y-3 mt-4">
-                <h4 className="font-semibold text-sm">{t('paymentDialog.summary')}</h4>
 
                 {showExchangeRate && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t('paymentDialog.exchangeRateApplied')}:</span>
-                    <span>{Number(sessionExchangeRate).toFixed(2)}</span>
+                  <div className="grid grid-cols-2 gap-4 rounded-md border p-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="exchange_rate"
+                      render={({ field: { onChange, value } }) => (
+                        <FormItem>
+                          <FormLabel>{t('paymentDialog.exchangeRate')}</FormLabel>
+                          <FormControl>
+                            <FormattedNumberInput
+                              value={value}
+                              onChange={onChange}
+                              placeholder="0.00"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {equivalentAmount !== null && (
+                      <FormItem>
+                        <FormLabel>{t('paymentDialog.equivalentAmount')} ({watchedInvoiceCurrency})</FormLabel>
+                        <FormControl>
+                          <Input type="number" value={equivalentAmount.toFixed(2)} readOnly disabled />
+                        </FormControl>
+                      </FormItem>
+                    )}
                   </div>
                 )}
+                <div className="rounded-md border p-4 bg-muted/50 space-y-3 mt-4">
+                  <h4 className="font-semibold text-sm">{t('paymentDialog.summary')}</h4>
 
-                {appliedCredits.size > 0 && (
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium text-muted-foreground">{t('paymentDialog.creditsApplied')}:</span>
-                    {Array.from(appliedCredits.entries()).map(([id, amount]) => {
-                      const credit = userCredits.find(c => c.source_id === id);
-                      const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
-                      let converted = amount;
-                      if (credit && credit.currency !== invoiceCurrency) {
-                        if (invoiceCurrency === 'USD' && credit.currency === 'UYU') converted = amount / sessionExchangeRate;
-                        else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') converted = amount * sessionExchangeRate;
-                      }
-
-                      return (
-                        <div key={id} className="flex justify-between text-sm pl-2">
-                          <span>#{id} ({credit?.currency})</span>
-                          <div className="flex flex-col items-end">
-                            <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: credit?.currency }).format(amount)}</span>
-                            {credit?.currency !== invoiceCurrency && (
-                              <span className="text-xs text-muted-foreground">
-                                ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(converted)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {watchedAmount > 0 && (
-                  <div className="space-y-1 pt-2 border-t">
+                  {showExchangeRate && (
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{t('paymentDialog.manualPayment')}:</span>
-                      <div className="flex flex-col items-end">
-                        <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency }).format(watchedAmount)}</span>
-                        {watchedPaymentCurrency !== (selectedInvoiceForPayment?.currency || 'USD') && equivalentAmount && (
-                          <span className="text-xs text-muted-foreground">
-                            ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment?.currency || 'USD' }).format(equivalentAmount)}
-                          </span>
-                        )}
+                      <span className="text-muted-foreground">{t('paymentDialog.exchangeRateApplied')}:</span>
+                      <span>{Number(sessionExchangeRate).toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {appliedCredits.size > 0 && (
+                    <div className="space-y-1">
+                      <span className="text-xs font-medium text-muted-foreground">{t('paymentDialog.creditsApplied')}:</span>
+                      {Array.from(appliedCredits.entries()).map(([id, amount]) => {
+                        const credit = userCredits.find(c => c.source_id === id);
+                        const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
+                        let converted = amount;
+                        if (credit && credit.currency !== invoiceCurrency) {
+                          if (invoiceCurrency === 'USD' && credit.currency === 'UYU') converted = amount / sessionExchangeRate;
+                          else if (invoiceCurrency === 'UYU' && credit.currency === 'USD') converted = amount * sessionExchangeRate;
+                        }
+
+                        return (
+                          <div key={id} className="flex justify-between text-sm pl-2">
+                            <span>#{id} ({credit?.currency})</span>
+                            <div className="flex flex-col items-end">
+                              <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: credit?.currency }).format(amount)}</span>
+                              {credit?.currency !== invoiceCurrency && (
+                                <span className="text-xs text-muted-foreground">
+                                  ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(converted)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {watchedAmount > 0 && (
+                    <div className="space-y-1 pt-2 border-t">
+                      <div className="flex justify-between text-sm">
+                        <span className="font-medium">{t('paymentDialog.manualPayment')}:</span>
+                        <div className="flex flex-col items-end">
+                          <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency }).format(watchedAmount)}</span>
+                          {watchedPaymentCurrency !== (selectedInvoiceForPayment?.currency || 'USD') && equivalentAmount && (
+                            <span className="text-xs text-muted-foreground">
+                              ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment?.currency || 'USD' }).format(equivalentAmount)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  )}
+
+                  <div className="flex justify-between items-center pt-2 border-t font-semibold">
+                    <span>{t('paymentDialog.totalPayment')}:</span>
+                    <span>
+                      {(() => {
+                        const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
+                        let total = creditsTotalInInvoiceCurrency;
+                        if (watchedAmount) {
+                          const amountVal = Number(watchedAmount);
+                          total += (showExchangeRate && equivalentAmount) ? equivalentAmount : amountVal;
+                        }
+                        return new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(Math.round(total * 100) / 100);
+                      })()}
+                    </span>
+                  </div>
+                </div>
+
+                {selectedInvoiceForPayment && (
+                  <div className="flex justify-between items-center bg-muted p-3 rounded-md">
+                    <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
+                    <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                   </div>
                 )}
-
-                <div className="flex justify-between items-center pt-2 border-t font-semibold">
-                  <span>{t('paymentDialog.totalPayment')}:</span>
-                  <span>
-                    {(() => {
-                      const invoiceCurrency = selectedInvoiceForPayment?.currency || 'USD';
-                      let total = creditsTotalInInvoiceCurrency;
-                      if (watchedAmount) {
-                        const amountVal = Number(watchedAmount);
-                        total += (showExchangeRate && equivalentAmount) ? equivalentAmount : amountVal;
-                      }
-                      return new Intl.NumberFormat('en-US', { style: 'currency', currency: invoiceCurrency }).format(total);
-                    })()}
-                  </span>
-                </div>
-              </div>
-
-              {selectedInvoiceForPayment && (
-                <div className="flex justify-between items-center bg-muted p-3 rounded-md">
-                  <span className="font-semibold text-lg">{t('paymentDialog.remainingAmount')}</span>
-                  <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
-                </div>
-              )}
+              </DialogBody>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsPaymentDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
                 <Button type="submit">{t('paymentDialog.add')}</Button>
@@ -1362,20 +1361,20 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start gap-3">
-            <div className="header-icon-circle mt-0.5">
-              <Receipt className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col text-left">
-              <DialogTitle>{isEditing ? tRoot('editDialog.title') || 'Edit Invoice' : t('title')}</DialogTitle>
-              <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
-            </div>
-          </div>
-        </DialogHeader>
+      <DialogContent maxWidth="4xl">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 w-full overflow-hidden">
+            <DialogHeader>
+              <div className="flex items-start gap-3">
+                <div className="header-icon-circle mt-0.5">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <DialogTitle>{isEditing ? tRoot('editDialog.title') || 'Edit Invoice' : t('title')}</DialogTitle>
+                  <DialogDescription>{isEditing ? tRoot('editDialog.description') || 'Change invoice details and lines.' : t('description')}</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
             <DialogBody className="space-y-4 py-4 px-6">
               {submissionError && (
                 <Alert variant="destructive">
