@@ -26,6 +26,7 @@ import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
 import { getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
+import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { Check, File, FileUp, Loader2, Receipt, RefreshCw, Send, Trash2, X } from 'lucide-react';
@@ -44,9 +45,8 @@ type InvoiceItemFormValues = z.infer<ReturnType<typeof getInvoiceItemSchema>>;
 
 async function getServices(): Promise<Service[]> {
     try {
-        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
-        const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
-        return servicesData.map((s: any) => {
+        const result = await getSalesServices({ limit: 100 });
+        return result.items.map((s: any) => {
             const id = s.id || s.product_id;
             return {
                 ...s,

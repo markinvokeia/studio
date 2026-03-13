@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
+import { getSalesServices } from '@/services/services';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -220,9 +221,8 @@ export function AppointmentFormDialog({
             }
             setIsSearchingServices(true);
             try {
-                const data = await api.get(API_ROUTES.SERVICES, { search: serviceSearchQuery, is_sales: 'true' });
-                const servicesData = Array.isArray(data) ? data : (data.services || data.data || data.result || []);
-                setServiceSearchResults(servicesData.map((apiService: any): Service => ({
+                const result = await getSalesServices({ search: serviceSearchQuery, limit: 50 });
+                setServiceSearchResults(result.items.map((apiService: any): Service => ({
                     id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
                     name: apiService.name || 'No Name',
                     category: apiService.category || 'No Category',
@@ -710,3 +710,4 @@ export function AppointmentFormDialog({
 
 // Checkbox helper if not already in @/components/ui/checkbox
 import { Checkbox } from '@/components/ui/checkbox';
+

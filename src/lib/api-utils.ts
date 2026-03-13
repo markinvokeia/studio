@@ -12,12 +12,21 @@ interface NormalizedResponse<T> {
  * Normalizes API responses that may come in different formats:
  * 1. Direct object: { data: [...], total: X }
  * 2. Array with object: [{ data: [...], total: X }]
- * 3. Direct array: [{...}, {...}]
+ * 3. Array with items: [{ items: [...], total: X, total_pages: Y }]
+ * 4. Direct array: [{...}, {...}]
  */
 export function normalizeApiResponse<T>(data: any): NormalizedResponse<T> {
   // Handle null/undefined
   if (!data) {
     return { items: [], total: 0 };
+  }
+
+  // If it's the format: [{ items: [...], total: X, total_pages: Y }]
+  if (Array.isArray(data) && data.length > 0 && data[0] && Array.isArray(data[0].items)) {
+    return {
+      items: data[0].items,
+      total: Number(data[0].total) || data[0].items.length
+    };
   }
 
   // If it's the specific format reported: [{ data: [...] }]

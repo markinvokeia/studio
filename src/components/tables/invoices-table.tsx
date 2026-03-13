@@ -22,16 +22,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ServiceSelector } from '@/components/ui/service-selector';
 import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Credit, Invoice, PaymentMethod, Service, User } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
-import { useDebounce } from '@/hooks/use-debounce';
+import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -1195,12 +1197,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
         try {
           const filterType = isSales ? 'PACIENTE' : 'PROVEEDOR';
           // Fetch services and booked invoices (not users - they are fetched on demand with search)
-          const [servicesData, invoicesData] = await Promise.all([
-            api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
+          const [servicesResult, invoicesData] = await Promise.all([
+            isSales ? getSalesServices({ limit: 100 }) : getPurchaseServices({ limit: 100 }),
             api.get(isSales ? API_ROUTES.SALES.INVOICES_ALL : API_ROUTES.PURCHASES.INVOICES_ALL, { is_sales: isSales ? 'true' : 'false', status: 'booked', type: 'invoice' })
           ]);
 
-          const servicesDataNormalized = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
+          const servicesDataNormalized = servicesResult.items || [];
           setServices(servicesDataNormalized.map((s: any) => ({ ...s, id: String(s.id) })));
 
           const invoicesDataNormalized = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
@@ -1540,28 +1542,21 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                       <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
                         <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                           <FormItem className="flex-1">
-                            <Select
-                              onValueChange={(value) => {
-                                field.onChange(value);
-                                const service = services.find(s => s.id === value);
+                            <ServiceSelector
+                              isSales={isSales}
+                              value={field.value}
+                              onValueChange={(serviceId, service) => {
+                                field.onChange(serviceId);
                                 if (service) {
                                   const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                   form.setValue(`items.${index}.unit_price`, service.price);
                                   form.setValue(`items.${index}.total`, service.price * quantity);
                                 }
                               }}
-                              value={field.value}
                               disabled={invoiceType === 'credit_note'}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={t('items.selectService')} />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
+                              placeholder={t('items.selectService')}
+                              triggerText={field.value ? services.find(s => s.id === field.value)?.name || t('items.selectService') : t('items.selectService')}
+                            />
                             <FormMessage />
                           </FormItem>
                         )} />

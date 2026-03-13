@@ -1,12 +1,13 @@
 
 'use client';
 
+import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -18,14 +19,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Appointment, Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
+import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
+import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 
 type ActionType = 'schedule' | 'complete';
 
@@ -82,7 +83,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         const [calData, docData, srvData, configData] = await Promise.all([
           api.get(API_ROUTES.CALENDARS),
           api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' }),
-          api.get(API_ROUTES.SERVICES, { is_sales: isSales ? 'true' : 'false' }),
+          isSales ? getSalesServices({ limit: 100 }) : getPurchaseServices({ limit: 100 }),
           api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => [])
         ]);
 
@@ -139,7 +140,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         }));
         setDoctorServiceMap(serviceMap);
 
-        const servicesList = Array.isArray(srvData) ? srvData : (srvData.services || srvData.data || srvData.result || []);
+        const servicesList = srvData.items || [];
         setAllServices(servicesList.map((s: any) => ({
           ...s,
           id: String(s.id),

@@ -34,12 +34,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { ServiceSelector } from '@/components/ui/service-selector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
@@ -136,17 +137,6 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
     }
 }
 
-async function getServices(): Promise<Service[]> {
-    try {
-        const data = await api.get(API_ROUTES.SERVICES, { is_sales: 'true' });
-        const normalized = normalizeApiResponse(data);
-        const servicesData = normalized.items;
-        return servicesData.map((s: any) => ({ ...s, id: String(s.id), currency: s.currency || 'USD' }));
-    } catch (error) {
-        console.error("Failed to fetch services:", error);
-        return [];
-    }
-}
 
 async function upsertQuoteItem(itemData: QuoteItemFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, { ...itemData, is_sales: true });
@@ -450,9 +440,8 @@ export default function QuotesPage() {
     const [userSearchTerm, setUserSearchTerm] = React.useState('');
     const debouncedUserSearch = useDebounce(userSearchTerm, 300);
     const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
-    const [allServices, setAllServices] = React.useState<Service[]>([]);
     const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
-    const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
+    const [allServices, setAllServices] = React.useState<Service[]>([]);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
@@ -603,15 +592,6 @@ export default function QuotesPage() {
         }
     }, [isQuoteDialogOpen]);
 
-    const loadServicesForQuoteDialog = React.useCallback(async () => {
-        try {
-            const fetchedServices = await getServices();
-            setAllServices(fetchedServices);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
-        }
-    }, [t, toast]);
-
     const handleCreateQuote = async () => {
         setEditingQuote(null);
         const sessionRate = getSessionExchangeRate();
@@ -620,9 +600,6 @@ export default function QuotesPage() {
         quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
-        if (allServices.length === 0) {
-            void loadServicesForQuoteDialog();
-        }
     };
 
     const handleEditQuote = async (quote: Quote) => {
@@ -647,9 +624,6 @@ export default function QuotesPage() {
         quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, items: mappedItems });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
-        if (allServices.length === 0) {
-            void loadServicesForQuoteDialog();
-        }
     };
 
     const handleDeleteQuote = (quote: Quote) => {
@@ -736,64 +710,27 @@ export default function QuotesPage() {
 
         quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
         setIsQuoteItemDialogOpen(true);
-
-        if (allServices.length === 0) {
-            try {
-                const fetchedServices = await getServices();
-                setAllServices(fetchedServices);
-            } catch (error) {
-                toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServices') });
-            }
-        }
     };
 
     const handleEditQuoteItem = async (item: QuoteItem) => {
         if (!selectedQuote) return;
-        try {
-            const fetchedServices = allServices.length > 0 ? allServices : await getServices();
-            setAllServices(fetchedServices);
-            setEditingQuoteItem(item);
-            setQuoteItemSubmissionError(null);
-            setShowConversion(false);
 
-            const service = fetchedServices.find(s => String(s.id) === String(item.service_id));
+        setEditingQuoteItem(item);
+        setQuoteItemSubmissionError(null);
+        setShowConversion(false);
+        setOriginalServicePrice(null);
+        setOriginalServiceCurrency('');
 
-            if (service) {
-                const servicePrice = Number(service.price);
-                setOriginalServicePrice(servicePrice);
-                setOriginalServiceCurrency(service.currency || 'USD');
-
-                const quoteCurrency = selectedQuote.currency || 'USD';
-                const serviceCurrency = service.currency || 'USD';
-                const conversionNeeded = quoteCurrency !== serviceCurrency;
-                setShowConversion(conversionNeeded);
-                quoteItemForm.reset({
-                    id: item.id,
-                    quote_id: selectedQuote.id,
-                    service_id: String(item.service_id),
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    total: item.total,
-                    tooth_number: item.tooth_number || ''
-                });
-
-                setIsQuoteItemDialogOpen(true);
-            } else {
-                setEditingQuoteItem(item);
-                quoteItemForm.reset({
-                    id: item.id,
-                    quote_id: selectedQuote.id,
-                    service_id: String(item.service_id),
-                    quantity: item.quantity,
-                    unit_price: item.unit_price,
-                    total: item.total,
-                    tooth_number: item.tooth_number || ''
-                });
-                setIsQuoteItemDialogOpen(true);
-            }
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadServiceData') });
-        }
+        quoteItemForm.reset({
+            id: item.id,
+            quote_id: selectedQuote.id,
+            service_id: String(item.service_id),
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total: item.total,
+            tooth_number: item.tooth_number || ''
+        });
+        setIsQuoteItemDialogOpen(true);
     };
 
     const handleDeleteQuoteItem = (item: QuoteItem) => {
@@ -883,40 +820,6 @@ export default function QuotesPage() {
             }
         }
     }, [isClinicCurrency, watchedQuoteExchangeRate, quoteForm, getSessionExchangeRate]);
-
-    React.useEffect(() => {
-        const service = allServices.find(s => String(s.id) === watchedServiceId);
-        if (service && selectedQuote) {
-            const servicePrice = Number(service.price);
-
-            setOriginalServicePrice(servicePrice);
-
-            const quoteCurrency = selectedQuote.currency || 'USD';
-            const serviceCurrency = service.currency || 'USD';
-            setOriginalServiceCurrency(serviceCurrency);
-
-            const conversionNeeded = quoteCurrency !== serviceCurrency;
-            setShowConversion(conversionNeeded);
-
-            let newUnitPrice = servicePrice;
-            if (conversionNeeded) {
-                const exchangeRate = Number(watchedQuoteExchangeRate) || getSessionExchangeRate();
-                setExchangeRate(exchangeRate);
-
-                if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
-                    newUnitPrice = servicePrice * exchangeRate;
-                } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
-                    newUnitPrice = exchangeRate > 0 ? servicePrice / exchangeRate : 0;
-                }
-            }
-
-            const quantity = Number(watchedQuantity) || 0;
-            const roundedUnitPrice = Math.round(newUnitPrice * 100) / 100;
-            const roundedTotal = Math.round((roundedUnitPrice * quantity) * 100) / 100;
-            quoteItemForm.setValue('unit_price', roundedUnitPrice);
-            quoteItemForm.setValue('total', roundedTotal);
-        }
-    }, [watchedServiceId, watchedQuantity, watchedQuoteExchangeRate, allServices, selectedQuote, quoteItemForm, getSessionExchangeRate]);
 
     return (
         <>
@@ -1291,24 +1194,21 @@ export default function QuotesPage() {
                                                 <div key={index} className="flex flex-col md:flex-row md:items-start gap-2">
                                                     <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
                                                         <FormItem className="flex-1">
-                                                            <Select onValueChange={(value) => {
-                                                                field.onChange(value);
-                                                                const service = allServices.find(s => s.id === value);
-                                                                if (service) {
-                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                    quoteForm.setValue(`items.${index}.unit_price`, Number(service.price));
-                                                                    quoteForm.setValue(`items.${index}.total`, Number(service.price) * quantity);
-                                                                }
-                                                            }} value={field.value}>
-                                                                <FormControl>
-                                                                    <SelectTrigger>
-                                                                        <SelectValue placeholder={t('quoteDialog.items.selectService')} />
-                                                                    </SelectTrigger>
-                                                                </FormControl>
-                                                                <SelectContent>
-                                                                    {allServices.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                                                                </SelectContent>
-                                                            </Select>
+                                                            <ServiceSelector
+                                                                isSales={true}
+                                                                value={field.value}
+                                                                onValueChange={(serviceId, service) => {
+                                                                    field.onChange(serviceId);
+                                                                    if (service) {
+                                                                        const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                        quoteForm.setValue(`items.${index}.unit_price`, Number(service.price));
+                                                                        quoteForm.setValue(`items.${index}.total`, Number(service.price) * quantity);
+                                                                    }
+                                                                }}
+                                                                placeholder={t('itemDialog.searchService')}
+                                                                noResultsText={t('itemDialog.noServiceFound')}
+                                                                triggerText={t('quoteDialog.items.selectService')}
+                                                            />
                                                             <FormMessage />
                                                         </FormItem>
                                                     )} />
@@ -1411,32 +1311,23 @@ export default function QuotesPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('itemDialog.service')}</FormLabel>
-                                            <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? allServices.find(s => s.id === field.value)?.name : t('itemDialog.selectService')}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command>
-                                                        <CommandInput placeholder={t('itemDialog.searchService')} />
-                                                        <CommandList>
-                                                            <CommandEmpty>{t('itemDialog.noServiceFound')}</CommandEmpty>
-                                                            <CommandGroup>
-                                                                {allServices.map((service) => (
-                                                                    <CommandItem value={service.name} key={service.id} onSelect={() => { quoteItemForm.setValue("service_id", String(service.id)); setServiceSearchOpen(false); }}>
-                                                                        <Check className={cn("mr-2 h-4 w-4", String(service.id) === field.value ? "opacity-100" : "opacity-0")} />
-                                                                        {service.name}
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <ServiceSelector
+                                                isSales={true}
+                                                value={field.value}
+                                                onValueChange={(serviceId, service) => {
+                                                    field.onChange(serviceId);
+                                                    if (service) {
+                                                        const quantity = quoteItemForm.getValues('quantity') || 1;
+                                                        const servicePrice = Number(service.price);
+                                                        quoteItemForm.setValue('unit_price', servicePrice);
+                                                        quoteItemForm.setValue('total', servicePrice * quantity);
+                                                    }
+                                                }}
+                                                placeholder={t('itemDialog.searchService')}
+                                                noResultsText={t('itemDialog.noServiceFound')}
+                                                triggerText={t('itemDialog.selectService')}
+                                                disabled={!selectedQuote}
+                                            />
                                             <FormMessage />
                                         </FormItem>
                                     )}
