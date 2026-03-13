@@ -597,7 +597,7 @@
             "messages": "Mensajes",
             "preferences": "Preferencias",
             "logs": "Registros",
-            "history": "Historia Clínica",
+            "clinicalHistory": "Historia Clínica",
             "orders": "Órdenes",
             "invoices": "Facturas",
             "payments": "Pagos",
@@ -2893,6 +2893,28 @@
             "images": "Imágenes",
             "documents": "Documentos"
         },
+        "common": {
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "edit": "Editar",
+            "delete": "Eliminar"
+        },
+        "documents": {
+            "upload": "Subir Documento",
+            "add": "Agregar documento",
+            "noDocuments": "No hay documentos disponibles",
+            "view": "Ver",
+            "download": "Descargar",
+            "delete": "Eliminar",
+            "deleteSuccess": "Documento eliminado exitosamente",
+            "deleteError": "Error al eliminar el documento",
+            "uploadSuccess": "Documento subido exitosamente",
+            "uploadError": "Error al subir el documento",
+            "confirmDelete": "¿Estás seguro de que deseas eliminar este documento?",
+            "dragDropBold": "Haz clic para subir",
+            "dragDropNormal": "o arrastra y suelta",
+            "dragDropSubtext": "PDF, PNG, JPG o GIF (MÁX. 10MB)"
+        },
         "selectPatientTitle": "Seleccionar un Paciente",
         "selectPatientDescription": "Por favor seleccione un paciente para ver su historial médico",
         "noPatientsFound": "No se encontraron pacientes",
@@ -2944,8 +2966,17 @@
             "tooth": "Diente",
             "saving": "Guardando",
             "nextSessionPlan": "Plan para la Próxima Sesión",
+            "nextSessionPlanPlaceholder": "Ingrese el plan para la siguiente cita...",
             "attachments": "Adjuntos",
-            "addTreatment": "Agregar Tratamiento"
+            "addTreatment": "Agregar Tratamiento",
+            "procedurePlaceholder": "Ingrese el procedimiento realizado...",
+            "diagnosisPlaceholder": "Ingrese el diagnóstico...",
+            "notesPlaceholder": "Ingrese notas adicionales...",
+            "dragDropFiles": "Arrastre y suelte archivos aquí",
+            "browseFiles": "o busque archivos",
+            "existingAttachments": "Adjuntos existentes",
+            "newAttachments": "Nuevos adjuntos",
+            "deleteConfirm": "¿Está seguro de que desea eliminar esta sesión? Esta acción no se puede deshacer."
         },
         "newFiles": "Nuevos Archivos",
         "existingFiles": "Archivos Existentes",
@@ -2969,18 +3000,25 @@
             "tooth": "Diente",
             "odontogramUpdate": "Actualización de Odontograma",
             "showMore": "Mostrar más",
+            "showDetails": "Ver detalles",
+            "hideDetails": "Ocultar detalles",
+            "nextPlan": "Plan próxima cita",
             "attachments": "Adjuntos",
             "treatments": "Tratamientos",
             "showLess": "Mostrar menos",
             "edit": "Editar",
             "delete": "Eliminar",
             "odontogramTooltip": "Tipo de sesión: Odontograma",
+            "noSessions": "No hay sesiones registradas",
+            "addFirstSession": "Agregar primera sesión",
             "toast": {
                 "success": "Éxito",
                 "deleteSuccess": "Eliminado exitosamente"
             },
             "nextSessionPlan": "Plan para la Próxima Sesión",
-            "addSession": "Agregar sesión"
+            "addSession": "Agregar sesión",
+            "noSessions": "No hay sesiones registradas",
+            "noTitle": "Sin título"
         },
         "anamnesis": {
             "personalTitle": "Información Personal",
@@ -3030,7 +3068,12 @@
                     "reason": "Razón (Opcional)",
                     "searchMedication": "Buscar Medicamento",
                     "noMedicationFound": "No se encontró el medicamento",
-                    "typeToSearch": "Escriba para buscar medicamentos"
+                    "typeToSearch": "Escriba para buscar medicamentos",
+                    "dosePlaceholder": "Ej. 500mg",
+                    "frequencyPlaceholder": "Ej. Cada 8 horas",
+                    "reasonPlaceholder": "Razon de la medicación",
+                    "startDatePlaceholder": "Seleccionar fecha de inicio",
+                    "endDatePlaceholder": "Seleccionar fecha de fin"
                 },
                 "allergy": {
                     "addTitle": "Agregar Alergia",
@@ -3038,7 +3081,9 @@
                     "editTitle": "Editar Alergia",
                     "editDescription": "Editar alergia para el paciente",
                     "allergen": "Alérgeno",
-                    "reaction": "Reacción"
+                    "allergenPlaceholder": "Ej. Penicilina",
+                    "reaction": "Reacción",
+                    "reactionPlaceholder": "Describa la reacción alérgica..."
                 },
                 "searchAilment": "Buscar Padecimiento",
                 "noAilmentFound": "No se encontró el padecimiento"

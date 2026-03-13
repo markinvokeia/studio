@@ -28,7 +28,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { MedicalHistory } from '@/components/users/medical-history';
+import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserInvoices } from '@/components/users/user-invoices';
@@ -91,19 +91,8 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user, t, onPrint }: { user: User, t: (key: string) => string, onPrint?: () => void }) => {
+const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
   const [isOpen, setIsOpen] = React.useState(true);
-  const [isPrinting, setIsPrinting] = React.useState(false);
-
-  const handlePrint = async () => {
-    if (!onPrint || isPrinting) return;
-    setIsPrinting(true);
-    try {
-      await onPrint();
-    } finally {
-      setIsPrinting(false);
-    }
-  };
 
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
@@ -171,19 +160,6 @@ const UserStats = ({ user, t, onPrint }: { user: User, t: (key: string) => strin
           {t('UsersPage.stats.title') || 'Resumen Financiero'}
         </h4>
         <div className="flex items-center gap-1">
-          {onPrint && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-accent/50"
-              onClick={handlePrint}
-              disabled={isPrinting}
-              title={t('UsersPage.stats.printFinancialSummary')}
-            >
-              {isPrinting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Printer className="h-3 w-3" />}
-              <span className="sr-only">{t('UsersPage.stats.printFinancialSummary')}</span>
-            </Button>
-          )}
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-accent/50">
               {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -1029,6 +1005,15 @@ export default function UsersPage() {
                         {t('ClinicHistoryPage.discharge.buttonText')}
                       </Button>
                     )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-accent/50"
+                      onClick={handlePrintFinancialSummary}
+                    >
+                      <Printer className="h-4 w-4 mr-1" />
+                      {t('UsersPage.stats.printFinancialSummary')}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('UsersPage.close')}</span>
@@ -1038,10 +1023,10 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserStats user={selectedUser} t={t} onPrint={handlePrintFinancialSummary} />
-                      <Tabs defaultValue="history" className="w-full flex-1 flex flex-col min-h-0">
+                      <UserStats user={selectedUser} t={t} />
+                      <Tabs defaultValue="clinical-history" className="w-full flex-1 flex flex-col min-h-0">
                         <TabsList className="gap-1">
-                          {canViewHistory && <TabsTrigger value="history" className="text-xs px-2 py-1">{t('UsersPage.tabs.history')}</TabsTrigger>}
+                          {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-2 py-1">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                             <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
                           )}
@@ -1055,40 +1040,40 @@ export default function UsersPage() {
                           <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
                           <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
                         </TabsList>
-                        <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                          <TabsContent value="history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                            <MedicalHistory user={selectedUser} />
+                        <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-2">
+                          <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                            <ClinicHistoryViewer userId={selectedUser.id} userName={selectedUser.name} />
                           </TabsContent>
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                            <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                               <UserServices userId={selectedUser.id} isSalesUser={true} />
                             </TabsContent>
                           )}
-                          <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
                           </TabsContent>
-                          <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserOrders userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserInvoices userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserPayments userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserAppointments user={selectedUser} />
                           </TabsContent>
-                          <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserMessages userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserCommunicationPreferences user={selectedUser} />
                           </TabsContent>
-                          <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserLogs userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />
                           </TabsContent>
                         </div>
@@ -1236,60 +1221,71 @@ export default function UsersPage() {
       </Dialog>
 
       <Dialog open={isDischargeDialogOpen} onOpenChange={setIsDischargeDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>{t('ClinicHistoryPage.discharge.dialogTitle')}</DialogTitle>
             <DialogDescription>
               {t('ClinicHistoryPage.discharge.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 px-6">
-            <div className="grid gap-2">
-              <Label>{t('ClinicHistoryPage.discharge.optionsLabel')}</Label>
+          <DialogBody className="space-y-6 px-6 py-4">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t('ClinicHistoryPage.discharge.optionsLabel')}
+              </Label>
               <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 1))}
                 >
                   {t('ClinicHistoryPage.discharge.option1Month')}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 3))}
                 >
                   {t('ClinicHistoryPage.discharge.option3Months')}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 6))}
                 >
                   {t('ClinicHistoryPage.discharge.option6Months')}
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
+                  className="rounded-full"
                   onClick={() => setDischargeDate(addMonths(new Date(), 12))}
                 >
                   {t('ClinicHistoryPage.discharge.option1Year')}
                 </Button>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label>{t('ClinicHistoryPage.discharge.dateLabel')}</Label>
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t('ClinicHistoryPage.discharge.dateLabel')}
+              </Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full h-12 justify-start text-left font-normal border-muted-foreground/20 hover:border-primary/50 transition-colors",
                       !dischargeDate && "text-muted-foreground"
                     )}
                   >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
+                    <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
+                    <span className="text-base font-medium">
+                      {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -1303,19 +1299,23 @@ export default function UsersPage() {
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
+          </DialogBody>
           <DialogFooter>
             <Button
+              className="px-8"
               onClick={handleSaveDischarge}
               disabled={!dischargeDate || isSubmittingDischarge}
             >
-              {isSubmittingDischarge ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isSubmittingDischarge ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               {t('ClinicHistoryPage.discharge.saveButton')}
             </Button>
-            <Button variant="outline" onClick={() => {
-              setIsDischargeDialogOpen(false);
-              setDischargeDate(null);
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsDischargeDialogOpen(false);
+                setDischargeDate(null);
+              }}
+            >
               {t('ClinicHistoryPage.discharge.cancelButton')}
             </Button>
           </DialogFooter>

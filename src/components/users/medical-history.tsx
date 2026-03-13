@@ -12,7 +12,6 @@ import { format, parseISO } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { ArrowRight, ChevronDown, FileText, Microscope, Pill, Stethoscope, UserPlus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import * as React from 'react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -154,16 +153,6 @@ export function MedicalHistory({ user }: MedicalHistoryProps) {
                     </div>
                 )}
             </ScrollArea>
-            <div className="p-4 border-t mt-auto">
-                <div className="w-full">
-                    <Link href={`/${locale}/clinic-history/${user.id}`} passHref>
-                        <Button variant="outline" className="w-full">
-                            {t('viewFullHistory')}
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </Link>
-                </div>
-            </div>
         </div>
     );
 }
