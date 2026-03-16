@@ -52,7 +52,7 @@ const transactionFormSchema = (t: (key: string) => string) => z.object({
     transaction_date: z.string().min(1, t('validation.dateRequired')),
     amount: z.coerce.number().positive(t('validation.amountPositive')),
     description: z.string().min(1, t('validation.descriptionRequired')),
-    beneficiary_id: z.string().optional(),
+    beneficiary_name: z.string().optional(),
     currency: z.enum(['UYU', 'USD', 'EUR']).default('UYU'),
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
@@ -183,15 +183,13 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
     }
 }
 
-
-
-
 async function upsertMiscellaneousTransaction(transactionData: TransactionFormValues, userId: string) {
     const payload = {
         ...transactionData,
         user_id: userId,
         tags: transactionData.tags?.split(',').map(t => t.trim()).filter(t => t),
-        beneficiary_id: transactionData.beneficiary_id || null,
+        beneficiary_name: transactionData.beneficiary_name || null,
+        beneficiary_id: null,
         payment_method_id: transactionData.payment_method_id ? parseInt(transactionData.payment_method_id, 10) : null,
         category_id: parseInt(transactionData.category_id, 10),
     };
@@ -285,7 +283,7 @@ export default function MiscellaneousTransactionsPage() {
                     transaction_date: format(parseISO(editingTransaction.transaction_date), 'yyyy-MM-dd'),
                     amount: editingTransaction.amount,
                     description: editingTransaction.description,
-                    beneficiary_id: cleanValue(editingTransaction.beneficiary_id) || undefined,
+                    beneficiary_name: editingTransaction.beneficiary_name || '',
                     currency: editingTransaction.currency as any,
                     exchange_rate: editingTransaction.exchange_rate,
                     external_reference: editingTransaction.external_reference,
@@ -298,7 +296,7 @@ export default function MiscellaneousTransactionsPage() {
                     currency: 'UYU',
                     exchange_rate: 1,
                     description: '',
-                    beneficiary_id: '',
+                    beneficiary_name: '',
                     category_id: '',
                     amount: 0,
                     tags: '',
@@ -439,20 +437,7 @@ export default function MiscellaneousTransactionsPage() {
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-none">
-                <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalIncome')}</CardTitle></CardHeader>
-                    <CardContent className="bg-card"><p className="text-2xl font-bold text-green-600">${totalIncome.toFixed(2)}</p></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.totalExpense')}</CardTitle></CardHeader>
-                    <CardContent className="bg-card"><p className="text-2xl font-bold text-red-600">${totalExpense.toFixed(2)}</p></CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('dashboard.balance')}</CardTitle></CardHeader>
-                    <CardContent className="bg-card"><p className="text-2xl font-bold text-blue-600">${(totalIncome - totalExpense).toFixed(2)}</p></CardContent>
-                </Card>
-            </div>
+
             <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <CardHeader className="flex-none p-4">
                     <div className="flex items-start gap-3">
@@ -526,15 +511,12 @@ export default function MiscellaneousTransactionsPage() {
                                     </Popover><FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField control={form.control} name="beneficiary_id" render={({ field }) => (
+                            <FormField control={form.control} name="beneficiary_name" render={({ field }) => (
                                 <FormItem><FormLabel>{t('dialog.beneficiary')}</FormLabel>
-                                    <Popover open={isBeneficiaryOpen} onOpenChange={setIsBeneficiaryOpen}><PopoverTrigger asChild><FormControl>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between">{field.value ? beneficiaries.find(b => b.id === field.value)?.name : t('dialog.selectBeneficiary')}<ChevronsUpDown /></Button>
-                                    </FormControl></PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0"><Command><CommandInput onValueChange={setBeneficiarySearch} /><CommandList><CommandEmpty>No beneficiary found.</CommandEmpty><CommandGroup>
-                                            {beneficiaries.map(b => <CommandItem value={b.name} key={b.id} onSelect={() => { form.setValue("beneficiary_id", b.id); setIsBeneficiaryOpen(false); }}><Check className={cn("mr-2", b.id === field.value ? "opacity-100" : "opacity-0")} />{b.name}</CommandItem>)}
-                                        </CommandGroup></CommandList></Command></PopoverContent>
-                                    </Popover><FormMessage />
+                                    <FormControl>
+                                        <Input {...field} placeholder={t('dialog.beneficiaryPlaceholder') || 'Nombre del beneficiario'} />
+                                    </FormControl>
+                                    <FormMessage />
                                 </FormItem>
                             )} />
                             <div className="grid grid-cols-2 gap-4">

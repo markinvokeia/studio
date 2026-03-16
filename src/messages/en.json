@@ -1642,7 +1642,8 @@
       "selectMethod": "Select method",
       "areYouSure": "Are you sure?",
       "deleteConfirmation": "This will permanently delete transaction #{number}.",
-      "deleteAction": "Delete"
+      "deleteAction": "Delete",
+      "beneficiaryPlaceholder": "Beneficiary"
     },
     "statuses": {
       "pending": "Pending",

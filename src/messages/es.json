@@ -1642,7 +1642,8 @@
             "selectMethod": "Seleccionar método",
             "areYouSure": "¿Está seguro?",
             "deleteConfirmation": "Esto eliminará permanentemente la transacción N°{number}.",
-            "deleteAction": "Eliminar"
+            "deleteAction": "Eliminar",
+            "beneficiaryPlaceholder": "Beneficiario"
         },
         "statuses": {
             "pending": "Pendiente",

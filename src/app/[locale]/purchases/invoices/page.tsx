@@ -917,7 +917,7 @@ const ItemFormDialog = ({
                                     <FormItem>
                                         <FormLabel>{t('InvoiceItemsTable.form.quantity')}</FormLabel>
                                         <FormControl>
-                                            <Input type="number" {...field} />
+                                            <Input type="number" step="0.01" {...field} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
