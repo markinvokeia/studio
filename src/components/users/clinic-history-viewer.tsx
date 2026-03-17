@@ -426,7 +426,7 @@ function AnamnesisSection({
     React.useEffect(() => {
         if (isPersonalDialogOpen) {
             if (editingPersonalItem) {
-                setPersonalAilmentName(editingPersonalItem.nombre);
+                setPersonalAilmentName(editingPersonalItem.padecimiento_id || editingPersonalItem.nombre);
                 setPersonalComentarios(editingPersonalItem.comentarios);
             } else {
                 setPersonalAilmentName('');
@@ -438,7 +438,7 @@ function AnamnesisSection({
     React.useEffect(() => {
         if (isFamilyDialogOpen) {
             if (editingFamilyItem) {
-                setFamilyAilmentName(editingFamilyItem.nombre);
+                setFamilyAilmentName(editingFamilyItem.padecimiento_id || editingFamilyItem.nombre);
                 setFamilyParentesco(editingFamilyItem.parentesco);
                 setFamilyComentarios(editingFamilyItem.comentarios);
             } else {
@@ -522,17 +522,16 @@ function AnamnesisSection({
     const handleSubmitPersonal = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const ailment = ailmentsCatalog.find(a => a.nombre === personalAilmentName);
             if (editingPersonalItem?.id) {
                 await onUpdatePersonalHistory(userId, {
                     id: editingPersonalItem.id,
-                    padecimiento_id: ailment?.id || '',
+                    padecimiento_id: personalAilmentName,
                     nombre: personalAilmentName,
                     comentarios: personalComentarios,
                 });
             } else {
                 await onCreatePersonalHistory(userId, {
-                    padecimiento_id: ailment?.id || '',
+                    padecimiento_id: personalAilmentName,
                     nombre: personalAilmentName,
                     comentarios: personalComentarios,
                 });
@@ -563,18 +562,17 @@ function AnamnesisSection({
     const handleSubmitFamily = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const ailment = ailmentsCatalog.find(a => a.nombre === familyAilmentName);
             if (editingFamilyItem?.id) {
                 await onUpdateFamilyHistory(userId, {
                     id: editingFamilyItem.id,
-                    padecimiento_id: ailment?.id || '',
+                    padecimiento_id: familyAilmentName,
                     nombre: familyAilmentName,
                     parentesco: familyParentesco,
                     comentarios: familyComentarios,
                 });
             } else {
                 await onCreateFamilyHistory(userId, {
-                    padecimiento_id: ailment?.id || '',
+                    padecimiento_id: familyAilmentName,
                     nombre: familyAilmentName,
                     parentesco: familyParentesco,
                     comentarios: familyComentarios,
