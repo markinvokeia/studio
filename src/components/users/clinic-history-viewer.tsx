@@ -111,6 +111,37 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
         uploadDocument,
         deleteDocument,
         getDocumentContent,
+        ailmentsCatalog,
+        medicationsCatalog,
+        isLoadingAilmentsCatalog,
+        isLoadingMedicationsCatalog,
+        createPersonalHistory,
+        updatePersonalHistory,
+        deletePersonalHistory,
+        createFamilyHistory,
+        updateFamilyHistory,
+        deleteFamilyHistory,
+        createAllergy,
+        updateAllergy,
+        deleteAllergy,
+        createMedication,
+        updateMedication,
+        deleteMedication,
+        updatePatientHabits,
+        fetchAilmentsCatalog,
+        fetchMedicationsCatalog,
+        isSubmittingPersonal,
+        isSubmittingFamily,
+        isSubmittingAllergy,
+        isSubmittingMedication,
+        isSubmittingHabits,
+        createSession,
+        updateSession,
+        deleteSession,
+        fetchDoctors,
+        doctors,
+        isLoadingDoctors,
+        isSubmittingSession,
     } = useClinicHistory();
 
     React.useEffect(() => {
@@ -162,6 +193,30 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
                                 isLoadingMedications={isLoadingMedications}
                                 patientHabits={patientHabits}
                                 isLoadingPatientHabits={isLoadingPatientHabits}
+                                ailmentsCatalog={ailmentsCatalog}
+                                medicationsCatalog={medicationsCatalog}
+                                isLoadingAilmentsCatalog={isLoadingAilmentsCatalog}
+                                isLoadingMedicationsCatalog={isLoadingMedicationsCatalog}
+                                isSubmittingPersonal={isSubmittingPersonal}
+                                isSubmittingFamily={isSubmittingFamily}
+                                isSubmittingAllergy={isSubmittingAllergy}
+                                isSubmittingMedication={isSubmittingMedication}
+                                isSubmittingHabits={isSubmittingHabits}
+                                onCreatePersonalHistory={createPersonalHistory}
+                                onUpdatePersonalHistory={updatePersonalHistory}
+                                onDeletePersonalHistory={deletePersonalHistory}
+                                onCreateFamilyHistory={createFamilyHistory}
+                                onUpdateFamilyHistory={updateFamilyHistory}
+                                onDeleteFamilyHistory={deleteFamilyHistory}
+                                onCreateAllergy={createAllergy}
+                                onUpdateAllergy={updateAllergy}
+                                onDeleteAllergy={deleteAllergy}
+                                onCreateMedication={createMedication}
+                                onUpdateMedication={updateMedication}
+                                onDeleteMedication={deleteMedication}
+                                onUpdatePatientHabits={updatePatientHabits}
+                                onFetchAilmentsCatalog={fetchAilmentsCatalog}
+                                onFetchMedicationsCatalog={fetchMedicationsCatalog}
                             />
                         )}
                         {activeView === 'timeline' && (
@@ -169,6 +224,14 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
                                 sessions={patientSessions}
                                 isLoading={isLoadingPatientSessions}
                                 userId={userId}
+                                doctors={doctors}
+                                isLoadingDoctors={isLoadingDoctors}
+                                isSubmittingSession={isSubmittingSession}
+                                onCreateSession={createSession}
+                                onUpdateSession={updateSession}
+                                onDeleteSession={deleteSession}
+                                onFetchDoctors={fetchDoctors}
+                                onRefreshAll={refreshAll}
                             />
                         )}
                         {activeView === 'odontogram' && (
@@ -223,6 +286,30 @@ interface AnamnesisSectionProps {
     isLoadingMedications: boolean;
     patientHabits: PatientHabitsType | null;
     isLoadingPatientHabits: boolean;
+    ailmentsCatalog: { id: string; nombre: string }[];
+    medicationsCatalog: MedicationCatalogItem[];
+    isLoadingAilmentsCatalog: boolean;
+    isLoadingMedicationsCatalog: boolean;
+    isSubmittingPersonal: boolean;
+    isSubmittingFamily: boolean;
+    isSubmittingAllergy: boolean;
+    isSubmittingMedication: boolean;
+    isSubmittingHabits: boolean;
+    onCreatePersonalHistory: (userId: string, data: { padecimiento_id: string; nombre: string; comentarios: string }) => Promise<void>;
+    onUpdatePersonalHistory: (userId: string, data: { id: number; padecimiento_id: string; nombre: string; comentarios: string }) => Promise<void>;
+    onDeletePersonalHistory: (userId: string, itemId: number) => Promise<void>;
+    onCreateFamilyHistory: (userId: string, data: { padecimiento_id: string; nombre: string; parentesco: string; comentarios: string }) => Promise<void>;
+    onUpdateFamilyHistory: (userId: string, data: { id: number; padecimiento_id: string; nombre: string; parentesco: string; comentarios: string }) => Promise<void>;
+    onDeleteFamilyHistory: (userId: string, itemId: number) => Promise<void>;
+    onCreateAllergy: (userId: string, data: { alergeno: string; reaccion_descrita: string }) => Promise<void>;
+    onUpdateAllergy: (userId: string, data: { id: number; alergeno: string; reaccion_descrita: string }) => Promise<void>;
+    onDeleteAllergy: (userId: string, itemId: number) => Promise<void>;
+    onCreateMedication: (userId: string, data: { medicamento_id?: string; nombre_medicamento: string; dosis: string; frecuencia: string; motivo: string; fecha_inicio?: string; fecha_fin?: string }) => Promise<void>;
+    onUpdateMedication: (userId: string, data: { id: number; medicamento_id?: string; nombre_medicamento: string; dosis: string; frecuencia: string; motivo: string; fecha_inicio?: string; fecha_fin?: string }) => Promise<void>;
+    onDeleteMedication: (userId: string, itemId: number) => Promise<void>;
+    onUpdatePatientHabits: (userId: string, data: PatientHabitsType) => Promise<void>;
+    onFetchAilmentsCatalog: () => Promise<void>;
+    onFetchMedicationsCatalog: (search: string) => Promise<void>;
 }
 
 function AnamnesisSection({
@@ -237,35 +324,34 @@ function AnamnesisSection({
     isLoadingMedications,
     patientHabits,
     isLoadingPatientHabits,
+    ailmentsCatalog,
+    medicationsCatalog,
+    isLoadingAilmentsCatalog,
+    isLoadingMedicationsCatalog,
+    isSubmittingPersonal,
+    isSubmittingFamily,
+    isSubmittingAllergy,
+    isSubmittingMedication,
+    isSubmittingHabits,
+    onCreatePersonalHistory,
+    onUpdatePersonalHistory,
+    onDeletePersonalHistory,
+    onCreateFamilyHistory,
+    onUpdateFamilyHistory,
+    onDeleteFamilyHistory,
+    onCreateAllergy,
+    onUpdateAllergy,
+    onDeleteAllergy,
+    onCreateMedication,
+    onUpdateMedication,
+    onDeleteMedication,
+    onUpdatePatientHabits,
+    onFetchAilmentsCatalog,
+    onFetchMedicationsCatalog,
 }: AnamnesisSectionProps) {
     const t = useTranslations('ClinicHistoryPage.anamnesis');
     const tHabits = useTranslations('ClinicHistoryPage.habits');
     const { toast } = useToast();
-
-    const {
-        ailmentsCatalog,
-        medicationsCatalog,
-        fetchAilmentsCatalog,
-        fetchMedicationsCatalog,
-        createPersonalHistory,
-        updatePersonalHistory,
-        deletePersonalHistory,
-        createFamilyHistory,
-        updateFamilyHistory,
-        deleteFamilyHistory,
-        createAllergy,
-        updateAllergy,
-        deleteAllergy,
-        createMedication,
-        updateMedication,
-        deleteMedication,
-        updatePatientHabits,
-        isSubmittingPersonal,
-        isSubmittingFamily,
-        isSubmittingAllergy,
-        isSubmittingMedication,
-        isSubmittingHabits,
-    } = useClinicHistory();
 
     // Dialog states
     const [isPersonalDialogOpen, setIsPersonalDialogOpen] = React.useState(false);
@@ -317,18 +403,18 @@ function AnamnesisSection({
     // Load catalog when dialog opens
     React.useEffect(() => {
         if (isPersonalDialogOpen || isFamilyDialogOpen) {
-            fetchAilmentsCatalog();
+            onFetchAilmentsCatalog();
         }
-    }, [isPersonalDialogOpen, isFamilyDialogOpen, fetchAilmentsCatalog]);
+    }, [isPersonalDialogOpen, isFamilyDialogOpen, onFetchAilmentsCatalog]);
 
     React.useEffect(() => {
         if (isMedicationDialogOpen && medicationSearchTerm.length > 0) {
             const timer = setTimeout(() => {
-                fetchMedicationsCatalog(medicationSearchTerm);
+                onFetchMedicationsCatalog(medicationSearchTerm);
             }, 300);
             return () => clearTimeout(timer);
         }
-    }, [isMedicationDialogOpen, medicationSearchTerm, fetchMedicationsCatalog]);
+    }, [isMedicationDialogOpen, medicationSearchTerm, onFetchMedicationsCatalog]);
 
     // Load editing data when dialog opens
     React.useEffect(() => {
@@ -432,14 +518,14 @@ function AnamnesisSection({
         try {
             const ailment = ailmentsCatalog.find(a => a.nombre === personalAilmentName);
             if (editingPersonalItem?.id) {
-                await updatePersonalHistory(userId, {
+                await onUpdatePersonalHistory(userId, {
                     id: editingPersonalItem.id,
                     padecimiento_id: ailment?.id || '',
                     nombre: personalAilmentName,
                     comentarios: personalComentarios,
                 });
             } else {
-                await createPersonalHistory(userId, {
+                await onCreatePersonalHistory(userId, {
                     padecimiento_id: ailment?.id || '',
                     nombre: personalAilmentName,
                     comentarios: personalComentarios,
@@ -455,7 +541,7 @@ function AnamnesisSection({
     const handleDeletePersonal = async (item: PersonalHistoryItem) => {
         if (item.id && confirm(t('confirmDelete'))) {
             try {
-                await deletePersonalHistory(userId, item.id);
+                await onDeletePersonalHistory(userId, item.id);
                 toast({ title: t('toast.deleteSuccess') });
             } catch (error) {
                 toast({ title: t('toast.error'), variant: 'destructive' });
@@ -468,7 +554,7 @@ function AnamnesisSection({
         try {
             const ailment = ailmentsCatalog.find(a => a.nombre === familyAilmentName);
             if (editingFamilyItem?.id) {
-                await updateFamilyHistory(userId, {
+                await onUpdateFamilyHistory(userId, {
                     id: editingFamilyItem.id,
                     padecimiento_id: ailment?.id || '',
                     nombre: familyAilmentName,
@@ -476,7 +562,7 @@ function AnamnesisSection({
                     comentarios: familyComentarios,
                 });
             } else {
-                await createFamilyHistory(userId, {
+                await onCreateFamilyHistory(userId, {
                     padecimiento_id: ailment?.id || '',
                     nombre: familyAilmentName,
                     parentesco: familyParentesco,
@@ -493,7 +579,7 @@ function AnamnesisSection({
     const handleDeleteFamily = async (item: FamilyHistoryItem) => {
         if (item.id && confirm(t('confirmDelete'))) {
             try {
-                await deleteFamilyHistory(userId, item.id);
+                await onDeleteFamilyHistory(userId, item.id);
                 toast({ title: t('toast.deleteSuccess') });
             } catch (error) {
                 toast({ title: t('toast.error'), variant: 'destructive' });
@@ -505,13 +591,13 @@ function AnamnesisSection({
         e.preventDefault();
         try {
             if (editingAllergyItem?.id) {
-                await updateAllergy(userId, {
+                await onUpdateAllergy(userId, {
                     id: editingAllergyItem.id,
                     alergeno: allergyAlergeno,
                     reaccion_descrita: allergyReaccion,
                 });
             } else {
-                await createAllergy(userId, {
+                await onCreateAllergy(userId, {
                     alergeno: allergyAlergeno,
                     reaccion_descrita: allergyReaccion,
                 });
@@ -526,7 +612,7 @@ function AnamnesisSection({
     const handleDeleteAllergy = async (item: AllergyItem) => {
         if (item.id && confirm(t('confirmDelete'))) {
             try {
-                await deleteAllergy(userId, item.id);
+                await onDeleteAllergy(userId, item.id);
                 toast({ title: t('toast.deleteSuccess') });
             } catch (error) {
                 toast({ title: t('toast.error'), variant: 'destructive' });
@@ -538,7 +624,7 @@ function AnamnesisSection({
         e.preventDefault();
         try {
             if (editingMedicationItem?.id) {
-                await updateMedication(userId, {
+                await onUpdateMedication(userId, {
                     id: editingMedicationItem.id,
                     medicamento_id: selectedMedication?.id,
                     nombre_medicamento: selectedMedication?.nombre_generico || medicationSearchTerm,
@@ -549,7 +635,7 @@ function AnamnesisSection({
                     fecha_fin: medicationFechaFin || undefined,
                 });
             } else {
-                await createMedication(userId, {
+                await onCreateMedication(userId, {
                     medicamento_id: selectedMedication?.id,
                     nombre_medicamento: selectedMedication?.nombre_generico || medicationSearchTerm,
                     dosis: medicationDosis,
@@ -569,7 +655,7 @@ function AnamnesisSection({
     const handleDeleteMedication = async (item: MedicationItem) => {
         if (item.id && confirm(t('confirmDelete'))) {
             try {
-                await deleteMedication(userId, item.id);
+                await onDeleteMedication(userId, item.id);
                 toast({ title: t('toast.deleteSuccess') });
             } catch (error) {
                 toast({ title: t('toast.error'), variant: 'destructive' });
@@ -579,7 +665,7 @@ function AnamnesisSection({
 
     const handleSaveHabits = async () => {
         try {
-            await updatePatientHabits(userId, habitsFormData);
+            await onUpdatePatientHabits(userId, habitsFormData);
             toast({ title: tHabits('toast.success'), description: tHabits('toast.saveSuccess') });
             setIsHabitsEditing(false);
         } catch (error) {
@@ -1175,25 +1261,22 @@ interface TreatmentTimelineProps {
     sessions: PatientSession[];
     isLoading: boolean;
     userId: string;
+    doctors: { id: string; name: string }[];
+    isLoadingDoctors: boolean;
+    isSubmittingSession: boolean;
+    onCreateSession: (userId: string, data: any, files?: File[]) => Promise<void>;
+    onUpdateSession: (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[]) => Promise<void>;
+    onDeleteSession: (sessionId: number, userId: string) => Promise<void>;
+    onFetchDoctors: () => Promise<void>;
+    onRefreshAll: (userId: string) => Promise<void>;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [openItems, setOpenItems] = React.useState<string[]>([]);
-
-    const {
-        createSession,
-        updateSession,
-        deleteSession,
-        fetchDoctors,
-        doctors,
-        isLoadingDoctors,
-        refreshAll,
-        isSubmittingSession,
-    } = useClinicHistory();
 
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
@@ -1236,7 +1319,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
         setAttachedFiles([]);
         setExistingAttachments([]);
         setDeletedAttachmentIds([]);
-        fetchDoctors();
+        onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
 
@@ -1259,7 +1342,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
         setExistingAttachments((session as any).attachments || []);
         setAttachedFiles([]);
         setDeletedAttachmentIds([]);
-        fetchDoctors();
+        onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
 
@@ -1270,7 +1353,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
     const confirmDeleteSession = async () => {
         if (!deletingSession) return;
         try {
-            await deleteSession(deletingSession.sesion_id, userId);
+            await onDeleteSession(deletingSession.sesion_id, userId);
             toast({ title: t('toast.success'), description: t('toast.deleteSuccess') });
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
@@ -1291,13 +1374,13 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
             };
 
             if (editingSession?.sesion_id) {
-                await updateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds);
+                await onUpdateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds);
             } else {
-                await createSession(userId, dataToSave, attachedFiles);
+                await onCreateSession(userId, dataToSave, attachedFiles);
             }
             toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
             setIsSessionDialogOpen(false);
-            refreshAll(userId);
+            onRefreshAll(userId);
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         }
