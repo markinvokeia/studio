@@ -2898,7 +2898,8 @@
             "cancel": "Cancelar",
             "save": "Guardar",
             "edit": "Editar",
-            "delete": "Eliminar"
+            "delete": "Eliminar",
+            "confirmDelete": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
         },
         "documents": {
             "upload": "Subir Documento",
@@ -3095,7 +3096,8 @@
                 "deleteSuccess": "Eliminado exitosamente",
                 "medicationSuccess": "Medicamento guardado exitosamente",
                 "allergySuccess": "Alergia guardada exitosamente",
-                "familySuccess": "Información familiar guardada exitosamente"
+                "familySuccess": "Información familiar guardada exitosamente",
+                "error": "Error"
             },
             "itemTypes": {
                 "personal": "Personal",
@@ -3122,7 +3124,11 @@
                 "allergies": "No hay alergias disponibles"
             },
             "createNew": "Crear Nuevo",
-            "refresh": "Actualizar"
+            "refresh": "Actualizar",
+            "common": {
+                "delete": "Eliminar",
+                "confirmDelete": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
+            }
         },
         "habits": {
             "title": "Hábitos",

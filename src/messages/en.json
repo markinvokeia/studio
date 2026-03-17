@@ -2898,7 +2898,8 @@
       "cancel": "Cancel",
       "save": "Save",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
     },
     "documents": {
       "upload": "Upload Document",
@@ -3087,7 +3088,11 @@
           "reactionPlaceholder": "Describe the allergic reaction..."
         },
         "searchAilment": "Search Ailment",
-        "noAilmentFound": "No ailment found"
+        "noAilmentFound": "No ailment found",
+        "common": {
+          "delete": "Delete",
+          "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
+        }
       },
       "createNew": "Create New",
       "refresh": "Refresh",
@@ -3097,7 +3102,8 @@
         "deleteSuccess": "Deleted successfully",
         "medicationSuccess": "Medication saved successfully",
         "allergySuccess": "Allergy saved successfully",
-        "familySuccess": "Family information saved successfully"
+        "familySuccess": "Family information saved successfully",
+        "error": "Error"
       },
       "itemTypes": {
         "personal": "Personal",

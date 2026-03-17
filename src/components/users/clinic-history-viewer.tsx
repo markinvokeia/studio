@@ -365,6 +365,12 @@ function AnamnesisSection({
     const [editingAllergyItem, setEditingAllergyItem] = React.useState<AllergyItem | null>(null);
     const [editingMedicationItem, setEditingMedicationItem] = React.useState<MedicationItem | null>(null);
 
+    // Deleting states
+    const [deletingPersonalItem, setDeletingPersonalItem] = React.useState<PersonalHistoryItem | null>(null);
+    const [deletingFamilyItem, setDeletingFamilyItem] = React.useState<FamilyHistoryItem | null>(null);
+    const [deletingAllergyItem, setDeletingAllergyItem] = React.useState<AllergyItem | null>(null);
+    const [deletingMedicationItem, setDeletingMedicationItem] = React.useState<MedicationItem | null>(null);
+
     // Habits editing state
     const [isHabitsEditing, setIsHabitsEditing] = React.useState(false);
     const [habitsFormData, setHabitsFormData] = React.useState<PatientHabitsType>({
@@ -538,14 +544,19 @@ function AnamnesisSection({
         }
     };
 
-    const handleDeletePersonal = async (item: PersonalHistoryItem) => {
-        if (item.id && confirm(t('confirmDelete'))) {
-            try {
-                await onDeletePersonalHistory(userId, item.id);
-                toast({ title: t('toast.deleteSuccess') });
-            } catch (error) {
-                toast({ title: t('toast.error'), variant: 'destructive' });
-            }
+    const handleDeletePersonal = (item: PersonalHistoryItem) => {
+        setDeletingPersonalItem(item);
+    };
+
+    const confirmDeletePersonal = async () => {
+        if (!deletingPersonalItem?.id) return;
+        try {
+            await onDeletePersonalHistory(userId, deletingPersonalItem.id);
+            toast({ title: t('toast.deleteSuccess') });
+        } catch (error) {
+            toast({ title: t('toast.error'), variant: 'destructive' });
+        } finally {
+            setDeletingPersonalItem(null);
         }
     };
 
@@ -576,14 +587,19 @@ function AnamnesisSection({
         }
     };
 
-    const handleDeleteFamily = async (item: FamilyHistoryItem) => {
-        if (item.id && confirm(t('confirmDelete'))) {
-            try {
-                await onDeleteFamilyHistory(userId, item.id);
-                toast({ title: t('toast.deleteSuccess') });
-            } catch (error) {
-                toast({ title: t('toast.error'), variant: 'destructive' });
-            }
+    const handleDeleteFamily = (item: FamilyHistoryItem) => {
+        setDeletingFamilyItem(item);
+    };
+
+    const confirmDeleteFamily = async () => {
+        if (!deletingFamilyItem?.id) return;
+        try {
+            await onDeleteFamilyHistory(userId, deletingFamilyItem.id);
+            toast({ title: t('toast.deleteSuccess') });
+        } catch (error) {
+            toast({ title: t('toast.error'), variant: 'destructive' });
+        } finally {
+            setDeletingFamilyItem(null);
         }
     };
 
@@ -609,14 +625,19 @@ function AnamnesisSection({
         }
     };
 
-    const handleDeleteAllergy = async (item: AllergyItem) => {
-        if (item.id && confirm(t('confirmDelete'))) {
-            try {
-                await onDeleteAllergy(userId, item.id);
-                toast({ title: t('toast.deleteSuccess') });
-            } catch (error) {
-                toast({ title: t('toast.error'), variant: 'destructive' });
-            }
+    const handleDeleteAllergy = (item: AllergyItem) => {
+        setDeletingAllergyItem(item);
+    };
+
+    const confirmDeleteAllergy = async () => {
+        if (!deletingAllergyItem?.id) return;
+        try {
+            await onDeleteAllergy(userId, deletingAllergyItem.id);
+            toast({ title: t('toast.deleteSuccess') });
+        } catch (error) {
+            toast({ title: t('toast.error'), variant: 'destructive' });
+        } finally {
+            setDeletingAllergyItem(null);
         }
     };
 
@@ -652,14 +673,19 @@ function AnamnesisSection({
         }
     };
 
-    const handleDeleteMedication = async (item: MedicationItem) => {
-        if (item.id && confirm(t('confirmDelete'))) {
-            try {
-                await onDeleteMedication(userId, item.id);
-                toast({ title: t('toast.deleteSuccess') });
-            } catch (error) {
-                toast({ title: t('toast.error'), variant: 'destructive' });
-            }
+    const handleDeleteMedication = (item: MedicationItem) => {
+        setDeletingMedicationItem(item);
+    };
+
+    const confirmDeleteMedication = async () => {
+        if (!deletingMedicationItem?.id) return;
+        try {
+            await onDeleteMedication(userId, deletingMedicationItem.id);
+            toast({ title: t('toast.deleteSuccess') });
+        } catch (error) {
+            toast({ title: t('toast.error'), variant: 'destructive' });
+        } finally {
+            setDeletingMedicationItem(null);
         }
     };
 
@@ -1250,6 +1276,90 @@ function AnamnesisSection({
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Personal History Confirmation Dialog */}
+            <Dialog open={!!deletingPersonalItem} onOpenChange={() => setDeletingPersonalItem(null)}>
+                <DialogContent maxWidth="sm">
+                    <DialogHeader>
+                        <DialogTitle>{t('common.delete')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">{t('common.confirmDelete')}</p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingPersonalItem(null)}>
+                            {t('dialogs.cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeletePersonal} disabled={isSubmittingPersonal} className="px-8">
+                            {isSubmittingPersonal && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('common.delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Family History Confirmation Dialog */}
+            <Dialog open={!!deletingFamilyItem} onOpenChange={() => setDeletingFamilyItem(null)}>
+                <DialogContent maxWidth="sm">
+                    <DialogHeader>
+                        <DialogTitle>{t('common.delete')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">{t('common.confirmDelete')}</p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingFamilyItem(null)}>
+                            {t('dialogs.cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeleteFamily} disabled={isSubmittingFamily} className="px-8">
+                            {isSubmittingFamily && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('common.delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Allergy Confirmation Dialog */}
+            <Dialog open={!!deletingAllergyItem} onOpenChange={() => setDeletingAllergyItem(null)}>
+                <DialogContent maxWidth="sm">
+                    <DialogHeader>
+                        <DialogTitle>{t('common.delete')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">{t('common.confirmDelete')}</p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingAllergyItem(null)}>
+                            {t('dialogs.cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeleteAllergy} disabled={isSubmittingAllergy} className="px-8">
+                            {isSubmittingAllergy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('common.delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Medication Confirmation Dialog */}
+            <Dialog open={!!deletingMedicationItem} onOpenChange={() => setDeletingMedicationItem(null)}>
+                <DialogContent maxWidth="sm">
+                    <DialogHeader>
+                        <DialogTitle>{t('common.delete')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">{t('common.confirmDelete')}</p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingMedicationItem(null)}>
+                            {t('dialogs.cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={confirmDeleteMedication} disabled={isSubmittingMedication} className="px-8">
+                            {isSubmittingMedication && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('common.delete')}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

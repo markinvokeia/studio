@@ -468,7 +468,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const deletePersonalHistory = useCallback(async (userId: string, itemId: number) => {
         setIsSubmittingPersonal(true);
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY_DELETE, {
+            await api.delete(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY_DELETE, {
                 id: itemId,
                 paciente_id: userId,
             });
@@ -518,7 +518,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const deleteFamilyHistory = useCallback(async (userId: string, itemId: number) => {
         setIsSubmittingFamily(true);
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.FAMILY_HISTORY_DELETE, {
+            await api.delete(API_ROUTES.CLINIC_HISTORY.FAMILY_HISTORY_DELETE, {
                 id: itemId,
                 paciente_id: userId,
             });
@@ -568,7 +568,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const deleteAllergy = useCallback(async (userId: string, itemId: number) => {
         setIsSubmittingAllergy(true);
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.ALLERGIES_DELETE, {
+            await api.delete(API_ROUTES.CLINIC_HISTORY.ALLERGIES_DELETE, {
                 id: itemId,
                 paciente_id: userId,
             });
@@ -620,7 +620,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const deleteMedication = useCallback(async (userId: string, itemId: number) => {
         setIsSubmittingMedication(true);
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_DELETE, {
+            await api.delete(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_DELETE, {
                 id: itemId,
                 paciente_id: userId,
             });
