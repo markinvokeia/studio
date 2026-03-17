@@ -540,6 +540,7 @@ function AnamnesisSection({
             if (editingMedicationItem?.id) {
                 await updateMedication(userId, {
                     id: editingMedicationItem.id,
+                    medicamento_id: selectedMedication?.id,
                     nombre_medicamento: selectedMedication?.nombre_generico || medicationSearchTerm,
                     dosis: medicationDosis,
                     frecuencia: medicationFrecuencia,
@@ -549,6 +550,7 @@ function AnamnesisSection({
                 });
             } else {
                 await createMedication(userId, {
+                    medicamento_id: selectedMedication?.id,
                     nombre_medicamento: selectedMedication?.nombre_generico || medicationSearchTerm,
                     dosis: medicationDosis,
                     frecuencia: medicationFrecuencia,
@@ -1199,6 +1201,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
 
     // Form states for session dialog
     const [sessionForm, setSessionForm] = React.useState({
+        doctor_id: '',
         doctor_name: '',
         fecha_sesion: new Date().toISOString().split('T')[0],
         procedimiento_realizado: '',
@@ -1221,6 +1224,7 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
     const handleAddSession = () => {
         setEditingSession(null);
         setSessionForm({
+            doctor_id: '',
             doctor_name: '',
             fecha_sesion: new Date().toISOString().split('T')[0],
             procedimiento_realizado: '',
@@ -1239,7 +1243,8 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
     const handleEditSession = (session: PatientSession) => {
         setEditingSession(session);
         setSessionForm({
-            doctor_name: '',
+            doctor_id: (session as any).doctor_id || '',
+            doctor_name: session.doctor_name || '',
             fecha_sesion: session.fecha_sesion ? session.fecha_sesion.split('T')[0] : new Date().toISOString().split('T')[0],
             procedimiento_realizado: session.procedimiento_realizado || '',
             diagnostico: session.diagnostico || '',
@@ -1526,15 +1531,22 @@ function TreatmentTimeline({ sessions, isLoading, userId }: TreatmentTimelinePro
                                         <div className="space-y-2">
                                             <Label>{tDialog('doctor')}</Label>
                                             <Select
-                                                value={sessionForm.doctor_name}
-                                                onValueChange={(value) => setSessionForm({ ...sessionForm, doctor_name: value })}
+                                                value={sessionForm.doctor_id}
+                                                onValueChange={(value) => {
+                                                    const selectedDoc = doctors.find(d => d.id === value);
+                                                    setSessionForm({ 
+                                                        ...sessionForm, 
+                                                        doctor_id: value,
+                                                        doctor_name: selectedDoc?.name || ''
+                                                    });
+                                                }}
                                             >
                                                 <SelectTrigger className="w-full">
                                                     <SelectValue placeholder={tDialog('selectDoctor')} />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {doctors.map((doc) => (
-                                                        <SelectItem key={doc.id} value={doc.name}>{doc.name}</SelectItem>
+                                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>

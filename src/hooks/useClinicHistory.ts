@@ -118,8 +118,8 @@ interface UseClinicHistoryReturn {
     updateAllergy: (userId: string, data: { id: number, alergeno: string, reaccion_descrita: string }) => Promise<void>;
     deleteAllergy: (userId: string, itemId: number) => Promise<void>;
 
-    createMedication: (userId: string, data: { nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => Promise<void>;
-    updateMedication: (userId: string, data: { id: number, nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => Promise<void>;
+    createMedication: (userId: string, data: { medicamento_id?: string, nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => Promise<void>;
+    updateMedication: (userId: string, data: { id: number, medicamento_id?: string, nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => Promise<void>;
     deleteMedication: (userId: string, itemId: number) => Promise<void>;
 
     updatePatientHabits: (userId: string, data: PatientHabits) => Promise<void>;
@@ -437,7 +437,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY_UPSERT, {
                 ...data,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchPersonalHistory(userId);
         } catch (error) {
@@ -454,7 +454,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             await api.post(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY_UPSERT, {
                 ...data,
                 id: data.id,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchPersonalHistory(userId);
         } catch (error) {
@@ -470,7 +470,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY_DELETE, {
                 id: itemId,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchPersonalHistory(userId);
         } catch (error) {
@@ -487,7 +487,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.FAMILY_HISTORY_UPSERT, {
                 ...data,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchFamilyHistory(userId);
         } catch (error) {
@@ -504,7 +504,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             await api.post(API_ROUTES.CLINIC_HISTORY.FAMILY_HISTORY_UPSERT, {
                 ...data,
                 id: data.id,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchFamilyHistory(userId);
         } catch (error) {
@@ -520,7 +520,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.FAMILY_HISTORY_DELETE, {
                 id: itemId,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchFamilyHistory(userId);
         } catch (error) {
@@ -537,7 +537,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.ALLERGIES_UPSERT, {
                 ...data,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchAllergies(userId);
         } catch (error) {
@@ -554,7 +554,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             await api.post(API_ROUTES.CLINIC_HISTORY.ALLERGIES_UPSERT, {
                 ...data,
                 id: data.id,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchAllergies(userId);
         } catch (error) {
@@ -570,7 +570,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.ALLERGIES_DELETE, {
                 id: itemId,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchAllergies(userId);
         } catch (error) {
@@ -582,12 +582,13 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     }, [fetchAllergies]);
 
     // Medication CRUD
-    const createMedication = useCallback(async (userId: string, data: { nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => {
+    const createMedication = useCallback(async (userId: string, data: { medicamento_id?: string, nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => {
         setIsSubmittingMedication(true);
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_UPSERT, {
                 ...data,
-                user_id: userId,
+                paciente_id: userId,
+                medicamento_id: data.medicamento_id,
             });
             await fetchMedications(userId);
         } catch (error) {
@@ -598,13 +599,14 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         }
     }, [fetchMedications]);
 
-    const updateMedication = useCallback(async (userId: string, data: { id: number, nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => {
+    const updateMedication = useCallback(async (userId: string, data: { id: number, medicamento_id?: string, nombre_medicamento: string, dosis: string, frecuencia: string, motivo: string, fecha_inicio?: string, fecha_fin?: string }) => {
         setIsSubmittingMedication(true);
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_UPSERT, {
                 ...data,
                 id: data.id,
-                user_id: userId,
+                paciente_id: userId,
+                medicamento_id: data.medicamento_id,
             });
             await fetchMedications(userId);
         } catch (error) {
@@ -620,7 +622,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.MEDICATIONS_DELETE, {
                 id: itemId,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchMedications(userId);
         } catch (error) {
@@ -637,7 +639,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             await api.post(API_ROUTES.CLINIC_HISTORY.PATIENT_HABITS_UPSERT, {
                 ...data,
-                user_id: userId,
+                paciente_id: userId,
             });
             await fetchPatientHabits(userId);
         } catch (error) {
@@ -715,7 +717,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
                     }
                 }
             });
-            formData.append('user_id', userId);
+            formData.append('paciente_id', userId);
 
             if (files && files.length > 0) {
                 files.forEach((file) => {
@@ -738,7 +740,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         try {
             const formData = new FormData();
             formData.append('id', String(sessionId));
-            formData.append('user_id', userId);
+            formData.append('paciente_id', userId);
 
             Object.keys(data).forEach(key => {
                 if (data[key] !== undefined && data[key] !== null) {

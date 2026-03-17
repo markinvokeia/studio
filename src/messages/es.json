@@ -3010,11 +3010,11 @@
             "edit": "Editar",
             "delete": "Eliminar",
             "odontogramTooltip": "Tipo de sesión: Odontograma",
-            "noSessions": "No hay sesiones registradas",
             "addFirstSession": "Agregar primera sesión",
             "toast": {
                 "success": "Éxito",
-                "deleteSuccess": "Eliminado exitosamente"
+                "deleteSuccess": "Eliminado exitosamente",
+                "saveSuccess": "Guardado exitosamente"
             },
             "nextSessionPlan": "Plan para la Próxima Sesión",
             "addSession": "Agregar sesión",
