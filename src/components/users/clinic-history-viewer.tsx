@@ -1373,7 +1373,7 @@ interface TreatmentTimelineProps {
     isLoadingDoctors: boolean;
     isSubmittingSession: boolean;
     onCreateSession: (userId: string, data: any, files?: File[]) => Promise<void>;
-    onUpdateSession: (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[]) => Promise<void>;
+    onUpdateSession: (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[], existingAttachments?: any[]) => Promise<void>;
     onDeleteSession: (sessionId: number, userId: string) => Promise<void>;
     onFetchDoctors: () => Promise<void>;
     onRefreshAll: (userId: string) => Promise<void>;
@@ -1447,7 +1447,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             descripcion: t.descripcion || ''
         })));
         // Load existing attachments
-        setExistingAttachments((session as any).attachments || []);
+        setExistingAttachments(session.archivos_adjuntos || []);
         setAttachedFiles([]);
         setDeletedAttachmentIds([]);
         onFetchDoctors();
@@ -1482,7 +1482,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             };
 
             if (editingSession?.sesion_id) {
-                await onUpdateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds);
+                await onUpdateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds, existingAttachments);
             } else {
                 await onCreateSession(userId, dataToSave, attachedFiles);
             }

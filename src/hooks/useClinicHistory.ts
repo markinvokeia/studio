@@ -735,11 +735,11 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         }
     }, [fetchPatientSessions]);
 
-    const updateSession = useCallback(async (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[]) => {
+    const updateSession = useCallback(async (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[], existingAttachments?: any[]) => {
         setIsSubmittingSession(true);
         try {
             const formData = new FormData();
-            formData.append('id', String(sessionId));
+            formData.append('sesion_id', String(sessionId));
             formData.append('paciente_id', userId);
 
             Object.keys(data).forEach(key => {
@@ -752,8 +752,12 @@ export function useClinicHistory(): UseClinicHistoryReturn {
                 }
             });
 
-            if (deletedAttachmentIds && deletedAttachmentIds.length > 0) {
-                formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds));
+            formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds || []));
+
+            // Also send existing attachment IDs that were kept
+            if (existingAttachments && existingAttachments.length > 0) {
+                const existingIds = existingAttachments.map((att: any) => String(att.id));
+                formData.append('existing_attachment_ids', JSON.stringify(existingIds));
             }
 
             if (files && files.length > 0) {
