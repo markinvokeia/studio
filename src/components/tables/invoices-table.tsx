@@ -282,7 +282,7 @@ const getColumns = (
 };
 
 
-export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true }: InvoicesTableProps) {
+export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChange, onRefresh, onPrint, onSendEmail, onCreate, onImport, onConfirm, isRefreshing, rowSelection, setRowSelection, columnTranslations = {}, filterOptions, onFilterChange, filterValue, onEdit, isSales = true, isCompact = false, className, title, description, standalone = false, canCreate = true, tableActions }: InvoicesTableProps) {
   const t = useTranslations('InvoicesPage');
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
@@ -758,6 +758,16 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             filterOptions={filterOptions}
             onFilterChange={onFilterChange}
             filterValue={filterValue}
+            extraButtons={
+              <>
+                {tableActions}
+                {onImport && (
+                  <Button variant="outline" size="sm" className="h-9" onClick={onImport}>
+                    <FileUp className="mr-2 h-4 w-4" /> {t('import')}
+                  </Button>
+                )}
+              </>
+            }
           />
         </CardContent>
       </Card>
@@ -1750,4 +1760,5 @@ interface InvoicesTableProps {
   description?: string;
   standalone?: boolean;
   canCreate?: boolean;
+  tableActions?: React.ReactNode;
 }

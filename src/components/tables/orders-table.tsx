@@ -60,9 +60,10 @@ interface OrdersTableProps {
   title?: string;
   description?: string;
   standalone?: boolean;
+  tableActions?: React.ReactNode;
 }
 
-export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className, isCompact = false, title, description, standalone = false }: OrdersTableProps) {
+export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className, isCompact = false, title, description, standalone = false, tableActions }: OrdersTableProps) {
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
@@ -273,6 +274,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
             onCreate={onCreate}
+            extraButtons={tableActions}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             customToolbar={standalone ? (table) => (

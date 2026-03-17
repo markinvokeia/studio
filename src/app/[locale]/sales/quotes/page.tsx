@@ -13,6 +13,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DetailHeader } from '@/components/ui/detail-header';
 import {
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Select,
@@ -44,11 +46,11 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, FileText, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -445,6 +447,9 @@ export default function QuotesPage() {
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+    const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
+    const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
     const [exchangeRate, setExchangeRate] = React.useState<number>(1);
@@ -792,6 +797,82 @@ export default function QuotesPage() {
         }
     };
 
+    const handlePrintQuote = async (quote: Quote) => {
+        const fileName = getDocumentFileName(quote, 'quote');
+        toast({
+            title: t('generatingPdf'),
+            description: t('pleaseWait', { id: fileName }),
+        });
+
+        try {
+            const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quoteId: quote.id.toString() });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${fileName}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            toast({
+                title: t('downloadStarted'),
+                description: t('pdfDownloading', { id: fileName }),
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('printError'),
+                description: error instanceof Error ? error.message : t('couldNotPrint'),
+            });
+        }
+    };
+
+    const handleSendEmailClick = (quote: Quote) => {
+        setSelectedQuoteForEmail(quote);
+        setEmailRecipients(quote.userEmail || '');
+        setIsSendEmailDialogOpen(true);
+    };
+
+    const handleConfirmSendEmail = async () => {
+        if (!selectedQuoteForEmail) return;
+
+        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
+        if (emails.length === 0) {
+            toast({ variant: 'destructive', title: t('emailError'), description: t('atLeastOneEmail') });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = emails.filter(email => !emailRegex.test(email));
+
+        if (invalidEmails.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: t('invalidEmail'),
+                description: t('invalidEmails', { emails: invalidEmails.join(', ') }),
+            });
+            return;
+        }
+
+        try {
+            await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
+
+            toast({
+                title: t('emailSent'),
+                description: t('emailSentSuccess', { emails: emails.join(', ') }),
+            });
+
+            setIsSendEmailDialogOpen(false);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('emailError'),
+                description: error instanceof Error ? error.message : t('unexpectedError'),
+            });
+        }
+    };
+
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
         setSelectedQuote(quote);
@@ -896,6 +977,25 @@ export default function QuotesPage() {
                                         ]}
                                         actions={
                                             <>
+                                                {canPrint && (
+                                                    <ActionButton
+                                                        icon={Printer}
+                                                        label={t('print')}
+                                                        tooltip={t('printTooltip') || t('print')}
+                                                        onClick={() => handlePrintQuote(selectedQuote)}
+                                                    />
+                                                )}
+                                                {canSendEmail && (
+                                                    <ActionButton
+                                                        icon={Send}
+                                                        label={t('sendEmail')}
+                                                        tooltip={t('sendEmailTooltip') || t('sendEmail')}
+                                                        onClick={() => handleSendEmailClick(selectedQuote)}
+                                                    />
+                                                )}
+                                                {(canPrint || canSendEmail) && (canUpdateQuote || canConfirmQuote || canRejectQuote || canDeleteQuote) && (
+                                                    <Separator orientation="vertical" className="h-6" />
+                                                )}
                                                 {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
                                                     <ActionButton
                                                         icon={Pencil}
@@ -1476,6 +1576,38 @@ export default function QuotesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 px-6">
+                        <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
+                        <Input
+                            id="email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder={t('sendEmailDialog.placeholder')}
+                        />
+                        <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('quoteDialog.cancel')}</Button>
+                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t('sendEmailDialog.sending')}
+                                </>
+                            ) : (
+                                t('sendEmail')
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

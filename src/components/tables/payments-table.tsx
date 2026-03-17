@@ -214,9 +214,10 @@ interface PaymentsTableProps {
   onRowSelectionChange?: (selectedRows: Payment[]) => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  tableActions?: React.ReactNode;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, tableActions }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
@@ -247,6 +248,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={onCreate ? () => onCreate() : undefined}
+          extraButtons={tableActions}
           createButtonLabel={tPage('createPrepaid')}
           columnTranslations={{
             doc_no: t('doc_no'),

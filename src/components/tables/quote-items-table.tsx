@@ -22,6 +22,7 @@ interface QuoteItemsTableProps {
   onEdit: (item: QuoteItem) => void;
   onDelete: (item: QuoteItem) => void;
   showToothNumber?: boolean;
+  tableActions?: React.ReactNode;
 }
 
 const getColumns = (
@@ -121,7 +122,7 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, tableActions }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const columns = getColumns(
@@ -159,6 +160,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
+          extraButtons={tableActions}
           columnTranslations={{
             id: t('id'),
             service_name: t('service'),
