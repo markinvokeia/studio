@@ -43,6 +43,7 @@ export interface AllergyItem {
 
 export interface MedicationItem {
     id?: number;
+    medicamento_id?: string;
     nombre_medicamento: string;
     principio_activo: string;
     dosis: string;
@@ -274,6 +275,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
 
             const mappedMedications = medicationData.map((item: any): MedicationItem => ({
                 id: Number(item.id) || undefined,
+                medicamento_id: item.medicamento_id ? String(item.medicamento_id) : undefined,
                 nombre_medicamento: item.medicamento_nombre || item.nombre_medicamento || item.nombre || 'N/A',
                 principio_activo: item.principio_activo || '',
                 dosis: item.dosis || '',

@@ -353,6 +353,15 @@ function AnamnesisSection({
     const tHabits = useTranslations('ClinicHistoryPage.habits');
     const { toast } = useToast();
 
+    const formatDate = (dateString: string | null | undefined) => {
+        if (!dateString) return '';
+        try {
+            return format(parseISO(dateString), 'dd/MM/yyyy');
+        } catch {
+            return dateString;
+        }
+    };
+
     // Dialog states
     const [isPersonalDialogOpen, setIsPersonalDialogOpen] = React.useState(false);
     const [isFamilyDialogOpen, setIsFamilyDialogOpen] = React.useState(false);
@@ -414,7 +423,7 @@ function AnamnesisSection({
     }, [isPersonalDialogOpen, isFamilyDialogOpen, onFetchAilmentsCatalog]);
 
     React.useEffect(() => {
-        if (isMedicationDialogOpen && medicationSearchTerm.length > 0) {
+        if (isMedicationDialogOpen && medicationSearchTerm.length >= 0) {
             const timer = setTimeout(() => {
                 onFetchMedicationsCatalog(medicationSearchTerm);
             }, 300);
@@ -464,7 +473,7 @@ function AnamnesisSection({
     React.useEffect(() => {
         if (isMedicationDialogOpen) {
             if (editingMedicationItem) {
-                setSelectedMedication({ id: String(editingMedicationItem.id), nombre_generico: editingMedicationItem.nombre_medicamento });
+                setSelectedMedication(editingMedicationItem.medicamento_id ? { id: editingMedicationItem.medicamento_id, nombre_generico: editingMedicationItem.nombre_medicamento } : null);
                 setMedicationDosis(editingMedicationItem.dosis);
                 setMedicationFrecuencia(editingMedicationItem.frecuencia);
                 setMedicationMotivo(editingMedicationItem.motivo);
@@ -777,9 +786,9 @@ function AnamnesisSection({
                                     </div>
                                     {(item.fecha_inicio || item.fecha_fin) && (
                                         <div className="text-sm text-muted-foreground">
-                                            {item.fecha_inicio && `From: ${item.fecha_inicio}`}
+                                            {item.fecha_inicio && `From: ${formatDate(item.fecha_inicio)}`}
                                             {item.fecha_inicio && item.fecha_fin && ' - '}
-                                            {item.fecha_fin && `To: ${item.fecha_fin}`}
+                                            {item.fecha_fin && `To: ${formatDate(item.fecha_fin)}`}
                                         </div>
                                     )}
                                     {item.motivo && <div className="text-sm text-muted-foreground">{item.motivo}</div>}
@@ -1136,7 +1145,7 @@ function AnamnesisSection({
 
             {/* Medication Dialog */}
             <Dialog open={isMedicationDialogOpen} onOpenChange={setIsMedicationDialogOpen}>
-                <DialogContent maxWidth="md">
+                <DialogContent maxWidth="lg">
                     <DialogHeader>
                         <DialogTitle>{editingMedicationItem ? t('dialogs.medication.editTitle') : t('dialogs.medication.addTitle')}</DialogTitle>
                     </DialogHeader>
@@ -1211,12 +1220,14 @@ function AnamnesisSection({
                                             <Button
                                                 variant="outline"
                                                 className={cn(
-                                                    "w-full justify-start text-left font-normal h-10 border-input",
+                                                    "w-full justify-start text-left font-normal h-10 border-input truncate",
                                                     !medicationFechaInicio && "text-muted-foreground"
                                                 )}
                                             >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {medicationFechaInicio ? medicationFechaInicio : t('dialogs.medication.startDatePlaceholder')}
+                                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                                <span className="truncate">
+                                                    {medicationFechaInicio ? formatDate(medicationFechaInicio) : t('dialogs.medication.startDatePlaceholder')}
+                                                </span>
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
@@ -1236,12 +1247,14 @@ function AnamnesisSection({
                                             <Button
                                                 variant="outline"
                                                 className={cn(
-                                                    "w-full justify-start text-left font-normal h-10 border-input",
+                                                    "w-full justify-start text-left font-normal h-10 border-input truncate",
                                                     !medicationFechaFin && "text-muted-foreground"
                                                 )}
                                             >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {medicationFechaFin ? medicationFechaFin : t('dialogs.medication.endDatePlaceholder')}
+                                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
+                                                <span className="truncate">
+                                                    {medicationFechaFin ? formatDate(medicationFechaFin) : t('dialogs.medication.endDatePlaceholder')}
+                                                </span>
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-auto p-0" align="start">
