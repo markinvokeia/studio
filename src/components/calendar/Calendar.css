@@ -257,7 +257,18 @@
 }
 
 .event-in-day-view-compact {
-  justify-content: center;
+  flex-direction: row;
+  align-items: baseline;
+}
+
+.event-in-day-view-compact .event-day-title {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.event-in-day-view-compact .event-day-time {
+  flex-shrink: 0;
+  line-height: inherit;
 }
 
 .current-time-indicator {
