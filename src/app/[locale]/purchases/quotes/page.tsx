@@ -963,20 +963,54 @@ function QuotesPageContent() {
                                             },
                                             {
                                                 label: t('UserColumns.status'),
-                                                value: selectedQuote.status.charAt(0).toUpperCase() + selectedQuote.status.slice(1),
+                                                value: (() => {
+                                                    const status = selectedQuote.status.toLowerCase();
+                                                    const translated = t(`quoteDialog.${status}` as any);
+                                                    return translated === `quoteDialog.${status}` 
+                                                        ? selectedQuote.status.charAt(0).toUpperCase() + selectedQuote.status.slice(1)
+                                                        : translated;
+                                                })(),
                                                 variant: selectedQuote.status === 'accepted' || selectedQuote.status === 'confirmed' ? 'success' :
                                                     selectedQuote.status === 'rejected' ? 'destructive' :
                                                         selectedQuote.status === 'pending' ? 'info' : 'outline',
                                             },
                                             {
                                                 label: t('QuoteColumns.billingStatus'),
-                                                value: selectedQuote.billing_status.charAt(0).toUpperCase() + selectedQuote.billing_status.slice(1),
+                                                value: (() => {
+                                                    const status = selectedQuote.billing_status.toLowerCase();
+                                                    const statusKeyMap: { [key: string]: string } = {
+                                                        'invoiced': 'invoiced',
+                                                        'partially invoiced': 'partiallyInvoiced',
+                                                        'not invoiced': 'notInvoiced',
+                                                        'partially_invoiced': 'partially_invoiced',
+                                                        'not_invoiced': 'not_invoiced',
+                                                    };
+                                                    const key = statusKeyMap[status] || status.replace(/\s+/g, '_');
+                                                    const translated = t(`quoteDialog.${key}` as any);
+                                                    return translated === `quoteDialog.${key}`
+                                                        ? selectedQuote.billing_status.charAt(0).toUpperCase() + selectedQuote.billing_status.slice(1)
+                                                        : translated;
+                                                })(),
                                                 variant: selectedQuote.billing_status === 'invoiced' ? 'success' :
                                                     selectedQuote.billing_status === 'partially invoiced' ? 'info' : 'outline',
                                             },
                                             {
                                                 label: t('Navigation.Payments'),
-                                                value: selectedQuote.payment_status.charAt(0).toUpperCase() + selectedQuote.payment_status.slice(1).replace('_', ' '),
+                                                value: (() => {
+                                                    const status = selectedQuote.payment_status.toLowerCase();
+                                                    const statusKeyMap: { [key: string]: string } = {
+                                                        'partially_paid': 'partiallyPaid',
+                                                        'unpaid': 'unpaid',
+                                                        'not_paid': 'not_paid',
+                                                        'paid': 'paid',
+                                                        'partial': 'partial',
+                                                    };
+                                                    const key = statusKeyMap[status] || status.replace(/\s+/g, '_');
+                                                    const translated = t(`quoteDialog.${key}` as any);
+                                                    return translated === `quoteDialog.${key}`
+                                                        ? selectedQuote.payment_status.charAt(0).toUpperCase() + selectedQuote.payment_status.slice(1).replace('_', ' ')
+                                                        : translated;
+                                                })(),
                                                 variant: selectedQuote.payment_status === 'paid' || selectedQuote.payment_status === 'partial' ? 'success' :
                                                     selectedQuote.payment_status === 'partially_paid' ? 'info' : 'outline',
                                             },
@@ -1157,7 +1191,7 @@ function QuotesPageContent() {
                     setEditingQuote(null);
                 }
             }}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuote ? t('quoteDialog.editTitle') : t('quoteDialog.createTitle')}</DialogTitle>
                         <DialogDescription>
@@ -1289,72 +1323,88 @@ function QuotesPageContent() {
                                     </CardHeader>
                                     <CardContent className="bg-card">
                                         <div className="space-y-4">
-                                            <div className="hidden md:flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                                <div className="flex-1">{t('quoteDialog.items.service')}</div>
-                                                <div className="w-20">{t('quoteDialog.items.quantity')}</div>
-                                                <div className="w-28">{t('quoteDialog.items.unitPrice')}</div>
-                                                <div className="w-28">{t('quoteDialog.items.total')}</div>
-                                                <div className="w-10"></div>
-                                            </div>
-                                            {quoteFormFields.map((fieldItem, index) => (
-                                                <div key={fieldItem.id} className="flex flex-col md:flex-row md:items-start gap-2">
-                                                    <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
-                                                        <FormItem className="flex-1">
-                                                            <ServiceSelector
-                                                                isSales={false}
-                                                                value={field.value}
-                                                                onValueChange={(serviceId, service) => {
-                                                                    field.onChange(serviceId);
-                                                                    if (service) {
-                                                                        const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                        updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * quantity });
-                                                                    }
-                                                                }}
-                                                                placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
-                                                                triggerText={t('quoteDialog.items.selectService') || 'Seleccionar servicio'}
-                                                            />
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
-                                                        <FormItem className="w-full md:w-20">
-                                                            <FormControl>
-                                                                <Input type="number" step="0.01" {...field} onChange={(e) => {
-                                                                    field.onChange(e);
-                                                                    const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
-                                                                    const newQty = Number(e.target.value);
-                                                                    updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), quantity: newQty, total: price * newQty });
-                                                                }} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={quoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
-                                                        <FormItem className="w-full md:w-28">
-                                                            <FormControl>
-                                                                <Input type="number" {...field} onChange={(e) => {
-                                                                    field.onChange(e);
-                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                    const newPrice = Number(e.target.value);
-                                                                    updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), unit_price: newPrice, total: newPrice * quantity });
-                                                                }} />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <FormField control={quoteForm.control} name={`items.${index}.total`} render={({ field }) => (
-                                                        <FormItem className="w-full md:w-28">
-                                                            <FormControl>
-                                                                <Input type="number" {...field} readOnly disabled />
-                                                            </FormControl>
-                                                            <FormMessage />
-                                                        </FormItem>
-                                                    )} />
-                                                    <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveQuoteItem(index)}>
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            ))}
+                                            <table className="hidden md:table w-full text-sm">
+                                                <thead>
+                                                    <tr className="text-muted-foreground text-center">
+                                                        <th className="text-left font-semibold p-2">{t('quoteDialog.items.service')}</th>
+                                                        <th className="font-semibold p-2 w-24">{t('quoteDialog.items.quantity')}</th>
+                                                        <th className="font-semibold p-2 w-28">{t('quoteDialog.items.unitPrice')}</th>
+                                                        <th className="font-semibold p-2 w-28">{t('quoteDialog.items.total')}</th>
+                                                        <th className="p-2 w-10"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {quoteFormFields.map((fieldItem, index) => (
+                                                        <tr key={fieldItem.id} className="align-top">
+                                                            <td className="p-1">
+                                                                <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <ServiceSelector
+                                                                            isSales={false}
+                                                                            value={field.value}
+                                                                            onValueChange={(serviceId, service) => {
+                                                                                field.onChange(serviceId);
+                                                                                if (service) {
+                                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                                    updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * quantity });
+                                                                                }
+                                                                            }}
+                                                                            placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
+                                                                            triggerText={t('quoteDialog.items.selectService') || 'Seleccionar servicio'}
+                                                                        />
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )} />
+                                                            </td>
+                                                            <td className="p-1">
+                                                                <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormControl>
+                                                                            <Input type="number" step="0.01" {...field} onChange={(e) => {
+                                                                                field.onChange(e);
+                                                                                const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
+                                                                                const newQty = Number(e.target.value);
+                                                                                updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), quantity: newQty, total: price * newQty });
+                                                                            }} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )} />
+                                                            </td>
+                                                            <td className="p-1">
+                                                                <FormField control={quoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormControl>
+                                                                            <Input type="number" {...field} onChange={(e) => {
+                                                                                field.onChange(e);
+                                                                                const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                                const newPrice = Number(e.target.value);
+                                                                                updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), unit_price: newPrice, total: newPrice * quantity });
+                                                                            }} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )} />
+                                                            </td>
+                                                            <td className="p-1">
+                                                                <FormField control={quoteForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormControl>
+                                                                            <Input type="number" {...field} readOnly disabled />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )} />
+                                                            </td>
+                                                            <td className="p-1 text-center">
+                                                                <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveQuoteItem(index)}>
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                             <FormMessage>{quoteForm.formState.errors.items?.root?.message}</FormMessage>
                                             <div className="text-right pt-2">
                                                 <span className="font-semibold text-lg">{t('quoteDialog.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteForm.watch('currency') || 'USD' }).format(quoteFormFields.reduce((sum, _, i) => sum + (Number(quoteForm.getValues(`items.${i}.total`)) || 0), 0))}</span>
@@ -1388,7 +1438,7 @@ function QuotesPageContent() {
 
             {/* Quote Item Dialog */}
             <Dialog open={isQuoteItemDialogOpen} onOpenChange={setIsQuoteItemDialogOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuoteItem ? t('itemDialog.editTitle') : t('itemDialog.createTitle')}</DialogTitle>
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
