@@ -224,13 +224,13 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
     const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
     const durationMinutes = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60));
-    const showTimeOnSecondLine = durationMinutes >= 30;
+    const isShortEvent = durationMinutes < 60;
 
     return (
       <ContextMenu>
         <ContextMenuTrigger>
           <div
-            className={cn("event-in-day-view", !showTimeOnSecondLine && "event-in-day-view-compact")}
+            className={cn("event-in-day-view", isShortEvent && "event-in-day-view-compact")}
             style={{
               ...style,
               left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
@@ -244,9 +244,9 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
             }}
           >
             <span className="event-day-title">{event.title}</span>
-            {showTimeOnSecondLine && (
-              <span className="event-day-time">{`${formatEventTime(event.start)} - ${formatEventTime(event.end)}`}</span>
-            )}
+            <span className="event-day-time whitespace-nowrap">
+              {isShortEvent ? `, ${formatEventTime(event.start)} - ${formatEventTime(event.end)}` : `${formatEventTime(event.start)} - ${formatEventTime(event.end)}`}
+            </span>
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
