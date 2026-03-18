@@ -485,15 +485,16 @@ function AnamnesisSection({
     React.useEffect(() => {
         if (patientHabits) {
             setHabitsFormData({
+                id: patientHabits.id,
                 fuma: Boolean(patientHabits.fuma),
                 alcohol: Boolean(patientHabits.alcohol),
                 drogas: Boolean(patientHabits.drogas),
                 cafe: Boolean(patientHabits.cafe),
                 otros: patientHabits.otros || '',
                 comentarios: patientHabits.comentarios || '',
-                tabaquismo: (patientHabits as any).tabaquismo || '',
-                alcoholismo: (patientHabits as any).alcoholismo || '',
-                bruxismo: (patientHabits as any).bruxismo || '',
+                tabaquismo: patientHabits.tabaquismo || '',
+                alcoholismo: patientHabits.alcoholismo || '',
+                bruxismo: patientHabits.bruxismo || '',
             });
         }
     }, [patientHabits]);

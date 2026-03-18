@@ -53,6 +53,7 @@ export interface MedicationItem {
 }
 
 export interface PatientHabits {
+    id?: string;
     fuma: boolean;
     alcohol: boolean;
     drogas: boolean;
@@ -315,16 +316,24 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         setIsLoadingPatientHabits(true);
         try {
             const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_HABITS, { user_id: userId });
-            const habitsData = data?.data || data?.habitos || data;
+            let habitsData = data?.data || data?.habitos || data;
+
+            if (Array.isArray(habitsData) && habitsData.length > 0) {
+                habitsData = habitsData[0];
+            }
 
             if (habitsData && typeof habitsData === 'object') {
                 setPatientHabits({
+                    id: habitsData.id,
                     fuma: Boolean(habitsData.fuma),
-                    alcohol: Boolean(habitsData.alcohol),
+                    alcohol: habitsData.alcohol === 'true' || habitsData.alcohol === true,
                     drogas: Boolean(habitsData.drogas),
                     cafe: Boolean(habitsData.cafe),
                     otros: habitsData.otros || '',
                     comentarios: habitsData.comentarios || '',
+                    tabaquismo: habitsData.tabaquismo || '',
+                    alcoholismo: habitsData.alcohol || '',
+                    bruxismo: habitsData.bruxismo || '',
                 });
             } else {
                 setPatientHabits(null);
@@ -637,10 +646,20 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const updatePatientHabits = useCallback(async (userId: string, data: PatientHabits) => {
         setIsSubmittingHabits(true);
         try {
-            await api.post(API_ROUTES.CLINIC_HISTORY.PATIENT_HABITS_UPSERT, {
-                ...data,
-                paciente_id: userId,
-            });
+            const { alcoholismo, ...rest } = data;
+            const payload: Record<string, unknown> = {
+                ...rest,
+                id: data.id,
+                alcohol: alcoholismo,
+            };
+
+            if (data.id) {
+                payload.paciente_id = userId;
+            } else {
+                payload.user_id = userId;
+            }
+
+            await api.post(API_ROUTES.CLINIC_HISTORY.PATIENT_HABITS_UPSERT, payload);
             await fetchPatientHabits(userId);
         } catch (error) {
             console.error("Failed to update patient habits:", error);
