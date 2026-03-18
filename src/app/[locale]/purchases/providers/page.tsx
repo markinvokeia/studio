@@ -725,7 +725,7 @@ function ProvidersPageContent() {
                     <FormItem>
                       <FormLabel>{t('ProvidersPage.createDialog.notes.title')}</FormLabel>
                       <FormControl>
-                        <Input placeholder={t('ProvidersPage.createDialog.notes.placeholder')} {...field} />
+                        <Textarea placeholder={t('ProvidersPage.createDialog.notes.placeholder')} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
