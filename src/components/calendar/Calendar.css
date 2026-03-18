@@ -262,12 +262,15 @@
 }
 
 .event-in-day-view-compact .event-day-title {
-  flex-shrink: 1;
-  min-width: 0;
+  flex-shrink: 0;
+  max-width: 100%;
 }
 
 .event-in-day-view-compact .event-day-time {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   line-height: inherit;
 }
 
