@@ -85,7 +85,7 @@ async function getAvailabilityRules(pagination: PaginationState, searchQuery: st
 
 async function getDoctors(): Promise<User[]> {
     try {
-        const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
+        const data = await api.get(API_ROUTES.USERS_DOCTORS);
         const doctorsData = Array.isArray(data) ? data : (data.doctors || data.data || []);
         return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
     } catch (error) {
