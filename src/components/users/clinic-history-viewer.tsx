@@ -1656,6 +1656,42 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                             </div>
                                                         </div>
                                                     )}
+                                                    {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
+                                                        <div>
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('odontogramUpdate')}</p>
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
+                                                                    const surfaces = Object.keys(data).filter(k => k !== 'condition' && k !== 'notes' && k !== 'lastModified');
+                                                                    const surfaceText = surfaces.length > 0
+                                                                        ? surfaces.map(s => t(`surfaces.${s}`) || s).join(', ')
+                                                                        : '';
+                                                                    const extractCondition = (d: any): string => {
+                                                                        if (typeof d === 'string') return d;
+                                                                        if (Array.isArray(d)) return d[0] || '';
+                                                                        for (const key of Object.keys(d)) {
+                                                                            const val = d[key];
+                                                                            if (typeof val === 'string') return val;
+                                                                            if (Array.isArray(val) && val.length > 0) return val[0];
+                                                                        }
+                                                                        return '';
+                                                                    };
+                                                                    const condition = data.condition || extractCondition(data);
+                                                                    const conditionLabel = condition ? t(`conditions.${condition}`) || condition : '';
+
+                                                                    return (
+                                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
+                                                                            <span className="font-mono">#{tooth}</span>
+                                                                            <span className="text-primary/70">-</span>
+                                                                            <span>{conditionLabel}</span>
+                                                                            {surfaceText && (
+                                                                                <span className="text-primary/60">({surfaceText})</span>
+                                                                            )}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     {(session as any).attachments && (session as any).attachments.length > 0 && (
                                                         <div>
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('attachments') || 'Adjuntos'}</p>
@@ -1726,8 +1762,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                 value={sessionForm.doctor_id}
                                                 onValueChange={(value) => {
                                                     const selectedDoc = doctors.find(d => d.id === value);
-                                                    setSessionForm({ 
-                                                        ...sessionForm, 
+                                                    setSessionForm({
+                                                        ...sessionForm,
                                                         doctor_id: value,
                                                         doctor_name: selectedDoc?.name || ''
                                                     });
@@ -2117,9 +2153,9 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
     };
 
     const handleViewDocument = async (doc: any) => {
-        setSelectedDocument({ 
-            id: doc.id, 
-            name: doc.nombre || doc.name || 'Document', 
+        setSelectedDocument({
+            id: doc.id,
+            name: doc.nombre || doc.name || 'Document',
             mimeType: doc.mimeType || doc.tipo || ''
         });
         setIsViewerOpen(true);
