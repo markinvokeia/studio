@@ -3025,6 +3025,7 @@
             },
             "title": "Línea de Tiempo",
             "sessionType": "Tipo de Sesión",
+            "procedure": "Procedimiento",
             "diagnosis": "Diagnóstico",
             "notes": "Notas",
             "tooth": "Diente",

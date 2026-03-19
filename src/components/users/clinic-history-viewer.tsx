@@ -1410,8 +1410,6 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         doctor_name: '',
         fecha_sesion: new Date().toISOString().split('T')[0],
         procedimiento_realizado: '',
-        diagnostico: '',
-        notas_clinicas: '',
         plan_proxima_cita: '',
     });
     const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
@@ -1433,8 +1431,6 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             doctor_name: '',
             fecha_sesion: new Date().toISOString().split('T')[0],
             procedimiento_realizado: '',
-            diagnostico: '',
-            notas_clinicas: '',
             plan_proxima_cita: '',
         });
         setSessionTreatments([]);
@@ -1452,8 +1448,6 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             doctor_name: session.doctor_name || '',
             fecha_sesion: session.fecha_sesion ? session.fecha_sesion.split('T')[0] : new Date().toISOString().split('T')[0],
             procedimiento_realizado: session.procedimiento_realizado || '',
-            diagnostico: session.diagnostico || '',
-            notas_clinicas: session.notas_clinicas || '',
             plan_proxima_cita: session.plan_proxima_cita || '',
         });
         setSessionTreatments((session.tratamientos || []).map(t => ({
@@ -1593,8 +1587,15 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                         <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1 min-w-0 pr-2">
-                                                    <CardTitle className="text-base font-semibold">{session.procedimiento_realizado || t('noTitle')}</CardTitle>
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                                                    <CardTitle className="text-base font-semibold line-clamp-2">
+                                                        {session.procedimiento_realizado?.split('\n')[0] || t('noTitle')}
+                                                    </CardTitle>
+                                                    {session.procedimiento_realizado?.includes('\n') && (
+                                                        <p className="text-[10px] text-muted-foreground italic mt-0.5">
+                                                            + más contenido
+                                                        </p>
+                                                    )}
+                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                                                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                                                             <CalendarIcon className="h-3.5 w-3.5" />
                                                             {formatDate(session.fecha_sesion)}
@@ -1635,43 +1636,37 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                 </Button>
                                             </CollapsibleTrigger>
                                             <CollapsibleContent>
-                                                <CardContent className="pt-0 pb-3 space-y-2">
-                                                    {session.diagnostico && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('diagnosis')}</p>
-                                                            <p className="text-sm">{session.diagnostico}</p>
-                                                        </div>
-                                                    )}
-                                                    {session.notas_clinicas && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('notes') || 'Notas clínicas'}</p>
-                                                            <p className="text-sm">{session.notas_clinicas}</p>
+                                                <CardContent className="pt-0 pb-3 space-y-3">
+                                                    {session.procedimiento_realizado && (
+                                                        <div className="border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
+                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
                                                         </div>
                                                     )}
                                                     {session.plan_proxima_cita && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
-                                                            <p className="text-sm">{session.plan_proxima_cita}</p>
+                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">{t('nextPlan') || 'Plan próxima cita'}</p>
+                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.plan_proxima_cita}</p>
                                                         </div>
                                                     )}
                                                     {session.tratamientos && session.tratamientos.length > 0 && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('treatments') || 'Tratamientos'}</p>
-                                                            <div className="space-y-1">
+                                                        <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/50 dark:bg-green-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
+                                                            <div className="space-y-2">
                                                                 {session.tratamientos.map((tr: any, i: number) => (
-                                                                    <div key={i} className="flex items-center gap-2 text-sm">
+                                                                    <div key={i} className="bg-background/80 rounded-md p-2 border border-muted/50">
                                                                         {tr.numero_diente && (
-                                                                            <span className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
+                                                                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
                                                                         )}
-                                                                        <span>{tr.descripcion}</span>
+                                                                        <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{tr.descripcion}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     )}
                                                     {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('odontogramUpdate')}</p>
+                                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1 bg-purple-50/50 dark:bg-purple-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
                                                                     const surfaces = Object.keys(data).filter(k => k !== 'condition' && k !== 'notes' && k !== 'lastModified');
@@ -1706,12 +1701,12 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                         </div>
                                                     )}
                                                     {(session as any).attachments && (session as any).attachments.length > 0 && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('attachments') || 'Adjuntos'}</p>
+                                                        <div className="border-l-2 border-amber-500/50 pl-3 py-1 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
                                                             <div className="flex flex-wrap gap-1">
                                                                 {(session as any).attachments.map((att: any, i: number) => (
-                                                                    <span key={i} className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded">
-                                                                        <FileText className="h-3 w-3" />
+                                                                    <span key={i} className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded">
+                                                                        <FileText className="h-3 w-3 text-amber-500" />
                                                                         {att.nombre || att.name || 'File'}
                                                                     </span>
                                                                 ))}
@@ -1795,36 +1790,20 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{tDialog('procedure')}</Label>
-                                        <Input
+                                        <Textarea
                                             value={sessionForm.procedimiento_realizado}
                                             onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
                                             placeholder={tDialog('procedurePlaceholder')}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>{tDialog('diagnosis')}</Label>
-                                        <Textarea
-                                            value={sessionForm.diagnostico}
-                                            onChange={(e) => setSessionForm({ ...sessionForm, diagnostico: e.target.value })}
-                                            placeholder={tDialog('diagnosisPlaceholder')}
-                                            className="min-h-[80px]"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>{tDialog('notes')}</Label>
-                                        <Textarea
-                                            value={sessionForm.notas_clinicas}
-                                            onChange={(e) => setSessionForm({ ...sessionForm, notas_clinicas: e.target.value })}
-                                            placeholder={tDialog('notesPlaceholder')}
-                                            className="min-h-[80px]"
+                                            className="min-h-[150px] resize-none"
                                         />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{tDialog('nextSessionPlan')}</Label>
-                                        <Input
+                                        <Textarea
                                             value={sessionForm.plan_proxima_cita}
                                             onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
                                             placeholder={tDialog('nextSessionPlanPlaceholder')}
+                                            className="min-h-[80px] resize-none"
                                         />
                                     </div>
                                 </div>

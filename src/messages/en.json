@@ -3025,6 +3025,7 @@
       },
       "title": "Timeline",
       "sessionType": "Session Type",
+      "procedure": "Procedure",
       "diagnosis": "Diagnosis",
       "notes": "Notes",
       "tooth": "Tooth",
