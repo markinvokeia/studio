@@ -264,7 +264,7 @@ export default function CommunicationTemplatesPage() {
 
     const handleDelete = (template: CommunicationTemplate) => {
         setDeletingTemplate(template);
-        setIsDialogOpen(true);
+        setIsDeleteDialogOpen(true);
     };
 
     const handleDuplicate = (template: CommunicationTemplate) => {
