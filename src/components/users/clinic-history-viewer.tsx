@@ -1829,7 +1829,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                             value={sessionForm.procedimiento_realizado}
                                             onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
                                             placeholder={tDialog('procedurePlaceholder')}
-                                            className="min-h-[150px] resize-none"
+                                            className="min-h-[150px] resize-y"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -1838,7 +1838,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                             value={sessionForm.plan_proxima_cita}
                                             onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
                                             placeholder={tDialog('nextSessionPlanPlaceholder')}
-                                            className="min-h-[80px] resize-none"
+                                            className="min-h-[80px] resize-y"
                                         />
                                     </div>
                                 </div>
