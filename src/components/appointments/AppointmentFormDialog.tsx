@@ -42,6 +42,7 @@ interface AppointmentFormDialogProps {
         time?: string;
         summary?: string;
         description?: string;
+        notes?: string;
     };
     onSaveSuccess?: (savedAppointment: any, selectedDate: Date) => void;
     calendars: CalendarType[];
@@ -78,8 +79,10 @@ export function AppointmentFormDialog({
         date: format(new Date(), 'yyyy-MM-dd'),
         time: format(new Date(), 'HH:mm'),
         endTime: '',
-        description: '',
+        notes: '',
     });
+
+    const [errors, setErrors] = React.useState<string[]>([]);
 
     const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
     const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
@@ -104,6 +107,7 @@ export function AppointmentFormDialog({
     // Initialize/Reset form
     React.useEffect(() => {
         if (open) {
+            setErrors([]);
             if (editingAppointment) {
                 let foundCalendar = calendars.find(c => c.google_calendar_id === editingAppointment.calendar_id);
                 if (!foundCalendar) {
@@ -118,16 +122,7 @@ export function AppointmentFormDialog({
                         phone_number: editingAppointment.patientPhone || '',
                         is_active: true, avatar: ''
                     },
-                    services: (editingAppointment.services && editingAppointment.services.length > 0)
-                        ? editingAppointment.services
-                        : [{
-                            id: '',
-                            name: editingAppointment.summary || editingAppointment.service_name || '',
-                            category: '',
-                            price: 0,
-                            duration_minutes: 30,
-                            is_active: true
-                        }],
+                    services: editingAppointment.services || [],
                     doctor: editingAppointment.doctorId ? {
                         id: editingAppointment.doctorId,
                         name: editingAppointment.doctorName || '',
@@ -139,7 +134,7 @@ export function AppointmentFormDialog({
                     date: editingAppointment.date || '',
                     time: editingAppointment.time || '',
                     endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime), 'HH:mm') : '',
-                    description: editingAppointment.description || '',
+                    notes: editingAppointment.notes || '',
                 });
                 setOriginalCalendarId(editingAppointment.google_calendar_id || editingAppointment.calendar_id);
             } else if (initialData) {
@@ -151,7 +146,7 @@ export function AppointmentFormDialog({
                     date: initialData.date || format(new Date(), 'yyyy-MM-dd'),
                     time: initialData.time || format(new Date(), 'HH:mm'),
                     endTime: '',
-                    description: initialData.description || '',
+                    notes: initialData.notes || '',
                 });
                 setOriginalCalendarId(undefined);
             } else {
@@ -163,7 +158,7 @@ export function AppointmentFormDialog({
                     date: format(new Date(), 'yyyy-MM-dd'),
                     time: format(new Date(), 'HH:mm'),
                     endTime: '',
-                    description: '',
+                    notes: '',
                 });
                 setOriginalCalendarId(undefined);
             }
@@ -248,7 +243,7 @@ export function AppointmentFormDialog({
             return;
         }
 
-        const { date, time, services, user, doctor, calendar, endTime } = formData;
+        const { date, time, services, user, doctor, calendar, endTime, notes } = formData;
         if (!date || !time || (!user && !editingAppointment) || services.length === 0) {
             return;
         }
@@ -393,11 +388,24 @@ export function AppointmentFormDialog({
             }
         }
 
-        const { user, doctor, services, calendar, date, time, description } = appointment;
-        if (!date || !time) {
-            toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('dateTimeRequired') });
+        const { user, doctor, services, calendar, date, time, notes } = appointment;
+        
+        let newErrors: string[] = [];
+        if (!date) newErrors.push('date');
+        if (!time) newErrors.push('time');
+        if (!calendar) newErrors.push('calendar');
+        
+        if (!isEditing) {
+            if (!user) newErrors.push('user');
+        }
+
+        if (newErrors.length > 0) {
+            setErrors(newErrors);
+            toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('fillRequired') });
             return;
         }
+        
+        setErrors([]);
 
         const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
         let endDateTime: Date;
@@ -446,24 +454,20 @@ export function AppointmentFormDialog({
             payload.summary = services.length > 0 ? `${patientNameBase} - ${services.map(s => s.name).join(', ')}` : editingAppointment!.summary;
             payload.service_ids = services.filter(s => s.id).map(s => s.id);
             payload.service_names = services.map(s => s.name).join(', ');
-            payload.description = description || editingAppointment!.description || services.map(s => s.name).join(', ');
+            payload.notes = notes || editingAppointment!.notes || '';
             payload.google_calendar_id = calendar?.google_calendar_id || originalCalendarId;
         } else {
-            if (!user || services.length === 0) {
-                toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('fillRequired') });
-                return;
-            }
             payload.doctor_id = doctor?.id || '';
             payload.doctor_name = doctor?.name || '';
             payload.doctor_email = doctor?.email || '';
-            payload.patient_id = user.id;
-            payload.patient_name = user.name;
-            payload.patient_email = user.email;
-            payload.patient_phone = user.phone_number;
-            payload.summary = `${user.name} - ${services.map(s => s.name).join(', ')}`;
+            payload.patient_id = user?.id || '';
+            payload.patient_name = user?.name || '';
+            payload.patient_email = user?.email || '';
+            payload.patient_phone = user?.phone_number || '';
+            payload.summary = user ? `${user.name} - ${services.map(s => s.name).join(', ')}` : services.map(s => s.name).join(', ');
             payload.service_ids = services.filter(s => s.id).map(s => s.id);
             payload.service_names = services.map(s => s.name).join(', ');
-            payload.description = description || services.map(s => s.name).join(', ');
+            payload.notes = notes || '';
             payload.google_calendar_id = calendar?.google_calendar_id || '';
         }
 
@@ -517,10 +521,10 @@ export function AppointmentFormDialog({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label>{t('createDialog.userName')}</Label>
+                                <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
                                 <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start">
+                                        <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")}>
                                             {appointment.user ? appointment.user.name : t('createDialog.selectUser')}
                                             <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -532,7 +536,7 @@ export function AppointmentFormDialog({
                                                 <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
                                                 <CommandGroup>
                                                     {userSearchResults.map(user => (
-                                                        <CommandItem key={user.id} value={user.name} onSelect={() => { setAppointment(prev => ({ ...prev, user })); setUserSearchOpen(false); }}>
+                                                        <CommandItem key={user.id} value={user.name} onSelect={() => { setAppointment(prev => ({ ...prev, user })); setUserSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'user')); }}>
                                                             <Check className={cn("mr-2 h-4 w-4", appointment.user?.id === user.id ? "opacity-100" : "opacity-0")} />
                                                             {user.name}
                                                         </CommandItem>
@@ -622,10 +626,10 @@ export function AppointmentFormDialog({
                                 </Popover>
                             </div>
                             <div className="space-y-2">
-                                <Label>{t('createDialog.calendar')}</Label>
+                                <Label className={errors.includes('calendar') ? "text-destructive" : ""}>{t('createDialog.calendar')}</Label>
                                 <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start">
+                                        <Button variant="outline" className={cn("w-full justify-start", errors.includes('calendar') && "border-destructive text-destructive")}>
                                             {appointment.calendar ? appointment.calendar.name : t('createDialog.allCalendars')}
                                             <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -639,7 +643,7 @@ export function AppointmentFormDialog({
                                                         {t('createDialog.allCalendars')}
                                                     </CommandItem>
                                                     {calendars.map(calendar => (
-                                                        <CommandItem key={calendar.id} value={calendar.name} onSelect={() => { setAppointment(prev => ({ ...prev, calendar })); setCalendarSearchOpen(false); }}>
+                                                        <CommandItem key={calendar.id} value={calendar.name} onSelect={() => { setAppointment(prev => ({ ...prev, calendar })); setCalendarSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'calendar')); }}>
                                                             <Check className={cn("mr-2 h-4 w-4", appointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")} />
                                                             {calendar.name}
                                                         </CommandItem>
@@ -653,20 +657,20 @@ export function AppointmentFormDialog({
                         </div>
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="date">{t('createDialog.date')}</Label>
-                                <Input id="date" type="date" value={appointment.date} onChange={e => setAppointment(prev => ({ ...prev, date: e.target.value }))} />
+                                <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
+                                <Input id="date" type="date" value={appointment.date} onChange={e => { setAppointment(prev => ({ ...prev, date: e.target.value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="time">{t('createDialog.time')}</Label>
-                                <Input id="time" type="time" value={appointment.time} onChange={e => setAppointment(prev => ({ ...prev, time: e.target.value }))} />
+                                <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
+                                <Input id="time" type="time" value={appointment.time} onChange={e => { setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
                                 <Input id="endTime" type="time" value={appointment.endTime} onChange={e => setAppointment(prev => ({ ...prev, endTime: e.target.value }))} />
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="description">{t('createDialog.descriptionLabel')}</Label>
-                                <Textarea id="description" value={appointment.description} onChange={e => setAppointment(prev => ({ ...prev, description: e.target.value }))} />
+                             <div className="space-y-2">
+                                <Label htmlFor="notes">Notas</Label>
+                                <Textarea id="notes" value={appointment.notes} onChange={e => setAppointment(prev => ({ ...prev, notes: e.target.value }))} />
                             </div>
                         </div>
                     </div>
@@ -681,6 +685,7 @@ export function AppointmentFormDialog({
                                         const doctor = allDoctors.find(d => d.id === doctorId);
                                         const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
                                         setAppointment(prev => ({ ...prev, date, time, doctor: doctor || null, calendar: calendar || null }));
+                                        setErrors(prev => prev.filter(err => !['date', 'time', 'calendar'].includes(err)));
                                     }}>
                                         {suggestedTimes.map((suggestion) => (
                                             <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
