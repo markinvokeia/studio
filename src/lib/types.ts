@@ -121,6 +121,7 @@ export type Quote = {
   currency?: 'UYU' | 'USD';
   user_name?: string;
   userEmail?: string;
+  notes?: string;
   createdAt: string;
   updatedAt?: string;
   exchange_rate?: number;
@@ -181,6 +182,7 @@ export type Invoice = {
   user_id: string;
   total: number;
   currency?: 'UYU' | 'USD';
+  notes?: string;
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'booked';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
   paid_amount?: number;
@@ -225,6 +227,7 @@ export type Payment = {
   transaction_type: 'direct_payment' | 'credit_note_allocation' | 'payment_allocation';
   transaction_id: string | null;
   reference_doc_id?: string;
+  notes?: string;
   status: 'pending' | 'completed' | 'failed';
   createdAt: string;
   updatedAt: string;

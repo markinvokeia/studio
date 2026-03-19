@@ -87,6 +87,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             currency: apiInvoice.currency || 'USD',
+            notes: apiInvoice.notes || '',
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -612,6 +613,7 @@ export default function InvoicesPage() {
                                         <TabsList>
                                             <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
                                             <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
+                                            <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
                                             {selectedInvoice?.type === 'credit_note' ? (
                                                 <TabsTrigger value="allocations" className="text-xs">{t('tabs.allocations')}</TabsTrigger>
                                             ) : (
@@ -662,6 +664,13 @@ export default function InvoicesPage() {
                                                     />
                                                 </TabsContent>
                                             )}
+                                            <TabsContent value="notes" className="m-0 flex-1 min-h-0 p-4">
+                                                {selectedInvoice?.notes ? (
+                                                    <div className="whitespace-pre-wrap text-sm">{selectedInvoice.notes}</div>
+                                                ) : (
+                                                    <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
+                                                )}
+                                            </TabsContent>
                                         </div>
                                     </Tabs>
                                 </CardContent>

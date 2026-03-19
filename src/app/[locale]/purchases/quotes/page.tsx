@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Select,
@@ -65,6 +66,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
+    notes: z.string().optional(),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
@@ -106,6 +108,7 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             currency: apiQuote.currency || 'UYU',
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
+            notes: apiQuote.notes || '',
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
             exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
         }));
@@ -612,7 +615,7 @@ function QuotesPageContent() {
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
-        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, items: [] });
+        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, notes: '', items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
         if (allServices.length === 0) {
@@ -638,7 +641,7 @@ function QuotesPageContent() {
             total: item.total
         }));
 
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, items: mappedItems });
+        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, notes: quote.notes || '', items: mappedItems });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
         if (allServices.length === 0) {
@@ -1063,6 +1066,7 @@ function QuotesPageContent() {
                                             <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger>
                                             <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
                                             <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
+                                            <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
                                         </TabsList>
                                         <div className="flex-1 min-h-0 mt-4 flex flex-col">
                                             <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
@@ -1175,6 +1179,13 @@ function QuotesPageContent() {
                                                     isRefreshing={isLoadingPayments}
                                                     columnsToHide={['quote_id', 'order_id', 'user_name']}
                                                 />
+                                            </TabsContent>
+                                            <TabsContent value="notes" className="m-0 h-full p-4">
+                                                {selectedQuote?.notes ? (
+                                                    <div className="whitespace-pre-wrap text-sm">{selectedQuote.notes}</div>
+                                                ) : (
+                                                    <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
+                                                )}
                                             </TabsContent>
                                         </div>
                                     </Tabs>
@@ -1308,6 +1319,23 @@ function QuotesPageContent() {
                                                             field.onChange(parseFloat(e.target.value) || 0);
                                                         }
                                                     }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={quoteForm.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                        <FormItem className="md:col-span-3">
+                                            <FormLabel>{t('quoteDialog.notes')}</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                    placeholder={t('quoteDialog.notesPlaceholder')}
+                                                    {...field}
+                                                    value={field.value || ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />

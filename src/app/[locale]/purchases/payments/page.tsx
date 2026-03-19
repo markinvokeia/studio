@@ -6,6 +6,7 @@ import { PaymentAllocationsTable } from '@/components/tables/payment-allocations
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -252,18 +253,35 @@ function PaymentsPageContent() {
                                 </Button>
                             </CardHeader>
                             <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
-                                <div className="flex items-center justify-between mb-2 flex-none mt-4">
-                                    <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
-                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
-                                        <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
-                                    </Button>
-                                </div>
-                                <div className="flex-1 min-h-0 overflow-auto">
-                                    <PaymentAllocationsTable
-                                        allocations={paymentAllocations}
-                                        isLoading={isLoadingAllocations}
-                                    />
-                                </div>
+                                <Tabs defaultValue="allocations" className="flex-1 flex flex-col min-h-0">
+                                    <TabsList>
+                                        <TabsTrigger value="allocations" className="text-xs">{t('tabs.allocations')}</TabsTrigger>
+                                        <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
+                                    </TabsList>
+                                    <div className="flex-1 min-h-0 mt-4 flex flex-col overflow-hidden">
+                                        <TabsContent value="allocations" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                            <div className="flex items-center justify-between mb-2 flex-none">
+                                                <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
+                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
+                                                    <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                            </div>
+                                            <div className="flex-1 min-h-0 overflow-auto">
+                                                <PaymentAllocationsTable
+                                                    allocations={paymentAllocations}
+                                                    isLoading={isLoadingAllocations}
+                                                />
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="notes" className="m-0 flex-1 min-h-0 p-4">
+                                            {selectedPayment?.notes ? (
+                                                <div className="whitespace-pre-wrap text-sm">{selectedPayment.notes}</div>
+                                            ) : (
+                                                <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
+                                            )}
+                                        </TabsContent>
+                                    </div>
+                                </Tabs>
                             </CardContent>
                         </Card>
                     )

@@ -15,8 +15,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +48,7 @@ const prepaidFormSchema = (t: (key: string) => string) => z.object({
         required_error: t('validation.dateRequired'),
     }),
     currency: z.enum(['UYU', 'USD']),
+    notes: z.string().optional(),
 });
 
 type PrepaidFormValues = z.infer<ReturnType<typeof prepaidFormSchema>>;
@@ -153,7 +156,8 @@ export default function PaymentsPage() {
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: 'UYU'
+            currency: 'UYU',
+            notes: ''
         }
     });
 
@@ -342,7 +346,8 @@ export default function PaymentsPage() {
                     is_prepaid: true,
                     invoice_currency: prepaidData.currency,
                     payment_currency: prepaidData.currency,
-                    exchange_rate: 1
+                    exchange_rate: 1,
+                    notes: prepaidData.notes || ''
                 }),
             };
 
@@ -415,18 +420,35 @@ export default function PaymentsPage() {
                                 </Button>
                             </CardHeader>
                             <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
-                                <div className="flex items-center justify-between mb-2 flex-none mt-4">
-                                    <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
-                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
-                                        <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
-                                    </Button>
-                                </div>
-                                <div className="flex-1 min-h-0 overflow-auto">
-                                    <PaymentAllocationsTable
-                                        allocations={paymentAllocations}
-                                        isLoading={isLoadingAllocations}
-                                    />
-                                </div>
+                                <Tabs defaultValue="allocations" className="flex-1 flex flex-col min-h-0">
+                                    <TabsList>
+                                        <TabsTrigger value="allocations" className="text-xs">{t('tabs.allocations')}</TabsTrigger>
+                                        <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
+                                    </TabsList>
+                                    <div className="flex-1 min-h-0 mt-4 flex flex-col overflow-hidden">
+                                        <TabsContent value="allocations" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                            <div className="flex items-center justify-between mb-2 flex-none">
+                                                <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
+                                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
+                                                    <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
+                                                </Button>
+                                            </div>
+                                            <div className="flex-1 min-h-0 overflow-auto">
+                                                <PaymentAllocationsTable
+                                                    allocations={paymentAllocations}
+                                                    isLoading={isLoadingAllocations}
+                                                />
+                                            </div>
+                                        </TabsContent>
+                                        <TabsContent value="notes" className="m-0 flex-1 min-h-0 p-4">
+                                            {selectedPayment?.notes ? (
+                                                <div className="whitespace-pre-wrap text-sm">{selectedPayment.notes}</div>
+                                            ) : (
+                                                <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
+                                            )}
+                                        </TabsContent>
+                                    </div>
+                                </Tabs>
                             </CardContent>
                         </Card>
                     )
@@ -586,6 +608,19 @@ export default function PaymentsPage() {
                                                     />
                                                 </PopoverContent>
                                             </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('prepaidDialog.notes')}</FormLabel>
+                                            <FormControl>
+                                                <Textarea placeholder={t('prepaidDialog.notesPlaceholder')} {...field} value={field.value || ''} />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}

@@ -20,6 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
@@ -64,6 +65,7 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   invoice_currency: z.string(),
   payment_currency: z.string(),
   exchange_rate: z.coerce.number().optional(),
+  notes: z.string().optional(),
 }).refine(data => {
   if (data.amount > 0 && !data.method) {
     return false;
@@ -90,6 +92,7 @@ const createInvoiceFormSchema = z.object({
   currency: z.enum(['UYU', 'USD']),
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
+  notes: z.string().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Service name is required'),
@@ -312,6 +315,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     resolver: zodResolver(paymentFormSchema(t)),
     defaultValues: {
       status: 'completed',
+      notes: '',
     }
   });
 
@@ -1046,6 +1050,20 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     <span className="font-bold text-lg">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment.currency || 'USD' }).format(remainingAmountToPay)}</span>
                   </div>
                 )}
+
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('paymentDialog.notes')}</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder={t('paymentDialog.notesPlaceholder')} {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </DialogBody>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsPaymentDialogOpen(false)}>{t('paymentDialog.cancel')}</Button>
@@ -1175,6 +1193,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       currency: 'UYU',
       items: [],
       total: 0,
+      notes: '',
     },
   });
 
@@ -1593,6 +1612,16 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                 )} />
 
               </div>
+
+              <FormField control={form.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('notes')}</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder={t('notesPlaceholder')} {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
 
               <Card>
                 <CardHeader>

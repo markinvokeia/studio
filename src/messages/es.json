@@ -964,7 +964,9 @@
                 "total": "Total",
                 "selectService": "Seleccionar Servicio",
                 "toothNumber": "Número de Diente"
-            }
+            },
+            "notes": "Notas",
+            "notesPlaceholder": "Agregue notas adicionales aquí..."
         },
         "toast": {
             "quoteDeleted": "Presupuesto Eliminado",
@@ -1013,6 +1015,7 @@
             "orders": "Órdenes",
             "invoices": "Facturas",
             "payments": "Pagos",
+            "notes": "Notas",
             "total": "Total"
         },
         "UserColumns": {
@@ -1091,6 +1094,14 @@
         "common": {
             "closeDetails": "Cerrar detalles"
         },
+        "notes": {
+            "noNotes": "No hay notas."
+        },
+        "defaults": {
+            "noEmail": "sin-correo@ejemplo.com"
+        }
+    },
+    "SalesQuotesPage": {
         "ui": {
             "orderItemsFor": "Artículos de la orden para"
         },
@@ -1168,7 +1179,9 @@
             "noPayment": "Ningún pago seleccionado",
             "overpayment": "El pago total excede el monto restante de la factura.",
             "selectCurrency": "Seleccionar Moneda",
-            "paymentRef": "Ref Pago"
+            "paymentRef": "Ref Pago",
+            "notes": "Notas",
+            "notesPlaceholder": "Agregue notas adicionales aquí..."
         },
         "status": {
             "paid": "Pagado",
@@ -1222,7 +1235,8 @@
             "items": "Artículos",
             "payments": "Pagos",
             "creditNotes": "Notas de Crédito",
-            "allocations": "Movimientos"
+            "allocations": "Movimientos",
+            "notes": "Notas"
         },
         "creditNotesTable": {
             "title": "Notas de Crédito Asociadas",
@@ -1331,7 +1345,9 @@
             "searchPatient": "Buscar paciente...",
             "searchProvider": "Buscar proveedor...",
             "searching": "Buscando...",
-            "noUserFound": "No se encontraron usuarios."
+            "noUserFound": "No se encontraron usuarios.",
+            "notes": "Notas",
+            "notesPlaceholder": "Agregue notas adicionales aquí..."
         },
         "actions": {
             "openMenu": "Abrir menú",
@@ -1386,6 +1402,12 @@
                 "unitPrice": "Precio Unitario",
                 "notInList": "No está en la lista"
             }
+        },
+        "common": {
+            "closeDetails": "Cerrar detalles"
+        },
+        "notes": {
+            "noNotes": "No hay notas."
         }
     },
     "CashierPage": {
@@ -1807,7 +1829,13 @@
                 "errorTitle": "Error",
                 "successDescription": "Operación completada exitosamente.",
                 "successTitle": "Éxito"
-            }
+            },
+            "notes": "Notas",
+            "notesPlaceholder": "Agregue notas adicionales aquí..."
+        },
+        "tabs": {
+            "allocations": "Asignaciones",
+            "notes": "Notas"
         },
         "PaymentAllocationsTable": {
             "title": "Asignaciones de Pago",

@@ -964,7 +964,9 @@
         "total": "Total",
         "selectService": "Select Service",
         "toothNumber": "Tooth Number"
-      }
+      },
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes here..."
     },
     "toast": {
       "quoteDeleted": "Quote Deleted",
@@ -1013,6 +1015,7 @@
       "orders": "Orders",
       "invoices": "Invoices",
       "payments": "Payments",
+      "notes": "Notes",
       "total": "Total"
     },
     "UserColumns": {
@@ -1091,6 +1094,14 @@
     "common": {
       "closeDetails": "Close details"
     },
+    "notes": {
+      "noNotes": "No notes."
+    },
+    "defaults": {
+      "noEmail": "no-email@example.com"
+    }
+  },
+  "SalesQuotesPage": {
     "ui": {
       "orderItemsFor": "Order Items for"
     },
@@ -1168,7 +1179,9 @@
       "noPayment": "No payment selected",
       "overpayment": "The total payment exceeds the remaining amount of the invoice.",
       "selectCurrency": "Select Currency",
-      "paymentRef": "Payment REF"
+      "paymentRef": "Payment REF",
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes here..."
     },
     "status": {
       "paid": "Paid",
@@ -1222,7 +1235,8 @@
       "items": "Items",
       "payments": "Payments",
       "creditNotes": "Credit Notes",
-      "allocations": "Allocations"
+      "allocations": "Allocations",
+      "notes": "Notes"
     },
     "creditNotesTable": {
       "title": "Associated Credit Notes",
@@ -1331,7 +1345,9 @@
       "searchPatient": "Search patient...",
       "searchProvider": "Search provider...",
       "searching": "Searching...",
-      "noUserFound": "No users found."
+      "noUserFound": "No users found.",
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes here..."
     },
     "actions": {
       "openMenu": "Open menu",
@@ -1386,6 +1402,12 @@
         "unitPrice": "Unit Price",
         "notInList": "Not in list"
       }
+    },
+    "common": {
+      "closeDetails": "Close details"
+    },
+    "notes": {
+      "noNotes": "No notes."
     }
   },
   "CashierPage": {
@@ -1807,7 +1829,13 @@
         "errorTitle": "Error",
         "successDescription": "Operation completed successfully.",
         "successTitle": "Success"
-      }
+      },
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes here..."
+    },
+    "tabs": {
+      "allocations": "Allocations",
+      "notes": "Notes"
     },
     "PaymentAllocationsTable": {
       "title": "Payment Allocations",
