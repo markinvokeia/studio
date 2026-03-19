@@ -353,6 +353,26 @@ function AnamnesisSection({
     const tHabits = useTranslations('ClinicHistoryPage.habits');
     const { toast } = useToast();
 
+    const getRelationshipLabel = (parentesco: string): string => {
+        const relationshipMap: Record<string, string> = {
+            'padre': t('dialogs.family.father'),
+            'madre': t('dialogs.family.mother'),
+            'abuelo_paterno': t('dialogs.family.paternalGrandfather'),
+            'abuela_paterna': t('dialogs.family.paternalGrandmother'),
+            'abuelo_materno': t('dialogs.family.maternalGrandfather'),
+            'abuela_materna': t('dialogs.family.maternalGrandmother'),
+            'hermano': t('dialogs.family.siblingBrother'),
+            'hermana': t('dialogs.family.sister'),
+            'tio': t('dialogs.family.uncle'),
+            'tia': t('dialogs.family.aunt'),
+            'primo': t('dialogs.family.cousin'),
+            'hijo': t('dialogs.family.son'),
+            'hija': t('dialogs.family.daughter'),
+            'conyuge': t('dialogs.family.spouse'),
+        };
+        return relationshipMap[parentesco] || parentesco;
+    };
+
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
@@ -826,7 +846,7 @@ function AnamnesisSection({
                             <div key={idx} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                 <div>
                                     <div className="font-semibold text-foreground">{item.nombre}</div>
-                                    <div className="text-sm text-muted-foreground">{t('relative')}: {item.parentesco}</div>
+                                    <div className="text-sm text-muted-foreground">{t('relative')}: {getRelationshipLabel(item.parentesco)}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
                                 <div className="flex items-center space-x-1">
@@ -1073,12 +1093,27 @@ function AnamnesisSection({
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-sm font-semibold">{t('dialogs.family.relationship')}</Label>
-                                <Input
-                                    value={familyParentesco}
-                                    onChange={(e) => setFamilyParentesco(e.target.value)}
-                                    placeholder={t('dialogs.family.selectRelationship')}
-                                    className="h-10"
-                                />
+                                <Select value={familyParentesco} onValueChange={setFamilyParentesco}>
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue placeholder={t('dialogs.family.selectRelationship')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="padre">{t('dialogs.family.father')}</SelectItem>
+                                        <SelectItem value="madre">{t('dialogs.family.mother')}</SelectItem>
+                                        <SelectItem value="abuelo_paterno">{t('dialogs.family.paternalGrandfather')}</SelectItem>
+                                        <SelectItem value="abuela_paterna">{t('dialogs.family.paternalGrandmother')}</SelectItem>
+                                        <SelectItem value="abuelo_materno">{t('dialogs.family.maternalGrandfather')}</SelectItem>
+                                        <SelectItem value="abuela_materna">{t('dialogs.family.maternalGrandmother')}</SelectItem>
+                                        <SelectItem value="hermano">{t('dialogs.family.siblingBrother')}</SelectItem>
+                                        <SelectItem value="hermana">{t('dialogs.family.sister')}</SelectItem>
+                                        <SelectItem value="tio">{t('dialogs.family.uncle')}</SelectItem>
+                                        <SelectItem value="tia">{t('dialogs.family.aunt')}</SelectItem>
+                                        <SelectItem value="primo">{t('dialogs.family.cousin')}</SelectItem>
+                                        <SelectItem value="hijo">{t('dialogs.family.son')}</SelectItem>
+                                        <SelectItem value="hija">{t('dialogs.family.daughter')}</SelectItem>
+                                        <SelectItem value="conyuge">{t('dialogs.family.spouse')}</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-sm font-semibold">{t('dialogs.comments')}</Label>

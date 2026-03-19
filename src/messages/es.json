@@ -3135,6 +3135,14 @@
                     "maternalGrandmother": "Abuela Materna",
                     "paternalGrandfather": "Abuelo Paterno",
                     "paternalGrandmother": "Abuela Paterna",
+                    "siblingBrother": "Hermano",
+                    "sister": "Hermana",
+                    "uncle": "Tío",
+                    "aunt": "Tía",
+                    "cousin": "Primo/a",
+                    "son": "Hijo",
+                    "daughter": "Hija",
+                    "spouse": "Cónyuge",
                     "commentsPlaceholder": "Ingrese comentarios aquí..."
                 },
                 "medication": {

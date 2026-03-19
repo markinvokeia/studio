@@ -3135,6 +3135,14 @@
           "maternalGrandmother": "Maternal Grandmother",
           "paternalGrandfather": "Paternal Grandfather",
           "paternalGrandmother": "Paternal Grandmother",
+          "siblingBrother": "Brother",
+          "sister": "Sister",
+          "uncle": "Uncle",
+          "aunt": "Aunt",
+          "cousin": "Cousin",
+          "son": "Son",
+          "daughter": "Daughter",
+          "spouse": "Spouse",
           "commentsPlaceholder": "Enter comments here..."
         },
         "medication": {
