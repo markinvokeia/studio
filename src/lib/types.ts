@@ -781,6 +781,7 @@ export type AlertAction = {
   performed_at: string;
   title?: string;
   summary?: string;
+  notes?: string;
 };
 
 export type CommunicationLog = {
@@ -794,6 +795,7 @@ export type CommunicationLog = {
   status: 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'BOUNCED';
   sent_at?: string;
   error_message?: string;
+  notes?: string;
 };
 
 export type AlertScheduleRun = {

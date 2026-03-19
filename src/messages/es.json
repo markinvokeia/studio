@@ -3727,8 +3727,12 @@
             "recipient": "Destinatario",
             "title": "Título",
             "status": "Estado",
-            "alertId": "ID de Alerta"
-        }
+            "alertId": "ID de Alerta",
+            "actions": "Acciones"
+        },
+        "viewNotes": "Ver Notas",
+        "notesTitle": "Notas de la Acción",
+        "noNotes": "No hay notas disponibles para esta acción."
     },
     "ExecutionHistoryPage": {
         "title": "Historial de Ejecución",

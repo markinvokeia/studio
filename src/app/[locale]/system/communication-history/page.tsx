@@ -11,10 +11,12 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { api } from '@/services/api';
-import { Mails } from 'lucide-react';
+import { Mails, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const mapAlertActionToCommunicationLog = (action: AlertAction): CommunicationLog => {
-  const channel = action.action_type === 'SEND_EMAIL' ? 'EMAIL' : action.action_type as any; // map others if needed
+  const channel = action.action_type === 'SEND_EMAIL' ? 'EMAIL' : action.action_type as any;
   const recipient = action.action_data?.patient?.email || action.action_data?.clinic?.email || '';
   const title = action.title || '';
   const summary = action.summary || '';
@@ -31,10 +33,43 @@ const mapAlertActionToCommunicationLog = (action: AlertAction): CommunicationLog
     status,
     sent_at: action.performed_at,
     error_message,
+    notes: action.notes,
   };
 };
 
-const getColumns = (t: (key: string) => string): ColumnDef<CommunicationLog>[] => [
+interface NotesDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    notes: string | undefined;
+    title: string;
+}
+
+function NotesDialog({ open, onOpenChange, notes, title }: NotesDialogProps) {
+    const t = useTranslations('CommunicationHistoryPage');
+    
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent maxWidth="md">
+                <DialogHeader>
+                    <DialogTitle>{t('notesTitle')}</DialogTitle>
+                    <DialogDescription>{title}</DialogDescription>
+                </DialogHeader>
+                <div className="mt-4 px-6 pb-6">
+                    {notes ? (
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{notes}</p>
+                    ) : (
+                        <p className="text-sm text-muted-foreground italic">{t('noNotes')}</p>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+const getColumns = (
+    t: (key: string) => string,
+    onViewNotes: (notes: string | undefined, title: string) => void
+): ColumnDef<CommunicationLog>[] => [
     {
         accessorKey: 'sent_at',
         header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.sentAt')} />,
@@ -65,6 +100,21 @@ const getColumns = (t: (key: string) => string): ColumnDef<CommunicationLog>[] =
     {
         accessorKey: 'alert_instance_id',
         header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.alertId')} />,
+    },
+    {
+        id: 'actions',
+        header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.actions')} />,
+        cell: ({ row }) => (
+            <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => onViewNotes(row.original.notes, row.original.title || '')}
+            >
+                <FileText className="h-4 w-4 mr-1" />
+                {t('viewNotes')}
+            </Button>
+        ),
     }
 ];
 
@@ -73,6 +123,7 @@ export default function CommunicationHistoryPage() {
     const [logs, setLogs] = React.useState<CommunicationLog[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 50 });
+    const [notesDialog, setNotesDialog] = React.useState({ open: false, notes: '', title: '' });
 
     const fetchLogs = async (page: number, limit: number) => {
         try {
@@ -88,7 +139,11 @@ export default function CommunicationHistoryPage() {
         fetchLogs(1, 50);
     }, []);
 
-    const columns = React.useMemo(() => getColumns(t), [t]);
+    const handleViewNotes = (notes: string | undefined, title: string) => {
+        setNotesDialog({ open: true, notes: notes || '', title });
+    };
+
+    const columns = React.useMemo(() => getColumns(t, handleViewNotes), [t]);
 
     const onPaginationChange: React.Dispatch<React.SetStateAction<typeof pagination>> = (updater) => {
         const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
@@ -135,6 +190,12 @@ export default function CommunicationHistoryPage() {
                     />
                 </CardContent>
             </Card>
+            <NotesDialog
+                open={notesDialog.open}
+                onOpenChange={(open) => setNotesDialog((prev) => ({ ...prev, open }))}
+                notes={notesDialog.notes}
+                title={notesDialog.title}
+            />
         </div>
     );
 }
