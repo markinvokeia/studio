@@ -22,10 +22,19 @@ interface CashSessionsColumnsProps {
     onPrint: (session: CajaSesion) => void;
 }
 
-const formatDate = (dateString?: string) => {
+const formatDate = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     try {
-        return new Date(dateString).toLocaleString('en-US', { timeZone: 'UTC' });
+        return format(parseISO(dateString), 'dd/MM/yyyy');
+    } catch (error) {
+        return dateString;
+    }
+};
+
+const formatDateTime = (dateString?: string): string => {
+    if (!dateString) return 'N/A';
+    try {
+        return format(parseISO(dateString), 'dd/MM/yyyy HH:mm');
     } catch (error) {
         return dateString;
     }

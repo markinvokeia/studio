@@ -22,6 +22,7 @@ import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
+import { format } from 'date-fns';
 import { AlertTriangle, ArrowRight, Banknote, BookOpenCheck, Box, Coins, CreditCard, DollarSign, Info, Minus, Plus, Printer, RefreshCw, TrendingDown, TrendingUp, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -57,6 +58,14 @@ const USD_IMAGES: Record<number, string> = {
     1: '/billetes/usd/USD_billete_1.svg',
 };
 
+const formatDateTime = (dateString: string | Date | undefined | null): string => {
+    if (!dateString) return 'N/A';
+    try {
+        return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
+    } catch (error) {
+        return String(dateString);
+    }
+};
 
 type OpenSessionStep = 'CONFIG' | 'COUNT_UYU' | 'COUNT_USD' | 'CONFIRM';
 
@@ -547,7 +556,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         <CardContent>
                             {renderAmount(openingDetails.totalUYU, 'UYU')}
                             {renderAmount(openingDetails.totalUSD, 'USD')}
-                            <p className="text-xs text-muted-foreground">{new Date(session.fechaApertura).toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">{formatDateTime(session.fechaApertura)}</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -1224,7 +1233,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                     {renderReportSection('USD')}
                 </div>
                 <div className="mt-4">
-                    <p><strong>{t('closingTime')}</strong> {session.closed_at ? new Date(session.closed_at).toLocaleString('en-US', { timeZone: 'UTC' }) : 'N/A'}</p>
+                    <p><strong>{t('closingTime')}</strong> {formatDateTime(session.closed_at)}</p>
                     {session.closing_notes && <p><strong>{t('notes')}</strong> {session.closing_notes}</p>}
                 </div>
             </CardContent>
@@ -1437,7 +1446,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     <div className="space-y-2 text-sm text-left">
                         <div><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</div>
                         <div><strong>{t('openSession.user')}:</strong> {user?.name}</div>
-                        <div><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</div>
+                        <div><strong>{t('openSession.openingDate')}:</strong> {format(new Date(), 'dd/MM/yyyy HH:mm')}</div>
                     </div>
                     <Alert variant="info" className="bg-orange-100 border-orange-200 text-orange-800">
                         <Info className="h-4 w-4" />
@@ -1517,7 +1526,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     <CardContent className="grid grid-cols-2 gap-4 text-sm">
                         <p><strong>{t('openSession.terminal')}:</strong> {sessionData.cash_point_name}</p>
                         <p><strong>{t('openSession.user')}:</strong> {user?.name}</p>
-                        <p><strong>{t('openSession.openingDate')}:</strong> {new Date().toLocaleString()}</p>
+                        <p><strong>{t('openSession.openingDate')}:</strong> {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
                         <p><strong>{t('openSession.currency')}:</strong> {sessionData.currency}</p>
                         <p><strong>{t('openSession.exchangeRate')}:</strong> {sessionData.date_rate?.toFixed(5)}</p>
                     </CardContent>
