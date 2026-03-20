@@ -943,6 +943,7 @@
             "total": "Total",
             "currency": "Moneda",
             "exchangeRate": "Tasa de Cambio",
+            "saving": "Guardando...",
             "editSave": "Actualizar",
             "noUserFound": "No se encontraron usuarios.",
             "status": "Estado",
@@ -1066,14 +1067,17 @@
             "edit": "Editar",
             "delete": "Eliminar",
             "noServiceFound": "No se han encontrado servicios",
-            "editSave": "Actualizar"
+            "editSave": "Actualizar",
+            "saving": "Guardando..."
         },
         "validation": {
             "userRequired": "Un usuario es obligatorio",
             "serviceRequired": "Un servicio es obligatorio",
             "totalPositive": "El total debe ser un número positivo",
             "quantityMinOne": "La cantidad debe ser al menos 1",
+            "quantityInteger": "La cantidad debe ser un número entero",
             "unitPricePositive": "El precio unitario debe ser positivo",
+            "unitPriceTwoDecimals": "El precio debe tener máximo 2 decimales",
             "toothNumberMin": "El número de diente debe ser al menos 11",
             "toothNumberMax": "El número de diente debe ser como máximo 85",
             "exchangeRatePositive": "La tasa de cambio debe ser mayor a 0"

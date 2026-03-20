@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     Select,
@@ -37,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -49,7 +49,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, FileText, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -60,17 +60,20 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    currency: z.enum(['UYU', 'USD']).default('USD'),
-    status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed']),
-    payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid']),
-    billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced']),
+    currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
+    status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
+        'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
+    payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
+        'not_paid', 'not invoiced', 'not_invoiced']),
+    billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced',
+        'not_invoiced', 'partially_invoiced', 'Pending']),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     notes: z.string().optional(),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
-        quantity: z.coerce.number().min(1, t('validation.quantityMinOne')),
-        unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
+        quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
+        unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
         total: z.coerce.number().min(0, t('validation.totalPositive')),
         tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
     })).default([]),
@@ -82,8 +85,8 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
-    quantity: z.coerce.number().min(1, t('validation.quantityMinOne')),
-    unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')),
+    quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
+    unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
     tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
 });
@@ -432,12 +435,14 @@ export default function QuotesPage() {
     const [deletingQuote, setDeletingQuote] = React.useState<Quote | null>(null);
     const [isDeleteQuoteDialogOpen, setIsDeleteQuoteDialogOpen] = React.useState(false);
     const [quoteSubmissionError, setQuoteSubmissionError] = React.useState<string | null>(null);
+    const [isSubmittingQuote, setIsSubmittingQuote] = React.useState(false);
 
     const [isQuoteItemDialogOpen, setIsQuoteItemDialogOpen] = React.useState(false);
     const [editingQuoteItem, setEditingQuoteItem] = React.useState<QuoteItem | null>(null);
     const [deletingQuoteItem, setDeletingQuoteItem] = React.useState<QuoteItem | null>(null);
     const [isDeleteQuoteItemDialogOpen, setIsDeleteQuoteItemDialogOpen] = React.useState(false);
     const [quoteItemSubmissionError, setQuoteItemSubmissionError] = React.useState<string | null>(null);
+    const [isSubmittingQuoteItem, setIsSubmittingQuoteItem] = React.useState(false);
 
     const [allUsers, setAllUsers] = React.useState<User[]>([]);
     const [userSearchTerm, setUserSearchTerm] = React.useState('');
@@ -598,7 +603,6 @@ export default function QuotesPage() {
     React.useEffect(() => {
         if (!isQuoteDialogOpen) {
             setUserSearchTerm('');
-            setAllUsers([]);
         }
     }, [isQuoteDialogOpen]);
 
@@ -607,9 +611,40 @@ export default function QuotesPage() {
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
-        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, notes: '', items: [] });
+        quoteForm.reset(
+            {
+                user_id: '', total: 0, currency: defaultCurrency, status: 'draft',
+                payment_status: 'unpaid', billing_status: 'not invoiced',
+                exchange_rate: exchangeRate, notes: '', items: []
+            },
+            {
+                keepErrors: false, keepDirty: false, keepIsSubmitted: false,
+                keepTouched: false, keepIsValid: false, keepSubmitCount: false
+            }
+        );
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
+    };
+
+    const normalizeQuoteFields = (quote: Quote) => {
+        const statusMap: Record<string, string> = {
+            'Confirmed': 'confirmed', 'Rejected': 'rejected',
+            'Pending': 'pending', 'Draft': 'draft', 'Sent': 'sent', 'Accepted': 'accepted',
+        };
+        const paymentStatusMap: Record<string, string> = {
+            'not_paid': 'unpaid', 'not invoiced': 'unpaid', 'not_invoiced': 'unpaid',
+        };
+        const billingStatusMap: Record<string, string> = {
+            'not_invoiced': 'not invoiced', 'partially_invoiced': 'partially invoiced',
+            'Pending': 'not invoiced',
+        };
+        const currencyMap: Record<string, string> = { 'URU': 'UYU' };
+        return {
+            status: (statusMap[quote.status] || quote.status.toLowerCase()) as any,
+            payment_status: (paymentStatusMap[quote.payment_status] || quote.payment_status) as any,
+            billing_status: (billingStatusMap[quote.billing_status] || quote.billing_status) as any,
+            currency: (currencyMap[quote.currency] || quote.currency) as any,
+        };
     };
 
     const handleEditQuote = async (quote: Quote) => {
@@ -618,8 +653,10 @@ export default function QuotesPage() {
             return;
         }
         setEditingQuote(quote);
+        setIsSubmittingQuote(false);
         const sessionRate = getSessionExchangeRate();
-        const exchangeRate = quote.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
+        const normalized = normalizeQuoteFields(quote);
+        const exchangeRate = normalized.currency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
 
         const items = await getQuoteItems(quote.id, t);
         const mappedItems = items.map(item => ({
@@ -631,7 +668,18 @@ export default function QuotesPage() {
             tooth_number: item.tooth_number ? Number(item.tooth_number) : ('' as const)
         }));
 
-        quoteForm.reset({ id: quote.id, user_id: quote.user_id, total: quote.total, currency: quote.currency || 'USD', status: quote.status, payment_status: quote.payment_status as any, billing_status: quote.billing_status as any, exchange_rate: exchangeRate, notes: quote.notes || '', items: mappedItems });
+        quoteForm.reset(
+            {
+                id: quote.id, user_id: quote.user_id, total: quote.total,
+                currency: normalized.currency, status: normalized.status,
+                payment_status: normalized.payment_status, billing_status: normalized.billing_status,
+                exchange_rate: exchangeRate, notes: quote.notes || '', items: mappedItems
+            },
+            {
+                keepErrors: false, keepDirty: false, keepIsSubmitted: false,
+                keepTouched: false, keepIsValid: false, keepSubmitCount: false
+            }
+        );
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
     };
@@ -660,6 +708,8 @@ export default function QuotesPage() {
     };
 
     const onQuoteSubmit = async (values: QuoteFormValues) => {
+        if (isSubmittingQuote) return;
+        setIsSubmittingQuote(true);
         setQuoteSubmissionError(null);
         try {
             if (!editingQuote && (!values.items || values.items.length === 0)) {
@@ -673,18 +723,30 @@ export default function QuotesPage() {
                 total: item.total,
                 tooth_number: item.tooth_number ? Number(item.tooth_number) : null
             }));
+            const normalizeBilling = (s: string) =>
+                s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
+
             const payload = {
                 ...values,
+                billing_status: normalizeBilling(values.billing_status),
                 items: itemsToSubmit
             };
             await upsertQuote(payload as any, t);
             toast({ title: editingQuote ? t('toast.quoteUpdated') : t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             setIsQuoteDialogOpen(false);
             setEditingQuote(null);
-            quoteForm.reset();
+            quoteForm.reset(
+                undefined,
+                {
+                    keepErrors: false, keepDirty: false, keepIsSubmitted: false,
+                    keepTouched: false, keepIsValid: false, keepSubmitCount: false
+                }
+            );
             loadQuotes();
         } catch (error) {
             setQuoteSubmissionError(error instanceof Error ? error.message : t('toast.quoteError'));
+        } finally {
+            setIsSubmittingQuote(false);
         }
     };
 
@@ -772,15 +834,20 @@ export default function QuotesPage() {
     };
 
     const onQuoteItemSubmit = async (values: QuoteItemFormValues) => {
+        if (isSubmittingQuoteItem) return;
+        setIsSubmittingQuoteItem(true);
         setQuoteItemSubmissionError(null);
         try {
             await upsertQuoteItem(values, t);
             toast({ title: editingQuoteItem ? t('toast.itemUpdated') : t('toast.itemAdded'), description: t('toast.itemSaveSuccess') });
             setIsQuoteItemDialogOpen(false);
+            setEditingQuoteItem(null);
             loadQuoteItems();
-            loadQuotes(); // To update total
+            loadQuotes();
         } catch (error) {
             setQuoteItemSubmissionError(error instanceof Error ? error.message : t('toast.itemError'));
+        } finally {
+            setIsSubmittingQuoteItem(false);
         }
     };
 
@@ -902,7 +969,7 @@ export default function QuotesPage() {
                                                 value: (() => {
                                                     const status = selectedQuote.status.toLowerCase();
                                                     const translated = t(`quoteDialog.${status}` as any);
-                                                    return translated === `quoteDialog.${status}` 
+                                                    return translated === `quoteDialog.${status}`
                                                         ? selectedQuote.status.charAt(0).toUpperCase() + selectedQuote.status.slice(1)
                                                         : translated;
                                                 })(),
@@ -1322,10 +1389,11 @@ export default function QuotesPage() {
                                                                 <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
                                                                     <FormItem>
                                                                         <FormControl>
-                                                                            <Input type="number" step="0.01" {...field} onChange={(e) => {
+                                                                            <Input type="number" step="1" min="1" {...field} onChange={(e) => {
+                                                                                const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
                                                                                 field.onChange(e);
                                                                                 const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
-                                                                                const newQty = Number(e.target.value);
+                                                                                const newQty = rounded === '' ? 0 : rounded;
                                                                                 updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), quantity: newQty, total: price * newQty });
                                                                             }} />
                                                                         </FormControl>
@@ -1337,11 +1405,11 @@ export default function QuotesPage() {
                                                                 <FormField control={quoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
                                                                     <FormItem>
                                                                         <FormControl>
-                                                                            <Input type="number" {...field} onChange={(e) => {
+                                                                            <Input type="number" step="0.01" min="0" {...field} onChange={(e) => {
                                                                                 field.onChange(e);
                                                                                 const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                                 const newPrice = Number(e.target.value);
-                                                                                updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), unit_price: newPrice, total: newPrice * quantity });
+                                                                                updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), unit_price: newPrice, total: Math.round((newPrice * quantity) * 100) / 100 });
                                                                             }} />
                                                                         </FormControl>
                                                                         <FormMessage />
@@ -1386,8 +1454,11 @@ export default function QuotesPage() {
                                 </Card>
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)}>{t('quoteDialog.cancel')}</Button>
-                                <Button type="submit">{editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save')}</Button>
+                                <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)} disabled={isSubmittingQuote}>{t('quoteDialog.cancel')}</Button>
+                                <Button type="submit" disabled={isSubmittingQuote}>
+                                    {isSubmittingQuote && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isSubmittingQuote ? t('quoteDialog.saving') : (editingQuote ? t('quoteDialog.editSave') : t('quoteDialog.save'))}
+                                </Button>
                             </DialogFooter>
                         </form >
                     </Form >
@@ -1492,21 +1563,23 @@ export default function QuotesPage() {
                                         <FormControl>
                                             <Input
                                                 type="number"
-                                                step="0.01"
+                                                step="1"
+                                                min="1"
                                                 placeholder={t('placeholders.quantity')}
                                                 {...field}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
-                                                    field.onChange(value === '' ? '' : Number(value));
+                                                    field.onChange(value === '' ? '' : Math.round(Number(value)));
                                                 }}
                                                 onBlur={async (e) => {
                                                     field.onBlur();
                                                     const value = e.target.value;
                                                     if (value !== '') {
-                                                        const quantity = Number(value);
+                                                        const quantity = Math.round(Number(value));
                                                         const unitPrice = quoteItemForm.getValues('unit_price') || 0;
                                                         const nameTotal = Math.round((unitPrice * quantity) * 100) / 100;
                                                         quoteItemForm.setValue('total', nameTotal);
+                                                        quoteItemForm.setValue('quantity', quantity);
                                                     }
                                                     await quoteItemForm.trigger('quantity');
                                                 }}
@@ -1521,6 +1594,8 @@ export default function QuotesPage() {
                                         <FormControl>
                                             <Input
                                                 type="number"
+                                                step="0.01"
+                                                min="0"
                                                 placeholder={t('placeholders.unitPrice')}
                                                 value={typeof field.value === 'number' && !isNaN(field.value) ? field.value.toFixed(2) : ''}
                                                 onChange={(e) => {
@@ -1536,10 +1611,11 @@ export default function QuotesPage() {
                                                     const value = e.target.value;
                                                     if (value !== '') {
                                                         const numValue = Number(value);
-                                                        field.onChange(Math.round(numValue * 100) / 100);
+                                                        const rounded = Math.round(numValue * 100) / 100;
+                                                        field.onChange(rounded);
                                                         // Recalculate total
                                                         const quantity = quoteItemForm.getValues('quantity') || 0;
-                                                        const newTotal = Math.round((numValue * quantity) * 100) / 100;
+                                                        const newTotal = Math.round((rounded * quantity) * 100) / 100;
                                                         quoteItemForm.setValue('total', newTotal);
                                                     }
                                                 }}
@@ -1557,8 +1633,11 @@ export default function QuotesPage() {
                                 )} />
                             </DialogBody>
                             <DialogFooter>
-                                <Button type="submit">{editingQuoteItem ? t('itemDialog.editSave') : t('itemDialog.save')}</Button>
-                                <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)}>{t('itemDialog.cancel')}</Button>
+                                <Button type="submit" disabled={isSubmittingQuoteItem}>
+                                    {isSubmittingQuoteItem && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {isSubmittingQuoteItem ? t('itemDialog.saving') : (editingQuoteItem ? t('itemDialog.editSave') : t('itemDialog.save'))}
+                                </Button>
+                                <Button type="button" variant="outline" onClick={() => setIsQuoteItemDialogOpen(false)} disabled={isSubmittingQuoteItem}>{t('itemDialog.cancel')}</Button>
                             </DialogFooter>
                         </form>
                     </Form>

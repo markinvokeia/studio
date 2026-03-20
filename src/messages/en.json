@@ -943,6 +943,7 @@
       "total": "Total",
       "currency": "Currency",
       "exchangeRate": "Exchange Rate",
+      "saving": "Saving...",
       "editSave": "Update",
       "noUserFound": "No users found.",
       "status": "Status",
@@ -1066,14 +1067,17 @@
       "edit": "Edit",
       "delete": "Delete",
       "noServiceFound": "No service found",
-      "editSave": "Update"
+      "editSave": "Update",
+      "saving": "Saving..."
     },
     "validation": {
       "userRequired": "An user is required",
       "serviceRequired": "A service is required",
       "totalPositive": "Total must be a positive number",
       "quantityMinOne": "Quantity must be at least 1",
+      "quantityInteger": "Quantity must be a whole number",
       "unitPricePositive": "Unit price must be positive",
+      "unitPriceTwoDecimals": "Price must have at most 2 decimals",
       "toothNumberMin": "Tooth number must be at least 11",
       "toothNumberMax": "Tooth number must be at most 85",
       "exchangeRatePositive": "Exchange rate must be greater than 0"
