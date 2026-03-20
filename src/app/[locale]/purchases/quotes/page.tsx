@@ -454,6 +454,11 @@ function QuotesPageContent() {
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
+    const [isConfirmQuoteDialogOpen, setIsConfirmQuoteDialogOpen] = React.useState(false);
+    const [confirmingQuote, setConfirmingQuote] = React.useState<Quote | null>(null);
+    const [confirmingAction, setConfirmingAction] = React.useState<'confirm' | 'reject'>('confirm');
+    const [confirmNotes, setConfirmNotes] = React.useState('');
+
     const [exchangeRate, setExchangeRate] = React.useState<number>(1);
     const [showConversion, setShowConversion] = React.useState(false);
     const [originalServicePrice, setOriginalServicePrice] = React.useState<number | null>(null);
@@ -830,9 +835,9 @@ function QuotesPageContent() {
         }
     };
 
-    const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject') => {
+    const handleQuoteAction = async (quote: Quote, action: 'confirm' | 'reject', notes?: string) => {
         try {
-            const payload = { quote_number: quote.id, confirm_reject: action, is_sales: false };
+            const payload = { quote_number: quote.id, confirm_reject: action, is_sales: false, notes: notes || '' };
             const responseData = await api.post(action === 'confirm' ? API_ROUTES.PURCHASES.QUOTE_CONFIRM : API_ROUTES.PURCHASES.QUOTE_REJECT, payload);
             if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
                 const message = responseData[0]?.message ? responseData[0].message : t('toast.quoteActionError', { action: action });
@@ -843,6 +848,21 @@ function QuotesPageContent() {
         } catch (error) {
             toast({ variant: 'destructive', title: t('errors.errorTitle'), description: error instanceof Error ? error.message : t('toast.quoteActionError', { action: action }) });
         }
+    };
+
+    const handleQuoteActionRequest = (quote: Quote, action: 'confirm' | 'reject') => {
+        setConfirmingQuote(quote);
+        setConfirmingAction(action);
+        setConfirmNotes('');
+        setIsConfirmQuoteDialogOpen(true);
+    };
+
+    const handleConfirmQuoteAction = async () => {
+        if (!confirmingQuote) return;
+        await handleQuoteAction(confirmingQuote, confirmingAction, confirmNotes);
+        setIsConfirmQuoteDialogOpen(false);
+        setConfirmingQuote(null);
+        setConfirmNotes('');
     };
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
@@ -937,7 +957,7 @@ function QuotesPageContent() {
                             setRowSelection={setRowSelection}
                             onEdit={canUpdateQuote ? handleEditQuote : undefined}
                             onDelete={canDeleteQuote ? handleDeleteQuote : undefined}
-                            onQuoteAction={(canConfirmQuote) ? handleQuoteAction : undefined}
+                            onQuoteActionRequest={(canConfirmQuote) ? handleQuoteActionRequest : undefined}
                             isCompact={!!selectedQuote}
                             standalone={true}
                             title={t('title')}
@@ -1034,14 +1054,14 @@ function QuotesPageContent() {
                                                             icon={CheckCircle}
                                                             label={t('confirm')}
                                                             tooltip={t('confirmTooltip') || t('confirm')}
-                                                            onClick={() => handleQuoteAction(selectedQuote, 'confirm')}
+                                                            onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
                                                         />
                                                         <ActionButton
                                                             icon={XCircle}
                                                             label={t('reject')}
                                                             tooltip={t('rejectTooltip') || t('reject')}
                                                             destructive
-                                                            onClick={() => handleQuoteAction(selectedQuote, 'reject')}
+                                                            onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
                                                         />
                                                     </>
                                                 )}
@@ -1652,6 +1672,28 @@ function QuotesPageContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog open={isConfirmQuoteDialogOpen} onOpenChange={setIsConfirmQuoteDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>{confirmingAction === 'confirm' ? t('confirmDialog.title') : t('confirmDialog.titleReject')}</DialogTitle>
+                        <DialogDescription>{t('confirmDialog.description', { id: confirmingQuote?.doc_no || confirmingQuote?.id, action: confirmingAction === 'confirm' ? t('confirmDialog.confirm') : t('confirmDialog.reject') })}</DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <label htmlFor="confirm-notes" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">{t('confirmDialog.notesLabel')}</label>
+                        <Textarea
+                            id="confirm-notes"
+                            value={confirmNotes}
+                            onChange={(e) => setConfirmNotes(e.target.value)}
+                            placeholder={t('confirmDialog.notesPlaceholder')}
+                            className="mt-2 min-h-[100px]"
+                        />
+                    </div>
+                    <DialogFooter className="px-6 pb-4">
+                        <Button variant="outline" onClick={() => setIsConfirmQuoteDialogOpen(false)}>{t('confirmDialog.cancel')}</Button>
+                        <Button onClick={handleConfirmQuoteAction}>{confirmingAction === 'confirm' ? t('confirmDialog.confirm') : t('confirmDialog.reject')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

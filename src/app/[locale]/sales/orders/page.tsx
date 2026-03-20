@@ -33,6 +33,7 @@ async function getOrders(): Promise<Order[]> {
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
             currency: apiOrder.currency || 'URU',
+            notes: apiOrder.notes || '',
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updatedAt || new Date().toISOString().split('T')[0],
         }));
@@ -330,6 +331,7 @@ export default function OrdersPage() {
                                         <TabsTrigger value="items" className="text-xs">{tQuotes('tabs.items')}</TabsTrigger>
                                         <TabsTrigger value="invoices" className="text-xs">{tQuotes('tabs.invoices')}</TabsTrigger>
                                         <TabsTrigger value="payments" className="text-xs">{tQuotes('tabs.payments')}</TabsTrigger>
+                                        <TabsTrigger value="notes" className="text-xs">{tQuotes('tabs.notes')}</TabsTrigger>
                                     </TabsList>
                                     <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
                                         <TabsContent value="items" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col px-6 py-4">
@@ -397,6 +399,13 @@ export default function OrdersPage() {
                                                 onRefresh={loadPayments}
                                                 isRefreshing={isLoadingPayments}
                                             />
+                                        </TabsContent>
+                                        <TabsContent value="notes" className="m-0 flex-1 min-h-0 p-4">
+                                            {selectedOrder?.notes ? (
+                                                <div className="whitespace-pre-wrap text-sm">{selectedOrder.notes}</div>
+                                            ) : (
+                                                <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
+                                            )}
                                         </TabsContent>
                                     </div>
                                 </Tabs>

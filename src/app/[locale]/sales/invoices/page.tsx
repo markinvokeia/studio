@@ -173,7 +173,8 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             payment_method_code: apiPayment.payment_method_code,
             transaction_type: apiPayment.transaction_type || 'direct_payment',
             transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : apiPayment.transaction_id,
-            reference_doc_id: apiPayment.reference_doc_id
+            reference_doc_id: apiPayment.reference_doc_id,
+            notes: apiPayment.notes || ''
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);

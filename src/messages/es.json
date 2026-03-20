@@ -824,12 +824,17 @@
             "error": "Error de Facturación",
             "invoiceSuccess": "Factura Creada",
             "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
-            "createError": "Error al crear la factura"
+            "createError": "Error al crear la factura",
+            "notesLabel": "Notas (opcional)",
+            "notesPlaceholder": "Agregar notas para la factura..."
         },
         "createSuccess": "Orden Creada",
         "createSuccessDesc": "La nueva orden ha sido creada exitosamente.",
         "createError": "Error al Crear Orden",
-        "createErrorDesc": "Ocurrió un error al crear la orden."
+        "createErrorDesc": "Ocurrió un error al crear la orden.",
+        "notes": {
+            "noNotes": "No hay notas disponibles."
+        }
     },
     "OrderItemsTable": {
         "title": "Ítems de la Orden para #{id}",
@@ -915,6 +920,16 @@
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
             "helperText": "Separe múltiples correos con comas.",
             "sending": "Enviando..."
+        },
+        "confirmDialog": {
+            "title": "Confirmar Presupuesto",
+            "titleReject": "Rechazar Presupuesto",
+            "description": "¿Está seguro de {action} el presupuesto #{id}?",
+            "notesLabel": "Notas (opcional)",
+            "notesPlaceholder": "Agregar notas adicionales...",
+            "confirm": "Confirmar",
+            "reject": "Rechazar",
+            "cancel": "Cancelar"
         },
         "quoteDialog": {
             "cancel": "Cancelar",
@@ -1851,6 +1866,9 @@
                 "invoice": "Factura",
                 "credit_note": "Nota de Crédito"
             }
+        },
+        "notes": {
+            "noNotes": "No hay notas disponibles."
         }
     },
     "PaymentMethodsPage": {

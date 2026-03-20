@@ -151,6 +151,7 @@ export type Order = {
   user_name?: string;
   currency?: 'UYU' | 'USD';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 };

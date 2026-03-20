@@ -603,7 +603,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           payment_currency: values.payment_currency,
           exchange_rate: values.exchange_rate || 1,
           is_sales: isSales,
-          total_paid: totalAttemptedPayment
+          total_paid: totalAttemptedPayment,
+          notes: values.notes || ''
         }),
       };
 

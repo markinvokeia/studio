@@ -34,6 +34,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Skeleton } from '../ui/skeleton';
+import { Textarea } from '../ui/textarea';
 
 const orderFormSchema = (t: (key: string) => string) => z.object({
   user_id: z.string().min(1, 'User is required'),
@@ -72,12 +73,14 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
   const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
+  const [invoiceNotes, setInvoiceNotes] = React.useState('');
   const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
   const locale = useLocale();
 
   const handleInvoiceClick = (order: Order) => {
     setSelectedOrderForInvoice(order);
     setInvoiceDate(new Date());
+    setInvoiceNotes('');
     setInvoiceSubmissionError(null);
     setIsInvoiceDialogOpen(true);
   };
@@ -94,6 +97,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           invoice_date: invoiceDate.toISOString(),
           is_sales: isSales,
           user_id: selectedOrderForInvoice.user_id,
+          notes: invoiceNotes || '',
         }),
       };
 
@@ -336,6 +340,15 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               selected={invoiceDate}
               onSelect={setInvoiceDate}
               initialFocus
+            />
+          </div>
+          <div className="px-6 pb-2">
+            <label className="text-sm font-medium">{tOrdersPage('invoiceDialog.notesLabel')}</label>
+            <Textarea
+              value={invoiceNotes}
+              onChange={(e) => setInvoiceNotes(e.target.value)}
+              placeholder={tOrdersPage('invoiceDialog.notesPlaceholder')}
+              className="mt-2 min-h-[80px]"
             />
           </div>
           <DialogFooter>

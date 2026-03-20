@@ -50,7 +50,7 @@ const getColumns = (
   t: (key: string) => string,
   onEdit: (quote: Quote) => void,
   onDelete: (quote: Quote) => void,
-  onQuoteAction: (quote: Quote, action: 'confirm' | 'reject') => void,
+  onQuoteActionRequest: (quote: Quote, action: 'confirm' | 'reject') => void,
   onPrint: (quote: Quote) => void,
   onSendEmail: (quote: Quote) => void,
   isCompact: boolean = false
@@ -267,10 +267,10 @@ const getColumns = (
                 {tQuotes('delete')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteAction(quote, 'confirm'); }} disabled={!isDraft && !isPending}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteActionRequest(quote, 'confirm'); }} disabled={!isDraft && !isPending}>
                 {tQuotes('confirm')}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteAction(quote, 'reject'); }} className="text-destructive" disabled={!isDraft && !isPending}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteActionRequest(quote, 'reject'); }} className="text-destructive" disabled={!isDraft && !isPending}>
                 {tQuotes('reject')}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -292,7 +292,7 @@ interface RecentQuotesTableProps {
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   onEdit?: (quote: Quote) => void;
   onDelete?: (quote: Quote) => void;
-  onQuoteAction?: (quote: Quote, action: 'confirm' | 'reject') => void;
+  onQuoteActionRequest?: (quote: Quote, action: 'confirm' | 'reject') => void;
   className?: string;
   isCompact?: boolean;
   title?: string;
@@ -312,7 +312,7 @@ export function RecentQuotesTable({
   setRowSelection,
   onEdit = () => { },
   onDelete = () => { },
-  onQuoteAction = () => { },
+  onQuoteActionRequest = () => { },
   className,
   isCompact = false,
   title,
@@ -441,7 +441,7 @@ export function RecentQuotesTable({
     setIsWarningDialogOpen(false);
   };
 
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteAction, handlePrintQuote, handleSendEmailClick, isCompact), [t, onEdit, onDelete, onQuoteAction, isCompact]);
+  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, handleSendEmailClick, isCompact), [t, onEdit, onDelete, onQuoteActionRequest, isCompact]);
 
   const table = useReactTable({
     data: quotes,

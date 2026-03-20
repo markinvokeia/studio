@@ -106,6 +106,7 @@ function mapApiPaymentToPayment(apiPayment: any): Payment {
     transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
     reference_doc_id: apiPayment.reference_doc_id,
     type: paymentType,
+    notes: apiPayment.notes || '',
   };
 }
 

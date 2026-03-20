@@ -824,12 +824,17 @@
       "error": "Invoicing Error",
       "invoiceSuccess": "Invoice Created",
       "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
-      "createError": "Error creating invoice"
+      "createError": "Error creating invoice",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Add notes for the invoice..."
     },
     "createSuccess": "Order Created",
     "createSuccessDesc": "The new order has been created successfully.",
     "createError": "Error Creating Order",
-    "createErrorDesc": "An error occurred while creating the order."
+    "createErrorDesc": "An error occurred while creating the order.",
+    "notes": {
+      "noNotes": "No notes available."
+    }
   },
   "OrderItemsTable": {
     "title": "Order Items for #{id}",
@@ -915,6 +920,16 @@
       "placeholder": "email1@example.com, email2@example.com",
       "helperText": "Separate multiple emails with commas.",
       "sending": "Sending..."
+    },
+    "confirmDialog": {
+      "title": "Confirm Quote",
+      "titleReject": "Reject Quote",
+      "description": "Are you sure you want to {action} quote #{id}?",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Add additional notes...",
+      "confirm": "Confirm",
+      "reject": "Reject",
+      "cancel": "Cancel"
     },
     "quoteDialog": {
       "cancel": "Cancel",
@@ -1851,6 +1866,9 @@
         "invoice": "Invoice",
         "credit_note": "Credit Note"
       }
+    },
+    "notes": {
+      "noNotes": "No notes available."
     }
   },
   "PaymentMethodsPage": {
