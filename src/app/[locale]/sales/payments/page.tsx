@@ -26,6 +26,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/hooks/use-debounce';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
 import { cn, getDocumentFileName } from '@/lib/utils';
@@ -53,42 +54,6 @@ const prepaidFormSchema = (t: (key: string) => string) => z.object({
 
 type PrepaidFormValues = z.infer<ReturnType<typeof prepaidFormSchema>>;
 
-
-async function getUsers(): Promise<User[]> {
-    try {
-        const responseData = await api.get(API_ROUTES.USERS, { filter_type: 'PACIENTE' });
-
-        let usersData = [];
-
-        if (Array.isArray(responseData) && responseData.length > 0) {
-            const firstElement = responseData[0];
-            if (firstElement.json && typeof firstElement.json === 'object') {
-                usersData = firstElement.json.data || [];
-            } else if (firstElement.data) {
-                usersData = firstElement.data;
-            } else {
-                usersData = responseData;
-            }
-        } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-            usersData = responseData.data;
-        } else if (Array.isArray(responseData)) {
-            usersData = responseData;
-        }
-
-        return usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-            name: apiUser.name || 'No Name',
-            email: apiUser.email || 'no-email@example.com',
-            phone_number: apiUser.phone_number || '000-000-0000',
-            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-            avatar: '',
-            identity_document: ''
-        }));
-    } catch (error) {
-        console.error("Failed to fetch users:", error);
-        return [];
-    }
-}
 
 async function getPaymentMethods(): Promise<PaymentMethod[]> {
     try {
@@ -140,6 +105,9 @@ export default function PaymentsPage() {
     const [isConfirmPrepaidOpen, setIsConfirmPrepaidOpen] = React.useState(false);
     const [prepaidData, setPrepaidData] = React.useState<PrepaidFormValues | null>(null);
     const [users, setUsers] = React.useState<User[]>([]);
+    const [userSearchTerm, setUserSearchTerm] = React.useState('');
+    const debouncedUserSearch = useDebounce(userSearchTerm, 300);
+    const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isUserPopoverOpen, setIsUserPopoverOpen] = React.useState(false);
@@ -198,8 +166,65 @@ export default function PaymentsPage() {
         setRowSelection({});
     }, []);
 
+    React.useEffect(() => {
+        let isCancelled = false;
+        const fetchUsers = async () => {
+            if (!isPrepaidDialogOpen) return;
+            setIsLoadingUsers(true);
+            try {
+                const queryParams: Record<string, string> = {
+                    filter_type: 'PACIENTE',
+                };
+                if (debouncedUserSearch && debouncedUserSearch.trim()) {
+                    queryParams.search = debouncedUserSearch.trim();
+                }
+                const responseData = await api.get(API_ROUTES.USERS, queryParams);
 
+                let usersData = [];
+                if (Array.isArray(responseData) && responseData.length > 0) {
+                    const firstElement = responseData[0];
+                    if (firstElement.json && typeof firstElement.json === 'object') {
+                        usersData = firstElement.json.data || [];
+                    } else if (firstElement.data) {
+                        usersData = firstElement.data;
+                    } else {
+                        usersData = responseData;
+                    }
+                } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
+                    usersData = responseData.data;
+                } else if (Array.isArray(responseData)) {
+                    usersData = responseData;
+                }
 
+                if (!isCancelled) {
+                    setUsers(usersData.map((apiUser: any) => ({
+                        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
+                        name: apiUser.name || 'No Name',
+                        email: apiUser.email || 'no-email@example.com',
+                        phone_number: apiUser.phone_number || '000-000-0000',
+                        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+                        avatar: '',
+                        identity_document: ''
+                    })));
+                }
+            } catch (error) {
+                console.error("Failed to fetch users:", error);
+                if (!isCancelled) setUsers([]);
+            } finally {
+                if (!isCancelled) setIsLoadingUsers(false);
+            }
+        };
+
+        fetchUsers();
+        return () => { isCancelled = true; };
+    }, [debouncedUserSearch, isPrepaidDialogOpen]);
+
+    React.useEffect(() => {
+        if (!isPrepaidDialogOpen) {
+            setUserSearchTerm('');
+            setUsers([]);
+        }
+    }, [isPrepaidDialogOpen]);
 
     const handlePrintPayment = React.useCallback(async (payment: Payment) => {
         const fileName = getDocumentFileName(payment, 'payment');
@@ -307,8 +332,9 @@ export default function PaymentsPage() {
     const handleCreatePrepaid = async () => {
         form.reset();
         setSubmissionError(null);
-        const [fetchedUsers, fetchedMethods] = await Promise.all([getUsers(), getPaymentMethods()]);
-        setUsers(fetchedUsers);
+        setUserSearchTerm('');
+        setUsers([]);
+        const fetchedMethods = await getPaymentMethods();
         setPaymentMethods(fetchedMethods);
         setIsPrepaidDialogOpen(true);
     };
@@ -525,25 +551,38 @@ export default function PaymentsPage() {
                                                     </FormControl>
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command>
-                                                        <CommandInput placeholder={t('prepaidDialog.searchClient')} />
+                                                    <Command shouldFilter={false}>
+                                                        <CommandInput 
+                                                            placeholder={t('prepaidDialog.searchClient')} 
+                                                            value={userSearchTerm}
+                                                            onValueChange={setUserSearchTerm}
+                                                        />
                                                         <CommandList>
-                                                            <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
-                                                            <CommandGroup>
-                                                                {users.map((user) => (
-                                                                    <CommandItem
-                                                                        value={user.name}
-                                                                        key={user.id}
-                                                                        onSelect={() => {
-                                                                            form.setValue("user_id", user.id);
-                                                                            setIsUserPopoverOpen(false);
-                                                                        }}
-                                                                    >
-                                                                        <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                        {user.name}
-                                                                    </CommandItem>
-                                                                ))}
-                                                            </CommandGroup>
+                                                            {isLoadingUsers ? (
+                                                                <div className="flex items-center justify-center p-4">
+                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                                    <span className="text-sm text-muted-foreground">Buscando...</span>
+                                                                </div>
+                                                            ) : (
+                                                                <>
+                                                                    <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
+                                                                    <CommandGroup>
+                                                                        {users.map((user) => (
+                                                                            <CommandItem
+                                                                                value={user.name}
+                                                                                key={user.id}
+                                                                                onSelect={() => {
+                                                                                    form.setValue("user_id", user.id);
+                                                                                    setIsUserPopoverOpen(false);
+                                                                                }}
+                                                                            >
+                                                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                                {user.name}
+                                                                            </CommandItem>
+                                                                        ))}
+                                                                    </CommandGroup>
+                                                                </>
+                                                            )}
                                                         </CommandList>
                                                     </Command>
                                                 </PopoverContent>
