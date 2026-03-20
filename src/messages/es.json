@@ -3044,7 +3044,8 @@
             "toast": {
                 "success": "Éxito",
                 "deleteSuccess": "Eliminado exitosamente",
-                "saveSuccess": "Guardado exitosamente"
+                "saveSuccess": "Guardado exitosamente",
+                "error": "Error al eliminar la sesión"
             },
             "nextSessionPlan": "Plan para la Próxima Sesión",
             "addSession": "Agregar sesión",
@@ -3100,7 +3101,8 @@
                 "bottom": "Inferior",
                 "right": "Derecha",
                 "left": "Izquierda",
-                "overlays": "Overlay"
+                "overlays": "Overlay",
+                "whole": "Completo"
             }
         },
         "anamnesis": {

@@ -1678,6 +1678,18 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
                                                         </div>
                                                     )}
+                                                    {session.diagnostico && session.diagnostico.trim() !== '' && (
+                                                        <div className="border-l-2 border-red-400/50 pl-3 py-1 bg-red-50/50 dark:bg-red-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
+                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
+                                                        </div>
+                                                    )}
+                                                    {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
+                                                        <div className="border-l-2 border-cyan-400/50 pl-3 py-1 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide mb-1">{t('notes')}</p>
+                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
+                                                        </div>
+                                                    )}
                                                     {session.plan_proxima_cita && (
                                                         <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">{t('nextPlan') || 'Plan próxima cita'}</p>
