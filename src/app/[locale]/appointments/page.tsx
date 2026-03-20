@@ -194,6 +194,7 @@ async function getAppointments(
                 summary: apiAppt.summary || t('createDialog.none'),
                 service_name: apiAppt.summary || t('createDialog.none'),
                 description: apiAppt.description || '',
+                notes: apiAppt.notes || '',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
@@ -736,7 +737,7 @@ export default function AppointmentsPage() {
             <Dialog open={isDetailViewOpen} onOpenChange={setIsDetailViewOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{selectedAppointment?.service_name}</DialogTitle>
+                    <DialogTitle>{selectedAppointment?.patientName} - {selectedAppointment?.services && selectedAppointment.services.length > 0 ? selectedAppointment.services.map(s => s.name).join(', ') : selectedAppointment?.service_name}</DialogTitle>
                     </DialogHeader>
                     <DialogBody className="px-6 py-4">
                         {selectedAppointment && (
@@ -748,6 +749,12 @@ export default function AppointmentsPage() {
                                 <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
                                 <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
                                 <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
+                                {selectedAppointment.services && selectedAppointment.services.length > 0 && (
+                                    <div className='flex gap-2'><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
+                                )}
+                                {selectedAppointment.notes && (
+                                    <div className='flex gap-2 flex-col'><strong>Notas:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>
+                                )}
                             </div>
                         )}
                     </DialogBody>

@@ -414,6 +414,7 @@ export type Appointment = {
   summary: string; // was service_name before
   service_name?: string; // keeping for backward compatibility if needed in UI, but summary is the new standard
   description?: string;
+  notes?: string;
   date: string;
   time: string;
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'scheduled';
