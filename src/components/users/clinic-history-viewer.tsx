@@ -1454,6 +1454,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
     const [isDragOverSession, setIsDragOverSession] = React.useState(false);
     const [existingAttachments, setExistingAttachments] = React.useState<any[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = React.useState<string[]>([]);
+    const [sessionDoctorError, setSessionDoctorError] = React.useState(false);
 
     const toggleItem = (id: string) => {
         setOpenItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
@@ -1472,6 +1473,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         setAttachedFiles([]);
         setExistingAttachments([]);
         setDeletedAttachmentIds([]);
+        setSessionDoctorError(false);
         onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
@@ -1493,6 +1495,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         setExistingAttachments(session.archivos_adjuntos || []);
         setAttachedFiles([]);
         setDeletedAttachmentIds([]);
+        setSessionDoctorError(false);
         onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
@@ -1515,6 +1518,13 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
 
     const handleSaveSession = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!sessionForm.doctor_id) {
+            setSessionDoctorError(true);
+            toast({ title: tDialog('toast.error'), description: tDialog('doctorRequired'), variant: 'destructive' });
+            return;
+        }
+
         try {
             const dataToSave = {
                 ...sessionForm,
@@ -1822,9 +1832,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                         doctor_id: value,
                                                         doctor_name: selectedDoc?.name || ''
                                                     });
+                                                    setSessionDoctorError(false);
                                                 }}
                                             >
-                                                <SelectTrigger className="w-full">
+                                                <SelectTrigger className={cn("w-full", sessionDoctorError && "border-destructive")}>
                                                     <SelectValue placeholder={tDialog('selectDoctor')} />
                                                 </SelectTrigger>
                                                 <SelectContent>

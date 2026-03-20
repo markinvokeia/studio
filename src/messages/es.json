@@ -2995,6 +2995,7 @@
             "date": "Fecha",
             "doctor": "Doctor",
             "selectDoctor": "Seleccionar un doctor",
+            "doctorRequired": "El doctor es obligatorio.",
             "procedure": "Procedimiento",
             "diagnosis": "Diagnóstico",
             "notes": "Notas",
