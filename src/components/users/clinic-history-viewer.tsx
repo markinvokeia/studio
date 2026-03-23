@@ -43,6 +43,7 @@ import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, 
 import { PatientSession } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
 import {
     AlertTriangle,
     Calendar as CalendarIcon,
@@ -351,6 +352,7 @@ function AnamnesisSection({
 }: AnamnesisSectionProps) {
     const t = useTranslations('ClinicHistoryPage.anamnesis');
     const tHabits = useTranslations('ClinicHistoryPage.habits');
+    const locale = useLocale();
     const { toast } = useToast();
 
     const getRelationshipLabel = (parentesco: string): string => {
@@ -373,10 +375,24 @@ function AnamnesisSection({
         return relationshipMap[parentesco] || parentesco;
     };
 
+    const parseDateForCalendar = (dateString: string | null | undefined): Date | undefined => {
+        if (!dateString) return undefined;
+        try {
+            const cleanDate = dateString.split('T')[0];
+            const [y, m, d] = cleanDate.split('-');
+            return new Date(Number(y), Number(m) - 1, Number(d));
+        } catch {
+            return undefined;
+        }
+    };
+
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            return format(parseISO(dateString), 'dd/MM/yyyy');
+            const dateLocale = locale === 'es' ? es : enUS;
+            const cleanDate = dateString.split('T')[0];
+            const [y, m, d] = cleanDate.split('-');
+            return format(new Date(Number(y), Number(m) - 1, Number(d)), 'd MMMM yyyy', { locale: dateLocale });
         } catch {
             return dateString;
         }
@@ -497,8 +513,8 @@ function AnamnesisSection({
                 setMedicationDosis(editingMedicationItem.dosis);
                 setMedicationFrecuencia(editingMedicationItem.frecuencia);
                 setMedicationMotivo(editingMedicationItem.motivo);
-                setMedicationFechaInicio(editingMedicationItem.fecha_inicio || '');
-                setMedicationFechaFin(editingMedicationItem.fecha_fin || '');
+                setMedicationFechaInicio(editingMedicationItem.fecha_inicio ? editingMedicationItem.fecha_inicio.split('T')[0] : '');
+                setMedicationFechaFin(editingMedicationItem.fecha_fin ? editingMedicationItem.fecha_fin.split('T')[0] : '');
             } else {
                 setSelectedMedication(null);
                 setMedicationDosis('');
@@ -806,9 +822,9 @@ function AnamnesisSection({
                                     </div>
                                     {(item.fecha_inicio || item.fecha_fin) && (
                                         <div className="text-sm text-muted-foreground">
-                                            {item.fecha_inicio && `From: ${formatDate(item.fecha_inicio)}`}
+                                            {item.fecha_inicio && `${t('noData.dateFrom')}: ${formatDate(item.fecha_inicio)}`}
                                             {item.fecha_inicio && item.fecha_fin && ' - '}
-                                            {item.fecha_fin && `To: ${formatDate(item.fecha_fin)}`}
+                                            {item.fecha_fin && `${t('noData.dateTo')}: ${formatDate(item.fecha_fin)}`}
                                         </div>
                                     )}
                                     {item.motivo && <div className="text-sm text-muted-foreground">{item.motivo}</div>}
@@ -1268,9 +1284,15 @@ function AnamnesisSection({
                                         <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="single"
-                                                selected={medicationFechaInicio ? new Date(medicationFechaInicio) : undefined}
-                                                onSelect={(date) => setMedicationFechaInicio(date ? date.toISOString().split('T')[0] : '')}
-                                                initialFocus
+                                                month={parseDateForCalendar(medicationFechaInicio)}
+                                                selected={parseDateForCalendar(medicationFechaInicio)}
+                                                onSelect={(date) => {
+                                                    if (!date) { setMedicationFechaInicio(''); return; }
+                                                    const year = date.getFullYear();
+                                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                    const day = String(date.getDate()).padStart(2, '0');
+                                                    setMedicationFechaInicio(`${year}-${month}-${day}`);
+                                                }}
                                             />
                                         </PopoverContent>
                                     </Popover>
@@ -1295,9 +1317,15 @@ function AnamnesisSection({
                                         <PopoverContent className="w-auto p-0" align="start">
                                             <Calendar
                                                 mode="single"
-                                                selected={medicationFechaFin ? new Date(medicationFechaFin) : undefined}
-                                                onSelect={(date) => setMedicationFechaFin(date ? date.toISOString().split('T')[0] : '')}
-                                                initialFocus
+                                                month={parseDateForCalendar(medicationFechaFin)}
+                                                selected={parseDateForCalendar(medicationFechaFin)}
+                                                onSelect={(date) => {
+                                                    if (!date) { setMedicationFechaFin(''); return; }
+                                                    const year = date.getFullYear();
+                                                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                                                    const day = String(date.getDate()).padStart(2, '0');
+                                                    setMedicationFechaFin(`${year}-${month}-${day}`);
+                                                }}
                                             />
                                         </PopoverContent>
                                     </Popover>
@@ -1570,7 +1598,9 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            return format(parseISO(dateString), 'dd/MM/yyyy');
+            const cleanDate = dateString.split('T')[0];
+            const [y, m, d] = cleanDate.split('-');
+            return format(new Date(Number(y), Number(m) - 1, Number(d)), 'dd/MM/yyyy');
         } catch {
             return '';
         }
@@ -2226,7 +2256,8 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            return format(parseISO(dateString), 'PP');
+            const [y, m, d] = dateString.split('-');
+            return format(new Date(Number(y), Number(m) - 1, Number(d)), 'PP');
         } catch {
             return '';
         }

@@ -3241,7 +3241,9 @@
         "personal": "No personal information available",
         "family": "No family information available",
         "medications": "No medications available",
-        "allergies": "No allergies available"
+        "allergies": "No allergies available",
+        "dateFrom": "From",
+        "dateTo": "To"
       }
     },
     "habits": {

@@ -3235,7 +3235,9 @@
                 "personal": "No hay información personal disponible",
                 "family": "No hay información familiar disponible",
                 "medications": "No hay medicamentos disponibles",
-                "allergies": "No hay alergias disponibles"
+                "allergies": "No hay alergias disponibles",
+                "dateFrom": "Desde",
+                "dateTo": "Hasta"
             },
             "createNew": "Crear Nuevo",
             "refresh": "Actualizar",
