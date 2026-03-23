@@ -405,7 +405,14 @@ export default function MiscellaneousTransactionsPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadTransactions();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadTransactions();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadTransactions]);
 
     const onSubmit = async (values: TransactionFormValues) => {

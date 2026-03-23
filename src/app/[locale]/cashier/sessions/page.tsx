@@ -319,7 +319,14 @@ export default function CashSessionsPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadSessions();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadSessions();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadSessions]);
 
     const handleView = async (session: CajaSesion) => {

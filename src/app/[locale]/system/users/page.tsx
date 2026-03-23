@@ -472,6 +472,7 @@ export default function SystemUsersPage() {
                       filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
                       searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
                       onSearchChange={(value) => {
+                        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
                         setColumnFilters((prev) => {
                           const newFilters = prev.filter((f) => f.id !== 'email');
                           if (value) {

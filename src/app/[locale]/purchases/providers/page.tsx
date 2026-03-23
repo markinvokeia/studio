@@ -311,6 +311,10 @@ function ProvidersPageContent() {
   }, [pagination, columnFilters]);
 
   React.useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [columnFilters]);
+
+  React.useEffect(() => {
     const debounce = setTimeout(() => {
       loadProviders();
     }, 500);

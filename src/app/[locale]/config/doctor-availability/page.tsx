@@ -157,7 +157,14 @@ export default function DoctorAvailabilityPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadRules();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadRules();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadRules]);
 
     React.useEffect(() => {

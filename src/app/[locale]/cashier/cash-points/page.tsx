@@ -121,7 +121,14 @@ export default function CashPointsPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadCashPoints();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadCashPoints();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadCashPoints]);
 
     const handleCreate = () => {

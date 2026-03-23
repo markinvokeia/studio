@@ -150,7 +150,14 @@ export default function MiscellaneousCategoriesPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadCategories();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadCategories();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadCategories]);
 
     const handleCreate = () => {

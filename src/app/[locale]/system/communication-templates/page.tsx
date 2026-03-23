@@ -230,7 +230,14 @@ export default function CommunicationTemplatesPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadData();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadData();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadData]);
 
     const handleCreate = () => {

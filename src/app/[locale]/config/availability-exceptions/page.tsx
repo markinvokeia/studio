@@ -142,7 +142,14 @@ export default function AvailabilityExceptionsPage() {
     }, [pagination, columnFilters]);
 
     React.useEffect(() => {
-        loadExceptions();
+        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+    }, [columnFilters]);
+
+    React.useEffect(() => {
+        const debounce = setTimeout(() => {
+            loadExceptions();
+        }, 500);
+        return () => clearTimeout(debounce);
     }, [loadExceptions]);
 
     React.useEffect(() => {
