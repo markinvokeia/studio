@@ -148,6 +148,7 @@ export default function AlertRulesPage() {
     const [emailTemplates, setEmailTemplates] = React.useState<any[]>([]);
     const [smsTemplates, setSmsTemplates] = React.useState<any[]>([]);
     const [conditions, setConditions] = React.useState<Array<{ id: string, column: string, operator: string, value: string, logic?: 'AND' | 'OR' }>>([]);
+    const [displayFields, setDisplayFields] = React.useState<Array<{ id: string, label: string, source_column: string, type: string }>>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingRule, setEditingRule] = React.useState<AlertRule | null>(null);
@@ -276,6 +277,7 @@ export default function AlertRulesPage() {
         setEditingRule(null);
         setSelectedTable('');
         setConditions([]);
+        setDisplayFields([]);
         form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -286,6 +288,14 @@ export default function AlertRulesPage() {
         setSelectedTable(rule.source_table || '');
         const conds = (rule as any).condition_config?.conditions || [];
         setConditions(conds.map((c: any, i: number) => ({ id: `cond-${i}`, ...(i > 0 ? { logic: c.logic || 'AND' } : {}), ...c })));
+        const dispConfig = (rule as any).ui_display_config;
+        let dispFields: any[] = [];
+        if (Array.isArray(dispConfig)) {
+            dispFields = dispConfig;
+        } else if (dispConfig?.fields && Array.isArray(dispConfig.fields)) {
+            dispFields = dispConfig.fields;
+        }
+        setDisplayFields(dispFields.map((f: any, i: number) => ({ id: `field-${i}`, ...f })));
         form.reset({
             ...rule,
             category_id: String(rule.category_id || ''),
@@ -304,6 +314,14 @@ export default function AlertRulesPage() {
         setEditingRule(null);
         setSelectedTable(rule.source_table || '');
         const conds = (rule as any).condition_config?.conditions || [];
+        const dispConfig = (rule as any).ui_display_config;
+        let dispFields: any[] = [];
+        if (Array.isArray(dispConfig)) {
+            dispFields = dispConfig;
+        } else if (dispConfig?.fields && Array.isArray(dispConfig.fields)) {
+            dispFields = dispConfig.fields;
+        }
+        setDisplayFields(dispFields.map((f: any, i: number) => ({ id: `field-${i}`, ...f })));
         setConditions(conds.map((c: any, i: number) => ({ id: `cond-${i}`, ...(i > 0 ? { logic: c.logic || 'AND' } : {}), ...c })));
         form.reset({
             ...rule,
@@ -377,6 +395,9 @@ export default function AlertRulesPage() {
                         type: getColumnType(values.table_id_field) || ''
                     },
                     user_id_field: values.user_id_field || null
+                },
+                display_config: {
+                    fields: displayFields.map(({ id, ...rest }) => rest)
                 },
                 created_by: 1,
                 email_template_id: values.email_template_id ?? null,
@@ -737,6 +758,64 @@ export default function AlertRulesPage() {
                                     onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}
                                 >
                                     Add Condition
+                                </Button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <Label>{t('dialog.displayFields')}</Label>
+                                {displayFields.map((field, index) => {
+                                    const columnType = tablesAndColumns[selectedTable]?.find(c => c.name === field.source_column)?.type || '';
+                                    return (
+                                    <div key={field.id} className="flex items-center space-x-2">
+                                        <Input
+                                            placeholder={t('dialog.fieldLabel')}
+                                            value={field.label}
+                                            onChange={(e) => {
+                                                const newFields = [...displayFields];
+                                                newFields[index].label = e.target.value;
+                                                setDisplayFields(newFields);
+                                            }}
+                                            className="flex-1"
+                                        />
+                                        <Select
+                                            value={field.source_column}
+                                            onValueChange={(val) => {
+                                                const newFields = [...displayFields];
+                                                newFields[index].source_column = val;
+                                                newFields[index].type = getColumnType(val) || 'text';
+                                                setDisplayFields(newFields);
+                                            }}
+                                        >
+                                            <SelectTrigger className="flex-1">
+                                                <SelectValue placeholder={t('dialog.selectFieldColumn')} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {(tablesAndColumns[selectedTable] || []).map(col => (
+                                                    <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <div className="w-28 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                                            {columnType || '-'}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setDisplayFields(displayFields.filter((_, i) => i !== index))}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    );
+                                })}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setDisplayFields([...displayFields, { id: `field-${Date.now()}`, label: '', source_column: '', type: 'text' }])}
+                                >
+                                    {t('dialog.addDisplayField')}
                                 </Button>
                             </div>
 

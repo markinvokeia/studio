@@ -3448,6 +3448,11 @@
             "medium": "Media"
         },
         "dailyAlerts": "Alertas Diarias",
+        "pagination": {
+            "showing": "Mostrando",
+            "of": "de",
+            "page": "Página {current} de {total}"
+        },
         "filters": {
             "title": "Filtros",
             "status": "Estado",
@@ -3637,7 +3642,14 @@
             "selectUserIdField": "Seleccionar campo de ID de usuario",
             "noUserIdField": "Sin campo de ID de usuario",
             "tableIdField": "Campo de ID de tabla",
-            "selectTableIdField": "Seleccionar campo de ID de tabla"
+            "selectTableIdField": "Seleccionar campo de ID de tabla",
+            "displayFields": "Campos a Mostrar",
+            "addDisplayField": "Agregar Campo",
+            "fieldLabel": "Etiqueta",
+            "fieldSourceColumn": "Columna",
+            "fieldType": "Tipo de Dato",
+            "selectFieldColumn": "Seleccionar columna",
+            "selectFieldType": "Seleccionar tipo"
         },
         "deleteDialog": {
             "title": "Eliminar Regla",

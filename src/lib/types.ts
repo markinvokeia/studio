@@ -700,6 +700,12 @@ export type AlertCategory = {
   notification_category_slug?: string;
 };
 
+export type AlertDisplayField = {
+  label: string;
+  source_column: string;
+  type: 'text' | 'datetime' | 'number' | 'boolean';
+};
+
 export type AlertRule = {
   id: string;
   category_id: string;
@@ -718,6 +724,8 @@ export type AlertRule = {
   email_template_id?: string;
   sms_template_id?: string;
   is_active: boolean;
+  display_config?: AlertDisplayField[];
+  ui_display_config?: { fields: AlertDisplayField[] };
 };
 
 export type AlertInstance = {

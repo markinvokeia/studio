@@ -22,6 +22,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
+import { cn } from '@/lib/utils';
 import {
     AlertTriangle,
     Calendar,
@@ -42,29 +43,96 @@ import {
     MessageCircle,
     BellRing
 } from 'lucide-react';
+import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-const fetchAlerts = async (status?: string, priority?: string) => {
+type DisplayField = {
+    label: string;
+    source_column: string;
+    type: 'text' | 'datetime' | 'number' | 'boolean';
+};
+
+const getFieldValue = (alert: AlertInstance, sourceColumn: string): any => {
+    const dataSource = alert.details_json?.data;
+    if (dataSource && sourceColumn in dataSource) {
+        return dataSource[sourceColumn];
+    }
+    const parts = sourceColumn.split('.');
+    let value: any = alert.details_json;
+    for (const part of parts) {
+        value = value?.[part];
+    }
+    return value;
+};
+
+const formatFieldValue = (value: any, type: string): string => {
+    if (value === null || value === undefined) return '-';
+    
+    switch (type) {
+        case 'datetime':
+            if (value instanceof Date) {
+                return value.toLocaleString('es-UY', { dateStyle: 'medium', timeStyle: 'short' });
+            }
+            if (typeof value === 'string') {
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                    return date.toLocaleString('es-UY', { dateStyle: 'medium', timeStyle: 'short' });
+                }
+            }
+            return String(value);
+        case 'number':
+            if (typeof value === 'number') {
+                return value.toLocaleString('es-UY');
+            }
+            return String(value);
+        case 'boolean':
+            return value ? 'Sí' : 'No';
+        default:
+            return String(value ?? '-');
+    }
+};
+
+const renderDisplayFields = (alert: AlertInstance, fields: DisplayField[]) => {
+    if (!fields || fields.length === 0) return null;
+    
+    return (
+        <div className="mt-1 flex items-center gap-3 flex-wrap text-xs">
+            {fields.map((field, idx) => {
+                const value = getFieldValue(alert, field.source_column);
+                const formattedValue = formatFieldValue(value, field.type);
+                return (
+                    <span key={idx} className="flex items-center gap-1">
+                        <span className="text-muted-foreground">{field.label}:</span>
+                        <span className="font-medium">{formattedValue}</span>
+                    </span>
+                );
+            })}
+        </div>
+    );
+};
+
+const fetchAlerts = async (status?: string, priority?: string, page: number = 1, limit: number = 50) => {
     try {
         const query: Record<string, string> = {};
         if (status !== undefined) query.status = status;
         if (priority !== undefined) query.priority = priority;
+        query.page = page.toString();
+        query.limit = limit.toString();
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_INSTANCES, query);
-        // Handle null/empty responses
         if (!response || (Array.isArray(response) && response.length === 1 && Object.keys(response[0]).length === 0)) {
-            return [];
+            return { alerts: [], totalRecords: 0 };
         }
-        // Assuming response is array of alert instances
         const alerts: AlertInstance[] = response.map((alert: any) => ({
             ...alert,
             rule_name: alert.rule_name || 'DEFAULT',
             patient_name: alert.details_json?.patient?.full_name || 'Unknown',
         }));
-        return alerts;
+        const totalRecords = response[0]?.total_records || alerts.length;
+        return { alerts, totalRecords };
     } catch (error) {
         console.error('Failed to fetch alerts:', error);
-        return [];
+        return { alerts: [], totalRecords: 0 };
     }
 };
 
@@ -150,6 +218,9 @@ function AlertsCenterPageContent() {
     const [limit, setLimit] = React.useState<number>(50);
     const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'sms' | 'whatsapp' | 'ignore' | 'snooze' | null>(null);
     const [totalPages, setTotalPages] = React.useState<number>(1);
+    const [alertsPage, setAlertsPage] = React.useState<number>(1);
+    const [alertsLimit, setAlertsLimit] = React.useState<number>(50);
+    const [alertsTotalRecords, setAlertsTotalRecords] = React.useState<number>(0);
     const [registerCallDialogOpen, setRegisterCallDialogOpen] = React.useState(false);
     const [registerCallDate, setRegisterCallDate] = React.useState<string>('');
     const [registerCallNotes, setRegisterCallNotes] = React.useState<string>('');
@@ -166,11 +237,12 @@ function AlertsCenterPageContent() {
         setLoading(true);
         try {
             const [alertsData, { actions: actionsData, totalPages: actionsTotalPages }, categoriesData] = await Promise.all([
-                fetchAlerts(statusFilter || undefined, priorityFilter || undefined),
+                fetchAlerts(statusFilter || undefined, priorityFilter || undefined, alertsPage, alertsLimit),
                 fetchAlertActions(page, limit),
                 fetchAlertCategories()
             ]);
-            setAlerts(alertsData);
+            setAlerts(alertsData.alerts);
+            setAlertsTotalRecords(alertsData.totalRecords);
             setAlertActions(actionsData);
             setTotalPages(actionsTotalPages);
             setAlertCategories(categoriesData);
@@ -180,6 +252,14 @@ function AlertsCenterPageContent() {
             setLoading(false);
         }
     };
+
+    React.useEffect(() => {
+        setAlertsPage(1);
+    }, [statusFilter, priorityFilter]);
+
+    React.useEffect(() => {
+        loadAlerts();
+    }, [alertsPage, alertsLimit]);
 
     React.useEffect(() => {
         loadAlerts();
@@ -480,7 +560,7 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-4 p-6 bg-card">
+                <CardContent className="space-y-4 p-6 bg-card pb-24">
                     {Object.entries(groupedAlerts).map(([category, categoryAlerts]) => {
                         const allInCategorySelected = categoryAlerts.every(a => selectedAlerts.includes(a.id));
                         const someInCategorySelected = categoryAlerts.some(a => selectedAlerts.includes(a.id));
@@ -517,6 +597,7 @@ function AlertsCenterPageContent() {
                                                 <div className="flex-1">
                                                     <p className="font-semibold">{alert.title}</p>
                                                     <p className="text-sm text-muted-foreground">{alert.summary}</p>
+                                                    {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
                                                     {(() => {
                                                         const actions = alert.actions || [];
                                                         return actions.length > 0 ? (
@@ -541,8 +622,6 @@ function AlertsCenterPageContent() {
                                                         }`}>
                                                         {t(`status.${alert.status.toLowerCase()}` as any)}
                                                     </div>
-                                                    <User className="h-4 w-4" />
-                                                    <span className="text-sm">{alert.patient_name}</span>
                                                     <div className="flex items-center gap-1">
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.SEND_EMAIL}>
                                                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
@@ -589,6 +668,71 @@ function AlertsCenterPageContent() {
                     {Object.keys(groupedAlerts).length === 0 && <p className="text-center text-muted-foreground py-8">{t('noAlerts')}</p>}
                 </CardContent>
             </Card>
+
+            {Object.keys(groupedAlerts).length > 0 && alertsTotalRecords > 0 && (
+                <div className={cn(
+                    "fixed bottom-6 left-1/2 -translate-x-1/2 z-40",
+                    "bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-lg",
+                    "p-2 flex items-center gap-4",
+                    selectedAlerts.length > 0 ? "mb-20" : "",
+                    "animate-in slide-in-from-bottom-4 fade-in-0 duration-300 ease-out"
+                )}>
+                    <div className="flex items-center gap-2">
+                        <Select value={alertsLimit.toString()} onValueChange={(val) => { setAlertsLimit(Number(val)); setAlertsPage(1); }}>
+                            <SelectTrigger className="h-8 w-[80px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent side="top">
+                                <SelectItem value="10">10</SelectItem>
+                                <SelectItem value="25">25</SelectItem>
+                                <SelectItem value="50">50</SelectItem>
+                                <SelectItem value="100">100</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">
+                            {t('pagination.showing')} {alerts.length} {t('pagination.of')} {alertsTotalRecords}
+                        </span>
+                    </div>
+                    <div className="h-6 w-px bg-border" />
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setAlertsPage(1)}
+                            disabled={alertsPage === 1}
+                        >
+                            <DoubleArrowLeftIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setAlertsPage(p => Math.max(1, p - 1))}
+                            disabled={alertsPage === 1}
+                        >
+                            <ChevronLeftIcon className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm font-medium min-w-[80px] text-center">
+                            {t('pagination.page', { current: alertsPage, total: Math.ceil(alertsTotalRecords / alertsLimit) || 1 })}
+                        </span>
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setAlertsPage(p => Math.min(Math.ceil(alertsTotalRecords / alertsLimit), p + 1))}
+                            disabled={alertsPage >= Math.ceil(alertsTotalRecords / alertsLimit)}
+                        >
+                            <ChevronRightIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="h-8 w-8 p-0"
+                            onClick={() => setAlertsPage(Math.ceil(alertsTotalRecords / alertsLimit))}
+                            disabled={alertsPage >= Math.ceil(alertsTotalRecords / alertsLimit)}
+                        >
+                            <DoubleArrowRightIcon className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
 
             <Dialog open={ignoreDialogOpen} onOpenChange={setIgnoreDialogOpen}>
                 <DialogContent>

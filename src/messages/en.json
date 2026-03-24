@@ -3447,6 +3447,11 @@
       "medium": "Medium"
     },
     "dailyAlerts": "Daily Alerts",
+    "pagination": {
+      "showing": "Showing",
+      "of": "of",
+      "page": "Page {current} of {total}"
+    },
     "filters": {
       "title": "Filters",
       "status": "Status",
@@ -3636,7 +3641,14 @@
       "selectUserIdField": "Select User ID Field",
       "noUserIdField": "No User ID Field",
       "tableIdField": "Table ID Field",
-      "selectTableIdField": "Select Table ID Field"
+      "selectTableIdField": "Select Table ID Field",
+      "displayFields": "Fields to Display",
+      "addDisplayField": "Add Field",
+      "fieldLabel": "Label",
+      "fieldSourceColumn": "Column",
+      "fieldType": "Data Type",
+      "selectFieldColumn": "Select column",
+      "selectFieldType": "Select type"
     },
     "deleteDialog": {
       "title": "Delete Rule",
