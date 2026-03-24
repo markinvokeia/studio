@@ -107,6 +107,7 @@ function mapApiPaymentToPayment(apiPayment: any): Payment {
     reference_doc_id: apiPayment.reference_doc_id,
     type: paymentType,
     notes: apiPayment.notes || '',
+    is_historical: apiPayment.is_historical || false,
   };
 }
 

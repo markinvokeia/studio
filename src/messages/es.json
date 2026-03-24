@@ -826,7 +826,10 @@
             "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
             "createError": "Error al crear la factura",
             "notesLabel": "Notas (opcional)",
-            "notesPlaceholder": "Agregar notas para la factura..."
+            "notesPlaceholder": "Agregar notas para la factura...",
+            "isHistorical": "Histórico",
+            "isHistoricalWarning": "Esta factura no se incluirá en el cierre de caja",
+            "isHistoricalDescription": "Se registrará como una factura del pasado y no afectará los cálculos de caja."
         },
         "createSuccess": "Orden Creada",
         "createSuccessDesc": "La nueva orden ha sido creada exitosamente.",
@@ -1164,7 +1167,13 @@
             "quoteDocNo": "Quote Doc No.",
             "isCreditNote": "Nota de Crédito",
             "creditNote": "Nota de Crédito",
-            "invoice": "Factura"
+            "invoice": "Factura",
+            "isHistorical": "Histórico"
+        },
+        "invoiceDialog": {
+            "isHistorical": "Histórico",
+            "isHistoricalWarning": "Esta factura no se incluirá en el cierre de caja",
+            "isHistoricalDescription": "Se registrará como una factura del pasado y no afectará los cálculos de caja."
         },
         "paymentDialog": {
             "add": "Agregar Pago",
@@ -1200,7 +1209,10 @@
             "selectCurrency": "Seleccionar Moneda",
             "paymentRef": "Ref Pago",
             "notes": "Notas",
-            "notesPlaceholder": "Agregue notas adicionales aquí..."
+            "notesPlaceholder": "Agregue notas adicionales aquí...",
+            "isHistorical": "Histórico",
+            "isHistoricalWarning": "Este pago no se incluirá en el cierre de caja",
+            "isHistoricalDescription": "Se registrará como un pago del pasado y no afectará los cálculos de caja."
         },
         "status": {
             "paid": "Pagado",
@@ -1787,6 +1799,7 @@
             },
             "credit_note": "Nota de Crédito",
             "invoice": "Factura",
+            "isHistorical": "Histórico",
             "paymentMethods": {
                 "efectivo": "Efectivo",
                 "tarjeta_de_debito": "Tarjeta de Débito",

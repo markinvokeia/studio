@@ -189,6 +189,7 @@ export type Invoice = {
   paid_amount?: number;
   type?: string;
   invoice_id?: string | null;
+  is_historical?: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -230,6 +231,7 @@ export type Payment = {
   reference_doc_id?: string;
   notes?: string;
   status: 'pending' | 'completed' | 'failed';
+  is_historical?: boolean;
   createdAt: string;
   updatedAt: string;
   amount: number;

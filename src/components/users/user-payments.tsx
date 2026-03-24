@@ -72,6 +72,7 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
       transaction_type: apiPayment.transaction_type,
       transaction_id: apiPayment.transaction_id,
       reference_doc_id: apiPayment.reference_doc_id,
+      is_historical: apiPayment.is_historical || false,
     }));
   } catch (error) {
     console.error("Failed to fetch user payments:", error);

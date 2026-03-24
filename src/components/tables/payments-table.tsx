@@ -157,6 +157,21 @@ const getColumns = (
         return <Badge variant="secondary" className="capitalize">{tTransactionType(type || 'direct_payment')}</Badge>;
       }
     },
+    {
+      accessorKey: 'is_historical',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('isHistorical')} />
+      ),
+      cell: ({ row }) => {
+        const isHistorical = row.original.is_historical;
+        if (!isHistorical) return null;
+        return (
+          <Badge variant="outline" className="bg-muted text-muted-foreground border-dashed">
+            {t('isHistorical')}
+          </Badge>
+        );
+      },
+    },
 
   ];
 
@@ -270,6 +285,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           onRowSelectionChange={onRowSelectionChange}
+          getRowClassName={(row: Payment) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
         />
       </CardContent>
     </Card>

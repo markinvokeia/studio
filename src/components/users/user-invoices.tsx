@@ -97,6 +97,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       createdAt: apiInvoice.created_at,
       updatedAt: apiInvoice.updated_at,
       currency: apiInvoice.currency,
+      is_historical: apiInvoice.is_historical || false,
     }));
   } catch (error) {
     console.error("Failed to fetch user invoices:", error);

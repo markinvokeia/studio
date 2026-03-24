@@ -89,6 +89,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
             createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
             updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString(),
             currency: apiInvoice.currency || 'USD',
+            is_historical: apiInvoice.is_historical || false,
         }));
     } catch (error) {
         console.error("Failed to fetch invoices for order:", error);
@@ -150,6 +151,7 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
             amount: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.converted_amount) || 0),
             method: apiPayment.payment_method_name || apiPayment.method || 'credit_card',
             currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.invoice_currency || 'USD'),
+            is_historical: apiPayment.is_historical || false,
         }));
     } catch (error) {
         console.error("Failed to fetch payments for order:", error);

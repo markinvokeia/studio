@@ -826,7 +826,10 @@
       "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
       "createError": "Error creating invoice",
       "notesLabel": "Notes (optional)",
-      "notesPlaceholder": "Add notes for the invoice..."
+      "notesPlaceholder": "Add notes for the invoice...",
+      "isHistorical": "Historical",
+      "isHistoricalWarning": "This invoice will not be included in the cash closing",
+      "isHistoricalDescription": "It will be recorded as a past invoice and will not affect cash calculations."
     },
     "createSuccess": "Order Created",
     "createSuccessDesc": "The new order has been created successfully.",
@@ -1164,7 +1167,13 @@
       "quoteDocNo": "Quote Doc No.",
       "isCreditNote": "Credit Note",
       "creditNote": "Credit Note",
-      "invoice": "Invoice"
+      "invoice": "Invoice",
+      "isHistorical": "Historical"
+    },
+    "invoiceDialog": {
+      "isHistorical": "Historical",
+      "isHistoricalWarning": "This invoice will not be included in the cash closing",
+      "isHistoricalDescription": "It will be recorded as a past invoice and will not affect cash calculations."
     },
     "paymentDialog": {
       "add": "Add Payment",
@@ -1200,7 +1209,10 @@
       "selectCurrency": "Select Currency",
       "paymentRef": "Payment REF",
       "notes": "Notes",
-      "notesPlaceholder": "Add any additional notes here..."
+      "notesPlaceholder": "Add any additional notes here...",
+      "isHistorical": "Historical",
+      "isHistoricalWarning": "This payment will not be included in the cash closing",
+      "isHistoricalDescription": "It will be recorded as a past payment and will not affect cash calculations."
     },
     "status": {
       "paid": "Paid",
@@ -1787,6 +1799,7 @@
       },
       "credit_note": "Credit Note",
       "invoice": "Invoice",
+      "isHistorical": "Historical",
       "paymentMethods": {
         "efectivo": "Cash",
         "tarjeta_de_debito": "Debit Card",

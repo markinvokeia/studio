@@ -70,6 +70,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             currency: apiInvoice.currency || 'USD',
             notes: apiInvoice.notes || '',
+            is_historical: apiInvoice.is_historical || false,
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -156,7 +157,8 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             transaction_type: apiPayment.transaction_type || 'direct_payment',
             transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : apiPayment.transaction_id,
             reference_doc_id: apiPayment.reference_doc_id,
-            notes: apiPayment.notes || ''
+            notes: apiPayment.notes || '',
+            is_historical: apiPayment.is_historical || false,
         }));
     } catch (error) {
         console.error("Failed to fetch payments for invoice:", error);

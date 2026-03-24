@@ -230,7 +230,8 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',
             paid_amount: parseFloat(apiInvoice.paid_amount) || 0,
             type: apiInvoice.type || 'invoice',
-            updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString()
+            updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString(),
+            is_historical: apiInvoice.is_historical || false,
         }));
     } catch (error) {
         console.error("Failed to fetch invoices:", error);
@@ -311,7 +312,8 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
             exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : (parseFloat(apiPayment.exchange_rate) || 1),
             transaction_type: apiPayment.transaction_type || 'direct_payment',
             transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : String(apiPayment.id),
-            updatedAt: apiPayment.payment_date || apiPayment.updated_at || apiPayment.created_at
+            updatedAt: apiPayment.payment_date || apiPayment.updated_at || apiPayment.created_at,
+            is_historical: apiPayment.is_historical || false,
         }));
     } catch (error) {
         console.error("Failed to fetch payments:", error);

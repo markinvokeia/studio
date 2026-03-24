@@ -26,6 +26,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Checkbox } from '../ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DatePicker } from '../ui/date-picker';

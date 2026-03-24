@@ -62,6 +62,7 @@ interface DataTableProps<TData, TValue> {
   filterValue?: string;
   createButtonIconOnly?: boolean;
   customToolbar?: React.ReactNode | ((table: any) => React.ReactNode);
+  getRowClassName?: (row: TData) => string;
 }
 
 export function DataTable<TData, TValue>({
@@ -94,6 +95,7 @@ export function DataTable<TData, TValue>({
   filterValue,
   createButtonIconOnly,
   customToolbar,
+  getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -198,7 +200,10 @@ export function DataTable<TData, TValue>({
                       row.toggleSelected(true);
                     }
                   }}
-                  className={enableSingleRowSelection ? 'cursor-pointer' : ''}
+                  className={cn(
+                    enableSingleRowSelection ? 'cursor-pointer' : '',
+                    getRowClassName ? getRowClassName(row.original) : ''
+                  )}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>

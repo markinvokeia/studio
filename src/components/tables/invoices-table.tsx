@@ -66,6 +66,7 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   payment_currency: z.string(),
   exchange_rate: z.coerce.number().optional(),
   notes: z.string().optional(),
+  is_historical: z.boolean().optional(),
 }).refine(data => {
   if (data.amount > 0 && !data.method) {
     return false;
@@ -93,6 +94,7 @@ const createInvoiceFormSchema = z.object({
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
   notes: z.string().optional(),
+  is_historical: z.boolean().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Service name is required'),
@@ -112,7 +114,7 @@ const getColumns = (
   columnTranslations: { [key: string]: string },
   onPrint?: (invoice: Invoice) => void,
   onSendEmail?: (invoice: Invoice) => void,
-  onAddPayment?: (invoice: Invoice) => void,
+  onAddPayment?: (invoice: Invoice, isHistorical?: boolean) => void,
   onConfirm?: (invoice: Invoice) => void,
   onEdit?: (invoice: Invoice) => void
 ): ColumnDef<Invoice>[] => {
@@ -310,6 +312,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
   const [companyCurrency, setCompanyCurrency] = React.useState<string>('USD');
   const [sessionExchangeRate, setSessionExchangeRate] = React.useState<number>(1);
+  const [isHistoricalPayment, setIsHistoricalPayment] = React.useState(false);
 
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema(t)),
@@ -444,22 +447,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const handleAddPaymentClick = React.useCallback(async (invoice: Invoice) => {
     if (!user) return;
 
+    setSelectedInvoiceForPayment(invoice);
+
     try {
-      const sessionValidation = await validateActiveSession();
-
-      if (!sessionValidation.isValid) {
-        setIsNoSessionAlertOpen(true);
-        return;
-      }
-
       const clinicData = await api.get(API_ROUTES.CLINIC);
-
-      if (sessionValidation.exchangeRate) {
-        setSessionExchangeRate(sessionValidation.exchangeRate);
-      }
-
-      setSelectedInvoiceForPayment(invoice);
-      setActiveCashSessionId(sessionValidation.sessionId!);
 
       const currency = clinicData.currency || 'USD';
       setCompanyCurrency(currency);
@@ -468,8 +459,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
       fetchUserCredits(invoice.user_id);
 
       const invoiceCurrency = invoice.currency || 'USD';
-      const exchangeRateFromSession = sessionValidation.exchangeRate || 1;
-      const initialExchangeRate = invoiceCurrency === currency ? 1 : exchangeRateFromSession;
+      const initialExchangeRate = 1;
 
       form.reset({
         amount: invoice.total - (invoice.paid_amount || 0),
@@ -479,6 +469,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         invoice_currency: invoiceCurrency,
         payment_currency: invoiceCurrency,
         exchange_rate: initialExchangeRate,
+        is_historical: false,
       });
       setPaymentSubmissionError(null);
       setAppliedCredits(new Map());
@@ -491,7 +482,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         description: t('toast.sessionCheckError'),
       });
     }
-  }, [user, validateActiveSession, form, toast, t, fetchPaymentMethods, fetchUserCredits]);
+  }, [user, form, toast, t, fetchPaymentMethods, fetchUserCredits]);
 
   const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
     try {
@@ -513,7 +504,22 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   };
 
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
-    if (!selectedInvoiceForPayment || !activeCashSessionId) return;
+    if (!selectedInvoiceForPayment) return;
+
+    if (!values.is_historical) {
+      const sessionValidation = await validateActiveSession();
+      if (!sessionValidation.isValid) {
+        setIsNoSessionAlertOpen(true);
+        return;
+      }
+      setActiveCashSessionId(sessionValidation.sessionId!);
+      if (sessionValidation.exchangeRate) {
+        setSessionExchangeRate(sessionValidation.exchangeRate);
+      }
+    } else {
+      setActiveCashSessionId(null);
+      setSessionExchangeRate(1);
+    }
 
     const totalCredits = Array.from(appliedCredits.values()).reduce((a, b) => a + b, 0);
     if (values.amount <= 0 && totalCredits <= 0) {
@@ -574,8 +580,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
     try {
       const payload = {
-        invoice_id: selectedInvoiceForPayment.id,
-        cash_session_id: activeCashSessionId,
+        cash_session_id: activeCashSessionId || null,
         user: user,
         client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
         credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {
@@ -590,7 +595,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             exchange_rate: exchangeRate,
           };
         }),
-        query: JSON.stringify({
+        query: {
           invoice_id: parseInt(selectedInvoiceForPayment.id, 10),
           payment_date: values.payment_date.toISOString(),
           amount: values.amount,
@@ -604,8 +609,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           exchange_rate: values.exchange_rate || 1,
           is_sales: isSales,
           total_paid: totalAttemptedPayment,
-          notes: values.notes || ''
-        }),
+          notes: values.notes || '',
+          is_historical: values.is_historical || false
+        }
       };
 
       const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT;
@@ -621,7 +627,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         description: t('paymentDialog.successDescription', { invoiceId: selectedInvoiceForPayment.doc_no || selectedInvoiceForPayment.id }),
       });
 
-      await checkActiveSession();
+      if (!values.is_historical) {
+        await checkActiveSession();
+      }
 
       if (onRefresh) {
         onRefresh();
@@ -716,6 +724,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             } : undefined}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
+            getRowClassName={(row: Invoice) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
             customToolbar={standalone ? (table) => (
               <DataTableAdvancedToolbar
                 table={table}
@@ -1018,7 +1027,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       <div className="flex justify-between text-sm">
                         <span className="font-medium">{t('paymentDialog.manualPayment')}:</span>
                         <div className="flex flex-col items-end">
-                          <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency }).format(watchedAmount)}</span>
+                          <span>{new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedPaymentCurrency || 'USD' }).format(watchedAmount)}</span>
                           {watchedPaymentCurrency !== (selectedInvoiceForPayment?.currency || 'USD') && equivalentAmount && (
                             <span className="text-xs text-muted-foreground">
                               ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoiceForPayment?.currency || 'USD' }).format(equivalentAmount)}
@@ -1063,6 +1072,39 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                       </FormControl>
                       <FormMessage />
                     </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="is_historical"
+                  render={({ field }) => (
+                    <>
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            {t('paymentDialog.isHistorical')}
+                          </FormLabel>
+                          <p className="text-xs text-muted-foreground">
+                            {t('paymentDialog.isHistoricalDescription')}
+                          </p>
+                        </div>
+                      </FormItem>
+                      {field.value && (
+                        <Alert variant="default" className="bg-amber-50 border-amber-200">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertTitle className="text-amber-800 text-sm">{t('paymentDialog.isHistoricalWarning')}</AlertTitle>
+                          <AlertDescription className="text-amber-700 text-xs">
+                            {t('paymentDialog.isHistoricalDescription')}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </>
                   )}
                 />
               </DialogBody>
@@ -1195,6 +1237,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       items: [],
       total: 0,
       notes: '',
+      is_historical: false,
     },
   });
 
@@ -1623,6 +1666,40 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   <FormMessage />
                 </FormItem>
               )} />
+
+              <FormField
+                control={form.control}
+                name="is_historical"
+                render={({ field }) => (
+                  <>
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          {tRoot('invoiceDialog.isHistorical')}
+                        </FormLabel>
+                        <p className="text-xs text-muted-foreground">
+                          {tRoot('invoiceDialog.isHistoricalDescription')}
+                        </p>
+                      </div>
+                    </FormItem>
+                    {field.value && (
+                      <Alert variant="default" className="bg-amber-50 border-amber-200">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <AlertTitle className="text-amber-800 text-sm">{tRoot('invoiceDialog.isHistoricalWarning')}</AlertTitle>
+                        <AlertDescription className="text-amber-700 text-xs">
+                          {tRoot('invoiceDialog.isHistoricalDescription')}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                )}
+              />
 
               <Card>
                 <CardHeader>
