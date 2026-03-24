@@ -549,6 +549,7 @@ export type PatientSession = {
   procedimiento_realizado: string;
   notas_clinicas: string;
   plan_proxima_cita?: string;
+  fecha_proxima_cita?: string;
   doctor_id: string | null;
   doctor_name?: string;
   estado_odontograma?: any;

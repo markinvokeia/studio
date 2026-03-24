@@ -68,19 +68,15 @@ const getFieldValue = (alert: AlertInstance, sourceColumn: string): any => {
 
 const formatFieldValue = (value: any, type: string): string => {
     if (value === null || value === undefined) return '-';
-    
+
+    if (type === 'datetime' || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value))) {
+        const date = value instanceof Date ? value : new Date(value);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleString('es-UY', { dateStyle: 'medium', timeStyle: 'short' });
+        }
+    }
+
     switch (type) {
-        case 'datetime':
-            if (value instanceof Date) {
-                return value.toLocaleString('es-UY', { dateStyle: 'medium', timeStyle: 'short' });
-            }
-            if (typeof value === 'string') {
-                const date = new Date(value);
-                if (!isNaN(date.getTime())) {
-                    return date.toLocaleString('es-UY', { dateStyle: 'medium', timeStyle: 'short' });
-                }
-            }
-            return String(value);
         case 'number':
             if (typeof value === 'number') {
                 return value.toLocaleString('es-UY');
@@ -596,7 +592,6 @@ function AlertsCenterPageContent() {
                                                 <div className={`w-1.5 h-10 rounded-full ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`}></div>
                                                 <div className="flex-1">
                                                     <p className="font-semibold">{alert.title}</p>
-                                                    <p className="text-sm text-muted-foreground">{alert.summary}</p>
                                                     {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
                                                     {(() => {
                                                         const actions = alert.actions || [];

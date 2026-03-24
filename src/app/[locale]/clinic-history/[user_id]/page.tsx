@@ -1330,6 +1330,7 @@ const sessionFormSchema = z.object({
     diagnostico: z.string().optional(),
     notas_clinicas: z.string().optional(),
     plan_proxima_cita: z.string().optional(),
+    fecha_proxima_cita: z.date().optional(),
     treatments: z.array(z.object({
         tratamiento_id: z.string().optional(),
         numero_diente: z.string().refine(val => {
@@ -1400,6 +1401,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: session.diagnostico || '',
                         notas_clinicas: session.notas_clinicas || '',
                         plan_proxima_cita: session.plan_proxima_cita || '',
+                        fecha_proxima_cita: session.fecha_proxima_cita ? parseISO(session.fecha_proxima_cita) : undefined,
                         treatments: (session.tratamientos || []).map(t => ({
                             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
                             descripcion: t.descripcion || ''
@@ -1414,6 +1416,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                         diagnostico: '',
                         notas_clinicas: '',
                         plan_proxima_cita: '',
+                        fecha_proxima_cita: undefined,
                         treatments: [],
                     });
                     setExistingAttachments([]);
@@ -1459,6 +1462,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         formData.append('diagnostico', values.diagnostico || '');
         formData.append('notas_clinicas', values.notas_clinicas || '');
         formData.append('plan_proxima_cita', values.plan_proxima_cita || '');
+        formData.append('fecha_proxima_cita', values.fecha_proxima_cita ? values.fecha_proxima_cita.toISOString().split('T')[0] : '');
 
         if (values.treatments) {
             formData.append('tratamientos', JSON.stringify(values.treatments.map(t => ({
@@ -1624,6 +1628,25 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         <FormItem className="mb-2">
                                             <FormLabel className="text-xs font-semibold">{t('nextSessionPlan')}</FormLabel>
                                             <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="fecha_proxima_cita" render={({ field }) => (
+                                        <FormItem className="mb-2">
+                                            <FormLabel className="text-xs font-semibold">{t('nextSessionDate')}</FormLabel>
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8 w-full", !field.value && "text-muted-foreground")}>
+                                                            {field.value ? format(field.value, "dd/MM/yyyy") : <span>{t('nextSessionDatePlaceholder')}</span>}
+                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-auto p-0" align="start">
+                                                    <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus translationsNamespace="DatePicker" />
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage className="text-[10px]" />
                                         </FormItem>
                                     )} />
                                 </div>
@@ -2641,6 +2664,12 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                 <div className="flex items-start gap-2">
                                                     <span className="font-medium text-foreground shrink-0">{t('nextSessionPlan')}:</span>
                                                     <span className="text-muted-foreground">{session.plan_proxima_cita}</span>
+                                                </div>
+                                            )}
+                                            {session.fecha_proxima_cita && (
+                                                <div className="flex items-start gap-2">
+                                                    <span className="font-medium text-foreground shrink-0">{t('nextSessionDate')}:</span>
+                                                    <span className="text-muted-foreground font-medium">{format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}</span>
                                                 </div>
                                             )}
                                             <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>

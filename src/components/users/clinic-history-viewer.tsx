@@ -1474,6 +1474,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         fecha_sesion: new Date().toISOString().split('T')[0],
         procedimiento_realizado: '',
         plan_proxima_cita: '',
+        fecha_proxima_cita: '',
     });
     const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
 
@@ -1488,14 +1489,25 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         setOpenItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
     };
 
+    React.useEffect(() => {
+        if (sessions.length > 0) {
+            const lastSessionId = String(sessions[0].sesion_id);
+            if (!openItems.includes(lastSessionId)) {
+                setOpenItems([lastSessionId]);
+            }
+        }
+    }, [sessions]);
+
     const handleAddSession = () => {
+        const lastSession = sessions.length > 0 ? sessions[0] : null;
         setEditingSession(null);
         setSessionForm({
             doctor_id: '',
             doctor_name: '',
             fecha_sesion: new Date().toISOString().split('T')[0],
-            procedimiento_realizado: '',
+            procedimiento_realizado: lastSession?.plan_proxima_cita || '',
             plan_proxima_cita: '',
+            fecha_proxima_cita: '',
         });
         setSessionTreatments([]);
         setAttachedFiles([]);
@@ -1514,6 +1526,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             fecha_sesion: session.fecha_sesion ? session.fecha_sesion.split('T')[0] : new Date().toISOString().split('T')[0],
             procedimiento_realizado: session.procedimiento_realizado || '',
             plan_proxima_cita: session.plan_proxima_cita || '',
+            fecha_proxima_cita: (session as any).fecha_proxima_cita || '',
         });
         setSessionTreatments((session.tratamientos || []).map(t => ({
             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
@@ -1663,13 +1676,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1 min-w-0 pr-2">
                                                     <CardTitle className="text-base font-semibold line-clamp-2">
-                                                        {session.procedimiento_realizado?.split('\n')[0] || t('noTitle')}
+                                                        {session.procedimiento_realizado ? (session.procedimiento_realizado.length > 50 ? session.procedimiento_realizado.slice(0, 50) + '...' : session.procedimiento_realizado) : t('noTitle')}
                                                     </CardTitle>
-                                                    {session.procedimiento_realizado?.includes('\n') && (
-                                                        <p className="text-[10px] text-muted-foreground italic mt-0.5">
-                                                            + más contenido
-                                                        </p>
-                                                    )}
                                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                                                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                                                             <CalendarIcon className="h-3.5 w-3.5" />
@@ -1734,6 +1742,14 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                         <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">{t('nextPlan') || 'Plan próxima cita'}</p>
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.plan_proxima_cita}</p>
+                                                        </div>
+                                                    )}
+                                                    {session.fecha_proxima_cita && (
+                                                        <div className="border-l-2 border-indigo-400/50 pl-3 py-1 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-r-md">
+                                                            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">{t('nextSessionDate') || 'Fecha próxima cita'}</p>
+                                                            <p className="text-sm font-medium leading-relaxed">
+                                                                {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
+                                                            </p>
                                                         </div>
                                                     )}
                                                     {session.tratamientos && session.tratamientos.length > 0 && (
@@ -1893,6 +1909,31 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                             placeholder={tDialog('nextSessionPlanPlaceholder')}
                                             className="min-h-[80px] resize-y"
                                         />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{tDialog('nextSessionDate')}</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className={cn('w-full justify-start text-left font-normal', !sessionForm.fecha_proxima_cita && 'text-muted-foreground')}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {sessionForm.fecha_proxima_cita
+                                                        ? format(parseISO(sessionForm.fecha_proxima_cita), 'dd/MM/yyyy')
+                                                        : tDialog('nextSessionDatePlaceholder')}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <DatePicker
+                                                    mode="single"
+                                                    selected={sessionForm.fecha_proxima_cita ? parseISO(sessionForm.fecha_proxima_cita) : undefined}
+                                                    onSelect={(date) => setSessionForm({ ...sessionForm, fecha_proxima_cita: date ? date.toISOString().split('T')[0] : '' })}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
                                     </div>
                                 </div>
 

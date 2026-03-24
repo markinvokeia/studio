@@ -3033,6 +3033,8 @@
       "saving": "Saving",
       "nextSessionPlan": "Next Session Plan",
       "nextSessionPlanPlaceholder": "Enter the plan for the next appointment...",
+      "nextSessionDate": "Next Session Date",
+      "nextSessionDatePlaceholder": "Select date...",
       "attachments": "Attachments",
       "addTreatment": "Add Treatment",
       "procedurePlaceholder": "Enter the procedure performed...",
@@ -3084,6 +3086,7 @@
         "error": "Error deleting session"
       },
       "nextSessionPlan": "Next Session Plan",
+      "nextSessionDate": "Next Session Date",
       "addSession": "Add Session",
       "noSessions": "No sessions recorded",
       "noTitle": "Untitled",

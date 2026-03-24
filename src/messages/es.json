@@ -3033,6 +3033,8 @@
             "saving": "Guardando",
             "nextSessionPlan": "Plan para la Próxima Sesión",
             "nextSessionPlanPlaceholder": "Ingrese el plan para la siguiente cita...",
+            "nextSessionDate": "Fecha Próxima Cita",
+            "nextSessionDatePlaceholder": "Seleccione fecha...",
             "attachments": "Adjuntos",
             "addTreatment": "Agregar Tratamiento",
             "procedurePlaceholder": "Ingrese el procedimiento realizado...",
@@ -3084,6 +3086,7 @@
                 "error": "Error al eliminar la sesión"
             },
             "nextSessionPlan": "Plan para la Próxima Sesión",
+            "nextSessionDate": "Fecha Próxima Cita",
             "addSession": "Agregar sesión",
             "noSessions": "No hay sesiones registradas",
             "noTitle": "Sin título",

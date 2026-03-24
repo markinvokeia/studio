@@ -204,13 +204,24 @@ export default function AlertRulesPage() {
         return tableCols
             .filter(col => {
                 const colName = col.name.toLowerCase();
-                return colName.includes('user_id') || colName.includes('patient_id') || colName.includes('customer_id') || colName.includes('client_id');
+                return colName.includes('user_id') || 
+                       colName.includes('patient_id') || 
+                       colName.includes('paciente_id') || 
+                       colName.includes('doctor_id') || 
+                       colName.includes('profesional_id') || 
+                       colName.includes('customer_id') || 
+                       colName.includes('client_id');
             })
-            .map(col => ({
-                name: col.name,
-                type: col.type,
-                priority: col.name.toLowerCase().includes('user_id') ? 1 : 2
-            }))
+            .map(col => {
+                const colName = col.name.toLowerCase();
+                let priority = 3;
+                if (colName.includes('user_id') || colName.includes('paciente_id')) {
+                    priority = 1;
+                } else if (colName.includes('patient_id') || colName.includes('doctor_id') || colName.includes('profesional_id')) {
+                    priority = 2;
+                }
+                return { name: col.name, type: col.type, priority };
+            })
             .sort((a, b) => a.priority - b.priority);
     };
 
