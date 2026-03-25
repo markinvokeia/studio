@@ -1866,7 +1866,10 @@
         "successTitle": "Success"
       },
       "notes": "Notes",
-      "notesPlaceholder": "Add any additional notes here..."
+      "notesPlaceholder": "Add any additional notes here...",
+      "isHistorical": "Historical",
+      "isHistoricalDescription": "Check this option if the payment was made on a date prior to today",
+      "isHistoricalWarning": "Historical payment registered"
     },
     "tabs": {
       "allocations": "Allocations",

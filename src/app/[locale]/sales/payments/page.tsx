@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -50,6 +51,7 @@ const prepaidFormSchema = (t: (key: string) => string) => z.object({
     }),
     currency: z.enum(['UYU', 'USD']),
     notes: z.string().optional(),
+    is_historical: z.boolean().default(false),
 });
 
 type PrepaidFormValues = z.infer<ReturnType<typeof prepaidFormSchema>>;
@@ -125,7 +127,8 @@ export default function PaymentsPage() {
             payment_method_id: '',
             created_at: new Date(),
             currency: 'UYU',
-            notes: ''
+            notes: '',
+            is_historical: false
         }
     });
 
@@ -348,20 +351,25 @@ export default function PaymentsPage() {
         if (!prepaidData || !user) return;
 
         try {
-            const sessionValidation = await validateActiveSession();
-            if (!sessionValidation.isValid) {
-                showCashSessionError(sessionValidation.error);
-                return;
+            let sessionId: string | null = null;
+            
+            if (!prepaidData.is_historical) {
+                const sessionValidation = await validateActiveSession();
+                if (!sessionValidation.isValid) {
+                    showCashSessionError(sessionValidation.error);
+                    return;
+                }
+                sessionId = sessionValidation.sessionId ?? null;
             }
 
             const selectedMethod = paymentMethods.find(pm => pm.id === prepaidData.payment_method_id);
             const clientUser = users.find(u => u.id === prepaidData.user_id);
 
             const payload = {
-                cash_session_id: sessionValidation.sessionId,
+                cash_session_id: sessionId,
                 user: user,
                 client_user: clientUser,
-                query: JSON.stringify({
+                query: {
                     payment_date: prepaidData.created_at.toISOString(),
                     amount: prepaidData.payment_amount,
                     method: selectedMethod?.name,
@@ -373,8 +381,9 @@ export default function PaymentsPage() {
                     invoice_currency: prepaidData.currency,
                     payment_currency: prepaidData.currency,
                     exchange_rate: 1,
-                    notes: prepaidData.notes || ''
-                }),
+                    notes: prepaidData.notes || '',
+                    is_historical: prepaidData.is_historical,
+                },
             };
 
             await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, payload);
@@ -651,6 +660,39 @@ export default function PaymentsPage() {
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="is_historical"
+                                    render={({ field }) => (
+                                        <>
+                                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                                <FormControl>
+                                                    <Checkbox
+                                                        checked={field.value}
+                                                        onCheckedChange={field.onChange}
+                                                    />
+                                                </FormControl>
+                                                <div className="space-y-1 leading-none">
+                                                    <FormLabel>
+                                                        {t('prepaidDialog.isHistorical')}
+                                                    </FormLabel>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {t('prepaidDialog.isHistoricalDescription')}
+                                                    </p>
+                                                </div>
+                                            </FormItem>
+                                            {field.value && (
+                                                <Alert variant="default" className="bg-amber-50 border-amber-200">
+                                                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                                                    <AlertTitle className="text-amber-800 text-sm">{t('prepaidDialog.isHistoricalWarning')}</AlertTitle>
+                                                    <AlertDescription className="text-amber-700 text-xs">
+                                                        {t('prepaidDialog.isHistoricalDescription')}
+                                                    </AlertDescription>
+                                                </Alert>
+                                            )}
+                                        </>
                                     )}
                                 />
                             </DialogBody>

@@ -1866,7 +1866,10 @@
                 "successTitle": "Éxito"
             },
             "notes": "Notas",
-            "notesPlaceholder": "Agregue notas adicionales aquí..."
+            "notesPlaceholder": "Agregue notas adicionales aquí...",
+            "isHistorical": "Histórico",
+            "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
+            "isHistoricalWarning": "Pago histórico registrado"
         },
         "tabs": {
             "allocations": "Asignaciones",
