@@ -1029,6 +1029,9 @@
         "delete": "Eliminar",
         "detailsFor": "Detalles para {name}",
         "quoteId": "ID de Cotización",
+        "defaults": {
+            "notAvailable": "N/D"
+        },
         "tabs": {
             "items": "Artículos",
             "orders": "Órdenes",

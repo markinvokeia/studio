@@ -1029,6 +1029,9 @@
     "delete": "Delete",
     "detailsFor": "Details for {name}",
     "quoteId": "No. Document",
+    "defaults": {
+      "notAvailable": "N/A"
+    },
     "tabs": {
       "items": "Items",
       "orders": "Orders",

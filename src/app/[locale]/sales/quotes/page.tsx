@@ -173,6 +173,7 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
             doc_no: apiOrder.doc_no || t('defaults.notAvailable'),
             user_id: apiOrder.user_id,
             quote_id: apiOrder.quote_id,
+            quote_doc_no: apiOrder.quote_doc_no || t('defaults.notAvailable'),
             user_name: apiOrder.user_name || apiOrder.name || t('defaults.notAvailable'),
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],

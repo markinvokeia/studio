@@ -148,6 +148,7 @@ export type Order = {
   doc_no?: string;
   user_id: string;
   quote_id: string;
+  quote_doc_no?: string;
   user_name?: string;
   currency?: 'UYU' | 'USD';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
