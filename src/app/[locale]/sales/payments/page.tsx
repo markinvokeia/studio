@@ -395,37 +395,26 @@ export default function PaymentsPage() {
             <TwoPanelLayout
                 isRightPanelOpen={!!selectedPayment}
                 leftPanel={
-                    <Card className="flex-1 flex flex-col min-h-0 shadow-sm border-0 h-full">
-                        <CardHeader className="p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="header-icon-circle mt-0.5">
-                                    <CreditCard className="h-5 w-5" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <CardTitle className="text-lg">{t('title')}</CardTitle>
-                                    <CardDescription className="text-xs">{t('description')}</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
-                            <PaymentsTable
-                                payments={payments}
-                                isLoading={isLoading}
-                                onRefresh={refreshPayments}
-                                isRefreshing={isLoading}
-                                onPrint={handlePrintPayment}
-                                onSendEmail={handleSendEmailClick}
-                                onCreate={canPrepaidCreate ? handleCreatePrepaid : undefined}
-                                pagination={pagination}
-                                onPaginationChange={handlePaginationChange}
-                                pageCount={totalPages}
-                                manualPagination={true}
-                                onRowSelectionChange={handleRowSelectionChange}
-                                rowSelection={rowSelection}
-                                setRowSelection={setRowSelection}
-                            />
-                        </CardContent>
-                    </Card>
+                    <PaymentsTable
+                        payments={payments}
+                        isLoading={isLoading}
+                        onRefresh={refreshPayments}
+                        isRefreshing={isLoading}
+                        onPrint={handlePrintPayment}
+                        onSendEmail={handleSendEmailClick}
+                        onCreate={handleCreatePrepaid}
+                        canCreate={canPrepaidCreate}
+                        pagination={pagination}
+                        onPaginationChange={handlePaginationChange}
+                        pageCount={totalPages}
+                        manualPagination={true}
+                        onRowSelectionChange={handleRowSelectionChange}
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        title={t('title')}
+                        description={t('description')}
+                        className="h-full"
+                    />
                 }
                 rightPanel={
                     selectedPayment && (
@@ -552,8 +541,8 @@ export default function PaymentsPage() {
                                                 </PopoverTrigger>
                                                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                                     <Command shouldFilter={false}>
-                                                        <CommandInput 
-                                                            placeholder={t('prepaidDialog.searchClient')} 
+                                                        <CommandInput
+                                                            placeholder={t('prepaidDialog.searchClient')}
                                                             value={userSearchTerm}
                                                             onValueChange={setUserSearchTerm}
                                                         />

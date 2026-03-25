@@ -2,13 +2,14 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { MoreHorizontal, Printer, Send } from 'lucide-react';
+import { CreditCard, MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
@@ -26,6 +27,26 @@ const getColumns = (
 
 
   const columns: ColumnDef<Payment>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.id : ''}
+            onValueChange={() => {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }}
+          >
+            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          </RadioGroup>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'doc_no',
       header: ({ column }) => (
@@ -229,9 +250,12 @@ interface PaymentsTableProps {
   onRowSelectionChange?: (selectedRows: Payment[]) => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  title?: string;
+  description?: string;
+  canCreate?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
@@ -252,8 +276,21 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
   return (
-    <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
-      <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden">
+    <Card className={cn("h-full flex-1 flex flex-col min-h-0 border-0 lg:border shadow-none lg:shadow-sm", className)}>
+      {title && (
+        <CardHeader className="flex-none p-4">
+          <div className="flex items-start gap-3">
+            <div className="header-icon-circle mt-0.5">
+              <CreditCard className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col text-left">
+              <CardTitle className="text-lg">{title}</CardTitle>
+              {description && <CardDescription className="text-xs">{description}</CardDescription>}
+            </div>
+          </div>
+        </CardHeader>
+      )}
+      <CardContent className="flex-1 flex flex-col min-h-0 p-4 overflow-hidden bg-card">
         <DataTable
           columns={filteredColumns}
           data={payments}
@@ -261,7 +298,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           filterPlaceholder={tPage('filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
-          onCreate={onCreate ? () => onCreate() : undefined}
+          onCreate={canCreate ? () => onCreate?.() : undefined}
           createButtonLabel={tPage('createPrepaid')}
           columnTranslations={{
             doc_no: t('doc_no'),

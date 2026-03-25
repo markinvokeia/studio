@@ -210,29 +210,24 @@ function PaymentsPageContent() {
             <TwoPanelLayout
                 isRightPanelOpen={!!selectedPayment}
                 leftPanel={
-                    <Card className="flex-1 flex flex-col min-h-0 h-full">
-                        <CardHeader className="flex-none">
-                            <CardTitle>{t('title')}</CardTitle>
-                            <CardDescription>{t('description')}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                            <PaymentsTable
-                                payments={payments}
-                                isLoading={isLoading}
-                                onRefresh={refreshPayments}
-                                isRefreshing={isLoading}
-                                onPrint={handlePrintPayment}
-                                onSendEmail={handleSendEmailClick}
-                                pagination={pagination}
-                                onPaginationChange={handlePaginationChange}
-                                pageCount={totalPages}
-                                manualPagination={true}
-                                onRowSelectionChange={handleRowSelectionChange}
-                                rowSelection={rowSelection}
-                                setRowSelection={setRowSelection}
-                            />
-                        </CardContent>
-                    </Card>
+                    <PaymentsTable
+                        payments={payments}
+                        isLoading={isLoading}
+                        onRefresh={refreshPayments}
+                        isRefreshing={isLoading}
+                        onPrint={handlePrintPayment}
+                        onSendEmail={handleSendEmailClick}
+                        pagination={pagination}
+                        onPaginationChange={handlePaginationChange}
+                        pageCount={totalPages}
+                        manualPagination={true}
+                        onRowSelectionChange={handleRowSelectionChange}
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        title={t('title')}
+                        description={t('description')}
+                        className="h-full"
+                    />
                 }
                 rightPanel={
                     selectedPayment && (
