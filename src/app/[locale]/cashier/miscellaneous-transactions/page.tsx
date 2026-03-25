@@ -115,7 +115,7 @@ async function getMiscellaneousTransactions(pagination: PaginationState, searchQ
                 recurrence_pattern: t.recurrence_pattern,
                 completed_at: t.completed_at,
             })),
-            total: normalized.total
+            total: normalized.items.length > 0 ? parseInt((normalized.items[0] as any).total_filtered_count, 10) || 0 : 0
         };
     } catch (error) {
         console.error("Failed to fetch miscellaneous transactions:", error);
