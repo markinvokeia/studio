@@ -1635,7 +1635,7 @@
       "balance": "Balance"
     },
     "title": "Miscellaneous Transactions",
-    "description": "Some miscellaneous transactions",
+    "description": "All miscellaneous transactions",
     "filters": {
       "dateRange": "Date Range",
       "pending": "Pending",
