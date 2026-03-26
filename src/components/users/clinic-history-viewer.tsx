@@ -76,6 +76,7 @@ import {
     ZoomIn,
     ZoomOut,
 } from 'lucide-react';
+import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '@/constants/files';
 import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import * as React from 'react';
@@ -143,6 +144,7 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
         doctors,
         isLoadingDoctors,
         isSubmittingSession,
+        getSessionAttachment,
     } = useClinicHistory();
 
     React.useEffect(() => {
@@ -233,6 +235,7 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
                                 onDeleteSession={deleteSession}
                                 onFetchDoctors={fetchDoctors}
                                 onRefreshAll={refreshAll}
+                                onLoadSessionAttachment={getSessionAttachment}
                             />
                         )}
                         {activeView === 'odontogram' && (
@@ -1441,6 +1444,86 @@ function AnamnesisSection({
     );
 }
 
+// Image Viewer with zoom/pan controls
+interface ImageViewerWithControlsProps {
+    src: string;
+    alt: string;
+}
+
+function ImageViewerWithControls({ src, alt }: ImageViewerWithControlsProps) {
+    const [zoom, setZoom] = React.useState(1);
+    const [position, setPosition] = React.useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = React.useState(false);
+    const [dragStart, setDragStart] = React.useState({ x: 0, y: 0 });
+    const containerRef = React.useRef<HTMLDivElement>(null);
+
+    const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+    };
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        setPosition({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y,
+        });
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        setZoom((prev) => Math.max(0.1, Math.min(prev * zoomFactor, 5)));
+    };
+
+    const zoomIn = () => setZoom((prev) => Math.min(prev + 0.2, 5));
+    const zoomOut = () => setZoom((prev) => Math.max(prev - 0.2, 0.1));
+    const resetView = () => { setZoom(1); setPosition({ x: 0, y: 0 }); };
+
+    return (
+        <div 
+            ref={containerRef}
+            className="flex-1 w-full h-full overflow-hidden flex items-center justify-center relative bg-muted/20 cursor-grab"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+        >
+            <img
+                src={src}
+                alt={alt}
+                className="max-w-full max-h-full object-contain transform-gpu"
+                style={{ 
+                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                    transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                }}
+                draggable={false}
+            />
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-background/80 p-2 rounded-lg backdrop-blur-sm border shadow-md">
+                <Button variant="outline" size="icon" onClick={zoomOut} title="Alejar">
+                    <ZoomOut className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium w-16 text-center bg-transparent select-none">
+                    {(zoom * 100).toFixed(0)}%
+                </span>
+                <Button variant="outline" size="icon" onClick={zoomIn} title="Acercar">
+                    <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={resetView} title="Centrar">
+                    <RotateCcw className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 // Treatment Timeline Component with CRUD
 interface TreatmentTimelineProps {
     sessions: PatientSession[];
@@ -1454,9 +1537,10 @@ interface TreatmentTimelineProps {
     onDeleteSession: (sessionId: number, userId: string) => Promise<void>;
     onFetchDoctors: () => Promise<void>;
     onRefreshAll: (userId: string) => Promise<void>;
+    onLoadSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1484,6 +1568,65 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
     const [existingAttachments, setExistingAttachments] = React.useState<any[]>([]);
     const [deletedAttachmentIds, setDeletedAttachmentIds] = React.useState<string[]>([]);
     const [sessionDoctorError, setSessionDoctorError] = React.useState(false);
+
+    // Attachment viewer state
+    const [viewingAttachment, setViewingAttachment] = React.useState<{ id: string; name: string; mimeType?: string } | null>(null);
+    const [attachmentContent, setAttachmentContent] = React.useState<string | null>(null);
+    const [isLoadingAttachment, setIsLoadingAttachment] = React.useState(false);
+
+    // Helper to convert blob to base64
+    const blobToBase64 = (blob: Blob): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    };
+
+    // Handle viewing an attachment from timeline
+    const handleViewTimelineAttachment = async (attachment: any, sessionId: number) => {
+        const attachmentId = attachment.id || attachment.ruta;
+        setViewingAttachment({ 
+            id: attachmentId, 
+            name: attachment.file_name || attachment.nombre || attachment.name || 'Attachment',
+            mimeType: attachment.mime_type || attachment.tipo
+        });
+        setIsLoadingAttachment(true);
+        try {
+            const blob = await onLoadSessionAttachment(String(sessionId), attachmentId);
+            const base64 = await blobToBase64(blob);
+            setAttachmentContent(base64);
+        } catch (error) {
+            console.error('Failed to load attachment:', error);
+            toast({ title: t('toast.error'), description: 'Failed to load attachment', variant: 'destructive' });
+            setAttachmentContent(null);
+        } finally {
+            setIsLoadingAttachment(false);
+        }
+    };
+
+    // Handle viewing an attachment from dialog
+    const handleViewDialogAttachment = async (attachment: any, sessionId: number) => {
+        const attachmentId = attachment.id || attachment.ruta;
+        setViewingAttachment({ 
+            id: attachmentId, 
+            name: attachment.file_name || attachment.nombre || attachment.name || 'Attachment',
+            mimeType: attachment.mime_type || attachment.tipo
+        });
+        setIsLoadingAttachment(true);
+        try {
+            const blob = await onLoadSessionAttachment(String(sessionId), attachmentId);
+            const base64 = await blobToBase64(blob);
+            setAttachmentContent(base64);
+        } catch (error) {
+            console.error('Failed to load attachment:', error);
+            toast({ title: tDialog('toast.error'), description: 'Failed to load attachment', variant: 'destructive' });
+            setAttachmentContent(null);
+        } finally {
+            setIsLoadingAttachment(false);
+        }
+    };
 
     const toggleItem = (id: string) => {
         setOpenItems(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
@@ -1590,7 +1733,31 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setAttachedFiles(prev => [...prev, ...Array.from(e.target.files || [])]);
+            const files = Array.from(e.target.files || []);
+            const validFiles: File[] = [];
+            const errors: string[] = [];
+
+            for (const file of files) {
+                if (file.size > MAX_FILE_SIZE) {
+                    errors.push(`${file.name}: El archivo excede el límite de ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
+                } else if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+                    errors.push(`${file.name}: Tipo de archivo no permitido`);
+                } else {
+                    validFiles.push(file);
+                }
+            }
+
+            if (errors.length > 0) {
+                toast({
+                    title: tDialog('fileUploadError') || 'Error al subir archivos',
+                    description: errors.join('\n'),
+                    variant: 'destructive',
+                });
+            }
+
+            if (validFiles.length > 0) {
+                setAttachedFiles(prev => [...prev, ...validFiles]);
+            }
         }
     };
 
@@ -1803,15 +1970,20 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                             </div>
                                                         </div>
                                                     )}
-                                                    {(session as any).attachments && (session as any).attachments.length > 0 && (
+                                                    {(session as any).archivos_adjuntos && (session as any).archivos_adjuntos.length > 0 && (
                                                         <div className="border-l-2 border-amber-500/50 pl-3 py-1 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
                                                             <div className="flex flex-wrap gap-1">
-                                                                {(session as any).attachments.map((att: any, i: number) => (
-                                                                    <span key={i} className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded">
+                                                                {(session as any).archivos_adjuntos.map((att: any, i: number) => (
+                                                                    <button
+                                                                        key={i}
+                                                                        type="button"
+                                                                        className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded hover:bg-muted/50 transition-colors cursor-pointer"
+                                                                        onClick={() => handleViewTimelineAttachment(att, session.sesion_id)}
+                                                                    >
                                                                         <FileText className="h-3 w-3 text-amber-500" />
-                                                                        {att.nombre || att.name || 'File'}
-                                                                    </span>
+                                                                        <span className="truncate max-w-[120px]">{att.file_name || att.nombre || att.name || 'File'}</span>
+                                                                    </button>
                                                                 ))}
                                                             </div>
                                                         </div>
@@ -2035,9 +2207,16 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('existingAttachments')}</Label>
                                                     <div className="flex flex-wrap gap-2">
                                                         {existingAttachments.map((attachment: any, idx: number) => (
-                                                            <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs">
-                                                                <File className="w-3 h-3" />
-                                                                <span className="truncate max-w-[100px]">{attachment.nombre || attachment.name || 'File'}</span>
+                                                            <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs group">
+                                                                <button
+                                                                    type="button"
+                                                                    className="flex items-center gap-1 hover:text-primary cursor-pointer"
+                                                                    onClick={() => handleViewDialogAttachment(attachment, editingSession?.sesion_id || 0)}
+                                                                >
+                                                                    <File className="w-3 h-3" />
+                                                                    <span className="truncate max-w-[100px]">{attachment.file_name || attachment.nombre || attachment.name || 'File'}</span>
+                                                                    <Eye className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                                </button>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
@@ -2109,6 +2288,40 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                             {tPage('common.delete')}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Attachment Viewer Modal */}
+            <Dialog open={!!viewingAttachment} onOpenChange={(open) => !open && setViewingAttachment(null)}>
+                <DialogContent maxWidth="4xl" className="h-[90vh] flex flex-col p-0">
+                    <DialogHeader>
+                        <DialogTitle>{viewingAttachment?.name}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="p-0 overflow-hidden flex-1 flex flex-col relative">
+                        {isLoadingAttachment ? (
+                            <div className="flex-1 flex flex-col items-center justify-center h-full gap-3">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm text-muted-foreground">Cargando documento...</p>
+                            </div>
+                        ) : attachmentContent ? (
+                            viewingAttachment?.mimeType?.startsWith('image/') || viewingAttachment?.name?.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                <ImageViewerWithControls 
+                                    src={attachmentContent} 
+                                    alt={viewingAttachment?.name || 'Document'} 
+                                />
+                            ) : (
+                                <iframe
+                                    src={attachmentContent}
+                                    className="w-full h-full"
+                                    title={viewingAttachment?.name}
+                                />
+                            )
+                        ) : (
+                            <div className="flex-1 flex flex-col items-center justify-center h-full">
+                                <p className="text-muted-foreground">No hay contenido disponible</p>
+                            </div>
+                        )}
+                    </DialogBody>
                 </DialogContent>
             </Dialog>
         </div>

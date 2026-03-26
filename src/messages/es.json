@@ -3050,7 +3050,8 @@
             "browseFiles": "o busque archivos",
             "existingAttachments": "Adjuntos existentes",
             "newAttachments": "Nuevos adjuntos",
-            "deleteConfirm": "¿Está seguro de que desea eliminar esta sesión? Esta acción no se puede deshacer."
+            "deleteConfirm": "¿Está seguro de que desea eliminar esta sesión? Esta acción no se puede deshacer.",
+            "fileUploadError": "Error al subir archivos"
         },
         "newFiles": "Nuevos Archivos",
         "existingFiles": "Archivos Existentes",

@@ -3050,7 +3050,8 @@
       "browseFiles": "or browse files",
       "existingAttachments": "Existing attachments",
       "newAttachments": "New attachments",
-      "deleteConfirm": "Are you sure you want to delete this session? This action cannot be undone."
+      "deleteConfirm": "Are you sure you want to delete this session? This action cannot be undone.",
+      "fileUploadError": "Error uploading files"
     },
     "newFiles": "New Files",
     "existingFiles": "Existing Files",
