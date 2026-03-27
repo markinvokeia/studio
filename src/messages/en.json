@@ -583,6 +583,15 @@
       "availableBalance": "Available Balance",
       "printFinancialSummary": "Print Financial Summary"
     },
+    "financialSummaryDialog": {
+      "title": "Print Financial Summary",
+      "description": "Select the date range for the financial report. Both fields are optional.",
+      "from": "From",
+      "to": "To",
+      "selectDate": "Select date",
+      "print": "Print",
+      "cancel": "Cancel"
+    },
     "description": "Manage all patients in the system.",
     "filterPlaceholder": "Filter patients by email...",
     "filterByPatient": "Filter by patient...",

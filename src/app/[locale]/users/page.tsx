@@ -439,7 +439,12 @@ export default function UsersPage() {
   const [dischargeDate, setDischargeDate] = React.useState<Date | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
   const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
-
+  const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
+  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -607,10 +612,31 @@ export default function UsersPage() {
     }
   };
 
-  const handlePrintFinancialSummary = async () => {
+  const handlePrintFinancialSummary = () => {
     if (!selectedUser) return;
+    setFinancialSummaryDateRange({ from: undefined, to: undefined });
+    setIsFinancialSummaryDialogOpen(true);
+  };
+
+  const handlePrintFinancialSummaryWithDates = async () => {
+    if (!selectedUser) return;
+    setIsPrintingFinancialSummary(true);
     try {
-      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, { user_id: selectedUser.id });
+      const params: Record<string, string> = { user_id: selectedUser.id };
+
+      if (financialSummaryDateRange.from) {
+        const dateFrom = new Date(financialSummaryDateRange.from);
+        dateFrom.setHours(0, 0, 0, 0);
+        params.from = dateFrom.toISOString();
+      }
+
+      if (financialSummaryDateRange.to) {
+        const dateTo = new Date(financialSummaryDateRange.to);
+        dateTo.setHours(23, 59, 59, 999);
+        params.to = dateTo.toISOString();
+      }
+
+      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, params);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -619,6 +645,7 @@ export default function UsersPage() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      setIsFinancialSummaryDialogOpen(false);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -626,6 +653,8 @@ export default function UsersPage() {
         description: 'Could not print the financial summary.',
       });
       console.error(error);
+    } finally {
+      setIsPrintingFinancialSummary(false);
     }
   };
 
@@ -1318,6 +1347,83 @@ export default function UsersPage() {
               }}
             >
               {t('ClinicHistoryPage.discharge.cancelButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isFinancialSummaryDialogOpen} onOpenChange={setIsFinancialSummaryDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{t('UsersPage.financialSummaryDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {t('UsersPage.financialSummaryDialog.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="grid grid-cols-2 gap-4 px-4 pt-4">
+              <div className="space-y-2">
+                <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !financialSummaryDateRange.from && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {financialSummaryDateRange.from ? format(financialSummaryDateRange.from, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePicker
+                      mode="single"
+                      selected={financialSummaryDateRange.from}
+                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, from: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('UsersPage.financialSummaryDialog.to')}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !financialSummaryDateRange.to && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {financialSummaryDateRange.to ? format(financialSummaryDateRange.to, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePicker
+                      mode="single"
+                      selected={financialSummaryDateRange.to}
+                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, to: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button onClick={handlePrintFinancialSummaryWithDates} disabled={isPrintingFinancialSummary}>
+              {isPrintingFinancialSummary ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
+              {t('UsersPage.financialSummaryDialog.print')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsFinancialSummaryDialogOpen(false)}
+            >
+              {t('UsersPage.financialSummaryDialog.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>

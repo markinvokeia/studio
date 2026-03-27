@@ -583,6 +583,15 @@
             "availableBalance": "Saldo Disponible",
             "printFinancialSummary": "Imprimir Resumen Financiero"
         },
+        "financialSummaryDialog": {
+            "title": "Imprimir Resumen Financiero",
+            "description": "Seleccione el rango de fechas para el reporte financiero. Ambos campos son opcionales.",
+            "from": "Desde",
+            "to": "Hasta",
+            "selectDate": "Seleccionar fecha",
+            "print": "Imprimir",
+            "cancel": "Cancelar"
+        },
         "description": "Gestionar todos los pacientes en el sistema.",
         "filterPlaceholder": "Filtrar pacientes por correo...",
         "filterByPatient": "Filtrar por paciente...",
