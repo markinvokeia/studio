@@ -7,7 +7,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
-import { Appointment, User, Service } from '@/lib/types';
+import { Appointment, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -59,26 +59,56 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
   },
 ];
 
-async function getAppointmentsForUser(user: User | null): Promise<Appointment[]> {
-  if (!user || !user.email) return [];
+const CALENDAR_COLORS = [
+  'hsl(210, 80%, 55%)',
+  'hsl(150, 70%, 45%)',
+  'hsl(340, 80%, 60%)',
+  'hsl(45, 90%, 55%)',
+  'hsl(270, 70%, 65%)',
+  'hsl(180, 60%, 40%)',
+  'hsl(0, 75%, 55%)',
+];
+
+async function getCalendars(): Promise<CalendarType[]> {
+  try {
+    const data = await api.get(API_ROUTES.CALENDARS);
+    const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
+    return calendarsData.map((apiCalendar: any, index: number) => ({
+      id: apiCalendar.id || apiCalendar.google_calendar_id,
+      name: apiCalendar.name,
+      google_calendar_id: apiCalendar.google_calendar_id,
+      is_active: apiCalendar.is_active,
+      color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
+    }));
+  } catch (error) {
+    console.error("Failed to fetch calendars:", error);
+    return [];
+  }
+}
+
+async function getAppointmentsForUser(
+  user: User | null,
+  calendarGoogleIds: string[]
+): Promise<Appointment[]> {
+  if (!user || !user.id) return [];
 
   const now = new Date();
   const startDate = addMonths(now, -6);
   const endDate = addMonths(now, 6);
   const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
-  const params = new URLSearchParams({
-    startingDateAndTime: formatDateForAPI(startDate),
-    endingDateAndTime: formatDateForAPI(endDate),
-    patientId: String(user.id),
-  });
-
   try {
-    const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
+    const query: Record<string, string> = {
       startingDateAndTime: formatDateForAPI(startDate),
       endingDateAndTime: formatDateForAPI(endDate),
-      patientId: String(user.id),
-    });
+      user_id: String(user.id),
+    };
+
+    if (calendarGoogleIds.length > 0) {
+      query.calendar_ids = calendarGoogleIds.join(',');
+    }
+
+    const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
     let appointmentsData: any[] = [];
 
     if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
@@ -159,21 +189,41 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
   const tStatus = useTranslations('AppointmentStatus');
   const tAppointmentsPage = useTranslations('AppointmentsPage');
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
+  const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
   const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
 
+  const loadCalendars = React.useCallback(async () => {
+    const fetchedCalendars = await getCalendars();
+    setCalendars(fetchedCalendars);
+  }, []);
+
   const loadAppointments = React.useCallback(async () => {
     if (!user) return;
     setIsLoading(true);
-    const fetchedAppointments = await getAppointmentsForUser(user);
+
+    const googleCalendarIds = calendars
+      .map(c => c.google_calendar_id)
+      .filter((id): id is string => !!id);
+
+    const fetchedAppointments = await getAppointmentsForUser(user, googleCalendarIds);
     setAppointments(fetchedAppointments);
     setIsLoading(false);
-  }, [user]);
+  }, [user, calendars]);
 
   React.useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+    const init = async () => {
+      await loadCalendars();
+    };
+    init();
+  }, [loadCalendars]);
+
+  React.useEffect(() => {
+    if (calendars.length > 0) {
+      loadAppointments();
+    }
+  }, [calendars, loadAppointments]);
 
   if (isLoading) {
     return (
