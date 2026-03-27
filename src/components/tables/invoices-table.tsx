@@ -469,7 +469,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         invoice_currency: invoiceCurrency,
         payment_currency: invoiceCurrency,
         exchange_rate: initialExchangeRate,
-        is_historical: false,
+        is_historical: invoice.is_historical || false,
       });
       setPaymentSubmissionError(null);
       setAppliedCredits(new Map());
