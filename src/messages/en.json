@@ -1467,6 +1467,8 @@
       "prefillLast": "Prefill with Last Closing Cashup",
       "cashCountTitle": "Cash Count ({currency})",
       "cashCountDescription": "Enter the physical cash count for each denomination.",
+      "uyuCountTitle": "UYU Count",
+      "usdCountTitle": "USD Count",
       "steps": {
         "config": "Configuration",
         "countUYU": "Cash Count (UYU)",

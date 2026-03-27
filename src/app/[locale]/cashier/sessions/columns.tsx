@@ -34,7 +34,8 @@ const formatDate = (dateString?: string): string => {
 const formatDateTime = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     try {
-        return format(parseISO(dateString), 'dd/MM/yyyy HH:mm');
+        const localDateString = dateString.replace('Z', '');
+        return format(parseISO(localDateString), 'dd/MM/yyyy HH:mm');
     } catch (error) {
         return dateString;
     }

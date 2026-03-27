@@ -10,9 +10,10 @@ export function formatDateTime(date: string | Date | null | undefined): string {
   if (!date) return 'N/A';
 
   try {
-    const d = typeof date === 'string' ? parseISO(date) : date;
+    const dateString = typeof date === 'string' ? date.replace('Z', '') : String(date);
+    const d = typeof date === 'string' ? parseISO(dateString) : date;
     if (isNaN(d.getTime())) return 'Invalid Date';
-    return format(d, 'yyyy-MM-dd HH:mm');
+    return format(d, 'dd/MM/yyyy HH:mm');
   } catch (error) {
     console.error('Error formatting date:', error);
     return 'Invalid Date';

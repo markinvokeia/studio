@@ -19,7 +19,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
@@ -56,15 +56,6 @@ const USD_IMAGES: Record<number, string> = {
     10: '/billetes/usd/USD_billete_10.svg',
     5: '/billetes/usd/USD_billete_5.svg',
     1: '/billetes/usd/USD_billete_1.svg',
-};
-
-const formatDateTime = (dateString: string | Date | undefined | null): string => {
-    if (!dateString) return 'N/A';
-    try {
-        return format(new Date(dateString), 'dd/MM/yyyy HH:mm');
-    } catch (error) {
-        return String(dateString);
-    }
 };
 
 type OpenSessionStep = 'CONFIG' | 'COUNT_UYU' | 'COUNT_USD' | 'CONFIRM';
@@ -982,7 +973,7 @@ const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesC
             </CardHeader>
             <CardContent>
                 <DenominationCounter
-                    title={`${currency} Count`}
+                    title={currency === 'UYU' ? t('wizard.uyuCountTitle') : t('wizard.usdCountTitle')}
                     denominations={denominations}
                     coins={coins}
                     currency={currency}

@@ -1467,6 +1467,8 @@
             "prefillLast": "Rellenar con último cierre",
             "cashCountTitle": "Conteo de Efectivo ({currency})",
             "cashCountDescription": "Ingrese el conteo físico de efectivo para cada denominación.",
+            "uyuCountTitle": "Conteo UYU",
+            "usdCountTitle": "Conteo USD",
             "steps": {
                 "config": "Configuración",
                 "countUYU": "Conteo de Efectivo (UYU)",
