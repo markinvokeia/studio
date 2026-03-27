@@ -21,6 +21,25 @@ export type User = {
   bank_account?: string;
 };
 
+export type CurrencyFinancialData = {
+  total_paid: number;
+  current_debt: number;
+  account_status: number;
+  total_invoiced: number;
+  available_balance: number;
+  total_credit_notes: number;
+};
+
+export type UserFinancialData = {
+  USD?: CurrencyFinancialData;
+  UYU?: CurrencyFinancialData;
+};
+
+export type UserFinancial = {
+  user_id: string;
+  financial_data: UserFinancialData;
+};
+
 export type UserPermission = {
   permission: string;
   action: string;

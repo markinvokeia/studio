@@ -42,7 +42,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PatientDischarge, Quote, User, UserRole } from '@/lib/types';
+import { PatientDischarge, Quote, User, UserFinancial, UserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -91,7 +91,7 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
+const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null }) => {
   const [isOpen, setIsOpen] = React.useState(true);
 
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
@@ -125,25 +125,37 @@ const UserStats = ({ user, t }: { user: User, t: (key: string) => string }) => {
   const stats = [
     {
       title: t('UsersPage.stats.totalInvoiced'),
-      value: user.total_invoiced,
+      value: {
+        USD: financialData?.financial_data?.USD?.total_invoiced ?? 0,
+        UYU: financialData?.financial_data?.UYU?.total_invoiced ?? 0,
+      },
       icon: Receipt,
       color: 'text-foreground'
     },
     {
       title: t('UsersPage.stats.totalPaid'),
-      value: user.total_paid,
+      value: {
+        USD: financialData?.financial_data?.USD?.total_paid ?? 0,
+        UYU: financialData?.financial_data?.UYU?.total_paid ?? 0,
+      },
       icon: DollarSign,
       color: 'text-emerald-600'
     },
     {
       title: t('UsersPage.stats.currentDebt'),
-      value: user.current_debt,
+      value: {
+        USD: financialData?.financial_data?.USD?.current_debt ?? 0,
+        UYU: financialData?.financial_data?.UYU?.current_debt ?? 0,
+      },
       icon: CreditCard,
       color: 'text-rose-600'
     },
     {
       title: t('UsersPage.stats.availableBalance'),
-      value: user.available_balance,
+      value: {
+        USD: financialData?.financial_data?.USD?.available_balance ?? 0,
+        UYU: financialData?.financial_data?.UYU?.available_balance ?? 0,
+      },
       icon: Banknote,
       color: 'text-foreground'
     },
@@ -445,6 +457,8 @@ export default function UsersPage() {
     to: undefined,
   });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
+  const [userFinancialData, setUserFinancialData] = React.useState<UserFinancial | null>(null);
+  const [isLoadingFinancialData, setIsLoadingFinancialData] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -522,6 +536,23 @@ export default function UsersPage() {
     } catch (error) {
       console.error("Failed to fetch patient discharge:", error);
       setCurrentDischarge(null);
+    }
+  }, []);
+
+  const fetchUserFinancialData = React.useCallback(async (userId: string) => {
+    setIsLoadingFinancialData(true);
+    try {
+      const data = await api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId });
+      if (data && Array.isArray(data) && data.length > 0) {
+        setUserFinancialData(data[0] as UserFinancial);
+      } else {
+        setUserFinancialData(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch user financial data:", error);
+      setUserFinancialData(null);
+    } finally {
+      setIsLoadingFinancialData(false);
     }
   }, []);
 
@@ -754,11 +785,13 @@ export default function UsersPage() {
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
       fetchPatientDischarge(selectedUser.id);
+      fetchUserFinancialData(selectedUser.id);
     } else {
       setSelectedUserRoles([]);
       setCurrentDischarge(null);
+      setUserFinancialData(null);
     }
-  }, [selectedUser, loadUserRoles, fetchPatientDischarge]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -1053,7 +1086,7 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserStats user={selectedUser} t={t} />
+                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} />
                       <Tabs defaultValue="clinical-history" className="w-full flex-1 flex flex-col min-h-0">
                         <TabsList className="gap-1">
                           {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-2 py-1">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}

@@ -10,6 +10,7 @@ export const API_ROUTES = {
     FILTER_USERS: '/filter_users',
     USER_CREDIT: '/user_credit',
     USER_FINANCIAL_SUMMARY_PRINT: '/user/financial-summary/print',
+    USER_FINANCIAL: '/user_financial',
     CALENDARS: '/calendars',
     CALENDARS_UPSERT: '/calendarios/upsert',
     CALENDARS_DELETE: '/calendarios/delete',
