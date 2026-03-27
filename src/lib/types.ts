@@ -19,6 +19,8 @@ export type User = {
   address?: string;
   alternative_phone?: string;
   bank_account?: string;
+  mutual_society_id?: string | number;
+  mutual_society_name?: string;
 };
 
 export type CurrencyFinancialData = {
@@ -696,6 +698,16 @@ export type MiscellaneousTransaction = {
   is_recurring?: boolean;
   recurrence_pattern?: string;
   completed_at?: string;
+};
+
+export type MutualSociety = {
+  id: string | number;
+  name: string;
+  description?: string;
+  code: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
 };
 
 

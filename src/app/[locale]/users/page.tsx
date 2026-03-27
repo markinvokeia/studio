@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
@@ -42,7 +43,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PatientDischarge, Quote, User, UserFinancial, UserRole } from '@/lib/types';
+import { PatientDischarge, Quote, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -282,6 +283,8 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       current_debt: apiUser.current_debt,
       available_balance: apiUser.available_balance,
       notes: apiUser.notes,
+      mutual_society_id: apiUser.mutual_society_id,
+      mutual_society_name: apiUser.mutual_society_name,
     }));
 
     return { users: mappedUsers, total };
@@ -317,6 +320,41 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
     }));
   } catch (error) {
     console.error("Failed to fetch user roles:", error);
+    return [];
+  }
+}
+
+async function getMutualSocietiesList(): Promise<MutualSociety[]> {
+  try {
+    const data = await api.get(API_ROUTES.MUTUAL_SOCIETIES, { page: '1', limit: '1000' });
+    
+    let mutualSocietiesData: any[] = [];
+    
+    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'id' in data[0] && !('json' in data[0])) {
+      mutualSocietiesData = data;
+    } else if (Array.isArray(data) && data.length > 0) {
+      const firstElement = data[0];
+      if (firstElement.json && typeof firstElement.json === 'object') {
+        mutualSocietiesData = firstElement.json.data || [];
+      } else if (firstElement.data) {
+        mutualSocietiesData = firstElement.data;
+      }
+    } else if (typeof data === 'object' && data !== null) {
+      const responseObj = data[0]?.json || data;
+      mutualSocietiesData = responseObj.data || [];
+    }
+
+    return mutualSocietiesData.map((ms: any) => ({
+      id: ms.id,
+      name: ms.name,
+      description: ms.description,
+      code: ms.code,
+      is_active: ms.is_active ?? true,
+      created_at: ms.created_at,
+      updated_at: ms.updated_at,
+    })).filter((ms: MutualSociety) => ms.id !== undefined && ms.id !== null && ms.is_active);
+  } catch (error) {
+    console.error("Failed to fetch mutual societies:", error);
     return [];
   }
 }
@@ -490,6 +528,16 @@ export default function UsersPage() {
   const canCreateNote = hasPermission(PATIENTS_PERMISSIONS.CREATE_NOTE);
   const canUpdateNote = hasPermission(PATIENTS_PERMISSIONS.UPDATE_NOTE);
   const canDeleteNote = hasPermission(PATIENTS_PERMISSIONS.DELETE_NOTE);
+
+  const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
+  const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
+
+  const loadMutualSocieties = React.useCallback(async () => {
+    setIsLoadingMutualSocieties(true);
+    const societies = await getMutualSocietiesList();
+    setMutualSocieties(societies);
+    setIsLoadingMutualSocieties(false);
+  }, []);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -786,12 +834,13 @@ export default function UsersPage() {
       loadUserRoles(selectedUser.id);
       fetchPatientDischarge(selectedUser.id);
       fetchUserFinancialData(selectedUser.id);
+      loadMutualSocieties();
     } else {
       setSelectedUserRoles([]);
       setCurrentDischarge(null);
       setUserFinancialData(null);
     }
-  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData, loadMutualSocieties]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -1077,6 +1126,41 @@ export default function UsersPage() {
                       <Printer className="h-4 w-4 mr-1" />
                       {t('UsersPage.stats.printFinancialSummary')}
                     </Button>
+                    <Select
+                      onValueChange={async (value) => {
+                        const societyId = value === 'none' ? null : value;
+                        if (selectedUser && societyId) {
+                          try {
+                            await api.post(API_ROUTES.MUTUAL_SOCIETIES_ASSIGN_USER, {
+                              id: societyId,
+                              user_id: selectedUser.id,
+                            });
+                            setSelectedUser({ ...selectedUser, mutual_society_id: societyId });
+                            toast({
+                              title: t('UsersPage.mutualSociety.toast.success'),
+                            });
+                          } catch (error) {
+                            toast({
+                              variant: 'destructive',
+                              title: t('UsersPage.mutualSociety.toast.error'),
+                            });
+                          }
+                        }
+                      }}
+                      value={selectedUser?.mutual_society_id?.toString() || ''}
+                    >
+                      <SelectTrigger className="w-[180px] h-8">
+                        <SelectValue placeholder={t('UsersPage.mutualSociety.select')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                        {mutualSocieties.map((ms) => (
+                          <SelectItem key={ms.id} value={String(ms.id)}>
+                            {ms.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('UsersPage.close')}</span>
