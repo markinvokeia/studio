@@ -15,6 +15,43 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
+const dialogWindowControlClassName =
+  "group inline-flex h-7 w-7 items-center justify-center rounded-full text-accent-foreground opacity-70 ring-offset-background transition-all hover:bg-white/10 hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+
+const MacExpandIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M6.25 9.75 3.5 12.5" />
+    <path d="M9.75 6.25 12.5 3.5" />
+    <path d="M10.25 3.5H12.5V5.75" />
+    <path d="M5.75 12.5H3.5V10.25" />
+  </svg>
+)
+
+const MacRestoreIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M3.5 12.5 6.25 9.75" />
+    <path d="M12.5 3.5 9.75 6.25" />
+    <path d="M3.5 10.25V12.5H5.75" />
+    <path d="M12.5 5.75V3.5H10.25" />
+  </svg>
+)
+
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -34,8 +71,12 @@ const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl" | "5xl" | "6xl" | "7xl" | "full";
     showMaximize?: boolean;
+    maximizeLabel?: string;
+    restoreLabel?: string;
   }
->(({ className, children, maxWidth = "lg", showMaximize: _showMaximize, ...props }, ref) => {
+>(({ className, children, maxWidth = "lg", showMaximize = false, maximizeLabel = "Maximize", restoreLabel = "Restore", ...props }, ref) => {
+  const [isMaximized, setIsMaximized] = React.useState(false)
+
   const maxWidthClasses = {
     sm: "max-w-sm",
     md: "max-w-md",
@@ -50,16 +91,21 @@ const DialogContent = React.forwardRef<
     full: "max-w-full",
   };
 
+  const sizeToggleLabel = isMaximized ? restoreLabel : maximizeLabel
+
   return (
     <DialogPortal>
       <DialogOverlay />
       <DialogPrimitive.Content
         ref={ref}
+        data-maximized={isMaximized ? "true" : "false"}
         className={cn(
-          "fixed z-50 flex flex-col gap-0 border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 overflow-hidden transition-all",
-          "left-[50%] top-[50%] w-full max-h-[92vh] translate-x-[-50%] translate-y-[-50%] sm:rounded-md",
-          maxWidthClasses[maxWidth] || "max-w-lg",
-          className
+          "group/dialog fixed z-50 flex flex-col gap-0 border bg-background shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 overflow-hidden transition-all",
+          "left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]",
+          className,
+          isMaximized
+            ? "h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] rounded-xl"
+            : cn("w-full max-h-[92vh] sm:rounded-md", maxWidthClasses[maxWidth] || "max-w-lg")
         )}
         onPointerDownOutside={(event) => {
           event.preventDefault();
@@ -72,9 +118,25 @@ const DialogContent = React.forwardRef<
         <div className="flex flex-col flex-1 overflow-hidden relative">
           {children}
 
-          <div className="absolute right-4 top-2 flex items-center gap-1">
-            <DialogPrimitive.Close className="rounded-full p-2 text-accent-foreground opacity-70 ring-offset-background transition-all hover:opacity-100 focus:outline-none hover:bg-white/10">
-              <X className="h-4 w-4" />
+          <div className="absolute right-4 top-0 flex h-14 items-center gap-1">
+            {showMaximize && (
+              <button
+                type="button"
+                className={dialogWindowControlClassName}
+                onClick={() => setIsMaximized((currentValue) => !currentValue)}
+                aria-label={sizeToggleLabel}
+                title={sizeToggleLabel}
+              >
+                {isMaximized ? (
+                  <MacRestoreIcon className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-125" strokeWidth={1.9} />
+                ) : (
+                  <MacExpandIcon className="h-3.5 w-3.5 transition-transform duration-150 group-hover:scale-125" strokeWidth={1.9} />
+                )}
+                <span className="sr-only">{sizeToggleLabel}</span>
+              </button>
+            )}
+            <DialogPrimitive.Close className={dialogWindowControlClassName}>
+              <X className="h-4 w-4 transition-transform duration-150 group-hover:scale-110" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
           </div>

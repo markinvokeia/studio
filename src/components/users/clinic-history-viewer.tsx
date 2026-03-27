@@ -2001,17 +2001,22 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
 
             {/* Session Dialog */}
             <Dialog open={isSessionDialogOpen} onOpenChange={setIsSessionDialogOpen}>
-                <DialogContent maxWidth="4xl">
-                    <DialogHeader>
+                <DialogContent
+                    maxWidth="4xl"
+                    showMaximize
+                    maximizeLabel={tPage('viewer.maximize')}
+                    restoreLabel={tPage('viewer.restore')}
+                    className="h-[88vh] max-w-[95vw] p-0"
+                >
+                    <DialogHeader className="border-b px-6 py-4">
                         <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSaveSession}>
-                        <DialogBody className="space-y-4 px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <form onSubmit={handleSaveSession} className="flex h-full flex-col overflow-hidden">
+                        <DialogBody className="flex-1 overflow-hidden px-6 py-4">
+                            <div className="grid h-full min-h-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
                                 {/* Left Column: General Info */}
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
+                                <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
+                                    <div className="space-y-2">
                                             <Label>{tDialog('date')}</Label>
                                             <Popover>
                                                 <PopoverTrigger asChild>
@@ -2038,8 +2043,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                     />
                                                 </PopoverContent>
                                             </Popover>
-                                        </div>
-                                        <div className="space-y-2">
+                                    </div>
+                                    <div className="space-y-2">
                                             <Label>{tDialog('doctor')}</Label>
                                             <Select
                                                 value={sessionForm.doctor_id}
@@ -2062,24 +2067,23 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                        </div>
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 md:col-span-2">
                                         <Label>{tDialog('procedure')}</Label>
                                         <Textarea
                                             value={sessionForm.procedimiento_realizado}
                                             onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
                                             placeholder={tDialog('procedurePlaceholder')}
-                                            className="min-h-[150px] resize-y"
+                                            className="min-h-[180px] resize-y xl:min-h-[260px]"
                                         />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 md:col-span-2">
                                         <Label>{tDialog('nextSessionPlan')}</Label>
                                         <Textarea
                                             value={sessionForm.plan_proxima_cita}
                                             onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
                                             placeholder={tDialog('nextSessionPlanPlaceholder')}
-                                            className="min-h-[80px] resize-y"
+                                            className="min-h-[110px] resize-y xl:min-h-[160px]"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -2110,8 +2114,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                 </div>
 
                                 {/* Right Column: Treatments & Attachments */}
-                                <div className="space-y-4">
-                                    <Card className="shadow-none border bg-muted/5">
+                                <div className="flex min-h-0 flex-col gap-4">
+                                    <Card className="flex min-h-0 flex-1 flex-col shadow-none border bg-muted/5">
                                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
                                             <CardTitle className="text-sm font-bold">{tDialog('treatments') || 'Trabajos'}</CardTitle>
                                             <Button type="button" variant="ghost" size="sm" onClick={() => setSessionTreatments([...sessionTreatments, { numero_diente: '', descripcion: '' }])} className="h-7 px-2 text-xs">
@@ -2119,10 +2123,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                 {tDialog('addTreatment') || 'Añadir'}
                                             </Button>
                                         </CardHeader>
-                                        <CardContent className="p-2 pt-0">
-                                            <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
+                                        <CardContent className="flex-1 min-h-0 p-2 pt-0">
+                                            <div className="h-full min-h-[180px] overflow-y-auto pr-2 space-y-2">
                                                 {sessionTreatments.length === 0 ? (
-                                                    <div className="flex items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                    <div className="flex h-full min-h-[160px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
                                                         No treatments added yet.
                                                     </div>
                                                 ) : sessionTreatments.map((treatment, index) => (
@@ -2164,15 +2168,15 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                     </Card>
 
                                     {/* Attachments Section */}
-                                    <Card className="shadow-none border bg-muted/5">
+                                    <Card className="flex min-h-0 flex-[1.15] flex-col shadow-none border bg-muted/5">
                                         <CardHeader className="py-2 px-3">
                                             <CardTitle className="text-sm font-bold">{tDialog('attachments')}</CardTitle>
                                         </CardHeader>
-                                        <CardContent className="p-3">
+                                        <CardContent className="flex min-h-0 flex-1 flex-col p-3">
                                             {/* Drag and Drop Area */}
                                             <div
                                                 className={cn(
-                                                    "border-2 border-dashed rounded-lg p-4 transition-colors",
+                                                    "border-2 border-dashed rounded-lg p-4 transition-colors shrink-0",
                                                     isDragOverSession ? "border-primary bg-primary/10" : "border-muted-foreground/25"
                                                 )}
                                                 onDragOver={(e) => { e.preventDefault(); setIsDragOverSession(true); }}
@@ -2201,64 +2205,68 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                 </div>
                                             </div>
 
-                                            {/* Existing Attachments */}
-                                            {existingAttachments.length > 0 && (
-                                                <div className="mt-3 space-y-2">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('existingAttachments')}</Label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {existingAttachments.map((attachment: any, idx: number) => (
-                                                            <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs group">
-                                                                <button
-                                                                    type="button"
-                                                                    className="flex items-center gap-1 hover:text-primary cursor-pointer"
-                                                                    onClick={() => handleViewDialogAttachment(attachment, editingSession?.sesion_id || 0)}
-                                                                >
-                                                                    <File className="w-3 h-3" />
-                                                                    <span className="truncate max-w-[100px]">{attachment.file_name || attachment.nombre || attachment.name || 'File'}</span>
-                                                                    <Eye className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                                </button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-4 w-4 text-destructive"
-                                                                    onClick={() => handleDeleteExistingAttachment(attachment.id)}
-                                                                >
-                                                                    <X className="h-3 w-3" />
-                                                                </Button>
+                                            <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
+                                                {existingAttachments.length > 0 && (
+                                                    <div className="min-h-0 flex-1 space-y-2">
+                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('existingAttachments')}</Label>
+                                                        <div className="max-h-full overflow-y-auto">
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {existingAttachments.map((attachment: any, idx: number) => (
+                                                                    <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs group">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="flex items-center gap-1 hover:text-primary cursor-pointer"
+                                                                            onClick={() => handleViewDialogAttachment(attachment, editingSession?.sesion_id || 0)}
+                                                                        >
+                                                                            <File className="w-3 h-3" />
+                                                                            <span className="truncate max-w-[160px]">{attachment.file_name || attachment.nombre || attachment.name || 'File'}</span>
+                                                                            <Eye className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+                                                                        </button>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-4 w-4 text-destructive"
+                                                                            onClick={() => handleDeleteExistingAttachment(attachment.id)}
+                                                                        >
+                                                                            <X className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
 
-                                            {/* New Attached Files */}
-                                            {attachedFiles.length > 0 && (
-                                                <div className="mt-3 space-y-2">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('newAttachments')}</Label>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {attachedFiles.map((file, idx) => (
-                                                            <div key={idx} className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs">
-                                                                <File className="w-3 h-3" />
-                                                                <span className="truncate max-w-[100px]">{file.name}</span>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    className="h-4 w-4"
-                                                                    onClick={() => handleRemoveNewFile(idx)}
-                                                                >
-                                                                    <X className="h-3 w-3" />
-                                                                </Button>
+                                                {attachedFiles.length > 0 && (
+                                                    <div className="min-h-0 flex-1 space-y-2">
+                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('newAttachments')}</Label>
+                                                        <div className="max-h-full overflow-y-auto">
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {attachedFiles.map((file, idx) => (
+                                                                    <div key={idx} className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs">
+                                                                        <File className="w-3 h-3" />
+                                                                        <span className="truncate max-w-[160px]">{file.name}</span>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="h-4 w-4"
+                                                                            onClick={() => handleRemoveNewFile(idx)}
+                                                                        >
+                                                                            <X className="h-3 w-3" />
+                                                                        </Button>
+                                                                    </div>
+                                                                ))}
                                                             </div>
-                                                        ))}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
+                                                )}
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </div>
                             </div>
                         </DialogBody>
-                        <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <DialogFooter className="mt-auto border-t bg-background px-6 py-3 shadow-[0_-1px_0_hsl(var(--border))] gap-2 sm:justify-end">
                             <Button type="button" variant="outline" onClick={() => setIsSessionDialogOpen(false)}>
                                 {tDialog('cancel')}
                             </Button>
