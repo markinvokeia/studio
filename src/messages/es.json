@@ -43,6 +43,7 @@
         "DoctorAvailabilityExceptions": "Excepciones de Disponibilidad",
         "Currencies": "Monedas y Tipos de Cambio",
         "Sequences": "Secuencias",
+        "MutualSocieties": "Sociedades Mutuales",
         "System": "Sistema",
         "SystemUsers": "Usuarios",
         "Roles": "Roles",
@@ -669,6 +670,17 @@
                 "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente",
                 "saveError": "Error al Guardar",
                 "saveErrorDescription": "No se pudieron guardar las notas. Por favor, inténtelo de nuevo"
+            },
+            "mutualSociety": "Sociedad Mutual",
+            "selectMutualSociety": "Seleccionar sociedad mutual",
+            "noMutualSociety": "Sin asignar"
+        },
+        "mutualSociety": {
+            "select": "Seleccionar sociedad",
+            "none": "Sin asignar",
+            "toast": {
+                "success": "Sociedad mutual actualizada",
+                "error": "Error al actualizar la sociedad mutual"
             }
         },
         "filters": {
@@ -4116,6 +4128,59 @@
         "description": "Las siguientes direcciones de correo electrónico no tienen el canal de email habilitado en sus preferencias de comunicación. Es posible que no reciban este mensaje:",
         "cancel": "Cancelar",
         "continueAnyway": "Enviar de Todos Modos"
+    },
+    "MutualSocietiesPage": {
+        "title": "Sociedades Mutuales",
+        "description": "Gestione el catálogo de sociedades mutuales para presupuestos y facturación.",
+        "filterPlaceholder": "Filtrar por nombre...",
+        "createDialog": {
+            "title": "Crear Sociedad Mutual",
+            "description": "Complete los detalles a continuación para agregar una nueva sociedad mutual.",
+            "editTitle": "Editar Sociedad Mutual",
+            "editDescription": "Actualice los detalles de esta sociedad mutual.",
+            "name": "Nombre",
+            "namePlaceholder": "ej., Blue Cross",
+            "description": "Descripción",
+            "descriptionPlaceholder": "Ingrese una descripción opcional",
+            "code": "Código",
+            "codePlaceholder": "ej., BC001",
+            "isActive": "Activo",
+            "cancel": "Cancelar",
+            "save": "Crear Sociedad",
+            "editSave": "Guardar Cambios"
+        },
+        "deleteDialog": {
+            "title": "¿Está seguro?",
+            "description": "Esto eliminará permanentemente la sociedad mutual \"{name}\". Esta acción no se puede deshacer.",
+            "cancel": "Cancelar",
+            "confirm": "Eliminar"
+        },
+        "toast": {
+            "errorTitle": "Error",
+            "genericError": "Ocurrió un error inesperado.",
+            "createSuccessTitle": "Sociedad Mutual Creada",
+            "editSuccessTitle": "Sociedad Mutual Actualizada",
+            "successDescription": "La sociedad mutual \"{name}\" se ha guardado exitosamente.",
+            "deleteSuccessTitle": "Sociedad Mutual Eliminada",
+            "deleteSuccessDescription": "La sociedad mutual \"{name}\" ha sido eliminada.",
+            "deleteErrorDescription": "No se pudo eliminar la sociedad mutual."
+        },
+        "validation": {
+            "nameRequired": "El nombre es obligatorio.",
+            "codeRequired": "El código es obligatorio."
+        }
+    },
+    "MutualSocietiesColumns": {
+        "id": "ID",
+        "name": "Nombre",
+        "description": "Descripción",
+        "code": "Código",
+        "isActive": "Activo",
+        "createdAt": "Fecha de Creación",
+        "updatedAt": "Fecha de Actualización",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar"
     },
     "Common": {
         "accessDenied": "Acceso Denegado",
