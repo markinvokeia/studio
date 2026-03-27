@@ -1515,6 +1515,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
             <DialogContent
                 maxWidth="4xl"
                 showMaximize
+                maximizeLabel={tPage('viewer.maximize')}
+                restoreLabel={tPage('viewer.restore')}
+                className="h-[88vh] max-w-[95vw] p-0"
                 onDragOver={(e: React.DragEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -1563,16 +1566,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                     }
                 }}
             >
-                <DialogHeader className="py-4 px-6">
+                <DialogHeader className="border-b py-4 px-6">
                     <DialogTitle>{session ? t('editTitle') : t('createTitle')}</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(handleSave)} className="flex flex-col h-full overflow-hidden">
-                        <DialogBody className="space-y-3 px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-2">
-                                <div className="space-y-3">
+                    <form onSubmit={form.handleSubmit(handleSave)} className="flex h-full flex-col overflow-hidden">
+                        <DialogBody className="flex-1 overflow-hidden px-6 py-4">
+                            <div className="grid h-full min-h-0 grid-cols-1 gap-4 py-2 xl:grid-cols-[minmax(0,1.1fr)_minmax(340px,0.9fr)]">
+                                <div className="grid min-h-0 content-start gap-3 md:grid-cols-2">
                                     <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
-                                        <FormItem className="flex flex-col mb-2">
+                                        <FormItem className="mb-2 flex flex-col">
                                             <FormLabel className="text-xs font-semibold">{t('date')}</FormLabel>
                                             <Popover>
                                                 <PopoverTrigger asChild>
@@ -1606,28 +1609,28 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
-                                        <FormItem className="mb-2">
+                                        <FormItem className="mb-2 md:col-span-2">
                                             <FormLabel className="text-xs font-semibold">{t('procedure')}</FormLabel>
                                             <FormControl><Input {...field} value={field.value ?? ''} className="h-8" /></FormControl>
                                             <FormMessage className="text-[10px]" />
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="diagnostico" render={({ field }) => (
-                                        <FormItem className="mb-2">
+                                        <FormItem className="mb-2 md:col-span-2">
                                             <FormLabel className="text-xs font-semibold">{t('diagnosis')}</FormLabel>
-                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[110px] xl:min-h-[150px]" /></FormControl>
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="notas_clinicas" render={({ field }) => (
-                                        <FormItem className="mb-2">
+                                        <FormItem className="mb-2 md:col-span-2">
                                             <FormLabel className="text-xs font-semibold">{t('notes')}</FormLabel>
-                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[110px] xl:min-h-[150px]" /></FormControl>
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="plan_proxima_cita" render={({ field }) => (
-                                        <FormItem className="mb-2">
+                                        <FormItem className="mb-2 md:col-span-2">
                                             <FormLabel className="text-xs font-semibold">{t('nextSessionPlan')}</FormLabel>
-                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[60px]" /></FormControl>
+                                            <FormControl><Textarea {...field} value={field.value ?? ''} rows={2} className="min-h-[110px] xl:min-h-[150px]" /></FormControl>
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="fecha_proxima_cita" render={({ field }) => (
@@ -1650,8 +1653,8 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                         </FormItem>
                                     )} />
                                 </div>
-                                <div className="space-y-3">
-                                    <Card className="shadow-none border bg-muted/5">
+                                <div className="flex min-h-0 flex-col gap-3">
+                                    <Card className="flex min-h-0 flex-1 flex-col shadow-none border bg-muted/5">
                                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
                                             <CardTitle className="text-sm font-bold">{t('treatments')}</CardTitle>
                                             <Button type="button" variant="ghost" size="sm" onClick={() => append({ tratamiento_id: undefined, descripcion: '', numero_diente: '' })} className="h-7 px-2 text-xs">
@@ -1659,11 +1662,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                 {t('addTreatment')}
                                             </Button>
                                         </CardHeader>
-                                        <CardContent className="p-2 pt-0">
-                                            <ScrollArea className="h-40 pr-2">
+                                        <CardContent className="flex-1 min-h-0 p-2 pt-0">
+                                            <ScrollArea className="h-full min-h-[180px] pr-2">
                                                 <div className="space-y-2">
                                                     {fields.length === 0 ? (
-                                                        <div className="flex items-center justify-center py-8 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                        <div className="flex min-h-[160px] items-center justify-center py-8 text-xs text-muted-foreground italic border border-dashed rounded-md">
                                                             No treatments added yet.
                                                         </div>
                                                     ) : fields.map((field, index) => (
@@ -1701,16 +1704,16 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             </ScrollArea>
                                         </CardContent>
                                     </Card>
-                                    <Card className="shadow-none border bg-muted/5">
+                                    <Card className="flex min-h-0 flex-[1.15] flex-col shadow-none border bg-muted/5">
                                         <CardHeader className="py-2 px-3">
                                             <CardTitle className="text-sm font-bold">{t('attachments')}</CardTitle>
                                         </CardHeader>
-                                        <CardContent className="p-3">
+                                        <CardContent className="flex min-h-0 flex-1 flex-col p-3">
                                             {/* Área de drag and drop optimizada */}
                                             <label
                                                 id="session-attachments-label"
                                                 htmlFor="session-attachments"
-                                                className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
+                                                className={`flex h-24 w-full shrink-0 flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer transition-all duration-200 ${isDragOver
                                                     ? 'border-primary bg-primary/10 scale-[1.01]'
                                                     : 'border-muted-foreground/25 bg-muted/50 hover:bg-muted'
                                                     }`}
@@ -1729,11 +1732,11 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                     onChange={handleAttachmentFileChange}
                                                 />
                                             </label>
-                                            <div className="mt-3 space-y-2">
+                                            <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
                                                 {existingAttachments.length > 0 && (
-                                                    <div>
+                                                    <div className="min-h-0 flex-1">
                                                         <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('existingFiles')}</h4>
-                                                        <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
+                                                        <ScrollArea className="mt-1 h-full min-h-[96px] border rounded-md p-1 bg-background">
                                                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                                                                 {existingAttachments.map((file) => (
                                                                     <div key={`existing-${file.id}`} className="relative group aspect-square">
@@ -1754,9 +1757,9 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                                     </div>
                                                 )}
                                                 {newAttachments.length > 0 && (
-                                                    <div>
+                                                    <div className="min-h-0 flex-1">
                                                         <h4 className="font-bold text-[10px] uppercase text-muted-foreground mb-1">{tPage('newFiles')}</h4>
-                                                        <ScrollArea className="h-20 mt-1 border rounded-md p-1 bg-background">
+                                                        <ScrollArea className="mt-1 h-full min-h-[96px] border rounded-md p-1 bg-background">
                                                             <div className="grid grid-cols-4 sm:grid-cols-6 gap-1">
                                                                 {newAttachments.map((file, index) => (
                                                                     <div key={`new-${index}`} className="relative group aspect-square">
@@ -1782,12 +1785,14 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                 </div>
                             </div>
                         </DialogBody>
-                        <DialogFooter>
+                        <DialogFooter className="mt-auto border-t bg-background px-6 py-3 shadow-[0_-1px_0_hsl(var(--border))] gap-2 sm:justify-end">
+                            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                                {t('cancel')}
+                            </Button>
                             <Button type="submit" size="sm" disabled={isSubmitting}>
                                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {isSubmitting ? t('saving') : t('save')}
                             </Button>
-                            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
                         </DialogFooter>
                     </form>
                 </Form>
@@ -1804,6 +1809,7 @@ const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const imageRef = useRef<HTMLImageElement>(null);
+    const t = useTranslations('ClinicHistoryPage');
 
     useEffect(() => {
         if (isOpen) {
@@ -1949,7 +1955,13 @@ const DocumentViewerModal = ({ isOpen, onOpenChange, document, documentContent }
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent maxWidth="4xl" showMaximize className="h-[90vh] max-w-[95vw] flex flex-col p-0 gap-0">
+            <DialogContent
+                maxWidth="4xl"
+                showMaximize
+                maximizeLabel={t('viewer.maximize')}
+                restoreLabel={t('viewer.restore')}
+                className="h-[90vh] max-w-[95vw] flex flex-col p-0 gap-0"
+            >
                 <DialogHeader className="px-6 py-4 border-b bg-muted/10 flex-shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">

@@ -2975,6 +2975,10 @@
             "images": "Imágenes",
             "documents": "Documentos"
         },
+        "viewer": {
+            "maximize": "Ampliar ventana",
+            "restore": "Restaurar ventana"
+        },
         "common": {
             "cancel": "Cancelar",
             "save": "Guardar",
