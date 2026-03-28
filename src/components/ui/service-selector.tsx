@@ -106,7 +106,7 @@ export function ServiceSelector({
                     disabled={disabled}
                 >
                     {value && selectedService
-                        ? <span className="truncate max-w-[600px] block">{selectedService.name}</span>
+                        ? <span className="truncate">{selectedService.name}</span>
                         : triggerText}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -135,6 +135,8 @@ export function ServiceSelector({
                                             onSelect={() => handleSelect(service)}
                                         >
                                             <Check className={cn("mr-2 h-4 w-4", value === service.id ? "opacity-100" : "opacity-0")} />
+                                            <div className="flex flex-col truncate">
+                                                <span className="truncate">{service.name}</span>
                                             <div className="flex flex-col truncate">
                                                 <span className="truncate">{service.name}</span>
                                                 {service.category_name && (
