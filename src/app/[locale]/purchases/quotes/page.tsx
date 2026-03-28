@@ -1295,7 +1295,7 @@ function QuotesPageContent() {
                     setEditingQuote(null);
                 }
             }}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent showMaximize={true} maxWidth="6xl">
                     <DialogHeader>
                         <DialogTitle>{editingQuote ? t('quoteDialog.editTitle') : t('quoteDialog.createTitle')}</DialogTitle>
                         <DialogDescription>
@@ -1563,7 +1563,7 @@ function QuotesPageContent() {
 
             {/* Quote Item Dialog */}
             <Dialog open={isQuoteItemDialogOpen} onOpenChange={setIsQuoteItemDialogOpen}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuoteItem ? t('itemDialog.editTitle') : t('itemDialog.createTitle')}</DialogTitle>
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
