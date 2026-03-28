@@ -734,7 +734,9 @@
         "deactivate": "Desactivar",
         "identity_document": "Documento de Identidad",
         "currentDebt": "Deuda Actual",
-        "openMenu": "Abrir menú"
+        "openMenu": "Abrir menú",
+        "active": "Activo",
+        "inactive": "Inactivo"
     },
     "UserRoles": {
         "addRoles": "Marcar/Desmarcar Roles",
