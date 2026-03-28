@@ -978,7 +978,7 @@
             "currency": "Moneda",
             "exchangeRate": "Tasa de Cambio",
             "saving": "Guardando...",
-            "editSave": "Actualizar",
+            "editSave": "Guardar",
             "noUserFound": "No se encontraron usuarios.",
             "status": "Estado",
             "draft": "Borrador",
@@ -1060,9 +1060,6 @@
         "delete": "Eliminar",
         "detailsFor": "Detalles para {name}",
         "quoteId": "ID de Cotización",
-        "defaults": {
-            "notAvailable": "N/D"
-        },
         "tabs": {
             "items": "Artículos",
             "orders": "Órdenes",
@@ -1104,7 +1101,7 @@
             "edit": "Editar",
             "delete": "Eliminar",
             "noServiceFound": "No se han encontrado servicios",
-            "editSave": "Actualizar",
+            "editSave": "Guardar",
             "saving": "Guardando..."
         },
         "validation": {
@@ -1154,7 +1151,8 @@
             "noNotes": "No hay notas."
         },
         "defaults": {
-            "noEmail": "sin-correo@ejemplo.com"
+            "noEmail": "sin-correo@ejemplo.com",
+            "notAvailable": "N/D"
         }
     },
     "SalesQuotesPage": {
@@ -1671,7 +1669,7 @@
             "balance": "Balance"
         },
         "title": "Transacciones Misceláneas",
-        "description": "Todas las transacciones misceláneas",
+        "description": "Gestione las transacciones misceláneas",
         "filters": {
             "dateRange": "Rango de Fechas",
             "pending": "Pendientes",
@@ -2091,7 +2089,7 @@
             },
             "editTitle": "Editar Proveedor",
             "editDescription": "Edita un proveedor",
-            "editSave": "Actualizar",
+            "editSave": "Guardar",
             "editSuccessTitle": "Proveedor actualizado",
             "editSuccessDescription": "El proveedor ha sido actualizado exitosamente.",
             "createSuccessTitle": "Proveedor creado",
@@ -2694,7 +2692,7 @@
                 "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
                 "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
             },
-            "editSave": "Actualizar",
+            "editSave": "Guardar",
             "serverError": "Error del servidor, por favor inténtelo más tarde.",
             "errorTitle": "Error",
             "createSuccessTitle": "Usuario creado",
@@ -2831,7 +2829,7 @@
             "actions": {
                 "read": "Leer",
                 "create": "Crear",
-                "update": "Actualizar",
+                "update": "Guardar",
                 "delete": "Eliminar",
                 "manage": "Gestionar"
             }
@@ -3300,7 +3298,7 @@
                 "dateTo": "Hasta"
             },
             "createNew": "Crear Nuevo",
-            "refresh": "Actualizar",
+            "refresh": "Guardar",
             "common": {
                 "delete": "Eliminar",
                 "confirmDelete": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
@@ -3955,7 +3953,7 @@
             "previewExample": "Ejemplo: ",
             "cancel": "Cancelar",
             "save": "Crear",
-            "editSave": "Actualizar"
+            "editSave": "Guardar"
         },
         "deleteDialog": {
             "title": "Eliminar Secuencia",
@@ -4021,7 +4019,7 @@
             "clearAll": "Limpiar todos"
         },
         "createNew": "Crear Nuevo",
-        "refresh": "Actualizar",
+        "refresh": "Guardar",
         "toast": {
             "createSuccessTitle": "Secuencia Creada",
             "createSuccessDescription": "La secuencia ha sido creada exitosamente.",
@@ -4154,7 +4152,6 @@
             "editDescription": "Actualice los detalles de esta sociedad mutual.",
             "name": "Nombre",
             "namePlaceholder": "ej., Blue Cross",
-            "description": "Descripción",
             "descriptionPlaceholder": "Ingrese una descripción opcional",
             "code": "Código",
             "codePlaceholder": "ej., BC001",

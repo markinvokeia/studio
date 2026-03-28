@@ -978,7 +978,7 @@
       "currency": "Currency",
       "exchangeRate": "Exchange Rate",
       "saving": "Saving...",
-      "editSave": "Update",
+      "editSave": "Save",
       "noUserFound": "No users found.",
       "status": "Status",
       "draft": "Draft",
@@ -1060,9 +1060,6 @@
     "delete": "Delete",
     "detailsFor": "Details for {name}",
     "quoteId": "No. Document",
-    "defaults": {
-      "notAvailable": "N/A"
-    },
     "tabs": {
       "items": "Items",
       "orders": "Orders",
@@ -1104,7 +1101,7 @@
       "edit": "Edit",
       "delete": "Delete",
       "noServiceFound": "No service found",
-      "editSave": "Update",
+      "editSave": "Save",
       "saving": "Saving..."
     },
     "validation": {
@@ -1154,7 +1151,8 @@
       "noNotes": "No notes."
     },
     "defaults": {
-      "noEmail": "no-email@example.com"
+      "noEmail": "no-email@example.com",
+      "notAvailable": "N/A"
     }
   },
   "SalesQuotesPage": {
@@ -1671,7 +1669,7 @@
       "balance": "Balance"
     },
     "title": "Miscellaneous Transactions",
-    "description": "All miscellaneous transactions",
+    "description": "Manage miscellaneous transactions",
     "filters": {
       "dateRange": "Date Range",
       "pending": "Pending",
@@ -2091,7 +2089,7 @@
       },
       "editTitle": "Edit Provider",
       "editDescription": "Edit a provider",
-      "editSave": "Update",
+      "editSave": "Save",
       "editSuccessTitle": "Provider edited",
       "editSuccessDescription": "The provider has been updated successfully",
       "createSuccessTitle": "Provider created",
@@ -2694,7 +2692,7 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
-      "editSave": "Update",
+      "editSave": "Save",
       "serverError": "Server error, please try again later.",
       "errorTitle": "Error",
       "createSuccessTitle": "User created",
@@ -2831,7 +2829,7 @@
       "actions": {
         "read": "Read",
         "create": "Create",
-        "update": "Update",
+        "update": "Save",
         "delete": "Delete",
         "manage": "Manage"
       }
@@ -3954,7 +3952,7 @@
       "previewExample": "Example: ",
       "cancel": "Cancel",
       "save": "Create",
-      "editSave": "Update"
+      "editSave": "Save"
     },
     "deleteDialog": {
       "title": "Delete Sequence",
@@ -4153,7 +4151,6 @@
       "editDescription": "Update the details of this mutual society.",
       "name": "Name",
       "namePlaceholder": "e.g., Blue Cross",
-      "description": "Description",
       "descriptionPlaceholder": "Enter an optional description",
       "code": "Code",
       "codePlaceholder": "e.g., BC001",
