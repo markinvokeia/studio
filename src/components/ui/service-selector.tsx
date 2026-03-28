@@ -106,7 +106,7 @@ export function ServiceSelector({
                     disabled={disabled}
                 >
                     {value && selectedService
-                        ? <span className="truncate">{selectedService.name}</span>
+                        ? <span className="truncate max-w-[600px] block">{selectedService.name}</span>
                         : triggerText}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>

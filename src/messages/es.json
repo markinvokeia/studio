@@ -1140,6 +1140,10 @@
         "notes": {
             "noNotes": "No hay notas."
         },
+        "placeholders": {
+            "total": "0.00",
+            "exchangeRate": "1.00"
+        },
         "defaults": {
             "noEmail": "sin-correo@ejemplo.com",
             "notAvailable": "N/D"

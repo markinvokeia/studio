@@ -43,6 +43,11 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('service')} />
       ),
+      cell: ({ row }) => (
+        <div className="truncate max-w-[600px]" title={row.getValue('service_name')}>
+          {row.getValue('service_name')}
+        </div>
+      ),
     },
     {
       accessorKey: 'quantity',
