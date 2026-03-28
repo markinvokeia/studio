@@ -141,6 +141,7 @@ export function ServiceSelector({
                                                 <span className="truncate">{service.name}</span>
                                                 {service.category_name && (
                                                     <span className="text-xs text-muted-foreground truncate">
+                                                    <span className="text-xs text-muted-foreground truncate">
                                                         {service.category_name}
                                                     </span>
                                                 )}
