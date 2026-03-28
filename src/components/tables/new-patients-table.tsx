@@ -43,7 +43,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
     ),
     cell: ({ row }) => (
       <Badge variant={row.getValue('is_active') ? 'default' : 'outline'}>
-        {row.getValue('is_active') ? t('active') : t('inactive')}
+        {row.getValue('is_active') ? t('UserColumns.active') : t('UserColumns.inactive')}
       </Badge>
     ),
   },
