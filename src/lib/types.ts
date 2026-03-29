@@ -574,6 +574,7 @@ export type PatientSession = {
   fecha_proxima_cita?: string;
   doctor_id: string | null;
   doctor_name?: string;
+  nombre_doctor?: string;
   estado_odontograma?: any;
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];

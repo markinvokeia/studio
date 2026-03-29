@@ -3134,7 +3134,7 @@
         "error": "Error deleting session"
       },
       "nextSessionPlan": "Next Session Plan",
-      "nextSessionDate": "Next Session Date",
+      "nextSessionDate": "Date",
       "addSession": "Add Session",
       "noSessions": "No sessions recorded",
       "noTitle": "Untitled",
