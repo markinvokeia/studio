@@ -156,18 +156,18 @@
 }
 
 
-.day-view-header-assignees {
+.day-view-header-groups {
   display: grid;
 }
 
-.day-view-assignee-cell {
+.day-view-group-cell {
   text-align: center;
   padding: 0.25rem;
   font-size: 0.8rem;
   border-right: 1px solid var(--border);
 }
 
-.day-view-assignee-cell:last-child {
+.day-view-group-cell:last-child {
   border-right: none;
 }
 

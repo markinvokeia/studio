@@ -44,17 +44,26 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 
-interface CalendarEvent {
+export type CalendarGroupBy = 'none' | 'doctor' | 'calendar';
+
+export interface CalendarEvent {
   id: string;
   title: string;
   start: Date | string;
   end: Date | string;
   color?: string;
   colorId?: string;
-  assignee?: string;
+  doctorGroupId?: string;
+  calendarGroupId?: string;
   totalColumns?: number;
   column?: number;
   data?: any;
+}
+
+export interface CalendarGroupingColumn {
+  id: string;
+  label: string;
+  value: string;
 }
 
 interface CalendarProps {
@@ -64,16 +73,24 @@ interface CalendarProps {
   isLoading?: boolean;
   onEventClick: (event: any) => void;
   onViewChange?: (view: 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule') => void;
-  assignees?: { id: string; name: string; email: string }[];
-  selectedAssignees?: string[];
-  onSelectedAssigneesChange?: (assignees: string[]) => void;
-  group?: boolean;
-  onGroupChange?: (group: boolean) => void;
+  groupBy?: CalendarGroupBy;
+  groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
   onSlotClick?: (date: Date) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange, onSlotClick }) => {
+const Calendar: React.FC<CalendarProps> = ({
+  events = [],
+  onDateChange,
+  children,
+  isLoading = false,
+  onEventClick,
+  onViewChange,
+  groupBy = 'none',
+  groupingColumns = [],
+  onEventColorChange,
+  onSlotClick
+}) => {
   const t = useTranslations('Calendar');
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
@@ -346,8 +363,15 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
 
     const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
-    const columns = group ? assignees.filter((a) => selectedAssignees.includes(a.id)) : [{ id: 'all', name: t('all'), email: 'all' }];
-    const numColumnsPerDay = group ? columns.length : 1;
+    const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
+    const columns = isGrouped ? groupingColumns : [{ id: 'all', label: t('all'), value: 'all' }];
+    const numColumnsPerDay = columns.length;
+
+    const getEventGroupValue = (event: CalendarEvent) => {
+      if (groupBy === 'doctor') return event.doctorGroupId;
+      if (groupBy === 'calendar') return event.calendarGroupId;
+      return undefined;
+    };
 
     const getEventStyle = (event: CalendarEvent) => {
       const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
@@ -380,20 +404,20 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
               </div>
             ))}
           </div>
-          {group && (
-            <div className="day-view-header-assignees" style={{ gridTemplateColumns: `60px repeat(${days.length * numColumnsPerDay}, 1fr)` }}>
+          {isGrouped && (
+            <div className="day-view-header-groups" style={{ gridTemplateColumns: `60px repeat(${days.length * numColumnsPerDay}, 1fr)` }}>
               <div />
               {days.map(day => (
                 columns.length > 0 ? columns.map(col => (
-                  <div key={`assignee-${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-view-assignee-cell">
-                    {col.name}
+                  <div key={`group-${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-view-group-cell">
+                    {col.label}
                   </div>
-                )) : <div key={`assignee-empty-${format(day, 'yyyy-MM-dd')}`} className="day-view-assignee-cell"></div>
+                )) : <div key={`group-empty-${format(day, 'yyyy-MM-dd')}`} className="day-view-group-cell"></div>
               ))}
             </div>
           )}
         </div>
-        <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as any}>
+        <div className="day-view-body" style={{ '--num-days': days.length * numColumnsPerDay } as any}>
           <div className="time-column">
             {timeSlots.map(time => {
               const hour24 = parseInt(time.split(':')[0], 10);
@@ -411,9 +435,12 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
               )
             })}
           </div>
-          {days.map((day, dayIndex) => (
-            group && columns.length > 0 ? columns.map(col => {
-              const dayColEvents = events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day) && e.assignee === col.email);
+          {days.map(day => (
+            isGrouped && columns.length > 0 ? columns.map(col => {
+              const dayColEvents = events.filter((event: CalendarEvent) => {
+                const eventStart = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+                return isSameDay(eventStart, day) && getEventGroupValue(event) === col.value;
+              });
               const eventsWithLayout = getEventsWithLayout(dayColEvents);
 
               return (
@@ -629,9 +656,9 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
                     {format(typeof event.start === 'string' ? parseISO(event.start) : event.start, 'p', { locale: dateLocale })}
                   </div>
                   <div className="flex-1 text-sm">{event.title}</div>
-                  {event.assignee && (
+                  {event.data?.doctorName && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{assignees.find((a) => a.email === event.assignee)?.name || event.assignee}</span>
+                      <span>{event.data.doctorName}</span>
                     </div>
                   )}
                 </div>
