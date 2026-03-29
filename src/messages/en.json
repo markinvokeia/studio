@@ -333,9 +333,18 @@
       "cancel": "Cancel"
     },
     "assignees": "Assignees",
+    "doctors": "Doctors",
     "checking": "Checking",
     "deselectAll": "Deselect All",
     "groupByAssignee": "Group by Assignee",
+    "grouping": {
+      "label": "Group",
+      "options": {
+        "none": "No grouping",
+        "doctor": "Doctors",
+        "calendar": "Consulting rooms"
+      }
+    },
     "noSuggestions": "No suggestions",
     "search": "Search",
     "selectedServices": "Selected Services",

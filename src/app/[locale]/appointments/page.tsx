@@ -2,7 +2,7 @@
 'use client';
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
-import Calendar from '@/components/calendar/Calendar';
+import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn } from '@/components/calendar/Calendar';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,18 +26,16 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices, getUserServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
-import { ChevronDown, Edit, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, Edit, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { getAppointmentColumns } from './columns';
@@ -316,9 +314,8 @@ export default function AppointmentsPage() {
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
 
-    const [assignees, setAssignees] = React.useState<UserType[]>([]);
-    const [selectedAssignees, setSelectedAssignees] = React.useState<string[]>([]);
-    const [group, setGroup] = React.useState(false);
+    const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
+    const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState('month');
 
 
@@ -349,10 +346,16 @@ export default function AppointmentsPage() {
 
 
     React.useEffect(() => {
-        if (selectedAssignees.length === 0) {
-            setGroup(false);
+        if (groupBy === 'doctor' && selectedDoctorIds.length === 0) {
+            setGroupBy('none');
         }
-    }, [selectedAssignees]);
+    }, [groupBy, selectedDoctorIds]);
+
+    React.useEffect(() => {
+        if (groupBy === 'calendar' && selectedCalendarIds.length === 0) {
+            setGroupBy('none');
+        }
+    }, [groupBy, selectedCalendarIds]);
 
     const handleEventClick = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
@@ -407,7 +410,6 @@ export default function AppointmentsPage() {
         setCalendars(fetchedCalendars);
         setServices(fetchedServices);
         setDoctors(fetchedDoctors);
-        setAssignees(fetchedDoctors);
 
         if (Array.isArray(fetchedConfig)) {
             const calendarConfig = fetchedConfig.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
@@ -434,7 +436,7 @@ export default function AppointmentsPage() {
         }
         setDoctorServiceMap(serviceMap);
 
-        setSelectedAssignees(fetchedDoctors.map(d => d.id));
+        setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
         setSelectedCalendarIds(fetchedCalendars.map(c => c.id).filter(id => id));
         setIsDataLoading(false);
     }, []);
@@ -561,7 +563,13 @@ export default function AppointmentsPage() {
                     title: appt.summary || appt.service_name || 'Cita',
                     start,
                     end,
-                    assignee: appt.doctorEmail,
+                    doctorGroupId: appt.doctorId || undefined,
+                    calendarGroupId: calendars.find((calendar) =>
+                        calendar.id === appt.calendar_id ||
+                        calendar.id === appt.google_calendar_id ||
+                        calendar.google_calendar_id === appt.google_calendar_id ||
+                        calendar.google_calendar_id === appt.calendar_id
+                    )?.id || appt.calendar_id || appt.google_calendar_id || undefined,
                     data: appt,
                     color: appt.color,
                     colorId: appt.colorId,
@@ -570,19 +578,19 @@ export default function AppointmentsPage() {
                 console.error("Error parsing date/time for appointment", appt, e);
                 return null;
             }
-        }).filter(Boolean) as ({ id: string; title: string; start: Date; end: Date; assignee: string | undefined; data: Appointment; color?: string; colorId?: string })[];
+        }).filter((event): event is NonNullable<typeof event> => event !== null);
 
         console.log("Calendar events generated:", events);
         return events;
-    }, [appointments]);
+    }, [appointments, calendars]);
 
 
-    const handleSelectAssignee = React.useCallback((assigneeId: string, checked: boolean) => {
-        setSelectedAssignees(prev => {
+    const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
+        setSelectedDoctorIds(prev => {
             if (checked) {
-                return [...prev, assigneeId];
+                return [...prev, doctorId];
             } else {
-                return prev.filter(id => id !== assigneeId);
+                return prev.filter(id => id !== doctorId);
             }
         });
     }, []);
@@ -598,6 +606,38 @@ export default function AppointmentsPage() {
             }
         });
     }, []);
+
+    const doctorGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
+        return doctors
+            .filter((doctor) => selectedDoctorIds.includes(doctor.id))
+            .map((doctor) => ({
+                id: doctor.id,
+                label: doctor.name,
+                value: doctor.id,
+            }));
+    }, [doctors, selectedDoctorIds]);
+
+    const calendarGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
+        return calendars
+            .filter((calendar) => selectedCalendarIds.includes(calendar.id))
+            .map((calendar) => ({
+                id: calendar.id,
+                label: calendar.name,
+                value: calendar.id,
+            }));
+    }, [calendars, selectedCalendarIds]);
+
+    const groupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
+        if (groupBy === 'doctor') return doctorGroupingColumns;
+        if (groupBy === 'calendar') return calendarGroupingColumns;
+        return [];
+    }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
+
+    const groupByLabel = React.useMemo(() => {
+        if (groupBy === 'doctor') return t('grouping.options.doctor');
+        if (groupBy === 'calendar') return t('grouping.options.calendar');
+        return t('grouping.options.none');
+    }, [groupBy, t]);
 
     // Unused form logic removed
 
@@ -615,11 +655,8 @@ export default function AppointmentsPage() {
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
-                    assignees={assignees}
-                    selectedAssignees={selectedAssignees}
-                    onSelectedAssigneesChange={setSelectedAssignees}
-                    group={group}
-                    onGroupChange={setGroup}
+                    groupBy={groupBy}
+                    groupingColumns={groupingColumns}
                     onViewChange={setCurrentView}
                     onSlotClick={handleSlotClick}
                 >
@@ -675,7 +712,7 @@ export default function AppointmentsPage() {
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="flex items-center gap-2">
-                                            {t('assignees')}
+                                            {t('grouping.label')}: {groupByLabel}
                                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                         </Button>
                                     </PopoverTrigger>
@@ -683,19 +720,62 @@ export default function AppointmentsPage() {
                                         <Command>
                                             <CommandList>
                                                 <CommandGroup>
-                                                    <CommandItem onSelect={() => { if (selectedAssignees.length > 0) setGroup(!group) }} className="flex items-center gap-2">
-                                                        <Checkbox id="group-by-assignee" checked={group} onCheckedChange={(checked) => setGroup(typeof checked === 'boolean' ? checked : false)} disabled={selectedAssignees.length === 0} />
-                                                        <Label htmlFor="group-by-assignee" className={cn(selectedAssignees.length === 0 && 'text-muted-foreground')}>{t('groupByAssignee')}</Label>
+                                                    <CommandItem onSelect={() => setGroupBy('none')}>
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <span>{t('grouping.options.none')}</span>
+                                                            {groupBy === 'none' && <Check className="h-4 w-4" />}
+                                                        </div>
                                                     </CommandItem>
+                                                    <CommandItem
+                                                        onSelect={() => {
+                                                            if (doctorGroupingColumns.length > 0) {
+                                                                setGroupBy('doctor');
+                                                            }
+                                                        }}
+                                                        disabled={doctorGroupingColumns.length === 0}
+                                                    >
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <span>{t('grouping.options.doctor')}</span>
+                                                            {groupBy === 'doctor' && <Check className="h-4 w-4" />}
+                                                        </div>
+                                                    </CommandItem>
+                                                    <CommandItem
+                                                        onSelect={() => {
+                                                            if (calendarGroupingColumns.length > 0) {
+                                                                setGroupBy('calendar');
+                                                            }
+                                                        }}
+                                                        disabled={calendarGroupingColumns.length === 0}
+                                                    >
+                                                        <div className="flex items-center justify-between w-full">
+                                                            <span>{t('grouping.options.calendar')}</span>
+                                                            {groupBy === 'calendar' && <Check className="h-4 w-4" />}
+                                                        </div>
+                                                    </CommandItem>
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="flex items-center gap-2">
+                                            {t('doctors')}
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-56 p-2">
+                                        <Command>
+                                            <CommandList>
+                                                <CommandGroup>
+                                                    <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
+                                                    <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
                                                     <hr className="my-2" />
-                                                    <CommandItem onSelect={() => setSelectedAssignees(assignees.map(a => a.id))}>{t('selectAll')}</CommandItem>
-                                                    <CommandItem onSelect={() => setSelectedAssignees([])}>{t('deselectAll')}</CommandItem>
-                                                    <hr className="my-2" />
-                                                    {assignees.map((assignee) => (
-                                                        <CommandItem key={assignee.id} onSelect={() => handleSelectAssignee(assignee.id, !selectedAssignees.includes(assignee.id))}>
+                                                    {doctors.map((doctor) => (
+                                                        <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !selectedDoctorIds.includes(doctor.id))}>
                                                             <div className="flex items-center">
-                                                                <Checkbox checked={selectedAssignees.includes(assignee.id)} onCheckedChange={(checked) => handleSelectAssignee(assignee.id, !!checked)} />
-                                                                <span className="ml-2">{assignee.name}</span>
+                                                                <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
+                                                                <span className="ml-2">{doctor.name}</span>
                                                             </div>
                                                         </CommandItem>
                                                     ))}

@@ -333,9 +333,18 @@
             "cancel": "Cancelar"
         },
         "assignees": "Asignados",
+        "doctors": "Doctores",
         "checking": "Verificando",
         "deselectAll": "Deseleccionar Todo",
         "groupByAssignee": "Agrupar por Asignado",
+        "grouping": {
+            "label": "Agrupar",
+            "options": {
+                "none": "Sin agrupar",
+                "doctor": "Doctores",
+                "calendar": "Consultorios"
+            }
+        },
         "noSuggestions": "Sin sugerencias",
         "search": "Buscar",
         "selectedServices": "Servicios Seleccionados",
