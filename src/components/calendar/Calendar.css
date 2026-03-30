@@ -209,6 +209,13 @@
   column-gap: 0.1rem;
 }
 
+.day-view-header-spacer {
+  position: sticky;
+  left: 0;
+  z-index: 16;
+  background-color: hsl(var(--card));
+}
+
 .day-view-group-block {
   display: grid;
   background-color: hsl(var(--muted) / 0.25);
@@ -249,6 +256,10 @@
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background-color: hsl(var(--card));
 }
 
 .time-zone-label {
@@ -257,6 +268,10 @@
   color: hsl(var(--muted-foreground));
   text-align: center;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  left: 0;
+  z-index: 16;
+  background-color: hsl(var(--card));
 }
 
 .time-slot {
