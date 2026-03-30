@@ -422,7 +422,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 className="day-view-header-groups-by-day"
                 style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
               >
-                <div />
+                <div className="day-view-header-spacer" />
                 {days.map((day) => (
                   <div
                     key={`group-block-${format(day, 'yyyy-MM-dd')}`}
