@@ -52,6 +52,7 @@
     "AuditLog": "Audit Log",
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log",
+    "ImportData": "Import Data",
     "AlertsCenter": "Alerts Center",
     "AlertsConfig": "Alerts Configuration",
     "AlertCategories": "Alert Categories",
@@ -4120,5 +4121,92 @@
     "accessDenied": "Access Denied",
     "noPermission": "You do not have permission to access this page.",
     "loading": "Loading..."
+  },
+  "ImportPage": {
+    "title": "Import Data",
+    "description": "Bulk import records from a CSV file.",
+    "steps": {
+      "selectType": "Type",
+      "upload": "File",
+      "preview": "Preview",
+      "mapping": "Mapping",
+      "validate": "Validation",
+      "result": "Result"
+    },
+    "stepTitles": {
+      "selectType": "What type of data do you want to import?",
+      "upload": "Upload your CSV file",
+      "preview": "File preview",
+      "mapping": "Map the columns",
+      "validate": "Record validation",
+      "result": "Import completed"
+    },
+    "stepDescriptions": {
+      "selectType": "Select the entity you want to import to continue.",
+      "upload": "Download the example CSV to see the expected structure, then upload your file.",
+      "preview": "These are the first records detected in your file.",
+      "mapping": "Match each CSV column to the corresponding field in the system.",
+      "validate": "Review records before importing. You can proceed with only the valid ones.",
+      "result": "The import process has finished. Here is the summary."
+    },
+    "entityTypes": {
+      "patients": "Patients",
+      "services": "Services",
+      "quotes": "Quotes",
+      "invoices": "Invoices",
+      "payments": "Payments",
+      "appointments": "Appointments",
+      "clinicalSessions": "Clinical Sessions"
+    },
+    "upload": {
+      "exampleCsv": "Download example CSV",
+      "dragDrop": "Drag your file here or click to browse",
+      "dragActive": "Drop the file here",
+      "fileSelected": "File selected",
+      "changeFile": "Change file",
+      "acceptedFormat": "Only .csv files",
+      "maxSize": "Maximum size: 10 MB"
+    },
+    "preview": {
+      "showing": "Showing the first",
+      "rows": "records",
+      "totalRows": "Total records in file",
+      "columns": "Detected columns"
+    },
+    "mapping": {
+      "csvColumn": "CSV Column",
+      "entityField": "System Field",
+      "noMap": "Do not import",
+      "autoMapped": "Auto-mapped",
+      "unmapped": "Unmapped",
+      "required": "required",
+      "hint": "Hint"
+    },
+    "validate": {
+      "validRecords": "Valid records",
+      "invalidRecords": "Records with errors",
+      "totalRecords": "Total records",
+      "errorDetails": "Error details",
+      "row": "Row",
+      "field": "Field",
+      "error": "Error",
+      "importValid": "Import only valid records",
+      "fixCsv": "Fix CSV and re-upload",
+      "noErrors": "All records are valid!"
+    },
+    "result": {
+      "imported": "Successfully imported",
+      "skipped": "Skipped",
+      "errors": "With errors",
+      "total": "Total processed",
+      "close": "Close",
+      "importAnother": "Import another file"
+    },
+    "nav": {
+      "back": "Back",
+      "next": "Next",
+      "import": "Import",
+      "cancel": "Cancel"
+    }
   }
 }

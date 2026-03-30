@@ -52,6 +52,7 @@
         "AuditLog": "Registro de Auditoría",
         "AccessLog": "Registro de Acceso",
         "ErrorLog": "Registro de Errores",
+        "ImportData": "Importar Datos",
         "AlertsCenter": "Centro de Alertas",
         "AlertsConfig": "Configuración de Alertas",
         "AlertCategories": "Categorías de Alertas",
@@ -4121,5 +4122,92 @@
         "accessDenied": "Acceso Denegado",
         "noPermission": "No tienes permisos para acceder a esta página.",
         "loading": "Cargando..."
+    },
+    "ImportPage": {
+        "title": "Importar Datos",
+        "description": "Importá registros en masa desde un archivo CSV.",
+        "steps": {
+            "selectType": "Tipo",
+            "upload": "Archivo",
+            "preview": "Vista Previa",
+            "mapping": "Mapeo",
+            "validate": "Validación",
+            "result": "Resultado"
+        },
+        "stepTitles": {
+            "selectType": "¿Qué tipo de datos querés importar?",
+            "upload": "Subí tu archivo CSV",
+            "preview": "Vista previa del archivo",
+            "mapping": "Mapeá las columnas",
+            "validate": "Validación de registros",
+            "result": "Importación completada"
+        },
+        "stepDescriptions": {
+            "selectType": "Seleccioná la entidad que vas a importar para continuar.",
+            "upload": "Descargá el CSV de ejemplo para ver la estructura esperada, luego subí tu archivo.",
+            "preview": "Estos son los primeros registros detectados en tu archivo.",
+            "mapping": "Relacioná cada columna de tu CSV con el campo correspondiente en el sistema.",
+            "validate": "Revisá los registros antes de importar. Podés continuar solo con los válidos.",
+            "result": "El proceso de importación finalizó. Aquí el resumen."
+        },
+        "entityTypes": {
+            "patients": "Pacientes",
+            "services": "Servicios",
+            "quotes": "Presupuestos",
+            "invoices": "Facturas",
+            "payments": "Pagos",
+            "appointments": "Citas",
+            "clinicalSessions": "Sesiones Clínicas"
+        },
+        "upload": {
+            "exampleCsv": "Descargar CSV de ejemplo",
+            "dragDrop": "Arrastrá tu archivo aquí o hacé clic para buscar",
+            "dragActive": "Soltá el archivo aquí",
+            "fileSelected": "Archivo seleccionado",
+            "changeFile": "Cambiar archivo",
+            "acceptedFormat": "Solo archivos .csv",
+            "maxSize": "Tamaño máximo: 10 MB"
+        },
+        "preview": {
+            "showing": "Mostrando los primeros",
+            "rows": "registros",
+            "totalRows": "Total de registros en el archivo",
+            "columns": "Columnas detectadas"
+        },
+        "mapping": {
+            "csvColumn": "Columna del CSV",
+            "entityField": "Campo en el sistema",
+            "noMap": "No importar",
+            "autoMapped": "Auto-mapeado",
+            "unmapped": "Sin mapear",
+            "required": "requerido",
+            "hint": "Sugerencia"
+        },
+        "validate": {
+            "validRecords": "Registros válidos",
+            "invalidRecords": "Registros con errores",
+            "totalRecords": "Total de registros",
+            "errorDetails": "Detalle de errores",
+            "row": "Fila",
+            "field": "Campo",
+            "error": "Error",
+            "importValid": "Importar solo los válidos",
+            "fixCsv": "Corregir CSV y volver a subir",
+            "noErrors": "¡Todos los registros son válidos!"
+        },
+        "result": {
+            "imported": "Importados exitosamente",
+            "skipped": "Omitidos",
+            "errors": "Con errores",
+            "total": "Total procesados",
+            "close": "Cerrar",
+            "importAnother": "Importar otro archivo"
+        },
+        "nav": {
+            "back": "Anterior",
+            "next": "Siguiente",
+            "import": "Importar",
+            "cancel": "Cancelar"
+        }
     }
 }
