@@ -8,6 +8,9 @@ import { StepPreview } from '@/components/import/steps/StepPreview';
 import { StepMapColumns, buildAutoMapping, ColumnMapping } from '@/components/import/steps/StepMapColumns';
 import { StepValidate, validateData, ValidationResult } from '@/components/import/steps/StepValidate';
 import { StepResult, ImportResult } from '@/components/import/steps/StepResult';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -101,6 +104,8 @@ export function ImportWizard() {
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({});
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const { toast } = useToast();
 
   const schema = selectedType ? IMPORT_SCHEMAS[selectedType] : null;
 
@@ -163,16 +168,55 @@ export function ImportWizard() {
     setCurrentStep((s) => Math.max(s - 1, 0));
   }, []);
 
-  const handleImportValid = useCallback(() => {
-    if (!validationResult) return;
-    // Simulación: ir directo al resultado sin llamar al API
-    setImportResult({
-      imported: validationResult.valid,
-      skipped: validationResult.invalid,
-      errors: 0,
-    });
-    setCurrentStep(5);
-  }, [validationResult]);
+  const handleImportValid = useCallback(async () => {
+    if (!parsedData || !schema || !validationResult) return;
+    setIsImporting(true);
+    try {
+      // Build reverse mapping: field key → CSV header
+      const reverseMapping: Record<string, string> = {};
+      Object.entries(columnMapping).forEach(([csvHeader, fieldKey]) => {
+        if (fieldKey) reverseMapping[fieldKey] = csvHeader;
+      });
+
+      // Filter out invalid rows
+      const errorRows = new Set(validationResult.errors.map((e) => e.row - 1));
+      const validRows = parsedData.rows.filter((_, i) => !errorRows.has(i));
+
+      // Map each row to a record object using the column mapping
+      const records = validRows.map((row) => {
+        const record: Record<string, string> = {};
+        schema.fields.forEach((field) => {
+          const csvHeader = reverseMapping[field.key];
+          if (!csvHeader) return;
+          const colIndex = parsedData.headers.indexOf(csvHeader);
+          if (colIndex >= 0) record[field.key] = row[colIndex] ?? '';
+        });
+        return record;
+      });
+
+      const response = await api.post(API_ROUTES.SYSTEM.DATA_IMPORT, {
+        entity: schema.type,
+        records,
+      });
+
+      setImportResult({
+        inserted: response.inserted ?? 0,
+        updated: response.updated ?? 0,
+        skipped: response.skipped ?? 0,
+        errors: response.errors ?? 0,
+        error_details: response.error_details ?? [],
+      });
+      setCurrentStep(5);
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo completar la importación. Intente nuevamente.',
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  }, [parsedData, schema, validationResult, columnMapping, toast]);
 
   const handleFixCsv = useCallback(() => {
     setCurrentStep(1);
@@ -245,7 +289,8 @@ export function ImportWizard() {
 
           {importResult && currentStep === 5 && (
             <>
-              <Pill label="Importados" value={String(importResult.imported)} color="success" />
+              <Pill label="Insertados" value={String(importResult.inserted)} color="success" />
+              <Pill label="Actualizados" value={String(importResult.updated)} color="primary" />
               <Pill label="Omitidos" value={String(importResult.skipped)} color="muted" />
               <Pill label="Errores" value={String(importResult.errors)} color="danger" />
             </>
@@ -301,7 +346,7 @@ export function ImportWizard() {
             result={validationResult}
             onImportValid={handleImportValid}
             onFixCsv={handleFixCsv}
-            isImporting={false}
+            isImporting={isImporting}
           />
         )}
 

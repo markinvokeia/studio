@@ -4,9 +4,11 @@ import { CheckCircle2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export interface ImportResult {
-  imported: number;
+  inserted: number;
+  updated: number;
   skipped: number;
   errors: number;
+  error_details?: { row: number; name: string; error: string }[];
 }
 
 interface StepResultProps {
@@ -17,7 +19,7 @@ interface StepResultProps {
 
 export function StepResult({ result, onClose, onImportAnother }: StepResultProps) {
   const t = useTranslations('ImportPage.result');
-  const total = result.imported + result.skipped + result.errors;
+  const total = result.inserted + result.updated + result.skipped + result.errors;
   const allSuccessful = result.errors === 0 && result.skipped === 0;
 
   return (
@@ -45,20 +47,54 @@ export function StepResult({ result, onClose, onImportAnother }: StepResultProps
         </p>
       </div>
 
-      <div className="grid w-full max-w-sm grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-1 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/30 dark:bg-green-900/10">
-          <span className="text-2xl font-bold text-green-600 dark:text-green-400">{result.imported}</span>
-          <span className="text-xs text-green-600 dark:text-green-400">{t('imported')}</span>
+      {/* Stats grid */}
+      <div className="grid w-full max-w-lg grid-cols-4 gap-3">
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900/30 dark:bg-green-900/10">
+          <span className="text-2xl font-bold text-green-600 dark:text-green-400">{result.inserted}</span>
+          <span className="text-xs text-green-600 dark:text-green-400">{t('inserted')}</span>
         </div>
-        <div className="flex flex-col items-center gap-1 rounded-lg border bg-muted/40 p-4">
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/30 dark:bg-blue-900/10">
+          <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{result.updated}</span>
+          <span className="text-xs text-blue-600 dark:text-blue-400">{t('updated')}</span>
+        </div>
+        <div className="flex flex-col items-center gap-1 rounded-lg border bg-muted/40 p-3">
           <span className="text-2xl font-bold text-muted-foreground">{result.skipped}</span>
           <span className="text-xs text-muted-foreground">{t('skipped')}</span>
         </div>
-        <div className="flex flex-col items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
+        <div className="flex flex-col items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/30 dark:bg-red-900/10">
           <span className="text-2xl font-bold text-red-600 dark:text-red-400">{result.errors}</span>
           <span className="text-xs text-red-600 dark:text-red-400">{t('errors')}</span>
         </div>
       </div>
+
+      {/* Error details */}
+      {result.error_details && result.error_details.length > 0 && (
+        <div className="w-full overflow-hidden rounded-lg border text-left">
+          <div className="border-b bg-muted/50 px-4 py-2">
+            <p className="text-xs font-medium text-muted-foreground">Registros con error</p>
+          </div>
+          <div className="max-h-40 overflow-y-auto">
+            <table className="w-full text-xs">
+              <thead className="sticky top-0 bg-background">
+                <tr className="border-b">
+                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Fila</th>
+                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Nombre</th>
+                  <th className="px-4 py-2 text-left font-medium text-muted-foreground">Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.error_details.map((err, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="px-4 py-1.5 font-mono text-muted-foreground">{err.row}</td>
+                    <td className="px-4 py-1.5">{err.name || '—'}</td>
+                    <td className="px-4 py-1.5 text-destructive">{err.error}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3">
         <button

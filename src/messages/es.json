@@ -4277,7 +4277,8 @@
             "noErrors": "¡Todos los registros son válidos!"
         },
         "result": {
-            "imported": "Importados exitosamente",
+            "inserted": "Insertados",
+            "updated": "Actualizados",
             "skipped": "Omitidos",
             "errors": "Con errores",
             "total": "Total procesados",

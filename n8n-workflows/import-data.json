@@ -1,0 +1,326 @@
+{
+  "name": "Sistema - Importar Datos",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "system/data-import",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-prepare",
+      "name": "Preparar Registros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Extrae entity + records del body\nconst body = $input.first().json.body || $input.first().json;\nconst entity = String(body.entity || '').toLowerCase().trim();\nconst records = Array.isArray(body.records) ? body.records : [];\n\nif (records.length === 0) {\n  throw new Error('No se recibieron registros para importar');\n}\n\n// Agrega metadatos de tracking a cada registro\nreturn records.map((record, index) => ({\n  json: {\n    ...record,\n    _index: index + 1,\n    _entity: entity,\n    _status: 'pending',\n    _error: null,\n  }\n}));"
+      }
+    },
+    {
+      "id": "node-loop",
+      "name": "Loop por Registro",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [540, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "node-switch",
+      "name": "Switch: Entidad",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [760, 300],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": false,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._entity }}",
+                    "rightValue": "patients",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Pacientes"
+            }
+          ]
+        },
+        "fallbackOutput": "extra",
+        "looseTypeValidation": true
+      }
+    },
+    {
+      "id": "node-pg-select",
+      "name": "Buscar Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [980, 200],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM users WHERE is_sales = true AND (\n  (NULLIF($1, '') IS NOT NULL AND email = $1)\n  OR (NULLIF($2, '') IS NOT NULL AND phone_number = $2)\n  OR (NULLIF($3, '') IS NOT NULL AND identity_document = $3)\n  OR (NULLIF($4, '') IS NOT NULL AND internal_id = $4)\n) LIMIT 1",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $json.email ?? '',\n  $json.phone_number ?? '',\n  $json.identity_document ?? '',\n  $json.internal_id ?? ''\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "node-if-exists",
+      "name": "\u00bfPaciente Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1200, 200],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.id ?? '').toString() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-prep-update",
+      "name": "Preparar Actualizaci\u00f3n",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 100],
+      "parameters": {
+        "jsCode": "// Combina el id encontrado (SELECT result) con los datos originales del loop\nconst found = $input.first().json;\nconst original = $('Loop por Registro').item.json;\n\nreturn [{\n  json: {\n    _found_id:         found.id,\n    _index:            original._index,\n    _entity:           original._entity,\n    _name:             original.name || '',\n    name:              original.name              ?? '',\n    email:             original.email             ?? '',\n    phone_number:      original.phone_number      ?? '',\n    identity_document: original.identity_document ?? '',\n    internal_id:       original.internal_id       ?? '',\n    birthday:          original.birthday          ?? '',\n    address:           original.address           ?? '',\n    alternative_phone: original.alternative_phone ?? '',\n    notes:             original.notes             ?? '',\n    rut:               original.rut               ?? '',\n    bank_account:      original.bank_account      ?? '',\n    is_active:         original.is_active !== undefined ? String(original.is_active) : '',\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-pg-update",
+      "name": "Actualizar Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1640, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE users SET\n  name              = CASE WHEN $2  <> '' THEN $2                    ELSE name              END,\n  email             = CASE WHEN $3  <> '' THEN $3                    ELSE email             END,\n  phone_number      = CASE WHEN $4  <> '' THEN $4                    ELSE phone_number      END,\n  identity_document = CASE WHEN $5  <> '' THEN $5                    ELSE identity_document END,\n  internal_id       = CASE WHEN $6  <> '' THEN $6                    ELSE internal_id       END,\n  birthday          = CASE WHEN $7  <> '' THEN $7::date              ELSE birthday          END,\n  address           = CASE WHEN $8  <> '' THEN $8                    ELSE address           END,\n  alternative_phone = CASE WHEN $9  <> '' THEN $9                    ELSE alternative_phone END,\n  notes             = CASE WHEN $10 <> '' THEN $10                   ELSE notes             END,\n  rut               = CASE WHEN $11 <> '' THEN $11                   ELSE rut               END,\n  bank_account      = CASE WHEN $12 <> '' THEN $12                   ELSE bank_account      END,\n  is_active         = CASE WHEN $13 <> '' THEN $13::boolean          ELSE is_active         END,\n  updated_at        = CURRENT_TIMESTAMP\nWHERE id = $1::uuid\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $json._found_id,\n  $json.name,\n  $json.email,\n  $json.phone_number,\n  $json.identity_document,\n  $json.internal_id,\n  $json.birthday,\n  $json.address,\n  $json.alternative_phone,\n  $json.notes,\n  $json.rut,\n  $json.bank_account,\n  $json.is_active\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-tag-updated",
+      "name": "Marcar Actualizado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 100],
+      "parameters": {
+        "jsCode": "const prep   = $('Preparar Actualizaci\u00f3n').item.json;\nconst result = $input.first().json;\n\nif (result.error || !result.id) {\n  const msg = result.error?.message || String(result.error) || 'Error al actualizar registro';\n  return [{ json: { _index: prep._index, _entity: prep._entity, _status: 'error', _error: msg, _name: prep._name } }];\n}\n\nreturn [{ json: { _index: prep._index, _entity: prep._entity, _status: 'updated', _id: result.id, _name: prep._name } }];"
+      }
+    },
+    {
+      "id": "node-prep-insert",
+      "name": "Preparar Inserci\u00f3n",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 320],
+      "parameters": {
+        "jsCode": "// Recupera los datos originales del loop para preparar el INSERT\nconst original = $('Loop por Registro').item.json;\n\nreturn [{\n  json: {\n    _index:            original._index,\n    _entity:           original._entity,\n    _name:             original.name || '',\n    name:              original.name              ?? '',\n    email:             original.email             ?? '',\n    phone_number:      original.phone_number      ?? '',\n    identity_document: original.identity_document ?? '',\n    internal_id:       original.internal_id       ?? '',\n    birthday:          original.birthday          ?? '',\n    address:           original.address           ?? '',\n    alternative_phone: original.alternative_phone ?? '',\n    notes:             original.notes             ?? '',\n    rut:               original.rut               ?? '',\n    bank_account:      original.bank_account      ?? '',\n    is_active:         original.is_active !== undefined ? String(original.is_active) : '',\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-pg-insert",
+      "name": "Insertar Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1640, 320],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO users (\n  name, email, phone_number, identity_document, internal_id,\n  birthday, address, alternative_phone, notes, rut, bank_account,\n  is_active, is_sales\n) VALUES (\n  $1,\n  NULLIF($2,  ''),\n  NULLIF($3,  ''),\n  NULLIF($4,  ''),\n  NULLIF($5,  ''),\n  NULLIF($6,  '')::date,\n  NULLIF($7,  ''),\n  NULLIF($8,  ''),\n  NULLIF($9,  ''),\n  NULLIF($10, ''),\n  NULLIF($11, ''),\n  COALESCE(NULLIF($12, '')::boolean, true),\n  true\n)\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $json.name,\n  $json.email,\n  $json.phone_number,\n  $json.identity_document,\n  $json.internal_id,\n  $json.birthday,\n  $json.address,\n  $json.alternative_phone,\n  $json.notes,\n  $json.rut,\n  $json.bank_account,\n  $json.is_active\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-tag-inserted",
+      "name": "Marcar Insertado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 320],
+      "parameters": {
+        "jsCode": "const prep   = $('Preparar Inserci\u00f3n').item.json;\nconst result = $input.first().json;\n\nif (result.error || !result.id) {\n  const msg = result.error?.message || String(result.error) || 'Error al insertar registro';\n  return [{ json: { _index: prep._index, _entity: prep._entity, _status: 'error', _error: msg, _name: prep._name } }];\n}\n\nreturn [{ json: { _index: prep._index, _entity: prep._entity, _status: 'inserted', _id: result.id, _name: prep._name } }];"
+      }
+    },
+    {
+      "id": "node-unsupported",
+      "name": "Entidad No Soportada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 420],
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nreturn [{ json: {\n  _index:  item._index,\n  _entity: item._entity,\n  _status: 'skipped',\n  _error:  `Entidad '${item._entity}' no soportada en esta versi\u00f3n`,\n  _name:   item.name || ''\n} }];"
+      }
+    },
+    {
+      "id": "node-aggregate",
+      "name": "Agregar Resultados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 520],
+      "parameters": {
+        "jsCode": "// Recibe todos los items procesados del loop y genera el resumen\nconst items = $input.all();\n\nconst inserted = items.filter(i => i.json._status === 'inserted').length;\nconst updated  = items.filter(i => i.json._status === 'updated').length;\nconst skipped  = items.filter(i => i.json._status === 'skipped').length;\nconst errors   = items.filter(i => i.json._status === 'error').length;\nconst total    = items.length;\n\nconst error_details = items\n  .filter(i => i.json._status === 'error')\n  .map(i => ({\n    row:   i.json._index,\n    name:  i.json._name  || '',\n    error: i.json._error || 'Error desconocido',\n  }));\n\nreturn [{ json: { total, inserted, updated, skipped, errors, error_details } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 520],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Preparar Registros", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Registros": {
+      "main": [
+        [{ "node": "Loop por Registro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Loop por Registro": {
+      "main": [
+        [{ "node": "Switch: Entidad",    "type": "main", "index": 0 }],
+        [{ "node": "Agregar Resultados", "type": "main", "index": 0 }]
+      ]
+    },
+    "Switch: Entidad": {
+      "main": [
+        [{ "node": "Buscar Paciente",       "type": "main", "index": 0 }],
+        [{ "node": "Entidad No Soportada",  "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Paciente": {
+      "main": [
+        [{ "node": "\u00bfPaciente Existe?", "type": "main", "index": 0 }]
+      ]
+    },
+    "\u00bfPaciente Existe?": {
+      "main": [
+        [{ "node": "Preparar Actualizaci\u00f3n", "type": "main", "index": 0 }],
+        [{ "node": "Preparar Inserci\u00f3n",    "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Actualizaci\u00f3n": {
+      "main": [
+        [{ "node": "Actualizar Paciente", "type": "main", "index": 0 }]
+      ]
+    },
+    "Actualizar Paciente": {
+      "main": [
+        [{ "node": "Marcar Actualizado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Marcar Actualizado": {
+      "main": [
+        [{ "node": "Loop por Registro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Inserci\u00f3n": {
+      "main": [
+        [{ "node": "Insertar Paciente", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insertar Paciente": {
+      "main": [
+        [{ "node": "Marcar Insertado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Marcar Insertado": {
+      "main": [
+        [{ "node": "Loop por Registro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Entidad No Soportada": {
+      "main": [
+        [{ "node": "Loop por Registro", "type": "main", "index": 0 }]
+      ]
+    },
+    "Agregar Resultados": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión a la DB.\n2. En los nodos 'Buscar Paciente', 'Actualizar Paciente' e 'Insertar Paciente', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/system/data-import\n\nPAYLOAD ESPERADO:\n{ \"entity\": \"patients\", \"records\": [ { \"name\": \"...\", \"email\": \"...\" } ] }\n\nENTIDADES SOPORTADAS ACTUALMENTE:\n- patients (tabla public.users con is_sales=true)\n- Otras entidades retornan _status='skipped'\n\nRESPUESTA:\n{ \"total\": N, \"inserted\": N, \"updated\": N, \"skipped\": N, \"errors\": N, \"error_details\": [...] }"
+  }
+}
