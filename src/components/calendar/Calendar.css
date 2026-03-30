@@ -126,7 +126,7 @@
   flex-shrink: 0;
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 15;
   background-color: hsl(var(--card));
   border-bottom: 1px solid var(--border);
 }
@@ -366,7 +366,7 @@
   right: 0;
   display: flex;
   align-items: center;
-  z-index: 20;
+  z-index: 14;
   pointer-events: none;
 }
 
