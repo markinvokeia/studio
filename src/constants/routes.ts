@@ -309,4 +309,8 @@ export const API_ROUTES = {
     CLINIC_SCHEDULES_DELETE: '/clinicschedules/delete',
     SERVICES_UPSERT: '/catalogoservicios/upsert',
     SERVICES_DELETE: '/catalogoservicios/delete',
+    MUTUAL_SOCIETIES: '/mutual-societies',
+    MUTUAL_SOCIETIES_UPSERT: '/mutual-society',
+    MUTUAL_SOCIETIES_DELETE: '/mutual-society',
+    MUTUAL_SOCIETIES_ASSIGN_USER: '/mutual-society/user',
 };

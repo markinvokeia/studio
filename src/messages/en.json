@@ -43,6 +43,7 @@
     "DoctorAvailabilityExceptions": "Availability Exceptions",
     "Currencies": "Currencies & Exchange Rates",
     "Sequences": "Sequences",
+    "MutualSocieties": "Mutual Societies",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -678,6 +679,17 @@
         "saveSuccessDescription": "Patient notes have been updated successfully",
         "saveError": "Save Error",
         "saveErrorDescription": "Could not save notes. Please try again"
+      },
+      "mutualSociety": "Mutual Society",
+      "selectMutualSociety": "Select mutual society",
+      "noMutualSociety": "Not assigned"
+    },
+    "mutualSociety": {
+      "select": "Select society",
+      "none": "Not assigned",
+      "toast": {
+        "success": "Mutual society updated",
+        "error": "Error updating mutual society"
       }
     },
     "filters": {
@@ -731,7 +743,9 @@
     "deactivate": "Deactivate",
     "identity_document": "Identity Document",
     "currentDebt": "Current Debt",
-    "openMenu": "Open menu"
+    "openMenu": "Open menu",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "UserRoles": {
     "addRoles": "Mark/Unmark Roles",
@@ -965,7 +979,7 @@
       "currency": "Currency",
       "exchangeRate": "Exchange Rate",
       "saving": "Saving...",
-      "editSave": "Update",
+      "editSave": "Save",
       "noUserFound": "No users found.",
       "status": "Status",
       "draft": "Draft",
@@ -1047,9 +1061,6 @@
     "delete": "Delete",
     "detailsFor": "Details for {name}",
     "quoteId": "No. Document",
-    "defaults": {
-      "notAvailable": "N/A"
-    },
     "tabs": {
       "items": "Items",
       "orders": "Orders",
@@ -1091,7 +1102,7 @@
       "edit": "Edit",
       "delete": "Delete",
       "noServiceFound": "No service found",
-      "editSave": "Update",
+      "editSave": "Save",
       "saving": "Saving..."
     },
     "validation": {
@@ -1140,8 +1151,13 @@
     "notes": {
       "noNotes": "No notes."
     },
+    "placeholders": {
+      "total": "0.00",
+      "exchangeRate": "1.00"
+    },
     "defaults": {
-      "noEmail": "no-email@example.com"
+      "noEmail": "no-email@example.com",
+      "notAvailable": "N/A"
     }
   },
   "SalesQuotesPage": {
@@ -1658,7 +1674,7 @@
       "balance": "Balance"
     },
     "title": "Miscellaneous Transactions",
-    "description": "All miscellaneous transactions",
+    "description": "Manage miscellaneous transactions",
     "filters": {
       "dateRange": "Date Range",
       "pending": "Pending",
@@ -2078,7 +2094,7 @@
       },
       "editTitle": "Edit Provider",
       "editDescription": "Edit a provider",
-      "editSave": "Update",
+      "editSave": "Save",
       "editSuccessTitle": "Provider edited",
       "editSuccessDescription": "The provider has been updated successfully",
       "createSuccessTitle": "Provider created",
@@ -2681,7 +2697,7 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
-      "editSave": "Update",
+      "editSave": "Save",
       "serverError": "Server error, please try again later.",
       "errorTitle": "Error",
       "createSuccessTitle": "User created",
@@ -2818,7 +2834,7 @@
       "actions": {
         "read": "Read",
         "create": "Create",
-        "update": "Update",
+        "update": "Save",
         "delete": "Delete",
         "manage": "Manage"
       }
@@ -3117,7 +3133,7 @@
         "error": "Error deleting session"
       },
       "nextSessionPlan": "Next Session Plan",
-      "nextSessionDate": "Next Session Date",
+      "nextSessionDate": "Date",
       "addSession": "Add Session",
       "noSessions": "No sessions recorded",
       "noTitle": "Untitled",
@@ -3941,7 +3957,7 @@
       "previewExample": "Example: ",
       "cancel": "Cancel",
       "save": "Create",
-      "editSave": "Update"
+      "editSave": "Save"
     },
     "deleteDialog": {
       "title": "Delete Sequence",
@@ -4128,6 +4144,58 @@
     "description": "The following email addresses do not have the email channel enabled in their communication preferences. They may not receive this message:",
     "cancel": "Cancel",
     "continueAnyway": "Send Anyway"
+  },
+  "MutualSocietiesPage": {
+    "title": "Mutual Societies",
+    "description": "Manage the catalog of mutual societies for quotes and invoicing.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create Mutual Society",
+      "description": "Complete the details below to add a new mutual society.",
+      "editTitle": "Edit Mutual Society",
+      "editDescription": "Update the details of this mutual society.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Blue Cross",
+      "descriptionPlaceholder": "Enter an optional description",
+      "code": "Code",
+      "codePlaceholder": "e.g., BC001",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "save": "Create Society",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the mutual society \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Mutual Society Created",
+      "editSuccessTitle": "Mutual Society Updated",
+      "successDescription": "The mutual society \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Mutual Society Deleted",
+      "deleteSuccessDescription": "The mutual society \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the mutual society."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "codeRequired": "Code is required."
+    }
+  },
+  "MutualSocietiesColumns": {
+    "id": "ID",
+    "name": "Name",
+    "description": "Description",
+    "code": "Code",
+    "isActive": "Active",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "Common": {
     "accessDenied": "Access Denied",

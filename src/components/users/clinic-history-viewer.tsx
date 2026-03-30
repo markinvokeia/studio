@@ -1850,10 +1850,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                             <CalendarIcon className="h-3.5 w-3.5" />
                                                             {formatDate(session.fecha_sesion)}
                                                         </p>
-                                                        {session.doctor_name && (
+                                                        {(session.nombre_doctor || session.doctor_name) && (
                                                             <p className="text-sm text-muted-foreground flex items-center gap-1.5">
                                                                 <User className="h-3.5 w-3.5" />
-                                                                {session.doctor_name}
+                                                                {session.nombre_doctor || session.doctor_name}
                                                             </p>
                                                         )}
                                                     </div>
@@ -1905,30 +1905,33 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
                                                         </div>
                                                     )}
-                                                    {session.plan_proxima_cita && (
+                                                    {(session.plan_proxima_cita || session.fecha_proxima_cita) && (
                                                         <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-1">{t('nextPlan') || 'Plan próxima cita'}</p>
-                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.plan_proxima_cita}</p>
-                                                        </div>
-                                                    )}
-                                                    {session.fecha_proxima_cita && (
-                                                        <div className="border-l-2 border-indigo-400/50 pl-3 py-1 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-1">{t('nextSessionDate') || 'Fecha próxima cita'}</p>
-                                                            <p className="text-sm font-medium leading-relaxed">
-                                                                {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
-                                                            </p>
+                                                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
+                                                                {session.fecha_proxima_cita && (
+                                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                                                                        <CalendarIcon className="h-3 w-3" />
+                                                                        <span className="font-semibold">{t('nextSessionDate') || 'Fecha'}:</span>
+                                                                        {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {session.plan_proxima_cita && (
+                                                                <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{session.plan_proxima_cita}</p>
+                                                            )}
                                                         </div>
                                                     )}
                                                     {session.tratamientos && session.tratamientos.length > 0 && (
                                                         <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/50 dark:bg-green-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
-                                                            <div className="space-y-2">
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                                                 {session.tratamientos.map((tr: any, i: number) => (
-                                                                    <div key={i} className="bg-background/80 rounded-md p-2 border border-muted/50">
+                                                                    <div key={i} className="flex items-baseline gap-2 min-w-0">
                                                                         {tr.numero_diente && (
-                                                                            <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
+                                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
                                                                         )}
-                                                                        <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{tr.descripcion}</p>
+                                                                        <p className="text-sm leading-relaxed text-muted-foreground truncate" title={tr.descripcion}>{tr.descripcion}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>

@@ -1204,7 +1204,7 @@ export default function QuotesPage() {
                     setEditingQuote(null);
                 }
             }}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent showMaximize={true} maxWidth="6xl">
                     <DialogHeader>
                         <DialogTitle>{editingQuote ? t('quoteDialog.editTitle') : t('quoteDialog.createTitle')}</DialogTitle>
                         <DialogDescription>
@@ -1368,10 +1368,11 @@ export default function QuotesPage() {
                                                     {quoteFormFields.map((fieldItem, index) => (
                                                         <tr key={fieldItem.id} className="align-top">
                                                             <td className="p-1">
-                                                                <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
-                                                                    <FormItem>
-                                                                        <ServiceSelector
-                                                                            isSales={true}
+                                                                <div className="max-w-[600px] overflow-hidden">
+                                                                    <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                                                        <FormItem>
+                                                                            <ServiceSelector
+                                                                                isSales={true}
                                                                             value={field.value}
                                                                             onValueChange={(serviceId, service) => {
                                                                                 field.onChange(serviceId);
@@ -1387,6 +1388,7 @@ export default function QuotesPage() {
                                                                         <FormMessage />
                                                                     </FormItem>
                                                                 )} />
+                                                                </div>
                                                             </td>
                                                             <td className="p-1">
                                                                 <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
@@ -1484,7 +1486,7 @@ export default function QuotesPage() {
 
             {/* Quote Item Dialog */}
             <Dialog open={isQuoteItemDialogOpen} onOpenChange={setIsQuoteItemDialogOpen}>
-                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{editingQuoteItem ? t('itemDialog.editTitle') : t('itemDialog.createTitle')}</DialogTitle>
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
