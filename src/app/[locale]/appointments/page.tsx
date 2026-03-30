@@ -35,7 +35,7 @@ import api from '@/services/api';
 import { getSalesServices, getUserServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
-import { Check, ChevronDown, Edit, PlusCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronDown, Edit, Layers, PlusCircle, RefreshCw, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { getAppointmentColumns } from './columns';
@@ -680,6 +680,7 @@ export default function AppointmentsPage() {
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="flex items-center gap-2">
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                     {t('calendars')}
                                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                 </Button>
@@ -712,6 +713,35 @@ export default function AppointmentsPage() {
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" className="flex items-center gap-2">
+                                            <Users className="h-4 w-4 text-muted-foreground" />
+                                            {t('doctors')}
+                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-56 p-2">
+                                        <Command>
+                                            <CommandList>
+                                                <CommandGroup>
+                                                    <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
+                                                    <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
+                                                    <hr className="my-2" />
+                                                    {doctors.map((doctor) => (
+                                                        <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !selectedDoctorIds.includes(doctor.id))}>
+                                                            <div className="flex items-center">
+                                                                <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
+                                                                <span className="ml-2">{doctor.name}</span>
+                                                            </div>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" className="flex items-center gap-2">
+                                            <Layers className="h-4 w-4 text-muted-foreground" />
                                             {t('grouping.label')}: {groupByLabel}
                                             <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                         </Button>
@@ -752,33 +782,6 @@ export default function AppointmentsPage() {
                                                             {groupBy === 'calendar' && <Check className="h-4 w-4" />}
                                                         </div>
                                                     </CommandItem>
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="flex items-center gap-2">
-                                            {t('doctors')}
-                                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-56 p-2">
-                                        <Command>
-                                            <CommandList>
-                                                <CommandGroup>
-                                                    <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
-                                                    <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
-                                                    <hr className="my-2" />
-                                                    {doctors.map((doctor) => (
-                                                        <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !selectedDoctorIds.includes(doctor.id))}>
-                                                            <div className="flex items-center">
-                                                                <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
-                                                                <span className="ml-2">{doctor.name}</span>
-                                                            </div>
-                                                        </CommandItem>
-                                                    ))}
                                                 </CommandGroup>
                                             </CommandList>
                                         </Command>
