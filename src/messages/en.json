@@ -582,7 +582,9 @@
       "totalPaid": "Total Paid",
       "currentDebt": "Current Debt",
       "availableBalance": "Available Balance",
-      "printFinancialSummary": "Print Financial Summary"
+      "printFinancialSummary": "Print Financial Summary",
+      "showStats": "SHOW $",
+      "hideStats": "HIDE $"
     },
     "financialSummaryDialog": {
       "title": "Print Financial Summary",

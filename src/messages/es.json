@@ -582,7 +582,9 @@
             "totalPaid": "Total Pagado",
             "currentDebt": "Deuda Actual",
             "availableBalance": "Saldo Disponible",
-            "printFinancialSummary": "Imprimir Resumen Financiero"
+            "printFinancialSummary": "Imprimir Resumen Financiero",
+            "showStats": "VER $",
+            "hideStats": "OCULTAR $"
         },
         "financialSummaryDialog": {
             "title": "Imprimir Resumen Financiero",

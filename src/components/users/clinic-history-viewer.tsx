@@ -84,11 +84,13 @@ import * as React from 'react';
 interface ClinicHistoryViewerProps {
     userId: string;
     userName?: string;
+    createSessionTrigger?: number;
+    createDocumentTrigger?: number;
 }
 
 type ActiveView = 'anamnesis' | 'timeline' | 'odontogram' | 'documents';
 
-export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0 }: ClinicHistoryViewerProps) {
     const t = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const [activeView, setActiveView] = React.useState<ActiveView>('anamnesis');
@@ -152,6 +154,18 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
             refreshAll(userId);
         }
     }, [userId, refreshAll]);
+
+    React.useEffect(() => {
+        if (createSessionTrigger > 0) {
+            setActiveView('timeline');
+        }
+    }, [createSessionTrigger]);
+
+    React.useEffect(() => {
+        if (createDocumentTrigger > 0) {
+            setActiveView('documents');
+        }
+    }, [createDocumentTrigger]);
 
     const navItems = [
         { id: 'anamnesis' as const, label: t('tabs.anamnesis'), icon: FileText },
@@ -236,6 +250,7 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
                                 onFetchDoctors={fetchDoctors}
                                 onRefreshAll={refreshAll}
                                 onLoadSessionAttachment={getSessionAttachment}
+                                createTrigger={createSessionTrigger}
                             />
                         )}
                         {activeView === 'odontogram' && (
@@ -269,6 +284,7 @@ export function ClinicHistoryViewer({ userId, userName }: ClinicHistoryViewerPro
                                 uploadDocument={uploadDocument}
                                 deleteDocument={deleteDocument}
                                 getDocumentContent={getDocumentContent}
+                                createTrigger={createDocumentTrigger}
                             />
                         )}
                     </div>
@@ -1538,9 +1554,10 @@ interface TreatmentTimelineProps {
     onFetchDoctors: () => Promise<void>;
     onRefreshAll: (userId: string) => Promise<void>;
     onLoadSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
+    createTrigger?: number;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0 }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1550,6 +1567,14 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
+
+    React.useEffect(() => {
+        if (createTrigger > 0) {
+            setEditingSession(null);
+            onFetchDoctors();
+            setIsSessionDialogOpen(true);
+        }
+    }, [createTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Form states for session dialog
     const [sessionForm, setSessionForm] = React.useState({
@@ -2451,14 +2476,21 @@ interface EnhancedDocumentsGalleryProps {
     uploadDocument: (userId: string, file: File) => Promise<void>;
     deleteDocument: (userId: string, docId: string) => Promise<void>;
     getDocumentContent: (userId: string, docId: string) => Promise<Blob>;
+    createTrigger?: number;
 }
 
-function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent }: EnhancedDocumentsGalleryProps) {
+function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, createTrigger = 0 }: EnhancedDocumentsGalleryProps) {
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
     const [uploadFile, setUploadFile] = React.useState<File | null>(null);
     const [isUploading, setIsUploading] = React.useState(false);
+
+    React.useEffect(() => {
+        if (createTrigger > 0) {
+            setIsUploadDialogOpen(true);
+        }
+    }, [createTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
     const [isDragOver, setIsDragOver] = React.useState(false);
     const [selectedDocument, setSelectedDocument] = React.useState<{ id: string; name: string; mimeType?: string } | null>(null);
     const [documentContent, setDocumentContent] = React.useState<string | null>(null);

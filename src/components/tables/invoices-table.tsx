@@ -1178,9 +1178,10 @@ interface InvoiceFormDialogProps {
   onInvoiceCreated: () => void;
   isSales: boolean;
   invoice?: Invoice | null;
+  initialUser?: User;
 }
 
-export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice }: InvoiceFormDialogProps) {
+export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser }: InvoiceFormDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
   const tRoot = useTranslations('InvoicesPage');
   const [users, setUsers] = React.useState<User[]>([]);
@@ -1382,9 +1383,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               }),
             });
           } else {
+            if (initialUser) {
+              setUsers([initialUser]);
+            }
             form.reset({
               type: 'invoice',
-              user_id: '',
+              user_id: initialUser ? initialUser.id : '',
               currency: 'UYU',
               items: [],
               total: 0,

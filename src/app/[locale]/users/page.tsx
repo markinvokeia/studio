@@ -20,6 +20,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +37,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { InvoiceFormDialog } from '@/components/tables/invoices-table';
+import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
+import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
@@ -43,15 +56,17 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PatientDischarge, Quote, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
+import { Calendar as CalendarType, PatientDischarge, Quote, Service, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
+import { getSalesServices, getUserServices } from '@/services/services';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Loader2, Printer, Receipt, Users, X, XCircle } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { AlertTriangle, Banknote, Bell, Cake, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Eye, EyeOff, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
@@ -76,6 +91,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   birth_date: z.string().optional(),
   notes: z.string().optional(),
   is_active: z.boolean().default(false),
+  mutual_society_id: z.string().optional(),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
@@ -92,9 +108,7 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null }) => {
-  const [isOpen, setIsOpen] = React.useState(true);
-
+const UserStats = ({ user, t, financialData, isOpen }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null, isOpen: boolean }) => {
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
     const numericValue = Number(value) || 0;
@@ -116,7 +130,7 @@ const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) =>
         <span className={cn("text-sm font-bold tracking-tight", valueColor)}>
           {uyuFormatted.full}
         </span>
-        <span className="text-[11px] text-muted-foreground font-medium">
+        <span className="text-[11px] font-medium opacity-70">
           {usdFormatted.full}
         </span>
       </div>
@@ -130,8 +144,8 @@ const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) =>
         USD: financialData?.financial_data?.USD?.total_invoiced ?? 0,
         UYU: financialData?.financial_data?.UYU?.total_invoiced ?? 0,
       },
-      icon: Receipt,
-      color: 'text-foreground'
+      valueColor: 'text-blue-700 dark:text-blue-300',
+      cardClass: 'bg-blue-50 dark:bg-blue-950/60 border-blue-100 dark:border-blue-900',
     },
     {
       title: t('UsersPage.stats.totalPaid'),
@@ -139,8 +153,8 @@ const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) =>
         USD: financialData?.financial_data?.USD?.total_paid ?? 0,
         UYU: financialData?.financial_data?.UYU?.total_paid ?? 0,
       },
-      icon: DollarSign,
-      color: 'text-emerald-600'
+      valueColor: 'text-emerald-700 dark:text-emerald-300',
+      cardClass: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-100 dark:border-emerald-900',
     },
     {
       title: t('UsersPage.stats.currentDebt'),
@@ -148,8 +162,8 @@ const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) =>
         USD: financialData?.financial_data?.USD?.current_debt ?? 0,
         UYU: financialData?.financial_data?.UYU?.current_debt ?? 0,
       },
-      icon: CreditCard,
-      color: 'text-rose-600'
+      valueColor: 'text-rose-700 dark:text-rose-300',
+      cardClass: 'bg-rose-50 dark:bg-rose-950/60 border-rose-100 dark:border-rose-900',
     },
     {
       title: t('UsersPage.stats.availableBalance'),
@@ -157,41 +171,30 @@ const UserStats = ({ user, t, financialData }: { user: User, t: (key: string) =>
         USD: financialData?.financial_data?.USD?.available_balance ?? 0,
         UYU: financialData?.financial_data?.UYU?.available_balance ?? 0,
       },
-      icon: Banknote,
-      color: 'text-foreground'
+      valueColor: 'text-violet-700 dark:text-violet-300',
+      cardClass: 'bg-violet-50 dark:bg-violet-950/60 border-violet-100 dark:border-violet-900',
     },
   ];
 
   return (
-    <Collapsible
-      open={isOpen}
-      onOpenChange={setIsOpen}
-      className="mb-4"
-    >
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-          {t('UsersPage.stats.title') || 'Resumen Financiero'}
-        </h4>
-        <div className="flex items-center gap-1">
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 hover:bg-accent/50">
-              {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              <span className="sr-only">Toggle stats</span>
-            </Button>
-          </CollapsibleTrigger>
-        </div>
-      </div>
+    <Collapsible open={isOpen} className="mb-3">
       <CollapsibleContent className="transition-all">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 pb-1">
           {stats.map(stat => (
-            <Card key={stat.title} className="shadow-none border p-2 flex flex-col justify-between gap-1 overflow-hidden bg-card/50">
-              <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-tight truncate">
+            <div
+              key={stat.title}
+              className={cn(
+                "rounded-lg border px-3 py-2 flex flex-col gap-1 overflow-hidden shadow-none",
+                stat.cardClass
+              )}
+            >
+              <span className="text-[9px] uppercase font-bold tracking-tight truncate opacity-60">
                 {stat.title}
               </span>
               <div className="mt-0.5">
-                {renderStatValue(stat.value, stat.color)}
+                {renderStatValue(stat.value, stat.valueColor)}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       </CollapsibleContent>
@@ -292,6 +295,41 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
     console.error("Failed to fetch users:", error);
     return { users: [], total: 0 };
   }
+}
+
+async function fetchCalendarsForAppt(): Promise<CalendarType[]> {
+  try {
+    const data = await api.get(API_ROUTES.CALENDARS);
+    const list = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
+    return list.map((c: any) => ({
+      id: c.id || c.google_calendar_id,
+      name: c.name,
+      google_calendar_id: c.google_calendar_id,
+      is_active: c.is_active,
+      color: c.color,
+    }));
+  } catch { return []; }
+}
+
+async function fetchDoctorsForAppt(): Promise<User[]> {
+  try {
+    const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
+    let list: any[] = [];
+    if (Array.isArray(data) && data.length > 0) {
+      const first = data[0];
+      list = first.json?.data || first.data || [];
+    } else if (data?.data) {
+      list = data.data;
+    }
+    return list.map((d: any) => ({ ...d, id: String(d.id) }));
+  } catch { return []; }
+}
+
+async function fetchDoctorServicesForAppt(doctorId: string): Promise<Service[]> {
+  try {
+    const result = await getUserServices(doctorId);
+    return Array.isArray(result) ? result : [];
+  } catch { return []; }
 }
 
 async function upsertUser(userData: UserFormValues) {
@@ -531,12 +569,91 @@ export default function UsersPage() {
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('clinical-history');
+  const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
+  const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
+  const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
+  const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
+  const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
+  const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
+  const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+  const [isStatsOpen, setIsStatsOpen] = React.useState(true);
+  const [apptCalendars, setApptCalendars] = React.useState<CalendarType[]>([]);
+  const [apptDoctors, setApptDoctors] = React.useState<User[]>([]);
+  const [apptDoctorServiceMap, setApptDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
+  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
+  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
+  const [isLoadingApptData, setIsLoadingApptData] = React.useState(false);
+  const apptDataLoaded = React.useRef(false);
+  const router = useRouter();
+  const locale = useLocale();
 
   const loadMutualSocieties = React.useCallback(async () => {
     setIsLoadingMutualSocieties(true);
     const societies = await getMutualSocietiesList();
     setMutualSocieties(societies);
     setIsLoadingMutualSocieties(false);
+  }, []);
+
+  const loadApptData = React.useCallback(async () => {
+    if (apptDataLoaded.current) return;
+    setIsLoadingApptData(true);
+    try {
+      const [calendars, doctors, services, config] = await Promise.all([
+        fetchCalendarsForAppt(),
+        fetchDoctorsForAppt(),
+        getSalesServices({ limit: 100 }).then(r => r.items.map((s: any) => ({ ...s, id: String(s.id) }))).catch(() => [] as Service[]),
+        api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => []),
+      ]);
+      setApptCalendars(calendars);
+      setApptDoctors(doctors);
+      if (Array.isArray(config)) {
+        const calCfg = config.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
+        const docCfg = config.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
+        if (calCfg) setCheckCalendarAvailability(String(calCfg.value).toLowerCase() === 'true');
+        if (docCfg) setCheckDoctorAvailability(String(docCfg.value).toLowerCase() === 'true');
+      }
+      const serviceMap = new Map<string, Service[]>();
+      for (const doctor of doctors) {
+        if (doctor.id) {
+          serviceMap.set(doctor.id, await fetchDoctorServicesForAppt(doctor.id));
+        }
+      }
+      setApptDoctorServiceMap(serviceMap);
+      apptDataLoaded.current = true;
+    } finally {
+      setIsLoadingApptData(false);
+    }
+  }, []);
+
+  const fetchPatientAllergies = React.useCallback(async (userId: string) => {
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.ALLERGIES, { user_id: userId });
+      const allergyData = Array.isArray(data) ? data : (data.antecedentes_alergias || data.data || []);
+      setPatientAllergies(allergyData.map((item: any) => ({
+        id: Number(item.id) || undefined,
+        alergeno: item.alergeno || 'N/A',
+        reaccion_descrita: item.reaccion_descrita || '',
+      })));
+    } catch {
+      setPatientAllergies([]);
+    }
+  }, []);
+
+  const fetchPatientConditions = React.useCallback(async (userId: string) => {
+    try {
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PERSONAL_HISTORY, { user_id: userId });
+      const historyData = Array.isArray(data) ? data : (data.antecedentes_personales || data.data || []);
+      setPatientConditions(historyData.map((item: any) => ({
+        id: Number(item.id ?? item.antecedente_id ?? item.antecedente_personal_id) || undefined,
+        nombre: item.padecimiento_nombre || item.nombre || 'N/A',
+        nivel_alerta: item.nivel_alerta,
+      })));
+    } catch {
+      setPatientConditions([]);
+    }
   }, []);
 
   const form = useForm<UserFormValues>({
@@ -739,6 +856,7 @@ export default function UsersPage() {
 
   const handleCreate = () => {
     setEditingUser(null);
+    loadMutualSocieties();
     form.reset({
       name: '',
       email: '',
@@ -747,6 +865,7 @@ export default function UsersPage() {
       birth_date: '',
       notes: '',
       is_active: true,
+      mutual_society_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -754,6 +873,7 @@ export default function UsersPage() {
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
+    loadMutualSocieties();
     form.reset({
       id: user.id,
       name: user.name,
@@ -763,6 +883,7 @@ export default function UsersPage() {
       birth_date: user.birth_date || '',
       notes: user.notes || '',
       is_active: user.is_active,
+      mutual_society_id: user.mutual_society_id?.toString() || '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -835,12 +956,19 @@ export default function UsersPage() {
       fetchPatientDischarge(selectedUser.id);
       fetchUserFinancialData(selectedUser.id);
       loadMutualSocieties();
+      fetchPatientAllergies(selectedUser.id);
+      fetchPatientConditions(selectedUser.id);
     } else {
       setSelectedUserRoles([]);
       setCurrentDischarge(null);
       setUserFinancialData(null);
+      setPatientAllergies([]);
+      setPatientConditions([]);
+      setIsPreferencesOpen(false);
+      setCreateSessionTrigger(0);
+      setCreateDocumentTrigger(0);
     }
-  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData, loadMutualSocieties]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
@@ -888,8 +1016,22 @@ export default function UsersPage() {
     form.clearErrors();
 
     try {
-      await upsertUser(data);
+      const savedData = await upsertUser(data);
       const isEditing = !!editingUser;
+      const savedUserId = data.id || savedData?.id || savedData?.user_id;
+      if (data.mutual_society_id && data.mutual_society_id !== 'none' && savedUserId) {
+        try {
+          await api.post(API_ROUTES.MUTUAL_SOCIETIES_ASSIGN_USER, {
+            id: data.mutual_society_id,
+            user_id: savedUserId,
+          });
+          if (selectedUser && savedUserId === selectedUser.id) {
+            setSelectedUser({ ...selectedUser, mutual_society_id: data.mutual_society_id });
+          }
+        } catch {
+          // Non-fatal: mutual society assignment failed silently
+        }
+      }
 
       toast({
         title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
@@ -1079,99 +1221,261 @@ export default function UsersPage() {
           rightPanel={
             selectedUser && (
               <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
-                  <div className="min-w-0 flex-1 flex items-start gap-3">
-                    <div className="header-icon-circle mt-0.5">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 flex-1 flex flex-col text-left">
+                <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                  {/* Row 1: Icon + Name + Action buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1 flex items-center gap-2">
+                      <div className="header-icon-circle flex-none">
+                        <Users className="h-5 w-5" />
+                      </div>
                       <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
-                        {t('UsersPage.detailsFor', { name: selectedUser.name })}
+                        {selectedUser.name}
                       </CardTitle>
+                      {(patientAllergies.length > 0 || patientConditions.length > 0) && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span>
+                                <Badge variant="destructive" className="gap-1 cursor-default px-1.5 py-0.5">
+                                  <AlertTriangle className="h-3 w-3" />
+                                </Badge>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {[
+                                patientAllergies.length > 0 ? `${patientAllergies.length} alergia(s)` : '',
+                                patientConditions.length > 0 ? `${patientConditions.length} padecimiento(s)` : '',
+                              ].filter(Boolean).join(' · ')}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-none">
+                      {/* + Quick create dropdown */}
+                      <TooltipProvider>
+                        <DropdownMenu>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="default" size="icon" className="h-8 w-8">
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Crear nuevo</TooltipContent>
+                          </Tooltip>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateSessionTrigger(t => t + 1); }}>
+                              <Stethoscope className="h-4 w-4 mr-2 text-primary" />
+                              Sesión clínica
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateDocumentTrigger(t => t + 1); }}>
+                              <Upload className="h-4 w-4 mr-2 text-primary" />
+                              Documento
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">Financiero</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
+                              <FileText className="h-4 w-4 mr-2 text-emerald-600" />
+                              Presupuesto
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsInvoiceDialogOpen(true)}>
+                              <Receipt className="h-4 w-4 mr-2 text-emerald-600" />
+                              Factura
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsPrepaidDialogOpen(true)}>
+                              <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />
+                              Prepago
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuLabel className="text-xs text-muted-foreground">Agenda</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}>
+                              <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
+                              Cita
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TooltipProvider>
+
+                      {/* Preferences dropdown */}
+                      <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant={isPreferencesOpen ? 'secondary' : 'outline'}
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  <Bell className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Preferencias de comunicación</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <PopoverContent align="end" className="w-auto p-3 space-y-2">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+                            Preferencias de comunicación
+                          </p>
+                          <UserCommunicationPreferences user={selectedUser} autoSave compact />
+                        </PopoverContent>
+                      </Popover>
+
+                      {/* Discharge button */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className={cn(
+                                "h-8 w-8",
+                                currentDischarge
+                                  ? "text-green-600 border-green-300 hover:bg-green-50 hover:text-green-700"
+                                  : "hover:text-primary hover:border-primary/50"
+                              )}
+                              onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                              disabled={isSubmittingDischarge}
+                            >
+                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {currentDischarge
+                              ? t('ClinicHistoryPage.discharge.cancelDischarge')
+                              : t('ClinicHistoryPage.discharge.buttonText')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      {/* Toggle financial stats */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={isStatsOpen ? 'secondary' : 'outline'}
+                              size="sm"
+                              className="h-8 gap-1.5 px-2 text-xs font-semibold"
+                              onClick={() => setIsStatsOpen(v => !v)}
+                            >
+                              {isStatsOpen
+                                ? <><EyeOff className="h-3.5 w-3.5" />{t('UsersPage.stats.hideStats')}</>
+                                : <><Eye className="h-3.5 w-3.5" />{t('UsersPage.stats.showStats')}</>
+                              }
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {isStatsOpen ? t('UsersPage.stats.hideStats') : t('UsersPage.stats.showStats')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      {/* Print button — only when stats are visible */}
+                      {isStatsOpen && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 hover:text-primary hover:border-primary/50"
+                                onClick={handlePrintFinancialSummary}
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('UsersPage.stats.printFinancialSummary')}</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+
+                      {/* Close */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        onClick={handleCloseDetails}
+                      >
+                        <X className="h-5 w-5" />
+                        <span className="sr-only">{t('UsersPage.close')}</span>
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 ml-2">
-                    {currentDischarge ? (
-                      <>
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
-                          <CheckCircle className="h-3 w-3 mr-1" />
+
+                  {/* Row 2: Contact info */}
+                  <div className="flex items-center gap-x-4 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
+                    {selectedUser.birth_date && (
+                      <span className="flex items-center gap-1">
+                        <Cake className="h-3 w-3" />
+                        {differenceInYears(new Date(), parseISO(selectedUser.birth_date))} años
+                      </span>
+                    )}
+                    {selectedUser.email && (
+                      <span className="flex items-center gap-1 max-w-[200px] truncate">
+                        <Mail className="h-3 w-3 flex-none" />
+                        {selectedUser.email}
+                      </span>
+                    )}
+                    {selectedUser.phone_number && (
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {selectedUser.phone_number}
+                      </span>
+                    )}
+                    {selectedUser.identity_document && (
+                      <span className="flex items-center gap-1">
+                        <CreditCard className="h-3 w-3" />
+                        {selectedUser.identity_document}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Row 3: Medical alerts + discharge badge */}
+                  {(currentDischarge || patientAllergies.length > 0 || patientConditions.length > 0) && (
+                    <div className="flex items-center gap-1.5 mt-2 ml-10 flex-wrap">
+                      {currentDischarge && (
+                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 text-xs font-normal">
+                          <CheckCircle className="h-3 w-3" />
                           {t('ClinicHistoryPage.discharge.dischargedBadge', { date: format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy') })}
                         </Badge>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleCancelDischarge}
-                          disabled={isSubmittingDischarge}
+                      )}
+                      {[
+                        ...patientAllergies.map(a => ({ label: a.alergeno, type: 'allergy' as const })),
+                        ...patientConditions.map(c => ({ label: c.nombre, type: 'condition' as const })),
+                      ].slice(0, 3).map((item, i) => (
+                        item.type === 'allergy' ? (
+                          <Badge key={`a-${i}`} variant="destructive" className="gap-1 text-xs font-normal">
+                            <AlertTriangle className="h-3 w-3" />
+                            {item.label}
+                          </Badge>
+                        ) : (
+                          <Badge key={`c-${i}`} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
+                            <Heart className="h-3 w-3" />
+                            {item.label}
+                          </Badge>
+                        )
+                      ))}
+                      {(patientAllergies.length + patientConditions.length) > 3 && (
+                        <button
+                          className="text-xs text-primary hover:underline"
+                          onClick={() => setActiveTab('clinical-history')}
                         >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          {t('ClinicHistoryPage.discharge.cancelDischarge')}
-                        </Button>
-                      </>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsDischargeDialogOpen(true)}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        {t('ClinicHistoryPage.discharge.buttonText')}
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="hover:bg-accent/50"
-                      onClick={handlePrintFinancialSummary}
-                    >
-                      <Printer className="h-4 w-4 mr-1" />
-                      {t('UsersPage.stats.printFinancialSummary')}
-                    </Button>
-                    <Select
-                      onValueChange={async (value) => {
-                        const societyId = value === 'none' ? null : value;
-                        if (selectedUser && societyId) {
-                          try {
-                            await api.post(API_ROUTES.MUTUAL_SOCIETIES_ASSIGN_USER, {
-                              id: societyId,
-                              user_id: selectedUser.id,
-                            });
-                            setSelectedUser({ ...selectedUser, mutual_society_id: societyId });
-                            toast({
-                              title: t('UsersPage.mutualSociety.toast.success'),
-                            });
-                          } catch (error) {
-                            toast({
-                              variant: 'destructive',
-                              title: t('UsersPage.mutualSociety.toast.error'),
-                            });
-                          }
-                        }
-                      }}
-                      value={selectedUser?.mutual_society_id?.toString() || ''}
-                    >
-                      <SelectTrigger className="w-[180px] h-8">
-                        <SelectValue placeholder={t('UsersPage.mutualSociety.select')} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
-                        {mutualSocieties.map((ms) => (
-                          <SelectItem key={ms.id} value={String(ms.id)}>
-                            {ms.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors" onClick={handleCloseDetails}>
-                      <X className="h-5 w-5" />
-                      <span className="sr-only">{t('UsersPage.close')}</span>
-                    </Button>
-                  </div>
+                          +{patientAllergies.length + patientConditions.length - 3} más → Anamnesis
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} />
-                      <Tabs defaultValue="clinical-history" className="w-full flex-1 flex flex-col min-h-0">
+                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} />
+                      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
                         <TabsList className="gap-1">
                           {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-2 py-1">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
@@ -1183,13 +1487,17 @@ export default function UsersPage() {
                           <TabsTrigger value="payments" className="text-xs px-2 py-1">{t('UsersPage.tabs.payments')}</TabsTrigger>
                           <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
                           <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                          <TabsTrigger value="preferences" className="text-xs px-2 py-1">{t('UsersPage.tabs.preferences')}</TabsTrigger>
                           <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
                           <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
                         </TabsList>
                         <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-2">
                           <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <ClinicHistoryViewer userId={selectedUser.id} userName={selectedUser.name} />
+                            <ClinicHistoryViewer
+                              userId={selectedUser.id}
+                              userName={selectedUser.name}
+                              createSessionTrigger={createSessionTrigger}
+                              createDocumentTrigger={createDocumentTrigger}
+                            />
                           </TabsContent>
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                             <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
@@ -1213,9 +1521,6 @@ export default function UsersPage() {
                           </TabsContent>
                           <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserMessages userId={selectedUser.id} />
-                          </TabsContent>
-                          <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserCommunicationPreferences user={selectedUser} />
                           </TabsContent>
                           <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserLogs userId={selectedUser.id} />
@@ -1341,6 +1646,31 @@ export default function UsersPage() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mutual_society_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('UsersPage.mutualSociety.select')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                          {mutualSocieties.map((ms) => (
+                            <SelectItem key={ms.id} value={String(ms.id)}>
+                              {ms.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1545,6 +1875,62 @@ export default function UsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {selectedUser && (
+        <PrepaidFormDialog
+          open={isPrepaidDialogOpen}
+          onOpenChange={setIsPrepaidDialogOpen}
+          initialUser={selectedUser}
+          onSaveSuccess={() => {
+            setIsPrepaidDialogOpen(false);
+            setActiveTab('payments');
+          }}
+        />
+      )}
+
+      {selectedUser && (
+        <InvoiceFormDialog
+          isOpen={isInvoiceDialogOpen}
+          onOpenChange={setIsInvoiceDialogOpen}
+          isSales={true}
+          initialUser={selectedUser}
+          onInvoiceCreated={() => {
+            setIsInvoiceDialogOpen(false);
+            setActiveTab('invoices');
+          }}
+        />
+      )}
+
+      {selectedUser && (
+        <QuoteFormDialog
+          open={isQuoteDialogOpen}
+          onOpenChange={setIsQuoteDialogOpen}
+          initialData={{ user: selectedUser }}
+          onSaveSuccess={() => {
+            setIsQuoteDialogOpen(false);
+            setActiveTab('quotes');
+          }}
+        />
+      )}
+
+      {selectedUser && (
+        <AppointmentFormDialog
+          open={isAppointmentDialogOpen}
+          onOpenChange={(open) => {
+            setIsAppointmentDialogOpen(open);
+          }}
+          initialData={{ user: selectedUser }}
+          calendars={apptCalendars}
+          doctors={apptDoctors}
+          doctorServiceMap={apptDoctorServiceMap}
+          checkCalendarAvailability={checkCalendarAvailability}
+          checkDoctorAvailability={checkDoctorAvailability}
+          onSaveSuccess={() => {
+            setIsAppointmentDialogOpen(false);
+            setActiveTab('appointments');
+          }}
+        />
+      )}
     </>
   );
 }

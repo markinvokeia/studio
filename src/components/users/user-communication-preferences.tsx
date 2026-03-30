@@ -3,16 +3,19 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { NotificationCategory, NotificationPlatform, User } from '@/lib/types';
 import { api } from '@/services/api';
-import { Mail, MessageSquare, Phone, Save } from 'lucide-react';
+import { Loader2, Mail, MessageSquare, Phone, Save } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
 interface UserCommunicationPreferencesProps {
     user: User;
+    autoSave?: boolean;
+    compact?: boolean;
 }
 
 interface PreferenceState {
@@ -72,7 +75,7 @@ async function saveUserPreferences(userId: string, preferences: PreferenceState[
     });
 }
 
-export function UserCommunicationPreferences({ user }: UserCommunicationPreferencesProps) {
+export function UserCommunicationPreferences({ user, autoSave = false, compact = false }: UserCommunicationPreferencesProps) {
     const t = useTranslations('UserCommunicationPreferences');
     const { toast } = useToast();
     const [platforms, setPlatforms] = React.useState<NotificationPlatform[]>([]);
@@ -80,6 +83,7 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
     const [preferences, setPreferences] = React.useState<PreferenceState[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
+    const [savingKey, setSavingKey] = React.useState<string | null>(null);
 
     const loadData = React.useCallback(async () => {
         setIsLoading(true);
@@ -125,34 +129,42 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
         return pref ? pref.is_enabled : true;
     };
 
+    const doAutoSave = React.useCallback(async (key: string, newPreferences: PreferenceState[], prevPreferences: PreferenceState[]) => {
+        setSavingKey(key);
+        try {
+            await saveUserPreferences(user.id, newPreferences);
+        } catch {
+            setPreferences(prevPreferences);
+            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.saveErrorDescription') });
+        } finally {
+            setSavingKey(null);
+        }
+    }, [user.id, toast, t]);
+
     const handleToggle = (categorySlug: string, channelSlug: string) => {
-        setPreferences(prev =>
-            prev.map(p =>
-                p.category_slug === categorySlug && p.channel_slug === channelSlug
-                    ? { ...p, is_enabled: !p.is_enabled }
-                    : p
-            )
+        const newPreferences = preferences.map(p =>
+            p.category_slug === categorySlug && p.channel_slug === channelSlug
+                ? { ...p, is_enabled: !p.is_enabled }
+                : p
         );
+        setPreferences(newPreferences);
+        if (autoSave) doAutoSave(`${categorySlug}-${channelSlug}`, newPreferences, preferences);
     };
 
     const handleCategoryToggle = (categorySlug: string, enabled: boolean) => {
-        setPreferences(prev =>
-            prev.map(p =>
-                p.category_slug === categorySlug
-                    ? { ...p, is_enabled: enabled }
-                    : p
-            )
+        const newPreferences = preferences.map(p =>
+            p.category_slug === categorySlug ? { ...p, is_enabled: enabled } : p
         );
+        setPreferences(newPreferences);
+        if (autoSave) doAutoSave(`cat-${categorySlug}`, newPreferences, preferences);
     };
 
     const handleChannelToggle = (channelSlug: string, enabled: boolean) => {
-        setPreferences(prev =>
-            prev.map(p =>
-                p.channel_slug === channelSlug
-                    ? { ...p, is_enabled: enabled }
-                    : p
-            )
+        const newPreferences = preferences.map(p =>
+            p.channel_slug === channelSlug ? { ...p, is_enabled: enabled } : p
         );
+        setPreferences(newPreferences);
+        if (autoSave) doAutoSave(`ch-${channelSlug}`, newPreferences, preferences);
     };
 
     const handleSave = async () => {
@@ -185,18 +197,111 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
         return channelPrefs.some(p => p.is_enabled);
     };
 
-    if (isLoading) {
-        return (
-            <Card>
-                <CardContent className="p-4">
-                    <div className="animate-pulse space-y-2">
-                        <div className="h-4 bg-muted rounded w-1/4"></div>
-                        <div className="h-8 bg-muted rounded"></div>
-                        <div className="h-8 bg-muted rounded"></div>
-                    </div>
-                </CardContent>
-            </Card>
-        );
+    const table = (
+        <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+                <thead>
+                    <tr>
+                        <th className="text-left p-2 border-b font-medium text-muted-foreground text-sm">
+                            {t('table.category')}
+                        </th>
+                        {platforms.map((platform) => {
+                            const Icon = platformIcons[platform.platform_name] || Mail;
+                            const key = `ch-${platform.platform_name}`;
+                            return (
+                                <th key={platform.platform_name} className="text-center p-2 border-b font-medium text-muted-foreground text-sm">
+                                    <div className="flex flex-col items-center gap-1">
+                                        {savingKey === key
+                                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                                            : <Icon className="h-4 w-4" />
+                                        }
+                                        <span className="text-xs">{platform.platform_name}</span>
+                                    </div>
+                                </th>
+                            );
+                        })}
+                    </tr>
+                </thead>
+                <tbody>
+                    {isLoading
+                        ? Array.from({ length: 3 }).map((_, i) => (
+                            <tr key={i}>
+                                <td className="p-2 border-b"><Skeleton className="h-4 w-28" /></td>
+                                {[1, 2, 3].map(j => (
+                                    <td key={j} className="text-center p-2 border-b"><Skeleton className="h-4 w-4 mx-auto rounded" /></td>
+                                ))}
+                            </tr>
+                        ))
+                        : categories.map((category) => {
+                            const catKey = `cat-${category.slug}`;
+                            return (
+                                <tr key={category.slug} className="hover:bg-muted/30">
+                                    <td className="p-2 border-b">
+                                        <div className="flex items-center gap-2">
+                                            {savingKey === catKey
+                                                ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                                : <Checkbox
+                                                    checked={isCategoryEnabled(category.slug)}
+                                                    onCheckedChange={(checked) => handleCategoryToggle(category.slug, !!checked)}
+                                                    disabled={savingKey !== null}
+                                                />
+                                            }
+                                            <span className="text-sm">{category.name}</span>
+                                        </div>
+                                    </td>
+                                    {platforms.map((platform) => {
+                                        const cellKey = `${category.slug}-${platform.platform_name}`;
+                                        return (
+                                            <td key={cellKey} className="text-center p-2 border-b">
+                                                {savingKey === cellKey
+                                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground mx-auto" />
+                                                    : <Checkbox
+                                                        checked={isPreferenceEnabled(category.slug, platform.platform_name)}
+                                                        onCheckedChange={() => handleToggle(category.slug, platform.platform_name)}
+                                                        disabled={savingKey !== null}
+                                                    />
+                                                }
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            );
+                        })
+                    }
+                </tbody>
+                {!compact && (
+                    <tfoot>
+                        <tr className="bg-muted/30">
+                            <td className="p-2 border-b font-medium text-sm">
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        checked={platforms.every(p => isChannelEnabled(p.platform_name))}
+                                        onCheckedChange={(checked) => {
+                                            platforms.forEach(p => handleChannelToggle(p.platform_name, !!checked));
+                                        }}
+                                        disabled={savingKey !== null}
+                                    />
+                                    <span>{t('table.allCategories')}</span>
+                                </div>
+                            </td>
+                            {platforms.map((platform) => (
+                                <td key={platform.platform_name} className="text-center p-2 border-b">
+                                    <Checkbox
+                                        checked={isChannelEnabled(platform.platform_name)}
+                                        onCheckedChange={(checked) => handleChannelToggle(platform.platform_name, !!checked)}
+                                        disabled={savingKey !== null}
+                                    />
+                                </td>
+                            ))}
+                        </tr>
+                    </tfoot>
+                )}
+            </table>
+        </div>
+    );
+
+    if (compact) {
+        return table;
     }
 
     return (
@@ -213,79 +318,7 @@ export function UserCommunicationPreferences({ user }: UserCommunicationPreferen
                     </Button>
                 </div>
             </CardHeader>
-            <CardContent>
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr>
-                                <th className="text-left p-2 border-b font-medium text-muted-foreground text-sm">
-                                    {t('table.category')}
-                                </th>
-                                {platforms.map((platform) => {
-                                    const Icon = platformIcons[platform.platform_name] || Mail;
-                                    return (
-                                        <th key={platform.platform_name} className="text-center p-2 border-b font-medium text-muted-foreground text-sm">
-                                            <div className="flex flex-col items-center gap-1">
-                                                <Icon className="h-4 w-4" />
-                                                <span className="text-xs">{platform.platform_name}</span>
-                                            </div>
-                                        </th>
-                                    );
-                                })}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {categories.map((category) => (
-                                <tr key={category.slug} className="hover:bg-muted/30">
-                                    <td className="p-2 border-b">
-                                        <div className="flex items-center gap-2">
-                                            <Checkbox
-                                                checked={isCategoryEnabled(category.slug)}
-                                                onCheckedChange={(checked) => handleCategoryToggle(category.slug, !!checked)}
-                                            />
-                                            <span className="text-sm">{category.name}</span>
-                                        </div>
-                                    </td>
-                                    {platforms.map((platform) => (
-                                        <td key={`${category.slug}-${platform.platform_name}`} className="text-center p-2 border-b">
-                                            <Checkbox
-                                                checked={isPreferenceEnabled(category.slug, platform.platform_name)}
-                                                onCheckedChange={() => handleToggle(category.slug, platform.platform_name)}
-                                            />
-                                        </td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                        <tfoot>
-                            <tr className="bg-muted/30">
-                                <td className="p-2 border-b font-medium text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            checked={platforms.every(p => isChannelEnabled(p.platform_name))}
-                                            onCheckedChange={(checked) => {
-                                                platforms.forEach(p => handleChannelToggle(p.platform_name, !!checked));
-                                            }}
-                                        />
-                                        <span>{t('table.allCategories')}</span>
-                                    </div>
-                                </td>
-                                {platforms.map((platform) => {
-                                    const Icon = platformIcons[platform.platform_name] || Mail;
-                                    return (
-                                        <td key={platform.platform_name} className="text-center p-2 border-b">
-                                            <Checkbox
-                                                checked={isChannelEnabled(platform.platform_name)}
-                                                onCheckedChange={(checked) => handleChannelToggle(platform.platform_name, !!checked)}
-                                            />
-                                        </td>
-                                    );
-                                })}
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </CardContent>
+            <CardContent>{table}</CardContent>
         </Card>
     );
 }
