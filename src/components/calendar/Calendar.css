@@ -108,12 +108,26 @@
 .day-view-container {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: auto;
   height: 100%;
+  scrollbar-gutter: stable;
+}
+
+.day-view-scroll-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  min-width: 100%;
+  padding-right: 12px;
+  box-sizing: border-box;
 }
 
 .day-view-header-wrapper {
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  background-color: hsl(var(--card));
   border-bottom: 1px solid var(--border);
 }
 
@@ -123,24 +137,53 @@
   border-bottom: 1px solid var(--border);
 }
 
+.day-view-header-dates-grouped {
+  display: grid;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border);
+  column-gap: 0.1rem;
+}
+
 .day-view-date-cell {
   text-align: center;
   padding: 0.5rem;
   border-right: 1px solid var(--border);
+  background-color: hsl(var(--card));
 }
 
 .day-view-date-cell:last-child {
   border-right: none;
 }
 
-.day-view-date-cell .day-name {
+.day-view-date-cell-grouped {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 -1px 0 hsl(var(--border));
+}
+
+.day-view-date-block {
+  text-align: center;
+  padding: 0.5rem;
+  background-color: hsl(var(--card));
+  border-top: 2px solid hsl(var(--border) / 0.7);
+  border-left: 2px solid hsl(var(--border) / 0.7);
+  border-right: 2px solid hsl(var(--border) / 0.7);
+  border-bottom: 1px solid var(--border);
+  border-top-left-radius: 5px;
+  border-top-right-radius: 5px;
+  box-sizing: border-box;
+}
+
+.day-view-date-cell .day-name,
+.day-view-date-block .day-name {
   font-size: 0.75rem;
   color: hsl(var(--muted-foreground));
   margin-bottom: 0.25rem;
   display: block;
 }
 
-.day-view-date-cell .day-number {
+.day-view-date-cell .day-number,
+.day-view-date-block .day-number {
   font-size: 1.25rem;
   width: 2rem;
   height: 2rem;
@@ -150,34 +193,62 @@
   border-radius: 9999px;
 }
 
-.day-view-date-cell .current-day {
+.day-view-date-cell .current-day,
+.day-view-date-block .current-day {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
 
-.day-view-header-assignees {
+.day-view-header-groups {
   display: grid;
 }
 
-.day-view-assignee-cell {
+.day-view-header-groups-by-day {
+  display: grid;
+  column-gap: 0.1rem;
+}
+
+.day-view-header-spacer {
+  position: sticky;
+  left: 0;
+  z-index: 16;
+  background-color: hsl(var(--card));
+}
+
+.day-view-group-block {
+  display: grid;
+  background-color: hsl(var(--muted) / 0.25);
+  border-left: 2px solid hsl(var(--border) / 0.7);
+  border-right: 2px solid hsl(var(--border) / 0.7);
+  box-sizing: border-box;
+}
+
+.day-view-group-cell {
   text-align: center;
   padding: 0.25rem;
   font-size: 0.8rem;
-  border-right: 1px solid var(--border);
+  background-color: hsl(var(--muted) / 0.25);
+  box-sizing: border-box;
 }
 
-.day-view-assignee-cell:last-child {
-  border-right: none;
+.day-view-group-cell:not(:last-child) {
+  border-right: 1px solid var(--border);
 }
 
 
 .day-view-body {
   display: grid;
   grid-template-columns: 60px repeat(var(--num-days, 1), 1fr);
-  overflow-y: auto;
+  overflow: visible;
   position: relative;
-  flex-grow: 1;
+}
+
+.day-view-body-grouped {
+  display: grid;
+  overflow: visible;
+  position: relative;
+  column-gap: 0.1rem;
 }
 
 .time-column {
@@ -185,6 +256,10 @@
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background-color: hsl(var(--card));
 }
 
 .time-zone-label {
@@ -193,6 +268,10 @@
   color: hsl(var(--muted-foreground));
   text-align: center;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  left: 0;
+  z-index: 16;
+  background-color: hsl(var(--card));
 }
 
 .time-slot {
@@ -212,6 +291,10 @@
   right: 0.5rem;
 }
 
+.time-slot-label-first {
+  top: 0.35rem;
+}
+
 .day-column {
   border-right: 1px solid hsl(var(--border) / 0.7);
   position: relative;
@@ -219,6 +302,23 @@
 
 .day-column:last-child {
   border-right: none;
+}
+
+.day-block {
+  display: grid;
+  background-color: hsl(var(--card));
+  border-left: 2px solid hsl(var(--border) / 0.7);
+  border-right: 2px solid hsl(var(--border) / 0.7);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.day-block > .day-column {
+  border-right: 0;
+}
+
+.day-block > .day-column:not(:last-child) {
+  border-right: 1px solid hsl(var(--border) / 0.7);
 }
 
 .day-column>.time-slot {
@@ -281,7 +381,7 @@
   right: 0;
   display: flex;
   align-items: center;
-  z-index: 20;
+  z-index: 14;
   pointer-events: none;
 }
 

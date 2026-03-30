@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { addDays, addMonths, addWeeks, addYears, endOfDay, endOfMonth, endOfWeek, endOfYear, format, getDay, getDaysInMonth, getHours, getMinutes, getYear, isSameDay, parseISO, set, startOfDay, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import {
+  CalendarClock,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -44,17 +45,26 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 
-interface CalendarEvent {
+export type CalendarGroupBy = 'none' | 'doctor' | 'calendar';
+
+export interface CalendarEvent {
   id: string;
   title: string;
   start: Date | string;
   end: Date | string;
   color?: string;
   colorId?: string;
-  assignee?: string;
+  doctorGroupId?: string;
+  calendarGroupId?: string;
   totalColumns?: number;
   column?: number;
   data?: any;
+}
+
+export interface CalendarGroupingColumn {
+  id: string;
+  label: string;
+  value: string;
 }
 
 interface CalendarProps {
@@ -64,16 +74,24 @@ interface CalendarProps {
   isLoading?: boolean;
   onEventClick: (event: any) => void;
   onViewChange?: (view: 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | 'schedule') => void;
-  assignees?: { id: string; name: string; email: string }[];
-  selectedAssignees?: string[];
-  onSelectedAssigneesChange?: (assignees: string[]) => void;
-  group?: boolean;
-  onGroupChange?: (group: boolean) => void;
+  groupBy?: CalendarGroupBy;
+  groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
   onSlotClick?: (date: Date) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children, isLoading = false, onEventClick, onViewChange, assignees = [], selectedAssignees = [], onSelectedAssigneesChange, group = false, onGroupChange, onEventColorChange, onSlotClick }) => {
+const Calendar: React.FC<CalendarProps> = ({
+  events = [],
+  onDateChange,
+  children,
+  isLoading = false,
+  onEventClick,
+  onViewChange,
+  groupBy = 'none',
+  groupingColumns = [],
+  onEventColorChange,
+  onSlotClick
+}) => {
   const t = useTranslations('Calendar');
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
@@ -346,8 +364,21 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
 
     const timeSlots = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
-    const columns = group ? assignees.filter((a) => selectedAssignees.includes(a.id)) : [{ id: 'all', name: t('all'), email: 'all' }];
-    const numColumnsPerDay = group ? columns.length : 1;
+    const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
+    const columns = isGrouped ? groupingColumns : [{ id: 'all', label: t('all'), value: 'all' }];
+    const numColumnsPerDay = columns.length;
+    const groupedColumnMinWidth = 140;
+    const groupedDayGap = 1.6;
+    const groupedDayMinWidth = numColumnsPerDay * groupedColumnMinWidth;
+    const contentMinWidth = isGrouped
+      ? `${60 + (days.length * groupedDayMinWidth) + ((days.length - 1) * groupedDayGap)}px`
+      : undefined;
+
+    const getEventGroupValue = (event: CalendarEvent) => {
+      if (groupBy === 'doctor') return event.doctorGroupId;
+      if (groupBy === 'calendar') return event.calendarGroupId;
+      return undefined;
+    };
 
     const getEventStyle = (event: CalendarEvent) => {
       const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
@@ -365,60 +396,190 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
     const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
     const showTimeIndicator = days.some(day => isSameDay(day, currentTime));
 
+    if (isGrouped) {
+      return (
+        <div className="day-view-container">
+          <div
+            className="day-view-scroll-content"
+            style={contentMinWidth ? { minWidth: contentMinWidth } : undefined}
+          >
+            <div className="day-view-header-wrapper">
+              <div
+                className="day-view-header-dates-grouped"
+                style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+              >
+                <div className="time-zone-label">{t('timeZone')}</div>
+                {days.map((day) => (
+                  <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-block">
+                    <span className='day-name'>{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
+                    <span className={cn("day-number", isSameDay(day, new Date()) && "current-day")}>
+                      {format(day, 'd', { locale: dateLocale })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div
+                className="day-view-header-groups-by-day"
+                style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+              >
+                <div className="day-view-header-spacer" />
+                {days.map((day) => (
+                  <div
+                    key={`group-block-${format(day, 'yyyy-MM-dd')}`}
+                    className="day-view-group-block"
+                    style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(${groupedColumnMinWidth}px, 1fr))` }}
+                  >
+                    {columns.map((col) => (
+                      <div key={`group-${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-view-group-cell">
+                        {col.label}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div
+              className="day-view-body-grouped"
+              style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+            >
+              <div className="time-column">
+                {timeSlots.map(time => {
+                  const hour24 = parseInt(time.split(':')[0], 10);
+                  const isPM = hour24 >= 12;
+                  const ampm = isPM ? 'PM' : 'AM';
+                  let hour12 = hour24 % 12;
+                  if (hour12 === 0) hour12 = 12;
+
+                  return (
+                    <div key={time} className="time-slot">
+                      <span className={cn("time-slot-label", hour24 === 0 && "time-slot-label-first")}>
+                        {`${hour12} ${ampm}`}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+              {days.map((day) => (
+                <div
+                  key={`day-block-${format(day, 'yyyy-MM-dd')}`}
+                  className="day-block"
+                  style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(${groupedColumnMinWidth}px, 1fr))` }}
+                >
+                  {columns.map((col) => {
+                    const dayColEvents = events.filter((event: CalendarEvent) => {
+                      const eventStart = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+                      return isSameDay(eventStart, day) && getEventGroupValue(event) === col.value;
+                    });
+                    const eventsWithLayout = getEventsWithLayout(dayColEvents);
+
+                    return (
+                      <div
+                        key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
+                        className="day-column"
+                        onClick={(e) => {
+                          if (e.button !== 0) return;
+                          if (onSlotClick) {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const y = e.clientY - rect.top;
+                            const hour = Math.floor(y / 60);
+                            const minute = Math.floor((y % 60) / 15) * 15;
+                            const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+                            onSlotClick(clickedDate);
+                          }
+                        }}
+                      >
+                        {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
+                        {eventsWithLayout.map((event) => (
+                          <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              {showTimeIndicator && (
+                <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
+                  <div className="current-time-dot"></div>
+                  <div className="current-time-line"></div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
 
     return (
       <div className="day-view-container">
-        <div className="day-view-header-wrapper">
-          <div className='day-view-header-dates' style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)` }}>
-            <div className="time-zone-label">{t('timeZone')}</div>
-            {days.map(day => (
-              <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
-                <span className='day-name'>{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
-                <span className={cn("day-number", isSameDay(day, new Date()) && "current-day")}>
-                  {format(day, 'd', { locale: dateLocale })}
-                </span>
-              </div>
-            ))}
-          </div>
-          {group && (
-            <div className="day-view-header-assignees" style={{ gridTemplateColumns: `60px repeat(${days.length * numColumnsPerDay}, 1fr)` }}>
-              <div />
-              {days.map(day => (
-                columns.length > 0 ? columns.map(col => (
-                  <div key={`assignee-${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-view-assignee-cell">
-                    {col.name}
-                  </div>
-                )) : <div key={`assignee-empty-${format(day, 'yyyy-MM-dd')}`} className="day-view-assignee-cell"></div>
+        <div className="day-view-scroll-content" style={contentMinWidth ? { minWidth: contentMinWidth } : undefined}>
+          <div className="day-view-header-wrapper">
+            <div
+              className='day-view-header-dates'
+              style={{ gridTemplateColumns: `60px repeat(${days.length * numColumnsPerDay}, 1fr)` }}
+            >
+              <div className="time-zone-label">{t('timeZone')}</div>
+              {days.map((day) => (
+                <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
+                  <span className='day-name'>{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
+                  <span className={cn("day-number", isSameDay(day, new Date()) && "current-day")}>
+                    {format(day, 'd', { locale: dateLocale })}
+                  </span>
+                </div>
               ))}
             </div>
-          )}
-        </div>
-        <div className="day-view-body" style={{ '--num-days': days.length * (group ? columns.length : 1) } as any}>
-          <div className="time-column">
-            {timeSlots.map(time => {
-              const hour24 = parseInt(time.split(':')[0], 10);
-              if (hour24 === 0) return <div key={time} className="time-slot" />;
-
-              const isPM = hour24 >= 12;
-              const ampm = isPM ? 'PM' : 'AM';
-              let hour12 = hour24 % 12;
-              if (hour12 === 0) hour12 = 12;
-
-              return (
-                <div key={time} className="time-slot">
-                  <span className="time-slot-label">{`${hour12} ${ampm}`}</span>
-                </div>
-              )
-            })}
           </div>
-          {days.map((day, dayIndex) => (
-            group && columns.length > 0 ? columns.map(col => {
-              const dayColEvents = events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day) && e.assignee === col.email);
-              const eventsWithLayout = getEventsWithLayout(dayColEvents);
+          <div className="day-view-body" style={{ '--num-days': days.length * numColumnsPerDay } as any}>
+            <div className="time-column">
+              {timeSlots.map(time => {
+                const hour24 = parseInt(time.split(':')[0], 10);
+                const isPM = hour24 >= 12;
+                const ampm = isPM ? 'PM' : 'AM';
+                let hour12 = hour24 % 12;
+                if (hour12 === 0) hour12 = 12;
 
-              return (
+                return (
+                  <div key={time} className="time-slot">
+                    <span className={cn("time-slot-label", hour24 === 0 && "time-slot-label-first")}>
+                      {`${hour12} ${ampm}`}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            {days.map((day) => (
+              isGrouped && columns.length > 0 ? columns.map((col) => {
+                const dayColEvents = events.filter((event: CalendarEvent) => {
+                  const eventStart = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+                  return isSameDay(eventStart, day) && getEventGroupValue(event) === col.value;
+                });
+                const eventsWithLayout = getEventsWithLayout(dayColEvents);
+
+                return (
+                  <div
+                    key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
+                    className="day-column"
+                    onClick={(e) => {
+                      if (e.button !== 0) return; // Only left click
+                      if (onSlotClick) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const y = e.clientY - rect.top;
+                        const hour = Math.floor(y / 60);
+                        const minute = Math.floor((y % 60) / 15) * 15;
+                        const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
+                        onSlotClick(clickedDate);
+                      }
+                    }}
+                  >
+                    {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
+                    {eventsWithLayout.map((event) => (
+                      <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
+                    ))}
+                  </div>
+                );
+              }) : (
                 <div
-                  key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
+                  key={format(day, 'yyyy-MM-dd')}
                   className="day-column"
                   onClick={(e) => {
                     if (e.button !== 0) return; // Only left click
@@ -432,41 +593,20 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
                     }
                   }}
                 >
-                  {timeSlots.map(time => <div key={`${time}-${col.id}`} className="time-slot" />)}
-                  {eventsWithLayout.map((event) => (
+                  {timeSlots.map(time => <div key={time} className="time-slot" />)}
+                  {getEventsWithLayout(events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day))).map((event: any) => (
                     <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
                   ))}
                 </div>
-              );
-            }) : (
-              <div
-                key={format(day, 'yyyy-MM-dd')}
-                className="day-column"
-                onClick={(e) => {
-                  if (e.button !== 0) return; // Only left click
-                  if (onSlotClick) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const y = e.clientY - rect.top;
-                    const hour = Math.floor(y / 60);
-                    const minute = Math.floor((y % 60) / 15) * 15;
-                    const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
-                    onSlotClick(clickedDate);
-                  }
-                }}
-              >
-                {timeSlots.map(time => <div key={time} className="time-slot" />)}
-                {getEventsWithLayout(events.filter((e: any) => isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, day))).map((event: any) => (
-                  <EventInDayViewComponent key={event.id} event={event} style={getEventStyle(event)} />
-                ))}
+              )
+            ))}
+            {showTimeIndicator && (
+              <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
+                <div className="current-time-dot"></div>
+                <div className="current-time-line"></div>
               </div>
-            )
-          ))}
-          {showTimeIndicator && (
-            <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-              <div className="current-time-dot"></div>
-              <div className="current-time-line"></div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );
@@ -629,9 +769,9 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
                     {format(typeof event.start === 'string' ? parseISO(event.start) : event.start, 'p', { locale: dateLocale })}
                   </div>
                   <div className="flex-1 text-sm">{event.title}</div>
-                  {event.assignee && (
+                  {event.data?.doctorName && (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{assignees.find((a) => a.email === event.assignee)?.name || event.assignee}</span>
+                      <span>{event.data.doctorName}</span>
                     </div>
                   )}
                 </div>
@@ -674,6 +814,7 @@ const Calendar: React.FC<CalendarProps> = ({ events = [], onDateChange, children
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
                 {t(`views.${view.includes('-') ? view.replace('-', '') : view}`)}
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
