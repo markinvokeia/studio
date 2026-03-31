@@ -927,7 +927,9 @@
       "completeTitle": "Complete item",
       "completeDescription": "Select date for completion",
       "scheduleTitle": "Schedule item",
-      "scheduleDescription": "Select date for schedule"
+      "scheduleDescription": "Select date for schedule",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "Add notes about the completed item..."
     }
   },
   "General": {
@@ -1205,6 +1207,7 @@
       "docNo": "Doc No.",
       "orderDocNo": "Order Doc No.",
       "quoteDocNo": "Quote Doc No.",
+      "dueDate": "Due Date",
       "isCreditNote": "Credit Note",
       "creditNote": "Credit Note",
       "invoice": "Invoice",

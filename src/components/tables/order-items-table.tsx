@@ -9,22 +9,16 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
-import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { CalendarCheck, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -68,6 +62,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
   const [actionType, setActionType] = React.useState<ActionType | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [itemNotes, setItemNotes] = React.useState('');
 
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [doctors, setDoctors] = React.useState<UserType[]>([]);
@@ -193,16 +189,26 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     }
   };
 
+  const handleRowSelectionChange = React.useCallback((selectedRows: OrderItem[]) => {
+    const item = selectedRows[0] ?? null;
+    setSelectedItem(item);
+  }, []);
+
   const handleDateSave = async () => {
     if (!selectedItem || !actionType || !selectedDate || !quoteId) return;
 
     try {
-      const queryPayload = {
+      const queryPayload: any = {
         action: actionType,
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_date_time: selectedDate.toISOString(),
         user_id: userId,
       };
+
+      // Include notes for complete action
+      if (actionType === 'complete' && itemNotes) {
+        queryPayload.notes = itemNotes;
+      }
 
       const apiRoute = isSales
         ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE
@@ -235,6 +241,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       setIsDatePickerOpen(false);
       setSelectedItem(null);
       setActionType(null);
+      setItemNotes('');
     }
   };
 
@@ -284,6 +291,27 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   };
 
   const columns: ColumnDef<OrderItem>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <input
+            type="radio"
+            name="order-item-selection"
+            checked={isSelected}
+            onChange={() => {
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
+            }}
+            className="h-4 w-4 cursor-pointer"
+          />
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'id',
       header: ({ column }) => (
@@ -380,27 +408,6 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         <DataTableColumnHeader column={column} title={t('columns.invoiced')} />
       ),
       cell: ({ row }) => <DateCell dateValue={row.getValue('invoiced_date')} />,
-    },
-    {
-      id: 'actions',
-      cell: ({ row }) => {
-        const item = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">{t('actions.openMenu')}</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions.title')}</DropdownMenuLabel>
-              {!item.scheduled_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'schedule')}>{t('actions.schedule')}</DropdownMenuItem>}
-              {!item.completed_date && <DropdownMenuItem onClick={() => handleActionClick(item, 'complete')}>{t('actions.complete')}</DropdownMenuItem>}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
     }
   ];
 
@@ -414,6 +421,33 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       </div>
     );
   }
+  const toolbarActions = selectedItem ? (
+    <div className="ml-auto flex items-center gap-1.5">
+      {!selectedItem.scheduled_date && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => handleActionClick(selectedItem, 'schedule')}
+        >
+          <CalendarCheck className="h-3.5 w-3.5" />
+          {t('actions.schedule')}
+        </Button>
+      )}
+      {!selectedItem.completed_date && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => handleActionClick(selectedItem, 'complete')}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {t('actions.complete')}
+        </Button>
+      )}
+    </div>
+  ) : null;
+
   return (
     <>
       <Card className="h-full flex flex-col min-h-0">
@@ -423,6 +457,11 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             data={items}
             filterColumnId="service_name"
             filterPlaceholder={t('filterPlaceholder')}
+            onRowSelectionChange={handleRowSelectionChange}
+            enableSingleRowSelection
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
+            extraButtons={toolbarActions}
             columnTranslations={{
               id: t('columns.id'),
               service_name: t('columns.service'),
@@ -457,6 +496,17 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
               className="rounded-md border shadow"
             />
           </div>
+          {actionType === 'complete' && (
+            <div className="px-6 pb-4">
+              <label className="text-sm font-medium">{t('dialog.notesLabel')}</label>
+              <Textarea
+                value={itemNotes}
+                onChange={(e) => setItemNotes(e.target.value)}
+                placeholder={t('dialog.notesPlaceholder')}
+                className="mt-2 min-h-[80px]"
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>
               {t('actions.cancel')}

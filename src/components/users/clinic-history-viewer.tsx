@@ -176,20 +176,20 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     return (
         <div className="flex flex-col h-full min-h-0">
-            <div className="flex space-x-0.5 bg-muted/40 rounded-lg p-1 mb-1">
+            <div className="flex space-x-0.5 bg-muted/50 rounded-lg p-1 mb-2 shrink-0">
                 {navItems.map(({ id, label, icon: Icon }) => (
                     <button
                         key={id}
                         onClick={() => setActiveView(id)}
                         className={cn(
-                            "flex items-center space-x-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all",
+                            "flex flex-1 items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all",
                             activeView === id
-                                ? "bg-background text-foreground shadow-sm border border-border/50"
-                                : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
                         )}
                     >
-                        <Icon className="w-3 h-3" />
-                        <span>{label}</span>
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="hidden sm:inline">{label}</span>
                     </button>
                 ))}
             </div>

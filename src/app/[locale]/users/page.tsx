@@ -1478,21 +1478,21 @@ export default function UsersPage() {
                     <>
                       <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} />
                       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-                        <TabsList className="gap-1">
-                          {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-2 py-1">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
+                        <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto flex-nowrap shrink-0 justify-start">
+                          {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                            <TabsTrigger value="services" className="text-xs px-2 py-1">{t('UsersPage.tabs.services')}</TabsTrigger>
+                            <TabsTrigger value="services" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.services')}</TabsTrigger>
                           )}
-                          <TabsTrigger value="quotes" className="text-xs px-2 py-1">{t('UsersPage.tabs.quotes')}</TabsTrigger>
-                          <TabsTrigger value="orders" className="text-xs px-2 py-1">{t('UsersPage.tabs.orders')}</TabsTrigger>
-                          <TabsTrigger value="invoices" className="text-xs px-2 py-1">{t('UsersPage.tabs.invoices')}</TabsTrigger>
-                          <TabsTrigger value="payments" className="text-xs px-2 py-1">{t('UsersPage.tabs.payments')}</TabsTrigger>
-                          <TabsTrigger value="appointments" className="text-xs px-2 py-1">{t('UsersPage.tabs.appointments')}</TabsTrigger>
-                          <TabsTrigger value="messages" className="text-xs px-2 py-1">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                          <TabsTrigger value="logs" className="text-xs px-2 py-1">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                          <TabsTrigger value="notes" className="text-xs px-2 py-1">{t('UsersPage.tabs.notes')}</TabsTrigger>
+                          <TabsTrigger value="quotes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.quotes')}</TabsTrigger>
+                          <TabsTrigger value="orders" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.orders')}</TabsTrigger>
+                          <TabsTrigger value="invoices" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.invoices')}</TabsTrigger>
+                          <TabsTrigger value="payments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.payments')}</TabsTrigger>
+                          <TabsTrigger value="appointments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.appointments')}</TabsTrigger>
+                          <TabsTrigger value="messages" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.messages')}</TabsTrigger>
+                          <TabsTrigger value="logs" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.logs')}</TabsTrigger>
+                          <TabsTrigger value="notes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.notes')}</TabsTrigger>
                         </TabsList>
-                        <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-2">
+                        <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
                           <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <ClinicHistoryViewer
                               userId={selectedUser.id}
@@ -1510,7 +1510,7 @@ export default function UsersPage() {
                             <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
                           </TabsContent>
                           <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserOrders userId={selectedUser.id} />
+                            <UserOrders userId={selectedUser.id} patient={selectedUser} />
                           </TabsContent>
                           <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserInvoices userId={selectedUser.id} />

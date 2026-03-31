@@ -927,7 +927,9 @@
             "completeTitle": "Completar artículo",
             "completeDescription": "Selecciona la fecha de completación del artículo",
             "scheduleTitle": "Agendar artítculo",
-            "scheduleDescription": "Selecciona la fecha para agendar el artículo"
+            "scheduleDescription": "Selecciona la fecha para agendar el artículo",
+            "notesLabel": "Notas (opcional)",
+            "notesPlaceholder": "Agregar notas sobre el ítem completado..."
         }
     },
     "General": {
@@ -1205,6 +1207,7 @@
             "docNo": "Doc No.",
             "orderDocNo": "Orden Doc No.",
             "quoteDocNo": "Quote Doc No.",
+            "dueDate": "Vencimiento",
             "isCreditNote": "Nota de Crédito",
             "creditNote": "Nota de Crédito",
             "invoice": "Factura",

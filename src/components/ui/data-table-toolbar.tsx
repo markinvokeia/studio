@@ -100,7 +100,6 @@ export function DataTableToolbar<TData>({
             </SelectContent>
           </Select>
         )}
-        {extraButtons}
       </div>
       <div className="flex items-center space-x-2">
         {onCreate && (
@@ -119,6 +118,12 @@ export function DataTableToolbar<TData>({
               </Tooltip>
             </TooltipProvider>
           </div>
+        )}
+        {extraButtons && (
+          <>
+            {extraButtons}
+            <div className="w-px h-6 bg-border mx-2" />
+          </>
         )}
         {onRefresh && (
           <Button

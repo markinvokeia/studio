@@ -212,6 +212,7 @@ export type Invoice = {
   type?: string;
   invoice_id?: string | null;
   is_historical?: boolean;
+  due_date?: string;
   createdAt: string;
   updatedAt: string;
 };
