@@ -64,7 +64,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, Bell, Cake, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Eye, EyeOff, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Banknote, Bell, Cake, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Eye, EyeOff, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, SlidersHorizontal, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -1312,9 +1312,9 @@ export default function UsersPage() {
                                 <Button
                                   variant={isPreferencesOpen ? 'secondary' : 'outline'}
                                   size="icon"
-                                  className="h-8 w-8 hover:text-primary hover:border-primary/50"
+                                  className="h-8 w-8 hover:bg-primary hover:text-primary-foreground hover:border-primary"
                                 >
-                                  <Bell className="h-4 w-4" />
+                                  <SlidersHorizontal className="h-4 w-4" />
                                 </Button>
                               </PopoverTrigger>
                             </TooltipTrigger>
@@ -1378,24 +1378,22 @@ export default function UsersPage() {
                         </Tooltip>
                       </TooltipProvider>
 
-                      {/* Print button — only when stats are visible */}
-                      {isStatsOpen && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 hover:text-primary hover:border-primary/50"
-                                onClick={handlePrintFinancialSummary}
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>{t('UsersPage.stats.printFinancialSummary')}</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
+                      {/* Print button */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                              onClick={handlePrintFinancialSummary}
+                            >
+                              <Printer className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('UsersPage.stats.printFinancialSummary')}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
                       {/* Close */}
                       <Button
