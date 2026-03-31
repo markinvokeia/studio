@@ -289,6 +289,7 @@ export const API_ROUTES = {
         RESET_PASSWORD_CHANGE: '/api/auth/recover/change',
         SET_FIRST_PASSWORD_API: '/api/auth/set-first-password',
         API_AUTH_PASSWORD_CHANGE: '/api/auth/password-change',
+        DATA_IMPORT: '/system/data-import',
     },
     ORDER_INVOICE: '/order/invoice',
     USERS_UPSERT: '/users/upsert',

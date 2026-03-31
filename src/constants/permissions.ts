@@ -564,6 +564,10 @@ export const SYSTEM_PERMISSIONS = {
 
   // Notification Settings
   NOTIFICATION_SETTINGS_VIEW_MENU: 'NOTIFICATION_SETTINGS_VIEW_MENU',
+
+  // Data Import
+  IMPORT_DATA_VIEW_MENU: 'IMPORT_DATA_VIEW_MENU',
+  IMPORT_DATA_EXECUTE: 'IMPORT_DATA_EXECUTE',
 } as const;
 
 export type SystemPermission = (typeof SYSTEM_PERMISSIONS)[keyof typeof SYSTEM_PERMISSIONS];

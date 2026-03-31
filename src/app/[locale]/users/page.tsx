@@ -365,9 +365,9 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
 async function getMutualSocietiesList(): Promise<MutualSociety[]> {
   try {
     const data = await api.get(API_ROUTES.MUTUAL_SOCIETIES, { page: '1', limit: '1000' });
-    
+
     let mutualSocietiesData: any[] = [];
-    
+
     if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && 'id' in data[0] && !('json' in data[0])) {
       mutualSocietiesData = data;
     } else if (Array.isArray(data) && data.length > 0) {
@@ -1234,8 +1234,8 @@ export default function UsersPage() {
                                 patientAllergies.length > 0
                                   ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
                                   : patientConditions.length > 0
-                                  ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
-                                  : undefined
+                                    ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
+                                    : undefined
                               }
                             >
                               {(patientAllergies.length > 0 || patientConditions.length > 0)
