@@ -2598,9 +2598,9 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                                 <Card key={idx} className="overflow-hidden">
                                     <CardContent className="p-0 flex flex-col justify-between h-full">
                                         <div className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewDocument(doc)}>
-                                            {isImage ? (
+                                            {doc.thumbnail_url ? (
                                                 <Image
-                                                    src={doc.thumbnail_url || doc.ruta ? `${process.env.NEXT_PUBLIC_API_URL}${doc.thumbnail_url || doc.ruta}` : ''}
+                                                    src={doc.thumbnail_url}
                                                     alt={docName}
                                                     fill
                                                     className="object-cover"
