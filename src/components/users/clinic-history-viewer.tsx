@@ -1912,7 +1912,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                             </CollapsibleTrigger>
                                             <CollapsibleContent>
                                                 <CardContent className="pt-0 pb-3 space-y-3">
-                                                    {session.procedimiento_realizado && (
+                                                    {session.procedimiento_realizado && session.tipo_sesion !== 'odontograma' && (
                                                         <div className="border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
