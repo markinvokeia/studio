@@ -268,6 +268,13 @@
     "description": "An overview of the latest orders.",
     "filterPlaceholder": "Filter by order ID..."
   },
+  "OrderStatus": {
+    "pending": "Pending",
+    "completed": "Completed",
+    "processing": "Processing",
+    "cancelled": "Cancelled",
+    "in progress": "In Progress"
+  },
   "NewPatientsTable": {
     "title": "New Patients",
     "description": "A list of the newest patients.",

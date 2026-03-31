@@ -239,13 +239,15 @@ async function getQuotes(): Promise<Quote[]> {
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiQuote.doc_no || 'N/A',
             user_id: apiQuote.user_id || 'N/A',
-            total: apiQuote.total || 0,
+            total: Number(apiQuote.total) || 0,
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
-            user_name: apiQuote.user_name || 'No Name',
-            userEmail: apiQuote.userEmail || 'no-email@example.com',
-            createdAt: apiQuote.createdAt || new Date().toISOString().split('T')[0],
+            user_name: apiQuote.user_name || apiQuote.name || 'No Name',
+            userEmail: apiQuote.userEmail || apiQuote.email || 'no-email@example.com',
+            currency: apiQuote.currency || 'USD',
+            exchange_rate: apiQuote.exchange_rate ? Number(apiQuote.exchange_rate) : undefined,
+            createdAt: apiQuote.created_at || apiQuote.createdAt || new Date().toISOString().split('T')[0],
         }));
     } catch (error) {
         console.error("Failed to fetch quotes:", error);
@@ -255,15 +257,15 @@ async function getQuotes(): Promise<Quote[]> {
 
 async function getOrders(): Promise<Order[]> {
     try {
-        const data = await api.get(API_ROUTES.ORDERS);
+        const data = await api.get(API_ROUTES.SALES.ORDERS_ALL, { is_sales: 'True' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiOrder.doc_no || 'N/A',
             user_id: apiOrder.user_id,
-            user_name: apiOrder.user_name || 'No Name',
+            user_name: apiOrder.user_name || apiOrder.name || 'No Name',
             status: apiOrder.status,
-            createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
+            createdAt: apiOrder.created_at || new Date().toISOString().split('T')[0],
             currency: apiOrder.currency || 'N/A',
         }));
     } catch (error) {

@@ -47,16 +47,17 @@ const getColumns = (
       ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
+        const statusKey = status.toLowerCase();
         const variant = {
           completed: 'success',
           pending: 'info',
           processing: 'default',
           cancelled: 'destructive',
-        }[status.toLowerCase()] ?? ('default' as any);
+        }[statusKey] ?? ('default' as any);
 
         return (
           <Badge variant={variant} className="capitalize">
-            {status}
+            {t(`OrderStatus.${statusKey}`)}
           </Badge>
         );
       },
