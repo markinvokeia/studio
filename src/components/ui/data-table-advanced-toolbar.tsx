@@ -61,7 +61,6 @@ export function DataTableAdvancedToolbar<TData>({
 }: DataTableAdvancedToolbarProps<TData>) {
     const t = useTranslations('DataTableToolbar');
     const inputRef = React.useRef<HTMLInputElement>(null);
-    const [showSearch, setShowSearch] = React.useState(false);
 
     const activeFilters = filters.filter((f) => f.isActive);
     const hasActiveFilters = activeFilters.length > 0;
@@ -180,54 +179,17 @@ export function DataTableAdvancedToolbar<TData>({
         <div className="flex flex-col gap-y-2 w-full">
             <div className="flex items-center justify-between gap-x-4 w-full">
                 <div className="flex items-center gap-2 flex-grow min-w-0">
-                    {isCompact ? (
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant={showSearch ? "secondary" : "outline"}
-                                size="icon"
-                                className="h-9 w-9 shrink-0"
-                                onClick={() => setShowSearch(!showSearch)}
-                            >
-                                <Search className="h-4 w-4" />
-                                <span className="sr-only">Toggle Search</span>
-                            </Button>
-                            {hasActiveFilters && !showSearch && (
-                                <div className="flex -space-x-1 overflow-hidden">
-                                    {activeFilters.slice(0, 3).map((f) => (
-                                        <div key={f.value} className="h-5 w-5 rounded-full border bg-primary/20 text-[8px] flex items-center justify-center font-bold text-primary ring-2 ring-background uppercase">
-                                            {f.label.charAt(0)}
-                                        </div>
-                                    ))}
-                                    {activeFilters.length > 3 && (
-                                        <div className="h-5 w-5 rounded-full border bg-muted text-[8px] flex items-center justify-center font-bold ring-2 ring-background">
-                                            +{activeFilters.length - 3}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="w-full sm:max-w-[724px]">
-                            {SearchBar}
-                        </div>
-                    )}
+                    <div className={isCompact ? "flex-1 min-w-0" : "w-full sm:max-w-[724px]"}>
+                        {SearchBar}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                     {onCreate && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="default" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
-                                        <PlusCircle className="h-4 w-4" />
-                                        {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || t('create')}</span> : (createButtonLabel || t('create'))}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{createButtonLabel || t('create')}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
+                        <Button variant="default" size="sm" className="h-9 gap-1.5" onClick={onCreate}>
+                            <PlusCircle className="h-4 w-4" />
+                            {createButtonLabel || t('create')}
+                        </Button>
                     )}
                     {onRefresh && (
                         <Button
@@ -280,11 +242,6 @@ export function DataTableAdvancedToolbar<TData>({
 
             
 
-            {isCompact && showSearch && (
-                <div className="w-full animate-in fade-in slide-in-from-top-2 duration-200">
-                    {SearchBar}
-                </div>
-            )}
         </div>
     );
 }

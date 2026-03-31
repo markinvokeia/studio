@@ -1225,46 +1225,50 @@ export default function UsersPage() {
                   {/* Row 1: Icon + Name + Action buttons */}
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1 flex items-center gap-2">
-                      <div className="header-icon-circle flex-none">
-                        <Users className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
-                        {selectedUser.name}
-                      </CardTitle>
-                      {(patientAllergies.length > 0 || patientConditions.length > 0) && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span>
-                                <Badge variant="destructive" className="gap-1 cursor-default px-1.5 py-0.5">
-                                  <AlertTriangle className="h-3 w-3" />
-                                </Badge>
-                              </span>
-                            </TooltipTrigger>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="header-icon-circle flex-none cursor-default"
+                              style={
+                                patientAllergies.length > 0
+                                  ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
+                                  : patientConditions.length > 0
+                                  ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
+                                  : undefined
+                              }
+                            >
+                              {(patientAllergies.length > 0 || patientConditions.length > 0)
+                                ? <AlertTriangle className="h-5 w-5" />
+                                : <Users className="h-5 w-5" />
+                              }
+                            </div>
+                          </TooltipTrigger>
+                          {(patientAllergies.length > 0 || patientConditions.length > 0) && (
                             <TooltipContent>
                               {[
                                 patientAllergies.length > 0 ? `${patientAllergies.length} alergia(s)` : '',
                                 patientConditions.length > 0 ? `${patientConditions.length} padecimiento(s)` : '',
                               ].filter(Boolean).join(' · ')}
                             </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
+                          )}
+                        </Tooltip>
+                      </TooltipProvider>
+                      <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
+                        {selectedUser.name}
+                      </CardTitle>
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                       {/* + Quick create dropdown */}
                       <TooltipProvider>
                         <DropdownMenu>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="default" size="icon" className="h-8 w-8">
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>Crear nuevo</TooltipContent>
-                          </Tooltip>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
+                              <Plus className="h-4 w-4" />
+                              Crear
+                              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                            </Button>
+                          </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateSessionTrigger(t => t + 1); }}>
@@ -1308,7 +1312,7 @@ export default function UsersPage() {
                                 <Button
                                   variant={isPreferencesOpen ? 'secondary' : 'outline'}
                                   size="icon"
-                                  className="h-8 w-8"
+                                  className="h-8 w-8 hover:text-primary hover:border-primary/50"
                                 >
                                   <Bell className="h-4 w-4" />
                                 </Button>
@@ -1359,7 +1363,7 @@ export default function UsersPage() {
                             <Button
                               variant={isStatsOpen ? 'secondary' : 'outline'}
                               size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs font-semibold"
+                              className="h-8 gap-1.5 px-2 text-xs font-semibold hover:text-primary hover:border-primary/50"
                               onClick={() => setIsStatsOpen(v => !v)}
                             >
                               {isStatsOpen
@@ -1406,8 +1410,8 @@ export default function UsersPage() {
                     </div>
                   </div>
 
-                  {/* Row 2: Contact info */}
-                  <div className="flex items-center gap-x-4 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
+                  {/* Row 2: Contact info + discharge */}
+                  <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
                     {selectedUser.birth_date && (
                       <span className="flex items-center gap-1">
                         <Cake className="h-3 w-3" />
@@ -1432,17 +1436,17 @@ export default function UsersPage() {
                         {selectedUser.identity_document}
                       </span>
                     )}
+                    {currentDischarge && (
+                      <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 text-xs font-normal">
+                        <CheckCircle className="h-3 w-3" />
+                        {t('ClinicHistoryPage.discharge.dischargedBadge', { date: format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy') })}
+                      </Badge>
+                    )}
                   </div>
 
-                  {/* Row 3: Medical alerts + discharge badge */}
-                  {(currentDischarge || patientAllergies.length > 0 || patientConditions.length > 0) && (
-                    <div className="flex items-center gap-1.5 mt-2 ml-10 flex-wrap">
-                      {currentDischarge && (
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 text-xs font-normal">
-                          <CheckCircle className="h-3 w-3" />
-                          {t('ClinicHistoryPage.discharge.dischargedBadge', { date: format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy') })}
-                        </Badge>
-                      )}
+                  {/* Row 3: Allergies + conditions */}
+                  {(patientAllergies.length > 0 || patientConditions.length > 0) && (
+                    <div className="flex items-center gap-1.5 mt-1 ml-10 flex-wrap">
                       {[
                         ...patientAllergies.map(a => ({ label: a.alergeno, type: 'allergy' as const })),
                         ...patientConditions.map(c => ({ label: c.nombre, type: 'condition' as const })),
@@ -1619,15 +1623,31 @@ export default function UsersPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
-                          {...field}
-                          max={new Date().toISOString().split('T')[0]}
-                          min="1900-01-01"
-                        />
-                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                            >
+                              {field.value
+                                ? format(parseISO(field.value), 'dd/MM/yyyy')
+                                : <span>{t('UsersPage.createDialog.birth_date_placeholder')}</span>
+                              }
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <DatePicker
+                            mode="single"
+                            selected={field.value ? parseISO(field.value) : undefined}
+                            onSelect={(date: Date | undefined) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                            disabled={(date: Date) => date > new Date() || date < new Date('1900-01-01')}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
