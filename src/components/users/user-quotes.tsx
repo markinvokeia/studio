@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -660,20 +661,21 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                   Enviar
                 </Button>
               )}
+              {isDraft && <Separator orientation="vertical" className="h-6 mx-1" />}
               {isDraft && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
+                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
                   <CheckCircle className="h-3.5 w-3.5" />
                   Confirmar
                 </Button>
               )}
               {isDraft && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
+                <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
                   <XCircle className="h-3.5 w-3.5" />
                   Rechazar
                 </Button>
               )}
               {isDraft && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => setIsDeletingQuote(true)}>
+                <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsDeletingQuote(true)}>
                   <Trash2 className="h-3.5 w-3.5" />
                   Eliminar
                 </Button>

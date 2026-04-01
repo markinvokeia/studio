@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -677,8 +678,9 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
                   Editar
                 </Button>
               )}
+              {(isDraft || isBookedUnpaid) && <Separator orientation="vertical" className="h-6 mx-1" />}
               {isDraft && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={handleConfirm}>
+                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirm}>
                   <CheckCircle className="h-3.5 w-3.5" />
                   Confirmar
                 </Button>
