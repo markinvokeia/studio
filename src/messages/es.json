@@ -1104,7 +1104,16 @@
             "invoices": "Facturas",
             "payments": "Pagos",
             "notes": "Notas",
-            "total": "Total"
+            "total": "Total",
+            "appointments": "Citas"
+        },
+        "appointments": {
+            "columns": {
+                "summary": "Resumen",
+                "date": "Fecha y hora inicio",
+                "endTime": "Hora fin",
+                "status": "Estado"
+            }
         },
         "UserColumns": {
             "status": "Estado"

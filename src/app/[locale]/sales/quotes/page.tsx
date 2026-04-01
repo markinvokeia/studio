@@ -8,6 +8,9 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
+import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { ActionButton } from '@/components/ui/action-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -48,8 +51,9 @@ import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteIt
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { format, parseISO } from 'date-fns';
+import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -93,6 +97,85 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
 
 type QuoteItemFormValues = z.infer<ReturnType<typeof quoteItemFormSchema>>;
 
+interface QuoteAppointment {
+    id: number;
+    summary: string;
+    status: string;
+    start_datetime: string;
+    end_datetime: string;
+    notes: string | null;
+}
+
+async function getQuoteAppointments(quoteId: string): Promise<QuoteAppointment[]> {
+    try {
+        const data = await api.get(API_ROUTES.SALES.QUOTE_APPOINTMENTS, { quote_id: quoteId });
+        const raw = Array.isArray(data) ? data : (data.appointments || data.data || data.result || []);
+        return raw
+            .filter((a: any) => a.id != null)
+            .map((a: any) => ({
+                id: a.id,
+                summary: a.summary || '',
+                status: a.status || '',
+                start_datetime: a.start_datetime || '',
+                end_datetime: a.end_datetime || '',
+                notes: a.notes || null,
+            }));
+    } catch {
+        return [];
+    }
+}
+
+function getAppointmentColumns(
+    t: (key: string) => string,
+    tStatus: (key: string) => string,
+): ColumnDef<QuoteAppointment>[] {
+    return [
+        {
+            accessorKey: 'summary',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('appointments.columns.summary')} />,
+            cell: ({ row }) => (
+                <span className="truncate max-w-[300px] block" title={row.getValue('summary')}>
+                    {row.getValue('summary')}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'start_datetime',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('appointments.columns.date')} />,
+            cell: ({ row }) => {
+                const val: string = row.getValue('start_datetime');
+                if (!val) return <span className="text-muted-foreground">—</span>;
+                const d = parseISO(val);
+                return <span>{format(d, 'dd/MM/yyyy HH:mm')}</span>;
+            },
+        },
+        {
+            accessorKey: 'end_datetime',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('appointments.columns.endTime')} />,
+            cell: ({ row }) => {
+                const val: string = row.getValue('end_datetime');
+                if (!val) return <span className="text-muted-foreground">—</span>;
+                return <span>{format(parseISO(val), 'HH:mm')}</span>;
+            },
+        },
+        {
+            accessorKey: 'status',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('appointments.columns.status')} />,
+            cell: ({ row }) => {
+                const status: string = row.getValue('status') || '';
+                const key = status.toLowerCase();
+                const variant: 'default' | 'secondary' | 'destructive' | 'outline' =
+                    key === 'confirmed' || key === 'completed' ? 'default' :
+                    key === 'cancelled' ? 'destructive' : 'secondary';
+                return (
+                    <Badge variant={variant} className="capitalize text-xs">
+                        {tStatus(key) || status}
+                    </Badge>
+                );
+            },
+        },
+    ];
+}
 
 async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
     try {
@@ -423,6 +506,7 @@ export default function QuotesPage() {
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
     const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [quoteAppointments, setQuoteAppointments] = React.useState<QuoteAppointment[]>([]);
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -432,6 +516,7 @@ export default function QuotesPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
+    const [isLoadingAppointments, setIsLoadingAppointments] = React.useState(false);
 
     const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
     const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
@@ -543,12 +628,20 @@ export default function QuotesPage() {
         setIsLoadingPayments(false);
     }, [selectedQuote, t]);
 
+    const loadQuoteAppointments = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        setIsLoadingAppointments(true);
+        setQuoteAppointments(await getQuoteAppointments(selectedQuote.id));
+        setIsLoadingAppointments(false);
+    }, [selectedQuote]);
+
     React.useEffect(() => {
         if (selectedQuote) {
             loadQuoteItems();
             loadOrders();
             loadInvoices();
             loadPayments();
+            loadQuoteAppointments();
             setSelectedOrder(null);
             setSelectedInvoice(null);
         } else {
@@ -556,8 +649,9 @@ export default function QuotesPage() {
             setOrders([]);
             setInvoices([]);
             setPayments([]);
+            setQuoteAppointments([]);
         }
-    }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments]);
+    }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments, loadQuoteAppointments]);
 
     React.useEffect(() => {
         if (selectedOrder) {
@@ -1070,6 +1164,7 @@ export default function QuotesPage() {
                                             <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
                                             <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
                                             <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
+                                            <TabsTrigger value="appointments" className="text-xs">{t('tabs.appointments')}</TabsTrigger>
                                         </TabsList>
                                         <div className="flex-1 min-h-0 mt-4 flex flex-col">
                                             <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
@@ -1189,6 +1284,24 @@ export default function QuotesPage() {
                                                 ) : (
                                                     <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                                 )}
+                                            </TabsContent>
+                                            <TabsContent value="appointments" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                                <div className="flex-1 min-h-[400px] flex flex-col">
+                                                    <div className="flex items-center justify-between mb-2 flex-none">
+                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                            <CalendarDays className="h-4 w-4" />
+                                                            {t('tabs.appointments')}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0">
+                                                        <DataTable
+                                                            columns={getAppointmentColumns(t, (key) => tRoot(`AppointmentStatus.${key}`))}
+                                                            data={quoteAppointments}
+                                                            isRefreshing={isLoadingAppointments}
+                                                            onRefresh={loadQuoteAppointments}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </TabsContent>
                                         </div>
                                     </Tabs>

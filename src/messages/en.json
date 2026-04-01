@@ -1104,7 +1104,16 @@
       "invoices": "Invoices",
       "payments": "Payments",
       "notes": "Notes",
-      "total": "Total"
+      "total": "Total",
+      "appointments": "Appointments"
+    },
+    "appointments": {
+      "columns": {
+        "summary": "Summary",
+        "date": "Start date & time",
+        "endTime": "End time",
+        "status": "Status"
+      }
     },
     "UserColumns": {
       "status": "Status"
