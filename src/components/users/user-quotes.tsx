@@ -4,6 +4,7 @@ import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -56,6 +57,20 @@ type QuoteEditFormValues = z.infer<typeof quoteEditSchema>;
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Seleccionar fila"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
@@ -475,7 +490,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
     <div className="flex items-center gap-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -565,111 +580,124 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       </Card>
 
       {/* ── Detail Sheet ── */}
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
-        setIsSheetOpen(open);
-        if (!open) { setRowSelection({}); setSelectedQuote(null); setQuoteItems([]); onQuoteSelect?.(null); }
-      }}>
-        <SheetContent side="right" className="sm:max-w-[640px] w-full flex flex-col p-0 gap-0">
-          {selectedQuote && (
-            <>
-              <SheetHeader className="px-6 py-4 border-b">
-                <div className="flex items-start justify-between gap-4 pr-10">
-                  <div>
-                    <SheetTitle className="text-lg">{selectedQuote.doc_no}</SheetTitle>
-                    <SheetDescription>Presupuesto</SheetDescription>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    <Badge variant={(STATUS_BADGE[selectedQuote.status.toLowerCase()] ?? 'default') as any} className="capitalize">
-                      {t(`QuotesPage.quoteDialog.${selectedQuote.status.toLowerCase()}`)}
-                    </Badge>
-                    <Badge variant={(PAYMENT_BADGE[selectedQuote.payment_status.toLowerCase()] ?? 'outline') as any} className="capitalize">
-                      {selectedQuote.payment_status}
-                    </Badge>
-                  </div>
-                </div>
-              </SheetHeader>
-
-              {/* Meta info */}
-              <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+      <ResizableSheet
+        open={isSheetOpen}
+        onOpenChange={(open) => {
+          setIsSheetOpen(open);
+          if (!open) { setRowSelection({}); setSelectedQuote(null); setQuoteItems([]); onQuoteSelect?.(null); }
+        }}
+        defaultWidth={800}
+        minWidth={560}
+        maxWidth={1400}
+        storageKey="user-quotes-sheet-width"
+      >
+        {selectedQuote && (
+          <>
+            <SheetHeader className="px-6 py-4 border-b">
+              <div className="flex items-start justify-between gap-4 pr-10">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Total</p>
-                  <p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(selectedQuote.total)}</p>
+                  <SheetTitle className="text-lg">{selectedQuote.doc_no}</SheetTitle>
+                  <SheetDescription>Presupuesto</SheetDescription>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Facturación</p>
-                  <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs font-normal capitalize">
-                    {selectedQuote.billing_status}
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <Badge variant={(STATUS_BADGE[selectedQuote.status.toLowerCase()] ?? 'default') as any} className="capitalize">
+                    {t(`QuotesPage.quoteDialog.${selectedQuote.status.toLowerCase()}`)}
+                  </Badge>
+                  <Badge variant={(PAYMENT_BADGE[selectedQuote.payment_status.toLowerCase()] ?? 'outline') as any} className="capitalize">
+                    {(() => {
+                      const status = selectedQuote.payment_status.toLowerCase().trim();
+                      const keyMap: Record<string, string> = { paid: 'paid', partial: 'partial', 'partially paid': 'partiallyPaid', partially_paid: 'partiallyPaid', unpaid: 'unpaid' };
+                      return t(`QuotesPage.quoteDialog.${keyMap[status] || 'unpaid'}`);
+                    })()}
                   </Badge>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
-                  <p className="text-xs">{formatDateTime(selectedQuote.createdAt)}</p>
-                </div>
-                {selectedQuote.notes && (
-                  <div className="col-span-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
-                    <p className="text-xs">{selectedQuote.notes}</p>
-                  </div>
-                )}
               </div>
+            </SheetHeader>
 
-              {/* Actions */}
-              <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
-                  <Printer className="h-3.5 w-3.5" />
-                  Imprimir
+            {/* Meta info */}
+            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+                <p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(selectedQuote.total)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Facturación</p>
+                <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs font-normal capitalize">
+                  {(() => {
+                    const status = selectedQuote.billing_status.toLowerCase().trim();
+                    const keyMap: Record<string, string> = { invoiced: 'invoiced', 'partially invoiced': 'partiallyInvoiced', partially_invoiced: 'partiallyInvoiced', 'not invoiced': 'notInvoiced', not_invoiced: 'notInvoiced' };
+                    return t(`QuotesPage.quoteDialog.${keyMap[status] || 'notInvoiced'}`);
+                  })()}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
+                <p className="text-xs">{formatDateTime(selectedQuote.createdAt)}</p>
+              </div>
+              {selectedQuote.notes && (
+                <div className="col-span-3">
+                  <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
+                  <p className="text-xs">{selectedQuote.notes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir
+              </Button>
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditQuoteOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
                 </Button>
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditQuoteOpen(true)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    Editar
-                  </Button>
-                )}
-                {canSend && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
-                    <Send className="h-3.5 w-3.5" />
-                    Enviar
-                  </Button>
-                )}
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Confirmar
-                  </Button>
-                )}
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
-                    <XCircle className="h-3.5 w-3.5" />
-                    Rechazar
-                  </Button>
-                )}
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => setIsDeletingQuote(true)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Eliminar
-                  </Button>
-                )}
-              </div>
+              )}
+              {canSend && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
+                  <Send className="h-3.5 w-3.5" />
+                  Enviar
+                </Button>
+              )}
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Confirmar
+                </Button>
+              )}
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
+                  <XCircle className="h-3.5 w-3.5" />
+                  Rechazar
+                </Button>
+              )}
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => setIsDeletingQuote(true)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Eliminar
+                </Button>
+              )}
+            </div>
 
-              {/* Items */}
-              <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-                <p className="text-sm font-semibold mb-2">Ítems del presupuesto</p>
-                <div className="flex-1 overflow-hidden">
-                  <QuoteItemsTable
-                    items={quoteItems}
-                    isLoading={isLoadingItems}
-                    canEdit={canEditItems}
-                    onCreate={() => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); }}
-                    onEdit={(item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}
-                    onDelete={setDeletingItem}
-                    onRefresh={() => loadItems(selectedQuote.id)}
-                  />
-                </div>
+            {/* Items */}
+            <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
+              <p className="text-sm font-semibold mb-2">Ítems del presupuesto</p>
+              <div className="flex-1 overflow-hidden">
+                <QuoteItemsTable
+                  items={quoteItems}
+                  isLoading={isLoadingItems}
+                  canEdit={canEditItems}
+                  onCreate={() => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); }}
+                  onEdit={(item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}
+                  onDelete={setDeletingItem}
+                  onRefresh={() => loadItems(selectedQuote.id)}
+                />
               </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            </div>
+          </>
+        )}
+      </ResizableSheet>
 
       {/* ── Edit quote dialog ── */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>

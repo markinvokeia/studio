@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -89,6 +89,20 @@ const PAYMENT_BADGE: Record<string, any> = { paid: 'success', partial: 'info', p
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Invoice>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Seleccionar fila"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.docNo')} />,
@@ -507,7 +521,7 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
     <div className="flex items-center gap-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -593,101 +607,106 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       </Card>
 
       {/* ── Detail Sheet ── */}
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
-        setIsSheetOpen(open);
-        if (!open) { setRowSelection({}); setSelectedInvoice(null); setInvoiceItems([]); }
-      }}>
-        <SheetContent side="right" className="sm:max-w-[640px] w-full flex flex-col p-0 gap-0">
-          {selectedInvoice && (
-            <>
-              <SheetHeader className="px-6 py-4 border-b">
-                <div className="flex items-start justify-between gap-4 pr-10">
-                  <div>
-                    <SheetTitle className="text-lg">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
-                    <SheetDescription>Factura</SheetDescription>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    <Badge variant={(STATUS_BADGE[selectedInvoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize">
-                      {tStatus(selectedInvoice.status?.toLowerCase() || '')}
+      <ResizableSheet
+        open={isSheetOpen}
+        onOpenChange={(open: boolean) => {
+          setIsSheetOpen(open);
+          if (!open) { setRowSelection({}); setSelectedInvoice(null); setInvoiceItems([]); }
+        }}
+        defaultWidth={800}
+        minWidth={560}
+        maxWidth={1400}
+        storageKey="user-invoices-sheet-width"
+      >
+        {selectedInvoice && (
+          <>
+            <SheetHeader className="px-6 py-4 border-b">
+              <div className="flex items-start justify-between gap-4 pr-10">
+                <div>
+                  <SheetTitle className="text-lg">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
+                  <SheetDescription>Factura</SheetDescription>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <Badge variant={(STATUS_BADGE[selectedInvoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize">
+                    {tStatus(selectedInvoice.status?.toLowerCase() || '')}
+                  </Badge>
+                  {selectedInvoice.payment_status && (
+                    <Badge variant={(PAYMENT_BADGE[selectedInvoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize">
+                      {tStatus(selectedInvoice.payment_status?.toLowerCase() || '')}
                     </Badge>
-                    {selectedInvoice.payment_status && (
-                      <Badge variant={(PAYMENT_BADGE[selectedInvoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize">
-                        {selectedInvoice.payment_status}
-                      </Badge>
-                    )}
-                  </div>
+                  )}
                 </div>
-              </SheetHeader>
-
-              {/* Meta info */}
-              <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Total</p>
-                  <p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Orden</p>
-                  <p className="text-xs font-medium">{selectedInvoice.order_doc_no !== 'N/A' ? selectedInvoice.order_doc_no : '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
-                  <p className="text-xs">{formatDateTime(selectedInvoice.createdAt)}</p>
-                </div>
-                {selectedInvoice.notes && (
-                  <div className="col-span-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
-                    <p className="text-xs">{selectedInvoice.notes}</p>
-                  </div>
-                )}
               </div>
+            </SheetHeader>
 
-              {/* Actions */}
-              <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
-                  <Printer className="h-3.5 w-3.5" />
-                  Imprimir
+            {/* Meta info */}
+            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Total</p>
+                <p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Orden</p>
+                <p className="text-xs font-medium">{selectedInvoice.order_doc_no !== 'N/A' ? selectedInvoice.order_doc_no : '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
+                <p className="text-xs">{formatDateTime(selectedInvoice.createdAt)}</p>
+              </div>
+              {selectedInvoice.notes && (
+                <div className="col-span-3">
+                  <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
+                  <p className="text-xs">{selectedInvoice.notes}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
+                <Send className="h-3.5 w-3.5" />
+                Enviar
+              </Button>
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditInvoiceOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
                 </Button>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
-                  <Send className="h-3.5 w-3.5" />
-                  Enviar
+              )}
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={handleConfirm}>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Confirmar
                 </Button>
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditInvoiceOpen(true)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    Editar
-                  </Button>
-                )}
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={handleConfirm}>
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Confirmar
-                  </Button>
-                )}
-                {isBookedUnpaid && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsPaymentDialogOpen(true)}>
-                    <CreditCard className="h-3.5 w-3.5" />
-                    Agregar pago
-                  </Button>
-                )}
-              </div>
+              )}
+              {isBookedUnpaid && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsPaymentDialogOpen(true)}>
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Agregar pago
+                </Button>
+              )}
+            </div>
 
-              {/* Items */}
-              <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-                <p className="text-sm font-semibold mb-2">Ítems de la factura</p>
-                <div className="flex-1 overflow-hidden">
-                  <InvoiceItemsTable
-                    items={invoiceItems}
-                    isLoading={isLoadingItems}
-                    canEdit={canEditItems}
-                    onEdit={(item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}
-                    onDelete={setDeletingItem}
-                  />
-                </div>
+            {/* Items */}
+            <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
+              <p className="text-sm font-semibold mb-2">Ítems de la factura</p>
+              <div className="flex-1 overflow-hidden">
+                <InvoiceItemsTable
+                  items={invoiceItems}
+                  isLoading={isLoadingItems}
+                  canEdit={canEditItems}
+                  onEdit={(item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}
+                  onDelete={setDeletingItem}
+                />
               </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            </div>
+          </>
+        )}
+      </ResizableSheet>
 
       {/* ── Edit invoice dialog ── */}
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>

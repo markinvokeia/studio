@@ -646,7 +646,7 @@ export default function QuotesPage() {
             status: (statusMap[quote.status] || quote.status.toLowerCase()) as any,
             payment_status: (paymentStatusMap[quote.payment_status] || quote.payment_status) as any,
             billing_status: (billingStatusMap[quote.billing_status] || quote.billing_status) as any,
-            currency: (currencyMap[quote.currency] || quote.currency) as any,
+            currency: (currencyMap[quote.currency || ''] || quote.currency || 'USD') as any,
         };
     };
 

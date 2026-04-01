@@ -4,11 +4,12 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
@@ -39,6 +40,20 @@ const STATUS_KEY_MAP: Record<string, string> = {
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Seleccionar fila"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.docNo')} />,
@@ -314,81 +329,86 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
       </Card>
 
       {/* ── Detail Sheet ── */}
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
-        setIsSheetOpen(open);
-        if (!open) { setRowSelection({}); setSelectedOrder(null); setOrderItems([]); }
-      }}>
-        <SheetContent side="right" className="sm:max-w-[780px] w-full flex flex-col p-0 gap-0">
-          {selectedOrder && (
-            <>
-              <SheetHeader className="px-6 py-4 border-b">
-                <div className="flex items-start justify-between gap-4 pr-10">
-                  <div>
-                    <SheetTitle className="text-lg">{selectedOrder.doc_no}</SheetTitle>
-                    <SheetDescription>Orden</SheetDescription>
-                  </div>
-                  <Badge variant={(STATUS_BADGE[selectedOrder.status?.toLowerCase().trim()] ?? 'default') as any} className="capitalize">
-                    {t(`OrdersPage.status.${STATUS_KEY_MAP[selectedOrder.status?.toLowerCase().trim()] || selectedOrder.status?.toLowerCase()}`)}
-                  </Badge>
-                </div>
-              </SheetHeader>
-
-              {/* Meta info */}
-              <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+      <ResizableSheet
+        open={isSheetOpen}
+        onOpenChange={(open: boolean) => {
+          setIsSheetOpen(open);
+          if (!open) { setRowSelection({}); setSelectedOrder(null); setOrderItems([]); }
+        }}
+        defaultWidth={900}
+        minWidth={600}
+        maxWidth={1400}
+        storageKey="user-orders-sheet-width"
+      >
+        {selectedOrder && (
+          <>
+            <SheetHeader className="px-6 py-4 border-b">
+              <div className="flex items-start justify-between gap-4 pr-10">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Presupuesto</p>
-                  <p className="text-xs font-medium">{selectedOrder.quote_doc_no || selectedOrder.quote_id || '-'}</p>
+                  <SheetTitle className="text-lg">{selectedOrder.doc_no}</SheetTitle>
+                  <SheetDescription>Orden</SheetDescription>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Moneda</p>
-                  <p className="text-xs font-medium">{selectedOrder.currency}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
-                  <p className="text-xs">{formatDateTime(selectedOrder.createdAt)}</p>
-                </div>
-                {selectedOrder.notes && (
-                  <div className="col-span-3">
-                    <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
-                    <p className="text-xs">{selectedOrder.notes}</p>
-                  </div>
-                )}
+                <Badge variant={(STATUS_BADGE[selectedOrder.status?.toLowerCase().trim()] ?? 'default') as any} className="capitalize">
+                  {t(`OrdersPage.status.${STATUS_KEY_MAP[selectedOrder.status?.toLowerCase().trim()] || selectedOrder.status?.toLowerCase()}`)}
+                </Badge>
               </div>
+            </SheetHeader>
 
-              {/* Actions */}
-              {canInvoiceFromOrder && (
-                <div className="px-6 py-3 border-b">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 gap-1.5 text-xs"
-                    onClick={handleInvoiceClick}
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    {t('Navigation.InvoiceAction')}
-                  </Button>
+            {/* Meta info */}
+            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Presupuesto</p>
+                <p className="text-xs font-medium">{selectedOrder.quote_doc_no || selectedOrder.quote_id || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Moneda</p>
+                <p className="text-xs font-medium">{selectedOrder.currency}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
+                <p className="text-xs">{formatDateTime(selectedOrder.createdAt)}</p>
+              </div>
+              {selectedOrder.notes && (
+                <div className="col-span-3">
+                  <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
+                  <p className="text-xs">{selectedOrder.notes}</p>
                 </div>
               )}
+            </div>
 
-              {/* Items */}
-              <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-                <p className="text-sm font-semibold mb-2">Ítems de la orden</p>
-                <div className="flex-1 overflow-hidden">
-                  <OrderItemsTable
-                    items={orderItems}
-                    isLoading={isLoadingItems}
-                    onItemsUpdate={() => loadItems(selectedOrder.id, selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined)}
-                    quoteId={selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined}
-                    isSales={true}
-                    userId={userId}
-                    patient={patient}
-                  />
-                </div>
+            {/* Actions */}
+            {canInvoiceFromOrder && (
+              <div className="px-6 py-3 border-b">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={handleInvoiceClick}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  {t('Navigation.InvoiceAction')}
+                </Button>
               </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+            )}
+
+            {/* Items */}
+            <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
+              <p className="text-sm font-semibold mb-2">Ítems de la orden</p>
+              <div className="flex-1 overflow-hidden">
+                <OrderItemsTable
+                  items={orderItems}
+                  isLoading={isLoadingItems}
+                  onItemsUpdate={() => loadItems(selectedOrder.id, selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined)}
+                  quoteId={selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined}
+                  isSales={true}
+                  userId={userId}
+                  patient={patient}
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </ResizableSheet>
 
       {/* ── Invoice Dialog ── */}
       <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>

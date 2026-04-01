@@ -4,9 +4,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { API_ROUTES } from '@/constants/routes';
@@ -36,6 +37,20 @@ const getPaymentType = (payment: Payment): { type: 'payment' | 'prepaid' | 'cred
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Seleccionar fila"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.doc_no')} />,
@@ -226,7 +241,7 @@ export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
     <div className="flex items-center gap-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -296,107 +311,112 @@ export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
       </Card>
 
       {/* ── Detail Sheet ── */}
-      <Sheet open={isSheetOpen} onOpenChange={(open) => {
-        setIsSheetOpen(open);
-        if (!open) { setRowSelection({}); setSelectedPayment(null); setAllocations([]); }
-      }}>
-        <SheetContent side="right" className="sm:max-w-[640px] w-full flex flex-col p-0 gap-0">
-          {selectedPayment && (
-            <>
-              <SheetHeader className="px-6 py-4 border-b">
-                <div className="flex items-start justify-between gap-4 pr-10">
-                  <div>
-                    <SheetTitle className="text-lg">{selectedPayment.doc_no || `PAY-${selectedPayment.id}`}</SheetTitle>
-                    <SheetDescription>
-                      {(() => {
-                        const { type } = getPaymentType(selectedPayment);
-                        return t(`PaymentsPage.columns.paymentTypes.${type}`);
-                      })()}
-                    </SheetDescription>
-                  </div>
-                  {(() => {
-                    const { type, variant } = getPaymentType(selectedPayment);
-                    return (
-                      <Badge variant={variant}>
-                        {t(`PaymentsPage.columns.paymentTypes.${type}`)}
-                      </Badge>
-                    );
-                  })()}
-                </div>
-              </SheetHeader>
-
-              {/* Meta info */}
-              <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+      <ResizableSheet
+        open={isSheetOpen}
+        onOpenChange={(open: boolean) => {
+          setIsSheetOpen(open);
+          if (!open) { setRowSelection({}); setSelectedPayment(null); setAllocations([]); }
+        }}
+        defaultWidth={800}
+        minWidth={560}
+        maxWidth={1400}
+        storageKey="user-payments-sheet-width"
+      >
+        {selectedPayment && (
+          <>
+            <SheetHeader className="px-6 py-4 border-b">
+              <div className="flex items-start justify-between gap-4 pr-10">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Monto</p>
-                  <p className="font-semibold">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(selectedPayment.amount)}
-                  </p>
+                  <SheetTitle className="text-lg">{selectedPayment.doc_no || `PAY-${selectedPayment.id}`}</SheetTitle>
+                  <SheetDescription>
+                    {(() => {
+                      const { type } = getPaymentType(selectedPayment);
+                      return t(`PaymentsPage.columns.paymentTypes.${type}`);
+                    })()}
+                  </SheetDescription>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Método</p>
-                  <p className="text-xs font-medium">{selectedPayment.method || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Fecha</p>
-                  <p className="text-xs">{formatDateTime(selectedPayment.createdAt)}</p>
-                </div>
-                {selectedPayment.order_doc_no && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Orden</p>
-                    <p className="text-xs font-medium">{selectedPayment.order_doc_no}</p>
-                  </div>
-                )}
-                {selectedPayment.transaction_type && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Tipo</p>
-                    <p className="text-xs font-medium capitalize">{selectedPayment.transaction_type.replace(/_/g, ' ')}</p>
-                  </div>
-                )}
-                {selectedPayment.exchange_rate && selectedPayment.exchange_rate !== 1 && (
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-0.5">Tipo de cambio</p>
-                    <p className="text-xs font-medium">{selectedPayment.exchange_rate.toFixed(4)}</p>
-                  </div>
-                )}
+                {(() => {
+                  const { type, variant } = getPaymentType(selectedPayment);
+                  return (
+                    <Badge variant={variant}>
+                      {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                    </Badge>
+                  );
+                })()}
               </div>
+            </SheetHeader>
 
-              {/* Actions */}
-              <div className="px-6 py-3 flex items-center gap-2 border-b bg-muted/30">
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
-                  <Printer className="h-3.5 w-3.5" />
-                  Imprimir
-                </Button>
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
-                  <Send className="h-3.5 w-3.5" />
-                  Enviar
-                </Button>
+            {/* Meta info */}
+            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Monto</p>
+                <p className="font-semibold">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(selectedPayment.amount)}
+                </p>
               </div>
-
-              {/* Notes */}
-              {selectedPayment.notes && (
-                <div className="px-6 py-3 border-b">
-                  <p className="text-xs text-muted-foreground mb-1">Notas</p>
-                  <p className="text-sm">{selectedPayment.notes}</p>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Método</p>
+                <p className="text-xs font-medium">{selectedPayment.method || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-0.5">Fecha</p>
+                <p className="text-xs">{formatDateTime(selectedPayment.createdAt)}</p>
+              </div>
+              {selectedPayment.order_doc_no && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Orden</p>
+                  <p className="text-xs font-medium">{selectedPayment.order_doc_no}</p>
                 </div>
               )}
-
-              {/* Allocations (only for pre-payments) */}
-              {!selectedPayment.invoice_id && (
-                <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-                  <p className="text-sm font-semibold mb-2">Asignaciones</p>
-                  <div className="flex-1 overflow-hidden">
-                    <PaymentAllocationsTable
-                      allocations={allocations}
-                      isLoading={isLoadingAllocations}
-                    />
-                  </div>
+              {selectedPayment.transaction_type && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Tipo</p>
+                  <p className="text-xs font-medium capitalize">{selectedPayment.transaction_type.replace(/_/g, ' ')}</p>
                 </div>
               )}
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+              {selectedPayment.exchange_rate && selectedPayment.exchange_rate !== 1 && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-0.5">Tipo de cambio</p>
+                  <p className="text-xs font-medium">{selectedPayment.exchange_rate.toFixed(4)}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-3 flex items-center gap-2 border-b bg-muted/30">
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
+                <Send className="h-3.5 w-3.5" />
+                Enviar
+              </Button>
+            </div>
+
+            {/* Notes */}
+            {selectedPayment.notes && (
+              <div className="px-6 py-3 border-b">
+                <p className="text-xs text-muted-foreground mb-1">Notas</p>
+                <p className="text-sm">{selectedPayment.notes}</p>
+              </div>
+            )}
+
+            {/* Allocations (only for pre-payments) */}
+            {!selectedPayment.invoice_id && (
+              <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
+                <p className="text-sm font-semibold mb-2">Asignaciones</p>
+                <div className="flex-1 overflow-hidden">
+                  <PaymentAllocationsTable
+                    allocations={allocations}
+                    isLoading={isLoadingAllocations}
+                  />
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </ResizableSheet>
     </>
   );
 }
