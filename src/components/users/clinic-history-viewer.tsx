@@ -155,9 +155,12 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         }
     }, [userId, refreshAll]);
 
+    const [localSessionTrigger, setLocalSessionTrigger] = React.useState(0);
+
     React.useEffect(() => {
         if (createSessionTrigger > 0) {
             setActiveView('timeline');
+            setLocalSessionTrigger(t => t + 1);
         }
     }, [createSessionTrigger]);
 
@@ -250,7 +253,8 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                                 onFetchDoctors={fetchDoctors}
                                 onRefreshAll={refreshAll}
                                 onLoadSessionAttachment={getSessionAttachment}
-                                createTrigger={createSessionTrigger}
+                                createTrigger={localSessionTrigger}
+                                onTriggerConsumed={() => setLocalSessionTrigger(0)}
                             />
                         )}
                         {activeView === 'odontogram' && (
@@ -1555,9 +1559,10 @@ interface TreatmentTimelineProps {
     onRefreshAll: (userId: string) => Promise<void>;
     onLoadSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
     createTrigger?: number;
+    onTriggerConsumed?: () => void;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0 }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1573,6 +1578,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             setEditingSession(null);
             onFetchDoctors();
             setIsSessionDialogOpen(true);
+            onTriggerConsumed?.();
         }
     }, [createTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
