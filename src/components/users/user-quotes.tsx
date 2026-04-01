@@ -1,20 +1,22 @@
 'use client';
 
+import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ServiceSelector } from '@/components/ui/service-selector';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Quote, QuoteItem, Service } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
@@ -25,7 +27,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -39,7 +41,16 @@ type ItemFormValues = z.infer<typeof itemSchema>;
 
 const quoteEditSchema = z.object({
   currency: z.enum(['USD', 'UYU']),
+  exchange_rate: z.coerce.number().min(0.0001, 'Tasa de cambio inválida'),
   notes: z.string().optional(),
+  items: z.array(z.object({
+    id: z.string().optional(),
+    service_id: z.string().min(1, 'Selecciona un servicio'),
+    quantity: z.coerce.number().int().min(1, 'Mínimo 1'),
+    unit_price: z.coerce.number().min(0, 'Precio inválido'),
+    total: z.coerce.number().min(0),
+    tooth_number: z.coerce.number().int().optional().or(z.literal('')),
+  })).default([]),
 });
 type QuoteEditFormValues = z.infer<typeof quoteEditSchema>;
 
@@ -161,6 +172,7 @@ interface UserQuotesProps {
 export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const t = useTranslations();
   const { toast } = useToast();
+  const { activeCashSession } = useAuth();
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -309,51 +321,90 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   };
 
   // ── Quote edit form ──────────────────────────────────────────────────────────
+  const getSessionExchangeRate = React.useCallback(() => {
+    if (!activeCashSession?.data?.opening_details?.date_rate) return 1;
+    return activeCashSession.data.opening_details.date_rate;
+  }, [activeCashSession]);
+
   const quoteEditForm = useForm<QuoteEditFormValues>({ resolver: zodResolver(quoteEditSchema) });
+  const { fields: editItemFields, append: appendEditItem, remove: removeEditItem, update: updateEditItem } = useFieldArray({
+    control: quoteEditForm.control,
+    name: 'items',
+  });
 
   React.useEffect(() => {
     if (!isEditQuoteOpen || !selectedQuote) return;
-    quoteEditForm.reset({ currency: (selectedQuote.currency as 'USD' | 'UYU') ?? 'USD', notes: selectedQuote.notes ?? '' });
-    // Ensure items are loaded for the upsert payload
+    const currency = (selectedQuote.currency as 'USD' | 'UYU') ?? 'USD';
+    const exchangeRate = currency === 'UYU' ? 1 : (selectedQuote.exchange_rate || getSessionExchangeRate());
+    const mappedItems = quoteItems.map(i => ({
+      id: i.id,
+      service_id: i.service_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      total: i.total,
+      tooth_number: i.tooth_number ?? ('' as const),
+    }));
+    quoteEditForm.reset({ currency, exchange_rate: exchangeRate, notes: selectedQuote.notes ?? '', items: mappedItems });
     if (quoteItems.length === 0) loadItems(selectedQuote.id);
-  }, [isEditQuoteOpen, selectedQuote, quoteEditForm]);
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditQuoteOpen, selectedQuote]);
+
+  // Auto-update exchange_rate when currency changes
+  const watchedEditCurrency = quoteEditForm.watch('currency');
+  const watchedEditExchangeRate = quoteEditForm.watch('exchange_rate');
+  React.useEffect(() => {
+    if (!isEditQuoteOpen) return;
+    if (watchedEditCurrency === 'UYU') {
+      if (watchedEditExchangeRate !== 1) quoteEditForm.setValue('exchange_rate', 1);
+    } else {
+      const sessionRate = getSessionExchangeRate();
+      if (!watchedEditExchangeRate || watchedEditExchangeRate === 1) {
+        quoteEditForm.setValue('exchange_rate', sessionRate);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedEditCurrency, isEditQuoteOpen]);
+
+  // Re-populate items into form once loaded
+  React.useEffect(() => {
+    if (!isEditQuoteOpen || quoteItems.length === 0) return;
+    const current = quoteEditForm.getValues('items');
+    if (current.length === 0) {
+      quoteEditForm.setValue('items', quoteItems.map(i => ({
+        id: i.id,
+        service_id: i.service_id,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.total,
+        tooth_number: i.tooth_number ?? ('' as const),
+      })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quoteItems, isEditQuoteOpen]);
 
   const handleSubmitQuoteEdit = async (values: QuoteEditFormValues) => {
     if (!selectedQuote) return;
     setIsSubmittingQuote(true);
     try {
-      // Load items if not already available
-      let items = quoteItems;
-      if (items.length === 0) {
-        const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: selectedQuote.id });
-        const raw = Array.isArray(data) ? data : (data.items || data.data || []);
-        items = raw.map((i: any) => ({
-          id: String(i.id),
-          service_id: String(i.service_id),
-          service_name: i.service_name || '',
-          unit_price: parseFloat(i.unit_price) || 0,
-          quantity: parseInt(i.quantity) || 1,
-          total: parseFloat(i.total) || 0,
-          tooth_number: i.tooth_number ?? undefined,
-        }));
-      }
+      const calculatedTotal = values.items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
       const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
         id: selectedQuote.id,
         user_id: selectedQuote.user_id,
-        total: selectedQuote.total,
+        total: calculatedTotal,
         status: selectedQuote.status,
         payment_status: selectedQuote.payment_status,
         billing_status: selectedQuote.billing_status,
         currency: values.currency,
-        exchange_rate: selectedQuote.exchange_rate ?? 1,
+        exchange_rate: values.exchange_rate,
         notes: values.notes || '',
-        items: items.map(i => ({
+        items: values.items.map(i => ({
           id: i.id,
           service_id: i.service_id,
           quantity: i.quantity,
           unit_price: i.unit_price,
           total: i.total,
-          tooth_number: i.tooth_number ?? null,
+          tooth_number: i.tooth_number ? Number(i.tooth_number) : null,
         })),
         is_sales: true,
       });
@@ -361,6 +412,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       toast({ title: 'Presupuesto actualizado' });
       setIsEditQuoteOpen(false);
       await loadQuotes(true);
+      loadItems(selectedQuote.id);
     } catch (e: any) {
       toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
     } finally {
@@ -621,35 +673,206 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
 
       {/* ── Edit quote dialog ── */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
-        <DialogContent className="sm:max-w-[440px]">
-          <DialogHeader>
-            <DialogTitle>Editar presupuesto</DialogTitle>
-            <DialogDescription>Modifica los datos del presupuesto {selectedQuote?.doc_no}.</DialogDescription>
-          </DialogHeader>
+        <DialogContent maxWidth="4xl">
           <Form {...quoteEditForm}>
-            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)}>
-              <div className="px-6 py-4 space-y-4">
-                <FormField control={quoteEditForm.control} name="currency" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Moneda</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="UYU">UYU</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogHeader>
+                <DialogTitle>Editar presupuesto</DialogTitle>
+                <DialogDescription>Modifica los datos del presupuesto {selectedQuote?.doc_no}.</DialogDescription>
+              </DialogHeader>
+              <DialogBody className="space-y-4 py-4 px-6">
+                {/* Currency + Exchange rate */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={quoteEditForm.control} name="currency" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Moneda</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={quoteEditForm.control} name="exchange_rate" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo de cambio</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.0001"
+                          disabled={watchedEditCurrency === 'UYU'}
+                          {...field}
+                          value={watchedEditCurrency === 'UYU' ? '1.00' : (field.value ?? '')}
+                          onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                          className={watchedEditCurrency === 'UYU' ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                {/* Notes */}
                 <FormField control={quoteEditForm.control} name="notes" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={3} placeholder="Observaciones..." {...field} /></FormControl>
+                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-              </div>
+
+                {/* Items */}
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <p className="text-sm font-semibold">Ítems del presupuesto</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); }}
+                      >
+                        Agregar ítem
+                      </Button>
+                    </div>
+                    <div className="overflow-x-auto px-4 pb-4">
+                      {isLoadingItems ? (
+                        <div className="space-y-2 py-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
+                        </div>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-muted-foreground text-center border-b">
+                              <th className="text-left font-semibold p-2">Servicio</th>
+                              <th className="font-semibold p-2 w-24">Cantidad</th>
+                              <th className="font-semibold p-2 w-28">Precio unit.</th>
+                              <th className="font-semibold p-2 w-28">Total</th>
+                              <th className="font-semibold p-2 w-24">N° diente</th>
+                              <th className="p-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {editItemFields.map((fieldItem, index) => (
+                              <tr key={fieldItem.id} className="align-top border-b last:border-0">
+                                <td className="p-1">
+                                  <FormField control={quoteEditForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                    <FormItem>
+                                      <ServiceSelector
+                                        isSales={true}
+                                        value={field.value}
+                                        onValueChange={(serviceId, service) => {
+                                          field.onChange(serviceId);
+                                          if (service) {
+                                            const qty = quoteEditForm.getValues(`items.${index}.quantity`) || 1;
+                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                          }
+                                        }}
+                                        placeholder="Buscar servicio..."
+                                        noResultsText="Sin resultados"
+                                        triggerText="Seleccionar servicio"
+                                      />
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={quoteEditForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="1" min="1" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const qty = parseInt(e.target.value) || 0;
+                                            const price = quoteEditForm.getValues(`items.${index}.unit_price`) || 0;
+                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), quantity: qty, total: qty * price });
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={quoteEditForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="0.01" min="0" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const price = parseFloat(e.target.value) || 0;
+                                            const qty = quoteEditForm.getValues(`items.${index}.quantity`) || 0;
+                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), unit_price: price, total: qty * price });
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={quoteEditForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          readOnly
+                                          disabled
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          className="bg-muted text-muted-foreground cursor-not-allowed"
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={quoteEditForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          min={11}
+                                          max={85}
+                                          placeholder="—"
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1 text-center">
+                                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeEditItem(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                            {editItemFields.length === 0 && (
+                              <tr><td colSpan={6} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                    {editItemFields.length > 0 && (
+                      <div className="flex justify-end px-4 pb-3">
+                        <span className="text-sm font-semibold">
+                          Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditCurrency || 'USD' }).format(
+                            editItemFields.reduce((sum, _, i) => sum + (Number(quoteEditForm.getValues(`items.${i}.total`)) || 0), 0)
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditQuoteOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isSubmittingQuote}>

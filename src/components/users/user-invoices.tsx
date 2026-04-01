@@ -1,22 +1,23 @@
 
 'use client';
 
+import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ServiceSelector } from '@/components/ui/service-selector';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
-import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Checkbox } from '@/components/ui/checkbox';
 import { API_ROUTES } from '@/constants/routes';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +30,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
@@ -41,8 +42,17 @@ const itemSchema = z.object({
 type ItemFormValues = z.infer<typeof itemSchema>;
 
 const invoiceEditSchema = z.object({
+  type: z.enum(['invoice', 'credit_note']),
   currency: z.enum(['USD', 'UYU']),
+  is_historical: z.boolean().optional(),
   notes: z.string().optional(),
+  items: z.array(z.object({
+    id: z.string().optional(),
+    service_id: z.string().min(1, 'Selecciona un servicio'),
+    quantity: z.coerce.number().min(1, 'Mínimo 1'),
+    unit_price: z.coerce.number().min(0, 'Precio inválido'),
+    total: z.coerce.number().optional(),
+  })).default([]),
 });
 type InvoiceEditFormValues = z.infer<typeof invoiceEditSchema>;
 
@@ -302,41 +312,78 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
 
   // ── Edit invoice form ─────────────────────────────────────────────────────────
   const invoiceEditForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
+  const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem, update: updateEditInvoiceItem } = useFieldArray({
+    control: invoiceEditForm.control,
+    name: 'items',
+  });
 
   React.useEffect(() => {
     if (!isEditInvoiceOpen || !selectedInvoice) return;
-    invoiceEditForm.reset({ currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'USD', notes: selectedInvoice.notes ?? '' });
+    const mappedItems = invoiceItems.map(i => ({
+      id: i.id,
+      service_id: i.service_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      total: i.total,
+    }));
+    invoiceEditForm.reset({
+      type: (selectedInvoice.type as 'invoice' | 'credit_note') ?? 'invoice',
+      currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'USD',
+      is_historical: selectedInvoice.is_historical ?? false,
+      notes: selectedInvoice.notes ?? '',
+      items: mappedItems,
+    });
     if (invoiceItems.length === 0) loadItems(selectedInvoice.id);
-  }, [isEditInvoiceOpen, selectedInvoice, invoiceEditForm]);
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditInvoiceOpen, selectedInvoice]);
+
+  // Re-populate items into form once loaded
+  React.useEffect(() => {
+    if (!isEditInvoiceOpen || invoiceItems.length === 0) return;
+    const current = invoiceEditForm.getValues('items');
+    if (current.length === 0) {
+      invoiceEditForm.setValue('items', invoiceItems.map(i => ({
+        id: i.id,
+        service_id: i.service_id,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.total,
+      })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceItems, isEditInvoiceOpen]);
+
+  const watchedEditInvoiceCurrency = invoiceEditForm.watch('currency');
 
   const handleSubmitInvoiceEdit = async (values: InvoiceEditFormValues) => {
     if (!selectedInvoice) return;
     setIsSubmittingInvoice(true);
     try {
-      let items = invoiceItems;
-      if (items.length === 0) {
-        const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: selectedInvoice.id, is_sales: 'true' });
-        const raw = Array.isArray(data) ? data : (data.items || data.data || []);
-        items = raw.map((i: any) => ({
-          id: String(i.id), service_id: String(i.service_id), service_name: i.service_name || '',
-          unit_price: parseFloat(i.unit_price) || 0, quantity: parseInt(i.quantity) || 1, total: parseFloat(i.total) || 0,
-        }));
-      }
+      const calculatedTotal = (values.items || []).reduce((sum, i) => sum + (Number(i.total) || 0), 0);
       await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
         id: selectedInvoice.id,
         user_id: selectedInvoice.user_id,
-        type: selectedInvoice.type || 'invoice',
+        type: values.type,
         currency: values.currency,
-        total: selectedInvoice.total,
+        total: calculatedTotal,
         order_id: selectedInvoice.order_id !== 'N/A' ? selectedInvoice.order_id : undefined,
         quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
         notes: values.notes || '',
+        is_historical: values.is_historical ?? false,
         is_sales: true,
-        items: items.map(i => ({ id: i.id, service_id: i.service_id, quantity: i.quantity, unit_price: i.unit_price, total: i.total })),
+        items: (values.items || []).map(i => ({
+          id: i.id,
+          service_id: i.service_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          total: i.total,
+        })),
       });
       toast({ title: 'Factura actualizada' });
       setIsEditInvoiceOpen(false);
       await loadInvoices(true);
+      loadItems(selectedInvoice.id);
     } catch (e: any) {
       toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
     } finally {
@@ -349,12 +396,12 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
 
   React.useEffect(() => {
     if (!isPaymentDialogOpen || !selectedInvoice) return;
-    paymentForm.reset({ 
-      amount: selectedInvoice.total, 
-      payment_method_id: '', 
-      payment_date: new Date().toISOString().split('T')[0], 
+    paymentForm.reset({
+      amount: selectedInvoice.total,
+      payment_method_id: '',
+      payment_date: new Date().toISOString().split('T')[0],
       notes: '',
-      is_historical: selectedInvoice.is_historical || false 
+      is_historical: selectedInvoice.is_historical || false
     });
     loadPaymentMethods();
   }, [isPaymentDialogOpen, selectedInvoice, paymentForm]);
@@ -644,35 +691,194 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
 
       {/* ── Edit invoice dialog ── */}
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>
-        <DialogContent className="sm:max-w-[440px]">
-          <DialogHeader>
-            <DialogTitle>Editar factura</DialogTitle>
-            <DialogDescription>Modifica los datos de la factura {selectedInvoice?.doc_no}.</DialogDescription>
-          </DialogHeader>
+        <DialogContent maxWidth="4xl">
           <Form {...invoiceEditForm}>
-            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)}>
-              <div className="px-6 py-4 space-y-4">
-                <FormField control={invoiceEditForm.control} name="currency" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Moneda</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="UYU">UYU</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden">
+              <DialogHeader>
+                <DialogTitle>Editar factura</DialogTitle>
+                <DialogDescription>Modifica los datos de la factura {selectedInvoice?.doc_no}.</DialogDescription>
+              </DialogHeader>
+              <DialogBody className="space-y-4 py-4 px-6">
+                {/* Type + Currency */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={invoiceEditForm.control} name="type" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tipo</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="invoice">Factura</SelectItem>
+                          <SelectItem value="credit_note">Nota de crédito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={invoiceEditForm.control} name="currency" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Moneda</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                {/* Notes */}
                 <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={3} placeholder="Observaciones..." {...field} /></FormControl>
+                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
-              </div>
+
+                {/* Is historical */}
+                <FormField control={invoiceEditForm.control} name="is_historical" render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-1">
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>{t('InvoicesPage.paymentDialog.isHistorical')}</FormLabel>
+                    </div>
+                  </FormItem>
+                )} />
+
+                {/* Items */}
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <p className="text-sm font-semibold">Ítems de la factura</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
+                      >
+                        Agregar ítem
+                      </Button>
+                    </div>
+                    <div className="overflow-x-auto px-4 pb-4">
+                      {isLoadingItems ? (
+                        <div className="space-y-2 py-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
+                        </div>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-muted-foreground text-center border-b">
+                              <th className="text-left font-semibold p-2">Servicio</th>
+                              <th className="font-semibold p-2 w-24">Cantidad</th>
+                              <th className="font-semibold p-2 w-28">Precio unit.</th>
+                              <th className="font-semibold p-2 w-28">Total</th>
+                              <th className="p-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {editInvoiceItemFields.map((fieldItem, index) => (
+                              <tr key={fieldItem.id} className="align-top border-b last:border-0">
+                                <td className="p-1">
+                                  <FormField control={invoiceEditForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                    <FormItem>
+                                      <ServiceSelector
+                                        isSales={true}
+                                        value={field.value}
+                                        onValueChange={(serviceId, service) => {
+                                          field.onChange(serviceId);
+                                          if (service) {
+                                            const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 1;
+                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                          }
+                                        }}
+                                        placeholder="Buscar servicio..."
+                                        noResultsText="Sin resultados"
+                                        triggerText="Seleccionar servicio"
+                                      />
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={invoiceEditForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="1" min="1" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const qty = parseInt(e.target.value) || 0;
+                                            const price = invoiceEditForm.getValues(`items.${index}.unit_price`) || 0;
+                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), quantity: qty, total: qty * price });
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={invoiceEditForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="0.01" min="0" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const price = parseFloat(e.target.value) || 0;
+                                            const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 0;
+                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), unit_price: price, total: qty * price });
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={invoiceEditForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          readOnly
+                                          disabled
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          className="bg-muted text-muted-foreground cursor-not-allowed"
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1 text-center">
+                                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeEditInvoiceItem(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                            {editInvoiceItemFields.length === 0 && (
+                              <tr><td colSpan={5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                    {editInvoiceItemFields.length > 0 && (
+                      <div className="flex justify-end px-4 pb-3">
+                        <span className="text-sm font-semibold">
+                          Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(
+                            editInvoiceItemFields.reduce((sum, _, i) => sum + (Number(invoiceEditForm.getValues(`items.${i}.total`)) || 0), 0)
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isSubmittingInvoice}>
