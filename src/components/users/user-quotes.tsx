@@ -489,9 +489,32 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   // ── Toolbar actions ───────────────────────────────────────────────────────────
   const toolbarActions = selectedQuote ? (
     <div className="flex items-center gap-1.5">
+      {/* Acciones principales fuera del dropdown */}
+      {isDraft && (
+        <>
+          <Button
+            variant="default"
+            size="sm"
+            className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white"
+            onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}
+          >
+            <CheckCircle className="h-3.5 w-3.5" />
+            Confirmar
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            Rechazar
+          </Button>
+        </>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -501,12 +524,6 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
             <Printer className="h-4 w-4 mr-2" />
             Imprimir
           </DropdownMenuItem>
-          {isDraft && (
-            <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Editar
-            </DropdownMenuItem>
-          )}
           {canSend && (
             <DropdownMenuItem onClick={handleSend}>
               <Send className="h-4 w-4 mr-2" />
@@ -516,15 +533,10 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
           {isDraft && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }} className="text-green-600 focus:text-green-600">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Confirmar
+              <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                Editar
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setConfirmAction('reject'); setActionNotes(''); }} className="text-destructive focus:text-destructive">
-                <XCircle className="h-4 w-4 mr-2" />
-                Rechazar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Eliminar
@@ -594,74 +606,66 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       >
         {selectedQuote && (
           <>
-            <SheetHeader className="px-6 py-4 border-b">
-              <div className="flex items-start justify-between gap-4 pr-10">
-                <div>
-                  <SheetTitle className="text-lg">{selectedQuote.doc_no}</SheetTitle>
-                  <SheetDescription>Presupuesto</SheetDescription>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                  <Badge variant={(STATUS_BADGE[selectedQuote.status.toLowerCase()] ?? 'default') as any} className="capitalize">
-                    {t(`QuotesPage.quoteDialog.${selectedQuote.status.toLowerCase()}`)}
-                  </Badge>
-                  <Badge variant={(PAYMENT_BADGE[selectedQuote.payment_status.toLowerCase()] ?? 'outline') as any} className="capitalize">
-                    {(() => {
-                      const status = selectedQuote.payment_status.toLowerCase().trim();
-                      const keyMap: Record<string, string> = { paid: 'paid', partial: 'partial', 'partially paid': 'partiallyPaid', partially_paid: 'partiallyPaid', unpaid: 'unpaid' };
-                      return t(`QuotesPage.quoteDialog.${keyMap[status] || 'unpaid'}`);
-                    })()}
-                  </Badge>
+            {/* Header estilo ficha del paciente */}
+            <div className="flex-none bg-card shadow-sm border-b border-border">
+              {/* Título y badges principales */}
+              <div className="px-6 py-4 border-b border-border/50">
+                <div className="flex items-start justify-between gap-4 pr-10">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedQuote.doc_no}</SheetTitle>
+                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Presupuesto</SheetDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <Badge variant={(STATUS_BADGE[selectedQuote.status.toLowerCase()] ?? 'default') as any} className="capitalize">
+                      {t(`QuotesPage.quoteDialog.${selectedQuote.status.toLowerCase()}`)}
+                    </Badge>
+                    <Badge variant={(PAYMENT_BADGE[selectedQuote.payment_status.toLowerCase()] ?? 'outline') as any} className="capitalize">
+                      {(() => {
+                        const status = selectedQuote.payment_status.toLowerCase().trim();
+                        const keyMap: Record<string, string> = { paid: 'paid', partial: 'partial', 'partially paid': 'partiallyPaid', partially_paid: 'partiallyPaid', unpaid: 'unpaid' };
+                        return t(`QuotesPage.quoteDialog.${keyMap[status] || 'unpaid'}`);
+                      })()}
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </SheetHeader>
 
-            {/* Meta info */}
-            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Total</p>
-                <p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(selectedQuote.total)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Facturación</p>
-                <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs font-normal capitalize">
-                  {(() => {
-                    const status = selectedQuote.billing_status.toLowerCase().trim();
-                    const keyMap: Record<string, string> = { invoiced: 'invoiced', 'partially invoiced': 'partiallyInvoiced', partially_invoiced: 'partiallyInvoiced', 'not invoiced': 'notInvoiced', not_invoiced: 'notInvoiced' };
-                    return t(`QuotesPage.quoteDialog.${keyMap[status] || 'notInvoiced'}`);
-                  })()}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
-                <p className="text-xs">{formatDateTime(selectedQuote.createdAt)}</p>
-              </div>
-              {selectedQuote.notes && (
-                <div className="col-span-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
-                  <p className="text-xs">{selectedQuote.notes}</p>
+              {/* Información del documento integrada en el header */}
+              <div className="px-6 py-3">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Total:</span>
+                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(selectedQuote.total)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Facturación:</span>
+                    <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs font-normal capitalize">
+                      {(() => {
+                        const status = selectedQuote.billing_status.toLowerCase().trim();
+                        const keyMap: Record<string, string> = { invoiced: 'invoiced', 'partially invoiced': 'partiallyInvoiced', partially_invoiced: 'partiallyInvoiced', 'not invoiced': 'notInvoiced', not_invoiced: 'notInvoiced' };
+                        return t(`QuotesPage.quoteDialog.${keyMap[status] || 'notInvoiced'}`);
+                      })()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Creado:</span>
+                    <span className="text-sm">{formatDateTime(selectedQuote.createdAt)}</span>
+                  </div>
+                  {selectedQuote.notes && (
+                    <div className="flex items-center gap-2 w-full mt-1">
+                      <span className="text-xs text-muted-foreground">Notas:</span>
+                      <span className="text-sm text-muted-foreground italic">{selectedQuote.notes}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Actions */}
             <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
-                <Printer className="h-3.5 w-3.5" />
-                Imprimir
-              </Button>
-              {isDraft && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditQuoteOpen(true)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                  Editar
-                </Button>
-              )}
-              {canSend && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
-                  <Send className="h-3.5 w-3.5" />
-                  Enviar
-                </Button>
-              )}
-              {isDraft && <Separator orientation="vertical" className="h-6 mx-1" />}
+              {/* Acciones principales */}
               {isDraft && (
                 <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
                   <CheckCircle className="h-3.5 w-3.5" />
@@ -672,6 +676,24 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
                   <XCircle className="h-3.5 w-3.5" />
                   Rechazar
+                </Button>
+              )}
+              {(isDraft || canSend) && <Separator orientation="vertical" className="h-6 mx-1" />}
+              {/* Acciones secundarias */}
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir
+              </Button>
+              {canSend && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
+                  <Send className="h-3.5 w-3.5" />
+                  Enviar
+                </Button>
+              )}
+              {isDraft && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditQuoteOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
                 </Button>
               )}
               {isDraft && (

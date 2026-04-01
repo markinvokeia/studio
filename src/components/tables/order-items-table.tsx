@@ -436,9 +436,9 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       )}
       {!selectedItem.completed_date && (
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
-          className="h-8 gap-1.5 text-xs"
+          className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white"
           onClick={() => handleActionClick(selectedItem, 'complete')}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />

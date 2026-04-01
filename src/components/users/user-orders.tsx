@@ -264,13 +264,10 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
   // ── Toolbar action buttons ────────────────────────────────────────────────────
   const toolbarActions = selectedOrder ? (
     <div className="flex items-center gap-1.5">
-      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedOrder)}>
-        <Eye className="h-3.5 w-3.5" />
-        Ver detalles
-      </Button>
+      {/* Acción principal: Facturar */}
       {canInvoiceFromOrder && selectedOrder.status?.toLowerCase() !== 'completed' && (
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           className="h-8 gap-1.5 text-xs"
           onClick={handleInvoiceClick}
@@ -279,6 +276,10 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
           {t('Navigation.InvoiceAction')}
         </Button>
       )}
+      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedOrder)}>
+        <Eye className="h-3.5 w-3.5" />
+        Ver detalles
+      </Button>
     </div>
   ) : null;
 
@@ -342,45 +343,53 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
       >
         {selectedOrder && (
           <>
-            <SheetHeader className="px-6 py-4 border-b">
-              <div className="flex items-start justify-between gap-4 pr-10">
-                <div>
-                  <SheetTitle className="text-lg">{selectedOrder.doc_no}</SheetTitle>
-                  <SheetDescription>Orden</SheetDescription>
+            {/* Header estilo ficha del paciente */}
+            <div className="flex-none bg-card shadow-sm border-b border-border">
+              {/* Título y badges principales */}
+              <div className="px-6 py-4 border-b border-border/50">
+                <div className="flex items-start justify-between gap-4 pr-10">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedOrder.doc_no}</SheetTitle>
+                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Orden</SheetDescription>
+                    </div>
+                  </div>
+                  <Badge variant={(STATUS_BADGE[selectedOrder.status?.toLowerCase().trim()] ?? 'default') as any} className="capitalize">
+                    {t(`OrdersPage.status.${STATUS_KEY_MAP[selectedOrder.status?.toLowerCase().trim()] || selectedOrder.status?.toLowerCase()}`)}
+                  </Badge>
                 </div>
-                <Badge variant={(STATUS_BADGE[selectedOrder.status?.toLowerCase().trim()] ?? 'default') as any} className="capitalize">
-                  {t(`OrdersPage.status.${STATUS_KEY_MAP[selectedOrder.status?.toLowerCase().trim()] || selectedOrder.status?.toLowerCase()}`)}
-                </Badge>
               </div>
-            </SheetHeader>
 
-            {/* Meta info */}
-            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Presupuesto</p>
-                <p className="text-xs font-medium">{selectedOrder.quote_doc_no || selectedOrder.quote_id || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Moneda</p>
-                <p className="text-xs font-medium">{selectedOrder.currency}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
-                <p className="text-xs">{formatDateTime(selectedOrder.createdAt)}</p>
-              </div>
-              {selectedOrder.notes && (
-                <div className="col-span-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
-                  <p className="text-xs">{selectedOrder.notes}</p>
+              {/* Información del documento integrada en el header */}
+              <div className="px-6 py-3">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Presupuesto:</span>
+                    <span className="text-sm font-medium">{selectedOrder.quote_doc_no || selectedOrder.quote_id || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Moneda:</span>
+                    <span className="text-sm">{selectedOrder.currency}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Creado:</span>
+                    <span className="text-sm">{formatDateTime(selectedOrder.createdAt)}</span>
+                  </div>
+                  {selectedOrder.notes && (
+                    <div className="flex items-center gap-2 w-full mt-1">
+                      <span className="text-xs text-muted-foreground">Notas:</span>
+                      <span className="text-sm text-muted-foreground italic">{selectedOrder.notes}</span>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Actions */}
             {canInvoiceFromOrder && (
-              <div className="px-6 py-3 border-b">
+              <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   className="h-8 gap-1.5 text-xs"
                   onClick={handleInvoiceClick}

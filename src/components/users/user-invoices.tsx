@@ -520,9 +520,32 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
   // ── Toolbar actions ───────────────────────────────────────────────────────────
   const toolbarActions = selectedInvoice ? (
     <div className="flex items-center gap-1.5">
+      {/* Acciones principales fuera del dropdown */}
+      {isDraft && (
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white"
+          onClick={handleConfirm}
+        >
+          <CheckCircle className="h-3.5 w-3.5" />
+          Confirmar
+        </Button>
+      )}
+      {isBookedUnpaid && (
+        <Button
+          variant="default"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => setIsPaymentDialogOpen(true)}
+        >
+          <CreditCard className="h-3.5 w-3.5" />
+          Agregar pago
+        </Button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -542,19 +565,6 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
               <DropdownMenuItem onClick={() => setIsEditInvoiceOpen(true)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleConfirm} className="text-green-600 focus:text-green-600">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Confirmar
-              </DropdownMenuItem>
-            </>
-          )}
-          {isBookedUnpaid && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsPaymentDialogOpen(true)}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Agregar pago
               </DropdownMenuItem>
             </>
           )}
@@ -621,49 +631,72 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       >
         {selectedInvoice && (
           <>
-            <SheetHeader className="px-6 py-4 border-b">
-              <div className="flex items-start justify-between gap-4 pr-10">
-                <div>
-                  <SheetTitle className="text-lg">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
-                  <SheetDescription>Factura</SheetDescription>
-                </div>
-                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                  <Badge variant={(STATUS_BADGE[selectedInvoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize">
-                    {tStatus(selectedInvoice.status?.toLowerCase() || '')}
-                  </Badge>
-                  {selectedInvoice.payment_status && (
-                    <Badge variant={(PAYMENT_BADGE[selectedInvoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize">
-                      {tStatus(selectedInvoice.payment_status?.toLowerCase() || '')}
+            {/* Header estilo ficha del paciente */}
+            <div className="flex-none bg-card shadow-sm border-b border-border">
+              {/* Título y badges principales */}
+              <div className="px-6 py-4 border-b border-border/50">
+                <div className="flex items-start justify-between gap-4 pr-10">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
+                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Factura</SheetDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <Badge variant={(STATUS_BADGE[selectedInvoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize">
+                      {tStatus(selectedInvoice.status?.toLowerCase() || '')}
                     </Badge>
+                    {selectedInvoice.payment_status && (
+                      <Badge variant={(PAYMENT_BADGE[selectedInvoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize">
+                        {tStatus(selectedInvoice.payment_status?.toLowerCase() || '')}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Información del documento integrada en el header */}
+              <div className="px-6 py-3">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Total:</span>
+                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Orden:</span>
+                    <span className="text-sm">{selectedInvoice.order_doc_no !== 'N/A' ? selectedInvoice.order_doc_no : '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Creado:</span>
+                    <span className="text-sm">{formatDateTime(selectedInvoice.createdAt)}</span>
+                  </div>
+                  {selectedInvoice.notes && (
+                    <div className="flex items-center gap-2 w-full mt-1">
+                      <span className="text-xs text-muted-foreground">Notas:</span>
+                      <span className="text-sm text-muted-foreground italic">{selectedInvoice.notes}</span>
+                    </div>
                   )}
                 </div>
               </div>
-            </SheetHeader>
-
-            {/* Meta info */}
-            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Total</p>
-                <p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Orden</p>
-                <p className="text-xs font-medium">{selectedInvoice.order_doc_no !== 'N/A' ? selectedInvoice.order_doc_no : '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Creado</p>
-                <p className="text-xs">{formatDateTime(selectedInvoice.createdAt)}</p>
-              </div>
-              {selectedInvoice.notes && (
-                <div className="col-span-3">
-                  <p className="text-xs text-muted-foreground mb-0.5">Notas</p>
-                  <p className="text-xs">{selectedInvoice.notes}</p>
-                </div>
-              )}
             </div>
 
             {/* Actions */}
             <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+              {/* Acciones principales */}
+              {isDraft && (
+                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirm}>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Confirmar
+                </Button>
+              )}
+              {isBookedUnpaid && (
+                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsPaymentDialogOpen(true)}>
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Agregar pago
+                </Button>
+              )}
+              {(isDraft || isBookedUnpaid) && <Separator orientation="vertical" className="h-6 mx-1" />}
+              {/* Acciones secundarias */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                 <Printer className="h-3.5 w-3.5" />
                 Imprimir
@@ -676,19 +709,6 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditInvoiceOpen(true)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
-                </Button>
-              )}
-              {(isDraft || isBookedUnpaid) && <Separator orientation="vertical" className="h-6 mx-1" />}
-              {isDraft && (
-                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirm}>
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Confirmar
-                </Button>
-              )}
-              {isBookedUnpaid && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsPaymentDialogOpen(true)}>
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Agregar pago
                 </Button>
               )}
             </div>

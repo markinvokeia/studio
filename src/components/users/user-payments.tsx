@@ -239,18 +239,24 @@ export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
   // ── Toolbar action buttons ────────────────────────────────────────────────────
   const toolbarActions = selectedPayment ? (
     <div className="flex items-center gap-1.5">
+      {/* Acción principal: Imprimir */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 gap-1.5 text-xs"
+        onClick={handlePrint}
+      >
+        <Printer className="h-3.5 w-3.5" />
+        Imprimir
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSend}>
             <Send className="h-4 w-4 mr-2" />
             Enviar
@@ -324,83 +330,89 @@ export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
       >
         {selectedPayment && (
           <>
-            <SheetHeader className="px-6 py-4 border-b">
-              <div className="flex items-start justify-between gap-4 pr-10">
-                <div>
-                  <SheetTitle className="text-lg">{selectedPayment.doc_no || `PAY-${selectedPayment.id}`}</SheetTitle>
-                  <SheetDescription>
-                    {(() => {
-                      const { type } = getPaymentType(selectedPayment);
-                      return t(`PaymentsPage.columns.paymentTypes.${type}`);
-                    })()}
-                  </SheetDescription>
+            {/* Header estilo ficha del paciente */}
+            <div className="flex-none bg-card shadow-sm border-b border-border">
+              {/* Título y badges principales */}
+              <div className="px-6 py-4 border-b border-border/50">
+                <div className="flex items-start justify-between gap-4 pr-10">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedPayment.doc_no || `PAY-${selectedPayment.id}`}</SheetTitle>
+                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                        {(() => {
+                          const { type } = getPaymentType(selectedPayment);
+                          return t(`PaymentsPage.columns.paymentTypes.${type}`);
+                        })()}
+                      </SheetDescription>
+                    </div>
+                  </div>
+                  {(() => {
+                    const { type, variant } = getPaymentType(selectedPayment);
+                    return (
+                      <Badge variant={variant}>
+                        {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                      </Badge>
+                    );
+                  })()}
                 </div>
-                {(() => {
-                  const { type, variant } = getPaymentType(selectedPayment);
-                  return (
-                    <Badge variant={variant}>
-                      {t(`PaymentsPage.columns.paymentTypes.${type}`)}
-                    </Badge>
-                  );
-                })()}
               </div>
-            </SheetHeader>
 
-            {/* Meta info */}
-            <div className="px-6 py-3 grid grid-cols-3 gap-x-6 gap-y-2 text-sm border-b">
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Monto</p>
-                <p className="font-semibold">
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(selectedPayment.amount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Método</p>
-                <p className="text-xs font-medium">{selectedPayment.method || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Fecha</p>
-                <p className="text-xs">{formatDateTime(selectedPayment.createdAt)}</p>
-              </div>
-              {selectedPayment.order_doc_no && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Orden</p>
-                  <p className="text-xs font-medium">{selectedPayment.order_doc_no}</p>
+              {/* Información del documento integrada en el header */}
+              <div className="px-6 py-3">
+                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Monto:</span>
+                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(selectedPayment.amount)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Método:</span>
+                    <span className="text-sm">{selectedPayment.method || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Fecha:</span>
+                    <span className="text-sm">{formatDateTime(selectedPayment.createdAt)}</span>
+                  </div>
+                  {selectedPayment.order_doc_no && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Orden:</span>
+                      <span className="text-sm font-medium">{selectedPayment.order_doc_no}</span>
+                    </div>
+                  )}
+                  {selectedPayment.transaction_type && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Tipo:</span>
+                      <span className="text-sm capitalize">{selectedPayment.transaction_type.replace(/_/g, ' ')}</span>
+                    </div>
+                  )}
+                  {selectedPayment.exchange_rate && selectedPayment.exchange_rate !== 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Tipo de cambio:</span>
+                      <span className="text-sm">{selectedPayment.exchange_rate.toFixed(4)}</span>
+                    </div>
+                  )}
+                  {selectedPayment.notes && (
+                    <div className="flex items-center gap-2 w-full mt-1">
+                      <span className="text-xs text-muted-foreground">Notas:</span>
+                      <span className="text-sm text-muted-foreground italic">{selectedPayment.notes}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-              {selectedPayment.transaction_type && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Tipo</p>
-                  <p className="text-xs font-medium capitalize">{selectedPayment.transaction_type.replace(/_/g, ' ')}</p>
-                </div>
-              )}
-              {selectedPayment.exchange_rate && selectedPayment.exchange_rate !== 1 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-0.5">Tipo de cambio</p>
-                  <p className="text-xs font-medium">{selectedPayment.exchange_rate.toFixed(4)}</p>
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Actions */}
-            <div className="px-6 py-3 flex items-center gap-2 border-b bg-muted/30">
+            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+              {/* Acción principal */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                 <Printer className="h-3.5 w-3.5" />
                 Imprimir
               </Button>
+              {/* Acciones secundarias */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
                 <Send className="h-3.5 w-3.5" />
                 Enviar
               </Button>
             </div>
-
-            {/* Notes */}
-            {selectedPayment.notes && (
-              <div className="px-6 py-3 border-b">
-                <p className="text-xs text-muted-foreground mb-1">Notas</p>
-                <p className="text-sm">{selectedPayment.notes}</p>
-              </div>
-            )}
 
             {/* Allocations (only for pre-payments) */}
             {!selectedPayment.invoice_id && (
