@@ -108,7 +108,7 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user, t, financialData, isOpen }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null, isOpen: boolean }) => {
+const UserStats = ({ user, t, financialData, isOpen, onToggle, onPrint }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null, isOpen: boolean, onToggle: () => void, onPrint: () => void }) => {
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
     const numericValue = Number(value) || 0;
@@ -176,29 +176,47 @@ const UserStats = ({ user, t, financialData, isOpen }: { user: User, t: (key: st
     },
   ];
 
+  if (!isOpen) return null;
+
   return (
-    <Collapsible open={isOpen} className="mb-3">
-      <CollapsibleContent className="transition-all">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 pb-1">
-          {stats.map(stat => (
-            <div
-              key={stat.title}
-              className={cn(
-                "rounded-lg border px-3 py-2 flex flex-col gap-1 overflow-hidden shadow-none",
-                stat.cardClass
-              )}
-            >
-              <span className="text-[9px] uppercase font-bold tracking-tight truncate opacity-60">
-                {stat.title}
-              </span>
-              <div className="mt-0.5">
-                {renderStatValue(stat.value, stat.valueColor)}
-              </div>
+    <div className="mb-3">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-2 pt-2 pb-1">
+        {stats.map(stat => (
+          <div
+            key={stat.title}
+            className={cn(
+              "px-3 py-2 flex flex-col gap-1 overflow-hidden",
+              stat.cardClass
+            )}
+          >
+            <span className="text-[9px] uppercase font-bold tracking-tight truncate opacity-60">
+              {stat.title}
+            </span>
+            <div className="mt-0.5">
+              {renderStatValue(stat.value, stat.valueColor)}
             </div>
-          ))}
+          </div>
+        ))}
+        <div className="flex flex-col gap-1 justify-center">
+          <Button
+            size="sm"
+            className="h-8 gap-1 text-xs font-semibold rounded-none border-0 shadow-none text-white bg-amber-600 hover:bg-amber-700 w-full"
+            onClick={onToggle}
+          >
+            <EyeOff className="h-3.5 w-3.5" />
+            Ocultar
+          </Button>
+          <Button
+            size="sm"
+            className="h-8 gap-1 text-xs font-semibold rounded-none border-0 shadow-none bg-teal-500 hover:bg-teal-600 text-white w-full"
+            onClick={onPrint}
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Imprimir
+          </Button>
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+      </div>
+    </div>
   );
 };
 
@@ -434,7 +452,7 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
   };
 
   return (
-    <Card className="h-full flex flex-col shadow-none border-0">
+    <Card className="h-full flex flex-col shadow-none border-0 rounded-none bg-white">
       <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
         <div className="min-w-0 flex-1">
           <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
@@ -445,8 +463,8 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
         <div className="flex items-center gap-2 ml-2">
           {!isEditing && (
             <Button
-              variant="outline"
               size="sm"
+              className="rounded-none border-0 shadow-none bg-blue-500 hover:bg-blue-600 text-white"
               onClick={() => setIsEditing(true)}
             >
               {t('UsersPage.notes.edit')}
@@ -455,8 +473,8 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
           {isEditing && (
             <>
               <Button
-                variant="outline"
                 size="sm"
+                className="rounded-none border-0 shadow-none bg-slate-400 hover:bg-slate-500 text-white"
                 onClick={handleCancel}
                 disabled={isSaving}
               >
@@ -464,6 +482,7 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
               </Button>
               <Button
                 size="sm"
+                className="rounded-none border-0 shadow-none bg-green-600 hover:bg-green-700 text-white"
                 onClick={handleSave}
                 disabled={isSaving}
               >
@@ -495,8 +514,8 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
                   {t('UsersPage.notes.noNotes')}
                 </p>
                 <Button
-                  variant="outline"
                   size="sm"
+                  className="rounded-none border-0 shadow-none bg-blue-500 hover:bg-blue-600 text-white"
                   onClick={() => setIsEditing(true)}
                 >
                   {t('UsersPage.notes.addFirstNote')}
@@ -1138,10 +1157,12 @@ export default function UsersPage() {
     <>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
-          minLeftSize={20}
+          minLeftSize={15}
+          leftPanelDefaultSize={30}
+          rightPanelDefaultSize={70}
           isRightPanelOpen={!!selectedUser}
           leftPanel={
-            <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <Card className="h-full flex flex-col border-0 shadow-none rounded-none bg-white">
               <CardHeader className="flex-none p-4">
                 <div className="flex items-start gap-3">
                   <div className="header-icon-circle mt-0.5">
@@ -1153,7 +1174,7 @@ export default function UsersPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-white">
                 <DataTable
                   columns={showDebtors ? debtorColumns : userColumns}
                   data={users}
@@ -1220,7 +1241,7 @@ export default function UsersPage() {
           }
           rightPanel={
             selectedUser && (
-              <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+              <Card className="h-full flex flex-col border-0 shadow-none rounded-none bg-white">
                 <CardHeader className="flex-none p-4 pb-2 space-y-0">
                   {/* Row 1: Icon + Name + Action buttons */}
                   <div className="flex items-center justify-between">
@@ -1263,7 +1284,7 @@ export default function UsersPage() {
                       <TooltipProvider>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
+                            <Button size="sm" className="h-8 gap-1.5 px-3 rounded-none bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-none">
                               <Plus className="h-4 w-4" />
                               Crear
                               <ChevronDown className="h-3.5 w-3.5 opacity-70" />
@@ -1310,11 +1331,11 @@ export default function UsersPage() {
                             <TooltipTrigger asChild>
                               <PopoverTrigger asChild>
                                 <Button
-                                  variant={isPreferencesOpen ? 'secondary' : 'outline'}
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                                  size="sm"
+                                  className={cn("h-8 gap-1.5 px-2 text-xs rounded-none border-0 shadow-none", isPreferencesOpen ? "bg-violet-700 text-white" : "bg-violet-500 hover:bg-violet-600 text-white")}
                                 >
-                                  <SlidersHorizontal className="h-4 w-4" />
+                                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                                  Prefs
                                 </Button>
                               </PopoverTrigger>
                             </TooltipTrigger>
@@ -1334,18 +1355,20 @@ export default function UsersPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
-                              variant="outline"
-                              size="icon"
+                              size="sm"
                               className={cn(
-                                "h-8 w-8",
+                                "h-8 rounded-none border-0 shadow-none text-white",
                                 currentDischarge
-                                  ? "text-green-600 border-green-300 hover:bg-green-50 hover:text-green-700"
-                                  : "hover:text-primary hover:border-primary/50"
+                                  ? "bg-red-600 hover:bg-red-700 w-8 p-0"
+                                  : "bg-green-600 hover:bg-green-700 gap-1.5 px-2 text-xs"
                               )}
                               onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
                               disabled={isSubmittingDischarge}
                             >
-                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                              {currentDischarge
+                                ? <XCircle className="h-4 w-4" />
+                                : <><CheckCircle className="h-3.5 w-3.5" />ALTA</>
+                              }
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -1356,50 +1379,10 @@ export default function UsersPage() {
                         </Tooltip>
                       </TooltipProvider>
 
-                      {/* Toggle financial stats */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant={isStatsOpen ? 'secondary' : 'outline'}
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs font-semibold hover:text-primary hover:border-primary/50"
-                              onClick={() => setIsStatsOpen(v => !v)}
-                            >
-                              {isStatsOpen
-                                ? <><EyeOff className="h-3.5 w-3.5" />{t('UsersPage.stats.hideStats')}</>
-                                : <><Eye className="h-3.5 w-3.5" />{t('UsersPage.stats.showStats')}</>
-                              }
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {isStatsOpen ? t('UsersPage.stats.hideStats') : t('UsersPage.stats.showStats')}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      {/* Print button */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                              onClick={handlePrintFinancialSummary}
-                            >
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('UsersPage.stats.printFinancialSummary')}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
                       {/* Close */}
                       <Button
-                        variant="ghost"
                         size="icon"
-                        className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        className="h-8 w-8 rounded-none border-0 shadow-none bg-rose-500 hover:bg-rose-600 text-white"
                         onClick={handleCloseDetails}
                       >
                         <X className="h-5 w-5" />
@@ -1410,6 +1393,15 @@ export default function UsersPage() {
 
                   {/* Row 2: Contact info + discharge */}
                   <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
+                    {!isStatsOpen && (
+                      <button
+                        className="flex items-center gap-1 text-xs font-bold px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                        onClick={() => setIsStatsOpen(true)}
+                      >
+                        <Eye className="h-3 w-3" />
+                        VER BALANCE
+                      </button>
+                    )}
                     {selectedUser.birth_date && (
                       <span className="flex items-center gap-1">
                         <Cake className="h-3 w-3" />
@@ -1417,16 +1409,16 @@ export default function UsersPage() {
                       </span>
                     )}
                     {selectedUser.email && (
-                      <span className="flex items-center gap-1 max-w-[200px] truncate">
+                      <a href={`mailto:${selectedUser.email}`} className="flex items-center gap-1 max-w-[200px] truncate hover:underline hover:text-foreground transition-colors">
                         <Mail className="h-3 w-3 flex-none" />
                         {selectedUser.email}
-                      </span>
+                      </a>
                     )}
                     {selectedUser.phone_number && (
-                      <span className="flex items-center gap-1">
+                      <a href={`https://wa.me/${selectedUser.phone_number.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:underline hover:text-foreground transition-colors">
                         <Phone className="h-3 w-3" />
                         {selectedUser.phone_number}
-                      </span>
+                      </a>
                     )}
                     {selectedUser.identity_document && (
                       <span className="flex items-center gap-1">
@@ -1476,7 +1468,7 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} />
+                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} onToggle={() => setIsStatsOpen(v => !v)} onPrint={handlePrintFinancialSummary} />
                       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
                         <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto flex-nowrap shrink-0 justify-start">
                           {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
@@ -1493,7 +1485,7 @@ export default function UsersPage() {
                           <TabsTrigger value="notes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.notes')}</TabsTrigger>
                         </TabsList>
                         <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                          <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <ClinicHistoryViewer
                               userId={selectedUser.id}
                               userName={selectedUser.name}
@@ -1502,32 +1494,32 @@ export default function UsersPage() {
                             />
                           </TabsContent>
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                            <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                            <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                               <UserServices userId={selectedUser.id} isSalesUser={true} />
                             </TabsContent>
                           )}
-                          <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
                           </TabsContent>
-                          <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserOrders userId={selectedUser.id} patient={selectedUser} />
                           </TabsContent>
-                          <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserInvoices userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserPayments userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserAppointments user={selectedUser} />
                           </TabsContent>
-                          <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserMessages userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <UserLogs userId={selectedUser.id} />
                           </TabsContent>
-                          <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col bg-white p-3">
                             <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />
                           </TabsContent>
                         </div>

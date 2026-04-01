@@ -7,9 +7,10 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Appointment, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -21,6 +22,20 @@ const isWhite = (color: string | null | undefined) => {
 };
 
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup value={isSelected ? row.id : ''} onValueChange={() => { table.toggleAllPageRowsSelected(false); row.toggleSelected(true); }}>
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'summary',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} />,
@@ -191,6 +206,7 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
 
@@ -241,6 +257,9 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
       data={appointments}
       filterColumnId="summary"
       filterPlaceholder={tAppointmentsPage('filterByService')}
+      enableSingleRowSelection
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
       columnTranslations={{
         service_name: t('service'),
         doctorName: t('doctor'),

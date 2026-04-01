@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
@@ -79,6 +80,20 @@ const PAYMENT_BADGE: Record<string, any> = { paid: 'success', partial: 'info', p
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Invoice>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup value={isSelected ? row.id : ''} onValueChange={() => { table.toggleAllPageRowsSelected(false); row.toggleSelected(true); }}>
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.docNo')} />,

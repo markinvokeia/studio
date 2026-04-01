@@ -22,6 +22,7 @@ import { api } from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -45,6 +46,20 @@ type QuoteEditFormValues = z.infer<typeof quoteEditSchema>;
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup value={isSelected ? row.id : ''} onValueChange={() => { table.toggleAllPageRowsSelected(false); row.toggleSelected(true); }}>
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.quoteId')} />,
@@ -421,9 +436,21 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   // ── Toolbar actions ───────────────────────────────────────────────────────────
   const toolbarActions = selectedQuote ? (
     <div className="flex items-center gap-1.5">
+      {isDraft && (
+        <>
+          <Button size="sm" className="h-8 gap-1.5 text-xs rounded-none bg-green-600 hover:bg-green-700 text-white border-0 shadow-none" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
+            <CheckCircle className="h-3.5 w-3.5" />
+            Confirmar
+          </Button>
+          <Button size="sm" className="h-8 gap-1.5 text-xs rounded-none bg-red-600 hover:bg-red-700 text-white border-0 shadow-none" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
+            <XCircle className="h-3.5 w-3.5" />
+            Rechazar
+          </Button>
+        </>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+          <Button size="sm" className="h-8 gap-1.5 text-xs rounded-none bg-blue-600 hover:bg-blue-700 text-white border-0 shadow-none">
             Acciones
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -448,15 +475,6 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
           {isDraft && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }} className="text-green-600 focus:text-green-600">
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Confirmar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setConfirmAction('reject'); setActionNotes(''); }} className="text-destructive focus:text-destructive">
-                <XCircle className="h-4 w-4 mr-2" />
-                Rechazar
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Eliminar
@@ -465,7 +483,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedQuote)}>
+      <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs rounded-none" onClick={() => handleOpenSheet(selectedQuote)}>
         <Eye className="h-3.5 w-3.5" />
         Ver detalles
       </Button>
@@ -563,6 +581,18 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
 
               {/* Actions */}
               <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                {isDraft && (
+                  <Button size="sm" className="h-8 gap-1.5 text-xs rounded-none bg-green-600 hover:bg-green-700 text-white border-0 shadow-none" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
+                    <CheckCircle className="h-3.5 w-3.5" />
+                    Confirmar
+                  </Button>
+                )}
+                {isDraft && (
+                  <Button size="sm" className="h-8 gap-1.5 text-xs rounded-none bg-red-600 hover:bg-red-700 text-white border-0 shadow-none" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
+                    <XCircle className="h-3.5 w-3.5" />
+                    Rechazar
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                   <Printer className="h-3.5 w-3.5" />
                   Imprimir
@@ -577,18 +607,6 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                   <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
                     <Send className="h-3.5 w-3.5" />
                     Enviar
-                  </Button>
-                )}
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-green-600 hover:text-green-600" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
-                    <CheckCircle className="h-3.5 w-3.5" />
-                    Confirmar
-                  </Button>
-                )}
-                {isDraft && (
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
-                    <XCircle className="h-3.5 w-3.5" />
-                    Rechazar
                   </Button>
                 )}
                 {isDraft && (

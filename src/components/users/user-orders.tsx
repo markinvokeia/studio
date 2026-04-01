@@ -18,6 +18,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { Order, OrderItem, Quote, User as UserType } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Eye, FileText } from 'lucide-react';
@@ -39,6 +40,20 @@ const STATUS_KEY_MAP: Record<string, string> = {
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Order>[] => [
+  {
+    id: 'select',
+    header: () => null,
+    cell: ({ row, table }) => {
+      const isSelected = row.getIsSelected();
+      return (
+        <RadioGroup value={isSelected ? row.id : ''} onValueChange={() => { table.toggleAllPageRowsSelected(false); row.toggleSelected(true); }}>
+          <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+        </RadioGroup>
+      );
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: 'doc_no',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('OrderColumns.docNo')} />,
