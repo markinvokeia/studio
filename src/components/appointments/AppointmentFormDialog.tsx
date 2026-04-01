@@ -1,6 +1,7 @@
 
 'use client';
 
+import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -21,12 +22,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, Quote, Service, User as UserType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
+import { Check, ChevronsUpDown, FilePlus, Link2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -43,6 +44,7 @@ interface AppointmentFormDialogProps {
         summary?: string;
         description?: string;
         notes?: string;
+        quote?: Quote | null;
     };
     onSaveSuccess?: (savedAppointment: any, selectedDate: Date) => void;
     calendars: CalendarType[];
@@ -50,6 +52,7 @@ interface AppointmentFormDialogProps {
     doctorServiceMap: Map<string, Service[]>;
     checkCalendarAvailability: boolean;
     checkDoctorAvailability: boolean;
+    userQuotes?: Quote[];
 }
 
 export function AppointmentFormDialog({
@@ -63,11 +66,13 @@ export function AppointmentFormDialog({
     doctorServiceMap,
     checkCalendarAvailability,
     checkDoctorAvailability,
+    userQuotes: externalUserQuotes,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
     const tGeneral = useTranslations('General');
     const tToasts = useTranslations('AppointmentsPage.toasts');
+    const tQuotes = useTranslations('QuotesPage');
     const { toast } = useToast();
 
     // Form State
@@ -80,6 +85,7 @@ export function AppointmentFormDialog({
         time: format(new Date(), 'HH:mm'),
         endTime: '',
         notes: '',
+        quote: null as Quote | null,
     });
 
     const [errors, setErrors] = React.useState<string[]>([]);
@@ -103,6 +109,64 @@ export function AppointmentFormDialog({
     const [doctorSearchQuery, setDoctorSearchQuery] = React.useState('');
 
     const [isCalendarSearchOpen, setCalendarSearchOpen] = React.useState(false);
+
+    // Quote selection states
+    const [isQuoteSearchOpen, setQuoteSearchOpen] = React.useState(false);
+    const [userQuotes, setUserQuotes] = React.useState<Quote[]>(externalUserQuotes || []);
+    const [isLoadingQuotes, setIsLoadingQuotes] = React.useState(false);
+    const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
+
+    // Load user quotes when user changes
+    React.useEffect(() => {
+        const loadUserQuotes = async () => {
+            if (!appointment.user?.id) {
+                setUserQuotes([]);
+                setAppointment(prev => ({ ...prev, quote: null }));
+                return;
+            }
+
+            // If external quotes are provided, use them
+            if (externalUserQuotes) {
+                setUserQuotes(externalUserQuotes);
+                return;
+            }
+
+            setIsLoadingQuotes(true);
+            try {
+                const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: appointment.user.id });
+                const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
+                const quotes: Quote[] = raw.map((q: any) => ({
+                    id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+                    doc_no: q.doc_no || 'N/A',
+                    user_id: q.user_id || appointment.user!.id,
+                    total: q.total || 0,
+                    status: q.status || 'draft',
+                    payment_status: q.payment_status || 'unpaid',
+                    billing_status: q.billing_status || 'not_invoiced',
+                    currency: q.currency || 'USD',
+                    exchange_rate: q.exchange_rate || 1,
+                    notes: q.notes || '',
+                    createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
+                }));
+                setUserQuotes(quotes);
+
+                // If there's a pre-selected quote, update it with full data from the loaded quotes
+                if (appointment.quote?.id) {
+                    const fullQuote = quotes.find(q => q.id === appointment.quote?.id);
+                    if (fullQuote) {
+                        setAppointment(prev => ({ ...prev, quote: fullQuote }));
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load user quotes:', error);
+                setUserQuotes([]);
+            } finally {
+                setIsLoadingQuotes(false);
+            }
+        };
+
+        loadUserQuotes();
+    }, [appointment.user?.id, externalUserQuotes]);
 
     // Initialize/Reset form
     React.useEffect(() => {
@@ -135,6 +199,16 @@ export function AppointmentFormDialog({
                     time: editingAppointment.time || '',
                     endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime), 'HH:mm') : '',
                     notes: editingAppointment.notes || '',
+                    quote: editingAppointment.quote_id ? {
+                        id: editingAppointment.quote_id,
+                        doc_no: editingAppointment.quote_doc_no || '',
+                        user_id: editingAppointment.patientId,
+                        total: 0,
+                        status: 'draft',
+                        payment_status: 'unpaid',
+                        billing_status: 'not_invoiced',
+                        createdAt: '',
+                    } : null,
                 });
                 setOriginalCalendarId(editingAppointment.google_calendar_id || editingAppointment.calendar_id);
             } else if (initialData) {
@@ -147,6 +221,7 @@ export function AppointmentFormDialog({
                     time: initialData.time || format(new Date(), 'HH:mm'),
                     endTime: '',
                     notes: initialData.notes || '',
+                    quote: initialData.quote || null,
                 });
                 setOriginalCalendarId(undefined);
             } else {
@@ -159,6 +234,7 @@ export function AppointmentFormDialog({
                     time: format(new Date(), 'HH:mm'),
                     endTime: '',
                     notes: '',
+                    quote: null,
                 });
                 setOriginalCalendarId(undefined);
             }
@@ -456,6 +532,7 @@ export function AppointmentFormDialog({
             payload.service_names = services.map(s => s.name).join(', ');
             payload.notes = notes || editingAppointment!.notes || '';
             payload.google_calendar_id = calendar?.google_calendar_id || originalCalendarId;
+            payload.quote_id = appointment.quote?.id || editingAppointment?.quote_id || null;
         } else {
             payload.doctor_id = doctor?.id || '';
             payload.doctor_name = doctor?.name || '';
@@ -469,6 +546,7 @@ export function AppointmentFormDialog({
             payload.service_names = services.map(s => s.name).join(', ');
             payload.notes = notes || '';
             payload.google_calendar_id = calendar?.google_calendar_id || '';
+            payload.quote_id = appointment.quote?.id || null;
         }
 
         try {
@@ -547,6 +625,95 @@ export function AppointmentFormDialog({
                                     </PopoverContent>
                                 </Popover>
                             </div>
+
+                            {/* Quote Selection */}
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label className="flex items-center gap-1">
+                                        <Link2 className="h-3.5 w-3.5" />
+                                        {t('createDialog.quote')}
+                                    </Label>
+                                    {appointment.user && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 px-2 text-xs"
+                                            onClick={() => setIsQuickQuoteOpen(true)}
+                                        >
+                                            <FilePlus className="h-3 w-3 mr-1" />
+                                            {t('createDialog.newQuote')}
+                                        </Button>
+                                    )}
+                                </div>
+                                <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full justify-start"
+                                            disabled={!appointment.user || isLoadingQuotes}
+                                        >
+                                            {isLoadingQuotes ? (
+                                                t('createDialog.loadingQuotes')
+                                            ) : appointment.quote ? (
+                                                <span className="flex items-center gap-2">
+                                                    <span className="font-medium">{appointment.quote.doc_no}</span>
+                                                    <span className="text-muted-foreground">
+                                                        {appointment.quote.createdAt && isValid(parseISO(appointment.quote.createdAt)) ? format(parseISO(appointment.quote.createdAt), 'dd/MM/yyyy') : ''}
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || 'USD' }).format(appointment.quote.total)})
+                                                    </span>
+                                                </span>
+                                            ) : (
+                                                t('createDialog.selectQuote')
+                                            )}
+                                            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder={t('createDialog.searchQuotePlaceholder')} />
+                                            <CommandList>
+                                                <CommandEmpty>{t('createDialog.noQuotes')}</CommandEmpty>
+                                                <CommandGroup>
+                                                    <CommandItem
+                                                        onSelect={() => {
+                                                            setAppointment(prev => ({ ...prev, quote: null }));
+                                                            setQuoteSearchOpen(false);
+                                                        }}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", !appointment.quote ? "opacity-100" : "opacity-0")} />
+                                                        {t('createDialog.noQuote')}
+                                                    </CommandItem>
+                                                    {userQuotes.map(quote => (
+                                                        <CommandItem
+                                                            key={quote.id}
+                                                            value={`${quote.doc_no} ${quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''}`}
+                                                            onSelect={() => {
+                                                                setAppointment(prev => ({ ...prev, quote }));
+                                                                setQuoteSearchOpen(false);
+                                                            }}
+                                                        >
+                                                            <Check className={cn("mr-2 h-4 w-4", appointment.quote?.id === quote.id ? "opacity-100" : "opacity-0")} />
+                                                            <div className="flex flex-col">
+                                                                <span className="font-medium">{quote.doc_no}</span>
+                                                                <span className="text-xs text-muted-foreground">
+                                                                    {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
+                                                                </span>
+                                                            </div>
+                                                        </CommandItem>
+                                                    ))}
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                {!appointment.user && (
+                                    <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
+                                )}
+                            </div>
+
                             <div className="space-y-2">
                                 <Label>{t('createDialog.serviceName')}</Label>
                                 <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
@@ -709,6 +876,17 @@ export function AppointmentFormDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
                 </DialogFooter>
             </DialogContent>
+
+            {/* Quick Quote Dialog */}
+            <QuickQuoteDialog
+                open={isQuickQuoteOpen}
+                onOpenChange={setIsQuickQuoteOpen}
+                user={appointment.user}
+                onQuoteCreated={(quote) => {
+                    setUserQuotes(prev => [quote, ...prev]);
+                    setAppointment(prev => ({ ...prev, quote }));
+                }}
+            />
         </Dialog>
     );
 }

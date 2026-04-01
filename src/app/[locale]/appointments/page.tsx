@@ -35,7 +35,7 @@ import api from '@/services/api';
 import { getSalesServices, getUserServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
-import { Calendar as CalendarIcon, Check, ChevronDown, Edit, Layers, PlusCircle, RefreshCw, Trash2, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, PlusCircle, RefreshCw, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { getAppointmentColumns } from './columns';
@@ -212,7 +212,9 @@ async function getAppointments(
                     category: '',
                     duration_minutes: 30,
                     is_active: true
-                } as Service)) : []
+                } as Service)) : [],
+                quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
+                quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined
             };
 
             console.log("Mapped appointment:", appointment);
@@ -834,6 +836,15 @@ export default function AppointmentsPage() {
                                 <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
                                 {selectedAppointment.services && selectedAppointment.services.length > 0 && (
                                     <div className='flex gap-2'><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
+                                )}
+                                {selectedAppointment.quote_doc_no && (
+                                    <div className='flex items-center gap-2'>
+                                        <strong>{tColumns('quoteDocNo')}:</strong>
+                                        <Badge variant="secondary" className="font-mono gap-1.5">
+                                            <FileText className="h-3.5 w-3.5" />
+                                            {selectedAppointment.quote_doc_no}
+                                        </Badge>
+                                    </div>
                                 )}
                                 {selectedAppointment.notes && (
                                     <div className='flex gap-2 flex-col'><strong>Notas:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>

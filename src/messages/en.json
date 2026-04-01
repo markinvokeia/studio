@@ -326,7 +326,15 @@
       "cancelAppointmentTitle": "Cancel Appointment",
       "servicesSelected": "Services Selected",
       "selectedServices": "Selected Services",
-      "searching": "Searching..."
+      "searching": "Searching...",
+      "quote": "Quote",
+      "newQuote": "New",
+      "selectQuote": "Select Quote",
+      "searchQuotePlaceholder": "Search quote...",
+      "noQuotes": "No quotes",
+      "noQuote": "No quote",
+      "loadingQuotes": "Loading quotes...",
+      "selectUserFirst": "Select a patient first"
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -389,7 +397,8 @@
     "doctor": "Doctor",
     "edit": "Edit",
     "calendar": "Calendar",
-    "patient": "Patient"
+    "patient": "Patient",
+    "quoteDocNo": "Doc No"
   },
   "AppointmentStatus": {
     "completed": "Completed",
@@ -944,6 +953,7 @@
   },
   "General": {
     "create": "Create",
+    "cancel": "Cancel",
     "noResults": "No results.",
     "openMenu": "Open menu",
     "selectRow": "Select row",
@@ -1033,6 +1043,18 @@
       },
       "notes": "Notes",
       "notesPlaceholder": "Add any additional notes here..."
+    },
+    "quickQuote": {
+      "title": "Quick Create Quote",
+      "description": "Create a new quote for {userName}",
+      "selectUserFirst": "Select a patient first",
+      "selectService": "Select service...",
+      "noItems": "No items. Add one with the button above.",
+      "notesPlaceholder": "Add notes or observations...",
+      "create": "Create Quote"
+    },
+    "success": {
+      "created": "Quote created successfully"
     },
     "toast": {
       "quoteDeleted": "Quote Deleted",
@@ -1158,7 +1180,11 @@
       "failedToLoadServices": "Could not load services.",
       "failedToLoadServiceData": "Could not load service data for editing.",
       "cashSessionRequired": "Cash Session Required",
-      "cashSessionRequiredDetail": "You must have an active cash session with exchange rate configured to create quote items."
+      "cashSessionRequiredDetail": "You must have an active cash session with exchange rate configured to create quote items.",
+      "noUser": "You must select a patient",
+      "noItems": "You must add at least one item",
+      "invalidItems": "All items must have a service selected",
+      "createFailed": "Failed to create quote"
     },
     "common": {
       "closeDetails": "Close details"

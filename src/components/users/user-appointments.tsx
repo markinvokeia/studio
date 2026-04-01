@@ -2,6 +2,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
+import { FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -28,6 +29,21 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
   {
     accessorKey: 'doctorName',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} />,
+  },
+  {
+    accessorKey: 'quote_doc_no',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('quoteDocNo')} />,
+    cell: ({ row }) => {
+      const quoteDocNo = row.original.quote_doc_no;
+      return quoteDocNo ? (
+        <Badge variant="secondary" className="font-mono gap-1.5">
+          <FileText className="h-3.5 w-3.5" />
+          {quoteDocNo}
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground text-sm">—</span>
+      );
+    },
   },
   {
     accessorKey: 'date',
@@ -150,6 +166,8 @@ async function getAppointmentsForUser(
         created_at: apiAppt.created_at || apiAppt.createdat,
         google_calendar_id: apiAppt.google_calendar_id || '',
         googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
+        quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
+        quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
         color: (() => {
           const c = (apiAppt.color && ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"].includes(String(apiAppt.color)))
             ? {

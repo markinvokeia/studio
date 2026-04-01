@@ -454,6 +454,8 @@ export type Appointment = {
   start?: any;
   end?: any;
   services?: Service[];
+  quote_id?: string; // ID del presupuesto asociado
+  quote_doc_no?: string; // Número de documento del presupuesto (Doc No)
 };
 
 export type UserLog = {
