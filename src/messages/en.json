@@ -617,6 +617,9 @@
     "filterByPatient": "Filter by patient...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
+    "preferencesButton": "Preferences",
+    "dischargeButton": "Discharge",
+    "readmitButton": "Readmit",
     "setInitialPassword": "Set Initial Password",
     "tabs": {
       "roles": "Roles",

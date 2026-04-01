@@ -108,7 +108,7 @@ type GetUsersResponse = {
   total: number;
 };
 
-const UserStats = ({ user, t, financialData, isOpen }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null, isOpen: boolean }) => {
+const UserStats = ({ user, t, financialData, isOpen, onToggle, onPrint }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null, isOpen: boolean, onToggle: () => void, onPrint: () => void }) => {
   const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';
     const numericValue = Number(value) || 0;
@@ -177,9 +177,34 @@ const UserStats = ({ user, t, financialData, isOpen }: { user: User, t: (key: st
   ];
 
   return (
-    <Collapsible open={isOpen} className="mb-3">
+    <Collapsible open={isOpen} className="mb-2">
+      <div className="flex items-center justify-between pt-2 pb-1">
+        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
+          Estado financiero
+        </span>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+            onClick={onToggle}
+          >
+            {isOpen ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+            {isOpen ? 'Ocultar' : 'Ver balance'}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+            onClick={onPrint}
+          >
+            <Printer className="h-3 w-3" />
+            Imprimir
+          </Button>
+        </div>
+      </div>
       <CollapsibleContent className="transition-all">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-2 pb-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pb-2">
           {stats.map(stat => (
             <div
               key={stat.title}
@@ -198,6 +223,7 @@ const UserStats = ({ user, t, financialData, isOpen }: { user: User, t: (key: st
           ))}
         </div>
       </CollapsibleContent>
+      <div className="border-t border-border mt-1" />
     </Collapsible>
   );
 };
@@ -1303,97 +1329,42 @@ export default function UsersPage() {
                         </DropdownMenu>
                       </TooltipProvider>
 
+                      {/* Discharge button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-8 gap-1.5 px-3",
+                          currentDischarge
+                            ? "text-green-600 border-green-300 hover:bg-green-600 hover:text-white hover:border-green-600"
+                            : "hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                        )}
+                        onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                        disabled={isSubmittingDischarge}
+                      >
+                        {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                        {currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}
+                      </Button>
+
                       {/* Preferences dropdown */}
                       <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant={isPreferencesOpen ? 'secondary' : 'outline'}
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                                >
-                                  <SlidersHorizontal className="h-4 w-4" />
-                                </Button>
-                              </PopoverTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>Preferencias de comunicación</TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={isPreferencesOpen ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="h-8 gap-1.5 px-3 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                          >
+                            <SlidersHorizontal className="h-4 w-4" />
+                            {t('UsersPage.preferencesButton')}
+                          </Button>
+                        </PopoverTrigger>
                         <PopoverContent align="end" className="w-auto p-3 space-y-2">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-                            Preferencias de comunicación
+                            {t('UsersPage.preferencesButton')}
                           </p>
                           <UserCommunicationPreferences user={selectedUser} autoSave compact />
                         </PopoverContent>
                       </Popover>
-
-                      {/* Discharge button */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className={cn(
-                                "h-8 w-8",
-                                currentDischarge
-                                  ? "text-green-600 border-green-300 hover:bg-green-50 hover:text-green-700"
-                                  : "hover:text-primary hover:border-primary/50"
-                              )}
-                              onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
-                              disabled={isSubmittingDischarge}
-                            >
-                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {currentDischarge
-                              ? t('ClinicHistoryPage.discharge.cancelDischarge')
-                              : t('ClinicHistoryPage.discharge.buttonText')}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      {/* Toggle financial stats */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant={isStatsOpen ? 'secondary' : 'outline'}
-                              size="sm"
-                              className="h-8 gap-1.5 px-2 text-xs font-semibold hover:text-primary hover:border-primary/50"
-                              onClick={() => setIsStatsOpen(v => !v)}
-                            >
-                              {isStatsOpen
-                                ? <><EyeOff className="h-3.5 w-3.5" />{t('UsersPage.stats.hideStats')}</>
-                                : <><Eye className="h-3.5 w-3.5" />{t('UsersPage.stats.showStats')}</>
-                              }
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {isStatsOpen ? t('UsersPage.stats.hideStats') : t('UsersPage.stats.showStats')}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
-                      {/* Print button */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                              onClick={handlePrintFinancialSummary}
-                            >
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('UsersPage.stats.printFinancialSummary')}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
 
                       {/* Close */}
                       <Button
@@ -1417,16 +1388,24 @@ export default function UsersPage() {
                       </span>
                     )}
                     {selectedUser.email && (
-                      <span className="flex items-center gap-1 max-w-[200px] truncate">
+                      <a
+                        href={`mailto:${selectedUser.email}`}
+                        className="flex items-center gap-1 max-w-[200px] truncate hover:text-foreground hover:underline"
+                      >
                         <Mail className="h-3 w-3 flex-none" />
                         {selectedUser.email}
-                      </span>
+                      </a>
                     )}
                     {selectedUser.phone_number && (
-                      <span className="flex items-center gap-1">
+                      <a
+                        href={`https://wa.me/${selectedUser.phone_number.replace(/^\+/, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 hover:text-foreground hover:underline"
+                      >
                         <Phone className="h-3 w-3" />
                         {selectedUser.phone_number}
-                      </span>
+                      </a>
                     )}
                     {selectedUser.identity_document && (
                       <span className="flex items-center gap-1">
@@ -1476,9 +1455,9 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} />
+                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} onToggle={() => setIsStatsOpen(v => !v)} onPrint={handlePrintFinancialSummary} />
                       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-                        <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto flex-nowrap shrink-0 justify-start">
+                        <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start">
                           {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
                             <TabsTrigger value="services" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.services')}</TabsTrigger>
