@@ -581,6 +581,8 @@ export type PatientSession = {
   estado_odontograma?: any;
   tratamientos: TreatmentDetail[];
   archivos_adjuntos: AttachedFile[];
+  quote_id?: string;
+  quote_doc_no?: string;
 };
 
 export type AvailabilityRule = {

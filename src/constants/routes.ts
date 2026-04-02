@@ -233,6 +233,7 @@ export const API_ROUTES = {
         QUOTES_INVOICES: '/quote_invoices',
         QUOTES_PAYMENTS: '/quote_payments',
         QUOTE_APPOINTMENTS: '/quote_appointments',
+        QUOTE_CLINIC_SESSIONS: '/quote_clinic_sessions',
         QUOTES_UPSERT: '/quotes/upsert',
         QUOTE_DELETE: '/quote/delete',
         QUOTE_CONFIRM: '/quote/confirm',

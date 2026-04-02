@@ -1105,7 +1105,8 @@
             "payments": "Pagos",
             "notes": "Notas",
             "total": "Total",
-            "appointments": "Citas"
+            "appointments": "Citas",
+            "clinicSessions": "Sesiones Clínicas"
         },
         "appointments": {
             "columns": {
@@ -1113,6 +1114,15 @@
                 "date": "Fecha y hora inicio",
                 "endTime": "Hora fin",
                 "status": "Estado"
+            }
+        },
+        "clinicSessions": {
+            "columns": {
+                "date": "Fecha",
+                "procedure": "Procedimiento",
+                "doctor": "Doctor",
+                "nextPlan": "Plan Próxima Cita",
+                "nextDate": "Fecha Próxima Cita"
             }
         },
         "UserColumns": {
@@ -3142,6 +3152,13 @@
             "existingAttachments": "Adjuntos existentes",
             "newAttachments": "Nuevos adjuntos",
             "deleteConfirm": "¿Está seguro de que desea eliminar esta sesión? Esta acción no se puede deshacer.",
+            "quote": "Presupuesto",
+            "newQuote": "Nuevo",
+            "selectQuote": "Seleccionar presupuesto",
+            "loadingQuotes": "Cargando presupuestos...",
+            "noQuote": "Sin presupuesto",
+            "noQuotes": "No hay presupuestos disponibles",
+            "searchQuotePlaceholder": "Buscar presupuesto...",
             "fileUploadError": "Error al subir archivos"
         },
         "newFiles": "Nuevos Archivos",
@@ -3176,6 +3193,7 @@
             "edit": "Editar",
             "delete": "Eliminar",
             "odontogramTooltip": "Tipo de sesión: Odontograma",
+            "quote": "Presupuesto",
             "addFirstSession": "Agregar primera sesión",
             "toast": {
                 "success": "Éxito",

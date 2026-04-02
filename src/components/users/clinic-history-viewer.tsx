@@ -1,5 +1,6 @@
 'use client';
 
+import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,11 +39,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
-import { PatientSession } from '@/lib/types';
+import { PatientSession, Quote } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { api } from '@/services/api';
+import { format, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import {
     AlertTriangle,
@@ -55,10 +58,12 @@ import {
     Edit3,
     Eye,
     File,
+    FilePlus,
     FileText,
     FolderArchive,
     GlassWater,
     Heart,
+    Link2,
     Loader2,
     Maximize,
     Minimize,
@@ -244,6 +249,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                                 sessions={patientSessions}
                                 isLoading={isLoadingPatientSessions}
                                 userId={userId}
+                                userName={userName}
                                 doctors={doctors}
                                 isLoadingDoctors={isLoadingDoctors}
                                 isSubmittingSession={isSubmittingSession}
@@ -1549,6 +1555,7 @@ interface TreatmentTimelineProps {
     sessions: PatientSession[];
     isLoading: boolean;
     userId: string;
+    userName?: string;
     doctors: { id: string; name: string }[];
     isLoadingDoctors: boolean;
     isSubmittingSession: boolean;
@@ -1562,7 +1569,7 @@ interface TreatmentTimelineProps {
     onTriggerConsumed?: () => void;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1572,6 +1579,13 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
+
+    // Quote selection states
+    const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
+    const [isLoadingQuotes, setIsLoadingQuotes] = React.useState(false);
+    const [isQuoteSearchOpen, setIsQuoteSearchOpen] = React.useState(false);
+    const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
+    const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
 
     React.useEffect(() => {
         if (createTrigger > 0) {
@@ -1590,6 +1604,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         procedimiento_realizado: '',
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
+        quote_id: '',
     });
     const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
 
@@ -1682,6 +1697,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             procedimiento_realizado: lastSession?.plan_proxima_cita || '',
             plan_proxima_cita: '',
             fecha_proxima_cita: '',
+            quote_id: '',
         });
         setSessionTreatments([]);
         setAttachedFiles([]);
@@ -1701,6 +1717,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
             procedimiento_realizado: session.procedimiento_realizado || '',
             plan_proxima_cita: session.plan_proxima_cita || '',
             fecha_proxima_cita: (session as any).fecha_proxima_cita || '',
+            quote_id: (session as any).quote_id || '',
         });
         setSessionTreatments((session.tratamientos || []).map(t => ({
             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
@@ -1714,6 +1731,49 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
         onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
+
+    // Load user quotes when dialog opens
+    React.useEffect(() => {
+        const loadUserQuotes = async () => {
+            if (isSessionDialogOpen && userId) {
+                setIsLoadingQuotes(true);
+                try {
+                    const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: userId });
+                    const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
+                    const quotes: Quote[] = raw.map((q: any) => ({
+                        id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
+                        doc_no: q.doc_no || 'N/A',
+                        user_id: q.user_id || userId,
+                        total: q.total || 0,
+                        status: q.status || 'draft',
+                        payment_status: q.payment_status || 'unpaid',
+                        billing_status: q.billing_status || 'not invoiced',
+                        currency: q.currency || 'USD',
+                        exchange_rate: q.exchange_rate || 1,
+                        notes: q.notes || '',
+                        createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
+                    }));
+                    setUserQuotes(quotes);
+                } catch (error) {
+                    console.error('Failed to load user quotes:', error);
+                    setUserQuotes([]);
+                } finally {
+                    setIsLoadingQuotes(false);
+                }
+            }
+        };
+        loadUserQuotes();
+    }, [isSessionDialogOpen, userId]);
+
+    // Set selected quote when editing existing session
+    React.useEffect(() => {
+        if (editingSession && sessionForm.quote_id && userQuotes.length > 0) {
+            const quote = userQuotes.find(q => q.id === String(sessionForm.quote_id));
+            if (quote) {
+                setSelectedQuote(quote);
+            }
+        }
+    }, [editingSession, sessionForm.quote_id, userQuotes]);
 
     const handleDeleteSession = (session: PatientSession) => {
         setDeletingSession(session);
@@ -1887,6 +1947,12 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                                 {session.nombre_doctor || session.doctor_name}
                                                             </p>
                                                         )}
+                                                        {session.quote_id && (
+                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                                <Link2 className="h-3.5 w-3.5" />
+                                                                {t('quote')}: {session.quote_doc_no || session.quote_id}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -2046,7 +2112,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                         <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={handleSaveSession} className="flex h-full flex-col overflow-hidden">
-                        <DialogBody className="flex-1 overflow-hidden px-6 py-4">
+                        <DialogBody className="flex-1 overflow-y-auto px-6 py-4">
                             <div className="grid h-full min-h-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
                                 {/* Left Column: General Info */}
                                 <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
@@ -2102,6 +2168,93 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                                                 </SelectContent>
                                             </Select>
                                     </div>
+
+                                    {/* Quote Selection */}
+                                    <div className="space-y-2 md:col-span-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="flex items-center gap-1">
+                                                <Link2 className="h-3.5 w-3.5" />
+                                                {tDialog('quote')}
+                                            </Label>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-xs"
+                                                onClick={() => setIsQuickQuoteOpen(true)}
+                                            >
+                                                <FilePlus className="h-3 w-3 mr-1" />
+                                                {tDialog('newQuote')}
+                                            </Button>
+                                        </div>
+                                        <Popover open={isQuoteSearchOpen} onOpenChange={setIsQuoteSearchOpen}>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className="w-full justify-start h-10"
+                                                    disabled={isLoadingQuotes}
+                                                >
+                                                    {isLoadingQuotes ? (
+                                                        tDialog('loadingQuotes')
+                                                    ) : selectedQuote ? (
+                                                        <span className="flex items-center gap-2 text-sm">
+                                                            <span className="font-medium">{selectedQuote.doc_no}</span>
+                                                            <span className="text-muted-foreground">
+                                                                {selectedQuote.createdAt && isValid(parseISO(selectedQuote.createdAt)) ? format(parseISO(selectedQuote.createdAt), 'dd/MM/yyyy') : ''}
+                                                            </span>
+                                                            <span className="text-muted-foreground">
+                                                                ({new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedQuote.currency || 'USD' }).format(selectedQuote.total)})
+                                                            </span>
+                                                        </span>
+                                                    ) : (
+                                                        tDialog('selectQuote')
+                                                    )}
+                                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder={tDialog('searchQuotePlaceholder')} />
+                                                    <CommandList>
+                                                        <CommandEmpty>{tDialog('noQuotes')}</CommandEmpty>
+                                                        <CommandGroup>
+                                                            <CommandItem
+                                                                onSelect={() => {
+                                                                    setSelectedQuote(null);
+                                                                    setSessionForm(prev => ({ ...prev, quote_id: '' }));
+                                                                    setIsQuoteSearchOpen(false);
+                                                                }}
+                                                            >
+                                                                <Check className={cn("mr-2 h-4 w-4", !selectedQuote ? "opacity-100" : "opacity-0")} />
+                                                                {tDialog('noQuote')}
+                                                            </CommandItem>
+                                                            {userQuotes.map(quote => (
+                                                                <CommandItem
+                                                                    key={quote.id}
+                                                                    value={quote.doc_no}
+                                                                    onSelect={() => {
+                                                                        setSelectedQuote(quote);
+                                                                        setSessionForm(prev => ({ ...prev, quote_id: quote.id }));
+                                                                        setIsQuoteSearchOpen(false);
+                                                                    }}
+                                                                >
+                                                                    <Check className={cn("mr-2 h-4 w-4", selectedQuote?.id === quote.id ? "opacity-100" : "opacity-0")} />
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium">{quote.doc_no}</span>
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)}
+                                                                        </span>
+                                                                    </div>
+                                                                </CommandItem>
+                                                            ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+
                                     <div className="space-y-2 md:col-span-2">
                                         <Label>{tDialog('procedure')}</Label>
                                         <Textarea
@@ -2311,6 +2464,18 @@ function TreatmentTimeline({ sessions, isLoading, userId, doctors, isLoadingDoct
                         </DialogFooter>
                     </form>
                 </DialogContent>
+
+                {/* Quick Quote Dialog */}
+                <QuickQuoteDialog
+                    open={isQuickQuoteOpen}
+                    onOpenChange={setIsQuickQuoteOpen}
+                    user={{ id: userId, name: userName || '', email: '', phone_number: '', is_active: true, avatar: '' }}
+                    onQuoteCreated={(newQuote) => {
+                        setUserQuotes(prev => [newQuote, ...prev]);
+                        setSelectedQuote(newQuote);
+                        setSessionForm(prev => ({ ...prev, quote_id: newQuote.id }));
+                    }}
+                />
             </Dialog>
 
             {/* Delete Confirmation Dialog */}

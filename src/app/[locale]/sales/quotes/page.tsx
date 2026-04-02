@@ -53,7 +53,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Stethoscope, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -172,6 +172,108 @@ function getAppointmentColumns(
                         {tStatus(key) || status}
                     </Badge>
                 );
+            },
+        },
+    ];
+}
+
+interface QuoteClinicSession {
+    id: string;
+    paciente_id: string;
+    doctor_id: string;
+    fecha_sesion: string;
+    procedimiento_realizado: string;
+    plan_proxima_cita: string | null;
+    diagnostico: string | null;
+    notas_clinicas: string;
+    fecha_proxima_cita: string | null;
+    quote_id: number;
+    paciente_nombre: string;
+    doctor_nombre: string | null;
+}
+
+async function getQuoteClinicSessions(quoteId: string): Promise<QuoteClinicSession[]> {
+    try {
+        const data = await api.get(API_ROUTES.SALES.QUOTE_CLINIC_SESSIONS, { quote_id: quoteId });
+        const raw = Array.isArray(data) ? data : (data.sessions || data.data || data.result || []);
+        // Filter out empty objects and sessions without id
+        return raw
+            .filter((s: any) => {
+                // Check if object has any meaningful properties (not just an empty object)
+                if (Object.keys(s).length === 0) return false;
+                // Check if id exists
+                return s.id != null;
+            })
+            .map((s: any) => ({
+                id: s.id || '',
+                paciente_id: s.paciente_id || '',
+                doctor_id: s.doctor_id || '',
+                fecha_sesion: s.fecha_sesion || '',
+                procedimiento_realizado: s.procedimiento_realizado || '',
+                plan_proxima_cita: s.plan_proxima_cita || null,
+                diagnostico: s.diagnostico || null,
+                notas_clinicas: s.notas_clinicas || '',
+                fecha_proxima_cita: s.fecha_proxima_cita || null,
+                quote_id: s.quote_id || 0,
+                paciente_nombre: s.paciente_nombre || '',
+                doctor_nombre: s.doctor_nombre || null,
+            }));
+    } catch {
+        return [];
+    }
+}
+
+function getClinicSessionColumns(
+    t: (key: string) => string,
+): ColumnDef<QuoteClinicSession>[] {
+    return [
+        {
+            accessorKey: 'fecha_sesion',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('clinicSessions.columns.date')} />,
+            cell: ({ row }) => {
+                const val: string = row.getValue('fecha_sesion');
+                if (!val) return <span className="text-muted-foreground">—</span>;
+                const d = parseISO(val);
+                return <span>{format(d, 'dd/MM/yyyy')}</span>;
+            },
+        },
+        {
+            accessorKey: 'procedimiento_realizado',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('clinicSessions.columns.procedure')} />,
+            cell: ({ row }) => (
+                <span className="truncate max-w-[300px] block" title={row.getValue('procedimiento_realizado')}>
+                    {row.getValue('procedimiento_realizado')}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'doctor_nombre',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('clinicSessions.columns.doctor')} />,
+            cell: ({ row }) => {
+                const val: string | null = row.getValue('doctor_nombre');
+                return <span>{val || '—'}</span>;
+            },
+        },
+        {
+            accessorKey: 'plan_proxima_cita',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('clinicSessions.columns.nextPlan')} />,
+            cell: ({ row }) => {
+                const val: string | null = row.getValue('plan_proxima_cita');
+                return (
+                    <span className="truncate max-w-[200px] block" title={val || ''}>
+                        {val || '—'}
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: 'fecha_proxima_cita',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={t('clinicSessions.columns.nextDate')} />,
+            cell: ({ row }) => {
+                const val: string | null = row.getValue('fecha_proxima_cita');
+                if (!val) return <span className="text-muted-foreground">—</span>;
+                const d = parseISO(val);
+                return <span>{format(d, 'dd/MM/yyyy')}</span>;
             },
         },
     ];
@@ -507,6 +609,7 @@ export default function QuotesPage() {
 
     const [payments, setPayments] = React.useState<Payment[]>([]);
     const [quoteAppointments, setQuoteAppointments] = React.useState<QuoteAppointment[]>([]);
+    const [quoteClinicSessions, setQuoteClinicSessions] = React.useState<QuoteClinicSession[]>([]);
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
@@ -517,6 +620,7 @@ export default function QuotesPage() {
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
     const [isLoadingAppointments, setIsLoadingAppointments] = React.useState(false);
+    const [isLoadingClinicSessions, setIsLoadingClinicSessions] = React.useState(false);
 
     const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
     const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
@@ -635,6 +739,13 @@ export default function QuotesPage() {
         setIsLoadingAppointments(false);
     }, [selectedQuote]);
 
+    const loadQuoteClinicSessions = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        setIsLoadingClinicSessions(true);
+        setQuoteClinicSessions(await getQuoteClinicSessions(selectedQuote.id));
+        setIsLoadingClinicSessions(false);
+    }, [selectedQuote]);
+
     React.useEffect(() => {
         if (selectedQuote) {
             loadQuoteItems();
@@ -642,6 +753,7 @@ export default function QuotesPage() {
             loadInvoices();
             loadPayments();
             loadQuoteAppointments();
+            loadQuoteClinicSessions();
             setSelectedOrder(null);
             setSelectedInvoice(null);
         } else {
@@ -650,8 +762,9 @@ export default function QuotesPage() {
             setInvoices([]);
             setPayments([]);
             setQuoteAppointments([]);
+            setQuoteClinicSessions([]);
         }
-    }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments, loadQuoteAppointments]);
+    }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments, loadQuoteAppointments, loadQuoteClinicSessions]);
 
     React.useEffect(() => {
         if (selectedOrder) {
@@ -1165,6 +1278,7 @@ export default function QuotesPage() {
                                             <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
                                             <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
                                             <TabsTrigger value="appointments" className="text-xs">{t('tabs.appointments')}</TabsTrigger>
+                                            <TabsTrigger value="clinicSessions" className="text-xs">{t('tabs.clinicSessions')}</TabsTrigger>
                                         </TabsList>
                                         <div className="flex-1 min-h-0 mt-4 flex flex-col">
                                             <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
@@ -1299,6 +1413,24 @@ export default function QuotesPage() {
                                                             data={quoteAppointments}
                                                             isRefreshing={isLoadingAppointments}
                                                             onRefresh={loadQuoteAppointments}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </TabsContent>
+                                            <TabsContent value="clinicSessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                                <div className="flex-1 min-h-[400px] flex flex-col">
+                                                    <div className="flex items-center justify-between mb-2 flex-none">
+                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
+                                                            <Stethoscope className="h-4 w-4" />
+                                                            {t('tabs.clinicSessions')}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex-1 min-h-0">
+                                                        <DataTable
+                                                            columns={getClinicSessionColumns(t)}
+                                                            data={quoteClinicSessions}
+                                                            isRefreshing={isLoadingClinicSessions}
+                                                            onRefresh={loadQuoteClinicSessions}
                                                         />
                                                     </div>
                                                 </div>

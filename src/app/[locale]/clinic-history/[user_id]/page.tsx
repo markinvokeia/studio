@@ -1437,8 +1437,6 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
         }
     }, [isOpen, session, doctors, form]);
 
-
-
     // Reset drag state when dialog closes
     useEffect(() => {
         if (!isOpen) {
@@ -1608,6 +1606,7 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                             </Select>
                                         </FormItem>
                                     )} />
+
                                     <FormField control={form.control} name="procedimiento_realizado" render={({ field }) => (
                                         <FormItem className="mb-2 md:col-span-2">
                                             <FormLabel className="text-xs font-semibold">{t('procedure')}</FormLabel>
