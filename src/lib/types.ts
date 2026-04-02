@@ -1,5 +1,7 @@
 
 
+export type UserDetailMode = 'sales' | 'purchases';
+
 export type User = {
   id: string;
   name: string;

@@ -1,10 +1,13 @@
 'use client';
 
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
+import { DatePicker } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogBody,
@@ -16,21 +19,30 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
+import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
+import { UserInvoices } from '@/components/users/user-invoices';
+import { UserOrders } from '@/components/users/user-orders';
+import { UserPayments } from '@/components/users/user-payments';
+import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { User } from '@/lib/types';
+import { User, UserFinancial } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { format } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Briefcase, X } from 'lucide-react';
+import { AlertTriangle, Briefcase, CalendarIcon, CreditCard, Loader2, Mail, MapPin, Phone, Printer, SlidersHorizontal, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -269,6 +281,10 @@ function ProvidersPageContent() {
   const canToggleStatus = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_TOGGLE_STATUS);
   const canViewDetail = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_DETAIL);
   const canViewServices = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_SERVICES);
+  const canViewQuotes = hasPermission(PURCHASES_PERMISSIONS.QUOTES_VIEW_LIST);
+  const canViewOrders = hasPermission(PURCHASES_PERMISSIONS.ORDERS_VIEW_LIST);
+  const canViewInvoices = hasPermission(PURCHASES_PERMISSIONS.INVOICES_VIEW_LIST);
+  const canViewPayments = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_VIEW_LIST);
 
   const [providers, setProviders] = React.useState<User[]>([]);
   const [providerCount, setProviderCount] = React.useState(0);
@@ -285,6 +301,16 @@ function ProvidersPageContent() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [activeTab, setActiveTab] = React.useState('summary');
+  const [providerFinancialData, setProviderFinancialData] = React.useState<UserFinancial | null>(null);
+  const [isStatsOpen, setIsStatsOpen] = React.useState(true);
+  const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
+  const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
+  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
 
   const form = useForm<ProviderFormValues>({
     resolver: zodResolver(providerFormSchema(t)),
@@ -309,6 +335,20 @@ function ProvidersPageContent() {
     setProviderCount(total);
     setIsRefreshing(false);
   }, [pagination, columnFilters]);
+
+  const fetchProviderFinancialData = React.useCallback(async (providerId: string) => {
+    try {
+      const data = await api.get(API_ROUTES.USER_FINANCIAL, { user_id: providerId });
+      if (data && Array.isArray(data) && data.length > 0) {
+        setProviderFinancialData(data[0] as UserFinancial);
+      } else {
+        setProviderFinancialData(null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch provider financial data:', error);
+      setProviderFinancialData(null);
+    }
+  }, []);
 
   React.useEffect(() => {
     setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -386,9 +426,66 @@ function ProvidersPageContent() {
     setSelectedProvider(user);
   };
 
+  React.useEffect(() => {
+    if (selectedProvider) {
+      fetchProviderFinancialData(selectedProvider.id);
+      setActiveTab('summary');
+    } else {
+      setProviderFinancialData(null);
+      setIsPreferencesOpen(false);
+    }
+  }, [fetchProviderFinancialData, selectedProvider]);
+
   const handleCloseDetails = () => {
     setSelectedProvider(null);
+    setActiveTab('summary');
     setRowSelection({});
+  };
+
+  const handlePrintFinancialSummary = () => {
+    if (!selectedProvider) return;
+    setFinancialSummaryDateRange({ from: undefined, to: undefined });
+    setIsFinancialSummaryDialogOpen(true);
+  };
+
+  const handlePrintFinancialSummaryWithDates = async () => {
+    if (!selectedProvider) return;
+    setIsPrintingFinancialSummary(true);
+    try {
+      const params: Record<string, string> = { user_id: selectedProvider.id };
+
+      if (financialSummaryDateRange.from) {
+        const dateFrom = new Date(financialSummaryDateRange.from);
+        dateFrom.setHours(0, 0, 0, 0);
+        params.from = dateFrom.toISOString();
+      }
+
+      if (financialSummaryDateRange.to) {
+        const dateTo = new Date(financialSummaryDateRange.to);
+        dateTo.setHours(23, 59, 59, 999);
+        params.to = dateTo.toISOString();
+      }
+
+      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, params);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `resumen_financiero_${selectedProvider.name.replace(/\s+/g, '_')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setIsFinancialSummaryDialogOpen(false);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not print the financial summary.',
+      });
+      console.error(error);
+    } finally {
+      setIsPrintingFinancialSummary(false);
+    }
   };
 
   const handleUpdateNotes = async (notes: string) => {
@@ -472,9 +569,11 @@ function ProvidersPageContent() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <div className={cn("grid grid-cols-1 gap-4 flex-1 min-h-0 overflow-hidden", selectedProvider ? "lg:grid-cols-5" : "lg:grid-cols-1")}>
-        <div className={cn("transition-all duration-300 flex flex-col min-h-0 overflow-hidden", selectedProvider ? "lg:col-span-2" : "lg:col-span-1")}>
-          <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+      <TwoPanelLayout
+        minLeftSize={20}
+        isRightPanelOpen={!!selectedProvider && canViewDetail}
+        leftPanel={
+          <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
               <div className="flex items-start gap-3">
                 <div className="header-icon-circle mt-0.5">
@@ -508,36 +607,122 @@ function ProvidersPageContent() {
               />
             </CardContent>
           </Card>
-        </div>
-
-        {selectedProvider && (
-          <div className="lg:col-span-3 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className="header-icon-circle mt-0.5">
-                    <Briefcase className="h-5 w-5" />
+        }
+        rightPanel={
+          selectedProvider && canViewDetail ? (
+            <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+              <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <div className="header-icon-circle flex-none">
+                      <Briefcase className="h-5 w-5" />
+                    </div>
+                    <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
+                      {selectedProvider.name}
+                    </CardTitle>
                   </div>
-                  <div className="min-w-0 flex-1 flex flex-col text-left">
-                    <CardTitle className="truncate">{t('ProvidersPage.detailsFor', { name: selectedProvider.name })}</CardTitle>
+                  <div className="flex items-center gap-1 ml-2 flex-none">
+                    <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={isPreferencesOpen ? 'secondary' : 'outline'}
+                          size="sm"
+                          className="h-8 gap-1.5 px-3 hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                        >
+                          <SlidersHorizontal className="h-4 w-4" />
+                          {t('UsersPage.preferencesButton')}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-auto p-3 space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
+                          {t('UsersPage.preferencesButton')}
+                        </p>
+                        <UserCommunicationPreferences user={selectedProvider} autoSave compact />
+                      </PopoverContent>
+                    </Popover>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                      onClick={handleCloseDetails}
+                    >
+                      <X className="h-5 w-5" />
+                      <span className="sr-only">{t('ProvidersPage.close')}</span>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive-ghost" size="icon" onClick={handleCloseDetails}>
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">{t('ProvidersPage.close')}</span>
-                  </Button>
+
+                <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
+                  {selectedProvider.email && (
+                    <a
+                      href={`mailto:${selectedProvider.email}`}
+                      className="flex items-center gap-1 max-w-[220px] truncate hover:text-foreground hover:underline"
+                    >
+                      <Mail className="h-3 w-3 flex-none" />
+                      {selectedProvider.email}
+                    </a>
+                  )}
+                  {selectedProvider.phone_number && (
+                    <a
+                      href={`https://wa.me/${selectedProvider.phone_number.replace(/^\+/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 hover:text-foreground hover:underline"
+                    >
+                      <Phone className="h-3 w-3" />
+                      {selectedProvider.phone_number}
+                    </a>
+                  )}
+                  {selectedProvider.alternative_phone && (
+                    <span className="flex items-center gap-1">
+                      <Phone className="h-3 w-3" />
+                      {selectedProvider.alternative_phone}
+                    </span>
+                  )}
+                  {selectedProvider.identity_document && (
+                    <span className="flex items-center gap-1">
+                      <CreditCard className="h-3 w-3" />
+                      {selectedProvider.identity_document}
+                    </span>
+                  )}
+                  {selectedProvider.address && (
+                    <span className="flex items-center gap-1 max-w-[260px] truncate">
+                      <MapPin className="h-3 w-3" />
+                      {selectedProvider.address}
+                    </span>
+                  )}
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      'text-xs font-normal',
+                      selectedProvider.is_active
+                        ? 'bg-green-100 text-green-800 hover:bg-green-100'
+                        : 'bg-red-100 text-red-800 hover:bg-red-100'
+                    )}
+                  >
+                    {selectedProvider.is_active ? t('ProvidersPage.summary.active') : t('ProvidersPage.summary.inactive')}
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
-                <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
-                  <TabsList className="h-auto items-center justify-start flex-wrap flex-none bg-muted/50 p-1">
-                    <TabsTrigger value="summary" className="text-xs">{t('ProvidersPage.tabs.summary')}</TabsTrigger>
-                    <TabsTrigger value="notes" className="text-xs">{t('ProvidersPage.tabs.notes')}</TabsTrigger>
-                    <TabsTrigger value="services" className="text-xs">{t('UsersPage.tabs.services')}</TabsTrigger>
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
+                <UserFinancialSummaryStats
+                  financialData={providerFinancialData}
+                  isOpen={isStatsOpen}
+                  onToggle={() => setIsStatsOpen(v => !v)}
+                  onPrint={handlePrintFinancialSummary}
+                />
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
+                  <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start">
+                    <TabsTrigger value="summary" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.summary')}</TabsTrigger>
+                    {canViewServices && <TabsTrigger value="services" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.services')}</TabsTrigger>}
+                    {canViewQuotes && <TabsTrigger value="quotes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.quotes')}</TabsTrigger>}
+                    {canViewOrders && <TabsTrigger value="orders" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.orders')}</TabsTrigger>}
+                    {canViewInvoices && <TabsTrigger value="invoices" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.invoices')}</TabsTrigger>}
+                    {canViewPayments && <TabsTrigger value="payments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.payments')}</TabsTrigger>}
+                    <TabsTrigger value="notes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.notes')}</TabsTrigger>
                   </TabsList>
-                  <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
-                    <TabsContent value="summary" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
+                    <TabsContent value="summary" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                       <Card className="h-full flex flex-col shadow-none border-0">
                         <CardHeader className="flex-none p-4 pb-2">
                           <CardTitle className="text-lg text-foreground font-bold">{t('ProvidersPage.summary.title')}</CardTitle>
@@ -547,7 +732,7 @@ function ProvidersPageContent() {
                         </CardHeader>
                         <CardContent className="flex-1 overflow-auto p-4 pt-0 bg-card">
                           <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                               <div className="space-y-1">
                                 <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.name')}</span>
                                 <p className="text-sm font-medium">{selectedProvider.name}</p>
@@ -580,7 +765,7 @@ function ProvidersPageContent() {
                             <div className="space-y-1 pt-2 border-t">
                               <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.status')}</span>
                               <p className="text-sm font-medium">
-                                <span className={selectedProvider.is_active ? "text-green-600" : "text-red-600"}>
+                                <span className={selectedProvider.is_active ? 'text-green-600' : 'text-red-600'}>
                                   {selectedProvider.is_active ? t('ProvidersPage.summary.active') : t('ProvidersPage.summary.inactive')}
                                 </span>
                               </p>
@@ -589,19 +774,118 @@ function ProvidersPageContent() {
                         </CardContent>
                       </Card>
                     </TabsContent>
-                    <TabsContent value="notes" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                    {canViewServices && (
+                      <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                        <UserServices userId={selectedProvider.id} isSalesUser={false} />
+                      </TabsContent>
+                    )}
+                    {canViewQuotes && (
+                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                        <UserQuotes userId={selectedProvider.id} mode="purchases" />
+                      </TabsContent>
+                    )}
+                    {canViewOrders && (
+                      <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                        <UserOrders userId={selectedProvider.id} patient={selectedProvider} mode="purchases" />
+                      </TabsContent>
+                    )}
+                    {canViewInvoices && (
+                      <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                        <UserInvoices userId={selectedProvider.id} mode="purchases" />
+                      </TabsContent>
+                    )}
+                    {canViewPayments && (
+                      <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                        <UserPayments userId={selectedProvider.id} mode="purchases" />
+                      </TabsContent>
+                    )}
+                    <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                       <NotesTab user={selectedProvider} onUpdate={handleUpdateNotes} />
-                    </TabsContent>
-                    <TabsContent value="services" className="m-0 flex-1 min-h-0 overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
-                      <UserServices userId={selectedProvider.id} isSalesUser={false} />
                     </TabsContent>
                   </div>
                 </Tabs>
               </CardContent>
             </Card>
-          </div>
-        )}
-      </div>
+          ) : null
+        }
+      />
+
+      <Dialog open={isFinancialSummaryDialogOpen} onOpenChange={setIsFinancialSummaryDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{t('UsersPage.financialSummaryDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {t('UsersPage.financialSummaryDialog.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogBody>
+            <div className="grid grid-cols-2 gap-4 px-4 pt-4">
+              <div className="space-y-2">
+                <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !financialSummaryDateRange.from && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {financialSummaryDateRange.from ? format(financialSummaryDateRange.from, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePicker
+                      mode="single"
+                      selected={financialSummaryDateRange.from}
+                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, from: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>{t('UsersPage.financialSummaryDialog.to')}</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full justify-start text-left font-normal',
+                        !financialSummaryDateRange.to && 'text-muted-foreground'
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {financialSummaryDateRange.to ? format(financialSummaryDateRange.to, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <DatePicker
+                      mode="single"
+                      selected={financialSummaryDateRange.to}
+                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, to: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button onClick={handlePrintFinancialSummaryWithDates} disabled={isPrintingFinancialSummary}>
+              {isPrintingFinancialSummary ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
+              {t('UsersPage.financialSummaryDialog.print')}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setIsFinancialSummaryDialogOpen(false)}
+            >
+              {t('UsersPage.financialSummaryDialog.cancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>

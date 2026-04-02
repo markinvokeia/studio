@@ -17,13 +17,15 @@ import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { Quote, QuoteItem, Service } from '@/lib/types';
+import { Quote, QuoteItem, Service, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
-import { getSalesServices } from '@/services/services';
+import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
@@ -183,12 +185,15 @@ const BILLING_BADGE: Record<string, any> = { invoiced: 'success', partially_invo
 interface UserQuotesProps {
   userId: string;
   onQuoteSelect?: (quote: Quote | null) => void;
+  mode?: UserDetailMode;
 }
 
-export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
+export function UserQuotes({ userId, onQuoteSelect, mode = 'sales' }: UserQuotesProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { activeCashSession } = useAuth();
+  const { hasPermission } = usePermissions();
+  const isSales = mode === 'sales';
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -217,8 +222,19 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
 
   const columns = React.useMemo(() => getColumns(t), [t]);
   const isDraft = selectedQuote?.status?.toLowerCase() === 'draft';
-  const canEditItems = ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
-  const canSend = ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
+  const canUpdateQuote = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
+  const canDeleteQuote = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_DELETE : PURCHASES_PERMISSIONS.QUOTES_DELETE);
+  const canConfirmQuote = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_CONFIRM : PURCHASES_PERMISSIONS.QUOTES_CONFIRM);
+  const canRejectQuote = isSales
+    ? hasPermission(SALES_PERMISSIONS.QUOTES_REJECT)
+    : canConfirmQuote;
+  const canPrintQuote = isSales ? hasPermission(SALES_PERMISSIONS.QUOTES_PRINT) : false;
+  const canSendQuote = isSales ? hasPermission(SALES_PERMISSIONS.QUOTES_SEND_EMAIL) : false;
+  const canAddItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_ADD_ITEM : PURCHASES_PERMISSIONS.QUOTES_CREATE);
+  const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE_ITEM : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
+  const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_DELETE_ITEM : PURCHASES_PERMISSIONS.QUOTES_DELETE);
+  const canEditItems = canUpdateItem && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
+  const canSend = canSendQuote && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadQuotes = React.useCallback(async (silent = false) => {
@@ -232,7 +248,10 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const loadItems = React.useCallback(async (quoteId: string) => {
     setIsLoadingItems(true);
     try {
-      const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: quoteId });
+      const data = await api.get(
+        isSales ? API_ROUTES.SALES.QUOTES_ITEMS : API_ROUTES.PURCHASES.QUOTES_ITEMS,
+        { quote_id: quoteId, is_sales: isSales ? 'true' : 'false' }
+      );
       const raw = Array.isArray(data) ? data : (data.items || data.data || []);
       setQuoteItems(raw.map((i: any) => ({
         id: String(i.id),
@@ -248,15 +267,15 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
     } finally {
       setIsLoadingItems(false);
     }
-  }, []);
+  }, [isSales]);
 
   const loadServices = React.useCallback(async () => {
     if (services.length > 0) return;
     try {
-      const data = await getSalesServices({ limit: 500 });
+      const data = await (isSales ? getSalesServices({ limit: 500 }) : getPurchaseServices({ limit: 500 }));
       setServices(data.items || []);
     } catch { /* silent */ }
-  }, [services.length]);
+  }, [isSales, services.length]);
 
   React.useEffect(() => { loadQuotes(); }, [loadQuotes]);
 
@@ -279,7 +298,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
-    if (!selectedQuote) return;
+    if (!selectedQuote || !canPrintQuote) return;
     try {
       const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: selectedQuote.id });
       const url = URL.createObjectURL(blob);
@@ -291,9 +310,9 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   };
 
   const handleSend = async () => {
-    if (!selectedQuote) return;
+    if (!selectedQuote || !canSendQuote) return;
     try {
-      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quote_id: selectedQuote.id, is_sales: true });
+      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quote_id: selectedQuote.id, is_sales: isSales });
       toast({ title: 'Presupuesto enviado' });
       await loadQuotes(true);
     } catch {
@@ -305,8 +324,15 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
     if (!selectedQuote || !confirmAction) return;
     setIsSubmittingAction(true);
     try {
-      const route = confirmAction === 'confirm' ? API_ROUTES.SALES.QUOTE_CONFIRM : API_ROUTES.SALES.QUOTE_REJECT;
-      const res = await api.post(route, { quote_number: selectedQuote.id, confirm_reject: confirmAction, is_sales: true, notes: actionNotes });
+      const route = confirmAction === 'confirm'
+        ? (isSales ? API_ROUTES.SALES.QUOTE_CONFIRM : API_ROUTES.PURCHASES.QUOTE_CONFIRM)
+        : (isSales ? API_ROUTES.SALES.QUOTE_REJECT : API_ROUTES.PURCHASES.QUOTE_REJECT);
+      const res = await api.post(route, {
+        quote_number: selectedQuote.id,
+        confirm_reject: confirmAction,
+        is_sales: isSales,
+        notes: actionNotes,
+      });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: confirmAction === 'confirm' ? 'Presupuesto confirmado' : 'Presupuesto rechazado' });
       setConfirmAction(null);
@@ -322,7 +348,10 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const handleDeleteQuote = async () => {
     if (!selectedQuote) return;
     try {
-      const res = await api.delete(API_ROUTES.SALES.QUOTE_DELETE, { id: selectedQuote.id, is_sales: true });
+      const res = await api.delete(
+        isSales ? API_ROUTES.SALES.QUOTE_DELETE : API_ROUTES.PURCHASES.QUOTE_DELETE,
+        { id: selectedQuote.id, is_sales: isSales }
+      );
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: 'Presupuesto eliminado' });
       setIsDeletingQuote(false);
@@ -404,7 +433,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
     setIsSubmittingQuote(true);
     try {
       const calculatedTotal = values.items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
-      const res = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, {
+      const res = await api.post(isSales ? API_ROUTES.SALES.QUOTES_UPSERT : API_ROUTES.PURCHASES.QUOTES_UPSERT, {
         id: selectedQuote.id,
         user_id: selectedQuote.user_id,
         total: calculatedTotal,
@@ -420,9 +449,9 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
           quantity: i.quantity,
           unit_price: i.unit_price,
           total: i.total,
-          tooth_number: i.tooth_number ? Number(i.tooth_number) : null,
+          tooth_number: isSales && i.tooth_number ? Number(i.tooth_number) : null,
         })),
-        is_sales: true,
+        is_sales: isSales,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: 'Presupuesto actualizado' });
@@ -452,15 +481,15 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
     if (!selectedQuote) return;
     setIsSubmittingItem(true);
     try {
-      const res = await api.post(API_ROUTES.SALES.QUOTES_LINES_UPSERT, {
+      const res = await api.post(isSales ? API_ROUTES.SALES.QUOTES_LINES_UPSERT : API_ROUTES.PURCHASES.QUOTES_LINES_UPSERT, {
         ...(editingItem ? { id: editingItem.id } : {}),
         quote_id: selectedQuote.id,
         service_id: values.service_id,
         quantity: values.quantity,
         unit_price: values.unit_price,
         total: values.quantity * values.unit_price,
-        tooth_number: values.tooth_number || null,
-        is_sales: true,
+        tooth_number: isSales ? (values.tooth_number || null) : null,
+        is_sales: isSales,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
@@ -476,7 +505,10 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const handleConfirmDeleteItem = async () => {
     if (!deletingItem || !selectedQuote) return;
     try {
-      const res = await api.delete(API_ROUTES.SALES.QUOTES_LINES_DELETE, { id: deletingItem.id, quote_id: selectedQuote.id, is_sales: true });
+      const res = await api.delete(
+        isSales ? API_ROUTES.SALES.QUOTES_LINES_DELETE : API_ROUTES.PURCHASES.QUOTES_LINES_DELETE,
+        { id: deletingItem.id, quote_id: selectedQuote.id, is_sales: isSales }
+      );
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
       toast({ title: 'Ítem eliminado' });
       setDeletingItem(null);
@@ -490,7 +522,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const toolbarActions = selectedQuote ? (
     <div className="flex items-center gap-1.5">
       {/* Acciones principales fuera del dropdown */}
-      {isDraft && (
+      {isDraft && canConfirmQuote && (
         <>
           <Button
             variant="default"
@@ -501,6 +533,10 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
             <CheckCircle className="h-3.5 w-3.5" />
             Confirmar
           </Button>
+        </>
+      )}
+      {isDraft && canRejectQuote && (
+        <>
           <Button
             variant="destructive"
             size="sm"
@@ -520,27 +556,33 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir
-          </DropdownMenuItem>
+          {canPrintQuote && (
+            <DropdownMenuItem onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir
+            </DropdownMenuItem>
+          )}
           {canSend && (
             <DropdownMenuItem onClick={handleSend}>
               <Send className="h-4 w-4 mr-2" />
               Enviar
             </DropdownMenuItem>
           )}
-          {isDraft && (
+          {isDraft && (canUpdateQuote || canDeleteQuote) && (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Eliminar
-              </DropdownMenuItem>
+              {canUpdateQuote && (
+                <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+              )}
+              {canDeleteQuote && (
+                <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Eliminar
+                </DropdownMenuItem>
+              )}
             </>
           )}
         </DropdownMenuContent>
@@ -666,37 +708,41 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
             {/* Actions */}
             <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
               {/* Acciones principales */}
-              {isDraft && (
+              {isDraft && canConfirmQuote && (
                 <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
                   <CheckCircle className="h-3.5 w-3.5" />
                   Confirmar
                 </Button>
               )}
-              {isDraft && (
+              {isDraft && canRejectQuote && (
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
                   <XCircle className="h-3.5 w-3.5" />
                   Rechazar
                 </Button>
               )}
-              {(isDraft || canSend) && <Separator orientation="vertical" className="h-6 mx-1" />}
+              {(canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote))) && (
+                <Separator orientation="vertical" className="h-6 mx-1" />
+              )}
               {/* Acciones secundarias */}
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
-                <Printer className="h-3.5 w-3.5" />
-                Imprimir
-              </Button>
+              {canPrintQuote && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
+                  <Printer className="h-3.5 w-3.5" />
+                  Imprimir
+                </Button>
+              )}
               {canSend && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
                   <Send className="h-3.5 w-3.5" />
                   Enviar
                 </Button>
               )}
-              {isDraft && (
+              {isDraft && canUpdateQuote && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditQuoteOpen(true)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
                 </Button>
               )}
-              {isDraft && (
+              {isDraft && canDeleteQuote && (
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsDeletingQuote(true)}>
                   <Trash2 className="h-3.5 w-3.5" />
                   Eliminar
@@ -712,10 +758,11 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                   items={quoteItems}
                   isLoading={isLoadingItems}
                   canEdit={canEditItems}
-                  onCreate={() => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); }}
-                  onEdit={(item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}
-                  onDelete={setDeletingItem}
+                  onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => {}}
+                  onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => {}}
+                  onDelete={canDeleteItem ? setDeletingItem : () => {}}
                   onRefresh={() => loadItems(selectedQuote.id)}
+                  showToothNumber={isSales}
                 />
               </div>
             </div>
@@ -782,14 +829,16 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                   <CardContent className="p-0">
                     <div className="flex items-center justify-between px-4 pt-4 pb-2">
                       <p className="text-sm font-semibold">Ítems del presupuesto</p>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); }}
-                      >
-                        Agregar ítem
-                      </Button>
+                      {canAddItem && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); }}
+                        >
+                          Agregar ítem
+                        </Button>
+                      )}
                     </div>
                     <div className="overflow-x-auto px-4 pb-4">
                       {isLoadingItems ? (
@@ -805,7 +854,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                               <th className="font-semibold p-2 w-24">Cantidad</th>
                               <th className="font-semibold p-2 w-28">Precio unit.</th>
                               <th className="font-semibold p-2 w-28">Total</th>
-                              <th className="font-semibold p-2 w-24">N° diente</th>
+                              {isSales && <th className="font-semibold p-2 w-24">N° diente</th>}
                               <th className="p-2 w-10"></th>
                             </tr>
                           </thead>
@@ -816,7 +865,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                                   <FormField control={quoteEditForm.control} name={`items.${index}.service_id`} render={({ field }) => (
                                     <FormItem>
                                       <ServiceSelector
-                                        isSales={true}
+                                        isSales={isSales}
                                         value={field.value}
                                         onValueChange={(serviceId, service) => {
                                           field.onChange(serviceId);
@@ -881,24 +930,26 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                                     </FormItem>
                                   )} />
                                 </td>
-                                <td className="p-1">
-                                  <FormField control={quoteEditForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          min={11}
-                                          max={85}
-                                          placeholder="—"
-                                          {...field}
-                                          value={field.value ?? ''}
-                                          onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )} />
-                                </td>
+                                {isSales && (
+                                  <td className="p-1">
+                                    <FormField control={quoteEditForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
+                                      <FormItem>
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min={11}
+                                            max={85}
+                                            placeholder="—"
+                                            {...field}
+                                            value={field.value ?? ''}
+                                            onChange={e => field.onChange(e.target.value === '' ? '' : parseInt(e.target.value))}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )} />
+                                  </td>
+                                )}
                                 <td className="p-1 text-center">
                                   <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeEditItem(index)}>
                                     <Trash2 className="h-4 w-4" />
@@ -907,7 +958,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                               </tr>
                             ))}
                             {editItemFields.length === 0 && (
-                              <tr><td colSpan={6} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                              <tr><td colSpan={isSales ? 6 : 5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -1026,15 +1077,17 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
                   )} />
                 </div>
                 <ItemTotalField form={itemForm} />
-                <FormField control={itemForm.control} name="tooth_number" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>N° de diente <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                {isSales && (
+                  <FormField control={itemForm.control} name="tooth_number" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>N° de diente <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                      <FormControl>
+                        <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
               </div>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)}>Cancelar</Button>
