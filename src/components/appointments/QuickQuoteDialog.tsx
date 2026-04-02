@@ -149,20 +149,21 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         throw new Error(response[0]?.message || 'Error creating quote');
       }
 
-      // Fetch the created quote to get its details
-      const quoteData = Array.isArray(response) ? response[0] : response;
+      // Access quote data from response[0].data (new backend format)
+      const quoteData = Array.isArray(response) ? response[0].data : response.data;
+
       const newQuote: Quote = {
-        id: quoteData.id || quoteData.quote_id || '',
-        doc_no: quoteData.doc_no || quoteData.quote_doc_no || 'N/A',
-        user_id: user.id,
-        total,
-        status: 'draft',
-        payment_status: 'unpaid',
-        billing_status: 'not invoiced',
-        currency,
-        exchange_rate: currency === 'UYU' ? 1 : exchangeRate,
-        notes: notes || '',
-        createdAt: new Date().toISOString(),
+        id: String(quoteData.id),
+        doc_no: quoteData.doc_no || 'N/A',
+        user_id: quoteData.user_id,
+        total: parseFloat(quoteData.total) || 0,
+        status: quoteData.status || 'draft',
+        payment_status: quoteData.payment_status || 'unpaid',
+        billing_status: quoteData.billing_status || 'not invoiced',
+        currency: quoteData.currency || 'USD',
+        exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
+        notes: quoteData.notes || '',
+        createdAt: quoteData.created_at || new Date().toISOString(),
       };
 
       toast({ title: t('QuotesPage.success.created') });

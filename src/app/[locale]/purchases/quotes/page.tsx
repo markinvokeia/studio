@@ -1208,6 +1208,7 @@ function QuotesPageContent() {
                                                             isLoading={isLoadingOrderItems}
                                                             onItemsUpdate={loadOrderItems}
                                                             quoteId={selectedQuote.id}
+                                                            quoteDocNo={selectedQuote.doc_no}
                                                             isSales={false}
                                                             userId={selectedOrder.user_id}
                                                             patient={{

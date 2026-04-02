@@ -334,6 +334,7 @@
             "noQuotes": "No hay presupuestos",
             "noQuote": "Sin presupuesto",
             "loadingQuotes": "Cargando presupuestos...",
+            "loadingServices": "Cargando servicios...",
             "selectUserFirst": "Seleccione un paciente primero"
         },
         "AppointmentsColumns": {
@@ -386,7 +387,8 @@
             "slotUnavailableDescription": "El horario seleccionado ya no está disponible.",
             "slotUnavailableTitle": "Horario no disponible",
             "unexpectedError": "Error inesperado",
-            "endTimeInvalid": "La hora de fin debe ser posterior a la de inicio"
+            "endTimeInvalid": "La hora de fin debe ser posterior a la de inicio",
+            "loadQuoteServicesError": "Error al cargar servicios del presupuesto"
         }
     },
     "AppointmentsColumns": {

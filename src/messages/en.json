@@ -334,6 +334,7 @@
       "noQuotes": "No quotes",
       "noQuote": "No quote",
       "loadingQuotes": "Loading quotes...",
+      "loadingServices": "Loading services...",
       "selectUserFirst": "Select a patient first"
     },
     "AppointmentsColumns": {
@@ -386,7 +387,8 @@
       "slotUnavailableDescription": "The selected time slot is no longer available.",
       "slotUnavailableTitle": "Slot Unavailable",
       "unexpectedError": "Unexpected error",
-      "endTimeInvalid": "End time must be after start time"
+      "endTimeInvalid": "End time must be after start time",
+      "loadQuoteServicesError": "Failed to load services from quote"
     }
   },
   "AppointmentsColumns": {

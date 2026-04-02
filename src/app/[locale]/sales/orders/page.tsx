@@ -348,6 +348,7 @@ export default function OrdersPage() {
                                                 isLoading={isLoadingOrderItems}
                                                 onItemsUpdate={loadOrderItems}
                                                 quoteId={selectedOrder.quote_id}
+                                                quoteDocNo={selectedOrder.quote_doc_no}
                                                 userId={selectedOrder.user_id}
                                                 patient={{
                                                     id: selectedOrder.user_id,

@@ -23,13 +23,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, Quote, Service, User as UserType } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
+import { getOrderServicesByQuoteId } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { Check, ChevronsUpDown, FilePlus, Link2, X } from 'lucide-react';
+import { Check, ChevronsUpDown, FilePlus, Link2, Loader2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface AppointmentFormDialogProps {
     open: boolean;
@@ -46,6 +48,13 @@ interface AppointmentFormDialogProps {
         notes?: string;
         quote?: Quote | null;
     };
+    readOnlyFields?: {
+        user?: boolean;
+        services?: boolean;
+        quote?: boolean;
+        doctor?: boolean;
+        date?: boolean;
+    };
     onSaveSuccess?: (savedAppointment: any, selectedDate: Date) => void;
     calendars: CalendarType[];
     doctors: UserType[];
@@ -60,6 +69,7 @@ export function AppointmentFormDialog({
     onOpenChange,
     editingAppointment,
     initialData,
+    readOnlyFields,
     onSaveSuccess,
     calendars,
     doctors: allDoctors,
@@ -114,6 +124,7 @@ export function AppointmentFormDialog({
     const [isQuoteSearchOpen, setQuoteSearchOpen] = React.useState(false);
     const [userQuotes, setUserQuotes] = React.useState<Quote[]>(externalUserQuotes || []);
     const [isLoadingQuotes, setIsLoadingQuotes] = React.useState(false);
+    const [isLoadingQuoteServices, setIsLoadingQuoteServices] = React.useState(false);
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
 
     // Load user quotes when user changes
@@ -510,8 +521,8 @@ export function AppointmentFormDialog({
         }
 
         const payload: any = {
-            start: startDateTime.toISOString(),
-            end: endDateTime.toISOString(),
+            start: toLocalISOString(startDateTime),
+            end: toLocalISOString(endDateTime),
             mode: isEditing ? 'update' : 'create',
         };
 
@@ -602,7 +613,7 @@ export function AppointmentFormDialog({
                                 <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
                                 <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")}>
+                                        <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")} disabled={readOnlyFields?.user || isLoadingQuotes}>
                                             {appointment.user ? appointment.user.name : t('createDialog.selectUser')}
                                             <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
@@ -633,7 +644,7 @@ export function AppointmentFormDialog({
                                         <Link2 className="h-3.5 w-3.5" />
                                         {t('createDialog.quote')}
                                     </Label>
-                                    {appointment.user && (
+                                    {appointment.user && !readOnlyFields?.quote && (
                                         <Button
                                             type="button"
                                             variant="ghost"
@@ -651,7 +662,7 @@ export function AppointmentFormDialog({
                                         <Button
                                             variant="outline"
                                             className="w-full justify-start"
-                                            disabled={!appointment.user || isLoadingQuotes}
+                                            disabled={readOnlyFields?.quote || !appointment.user || isLoadingQuotes}
                                         >
                                             {isLoadingQuotes ? (
                                                 t('createDialog.loadingQuotes')
@@ -679,7 +690,7 @@ export function AppointmentFormDialog({
                                                 <CommandGroup>
                                                     <CommandItem
                                                         onSelect={() => {
-                                                            setAppointment(prev => ({ ...prev, quote: null }));
+                                                            setAppointment(prev => ({ ...prev, quote: null, services: [] }));
                                                             setQuoteSearchOpen(false);
                                                         }}
                                                     >
@@ -690,9 +701,24 @@ export function AppointmentFormDialog({
                                                         <CommandItem
                                                             key={quote.id}
                                                             value={`${quote.doc_no} ${quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''}`}
-                                                            onSelect={() => {
-                                                                setAppointment(prev => ({ ...prev, quote }));
+                                                            onSelect={async () => {
                                                                 setQuoteSearchOpen(false);
+                                                                setAppointment(prev => ({ ...prev, quote }));
+                                                                
+                                                                // Load services from the quote's order
+                                                                setIsLoadingQuoteServices(true);
+                                                                try {
+                                                                    const orderServices = await getOrderServicesByQuoteId(quote.id);
+                                                                    setAppointment(prev => ({
+                                                                        ...prev,
+                                                                        services: orderServices
+                                                                    }));
+                                                                } catch (error) {
+                                                                    console.error('Failed to load services from quote:', error);
+                                                                    toast({ variant: "destructive", title: tToasts('error'), description: tToasts('loadQuoteServicesError') });
+                                                                } finally {
+                                                                    setIsLoadingQuoteServices(false);
+                                                                }
                                                             }}
                                                         >
                                                             <Check className={cn("mr-2 h-4 w-4", appointment.quote?.id === quote.id ? "opacity-100" : "opacity-0")} />
@@ -718,9 +744,18 @@ export function AppointmentFormDialog({
                                 <Label>{t('createDialog.serviceName')}</Label>
                                 <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
                                     <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start">
-                                            {appointment.services.length > 0 ? t('createDialog.servicesSelected', { count: appointment.services.length }) : t('createDialog.selectServices')}
-                                            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                        <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
+                                            {isLoadingQuoteServices ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    {t('createDialog.loadingServices')}
+                                                </>
+                                            ) : appointment.services.length > 0 ? (
+                                                t('createDialog.servicesSelected', { count: appointment.services.length })
+                                            ) : (
+                                                t('createDialog.selectServices')
+                                            )}
+                                            {!isLoadingQuoteServices && <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />}
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -752,9 +787,11 @@ export function AppointmentFormDialog({
                                             {appointment.services.map(service => (
                                                 <Badge key={service.id} variant="secondary">
                                                     {service.name}
-                                                    <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:bg-transparent" onClick={() => setAppointment(prev => ({ ...prev, services: prev.services.filter(s => s.id !== service.id) }))}>
-                                                        <X className="h-3 w-3" />
-                                                    </Button>
+                                                    {!readOnlyFields?.services && (
+                                                        <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:bg-transparent" onClick={() => setAppointment(prev => ({ ...prev, services: prev.services.filter(s => s.id !== service.id) }))}>
+                                                            <X className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
                                                 </Badge>
                                             ))}
                                         </div>
@@ -890,7 +927,4 @@ export function AppointmentFormDialog({
         </Dialog>
     );
 }
-
-// Checkbox helper if not already in @/components/ui/checkbox
-import { Checkbox } from '@/components/ui/checkbox';
 

@@ -63,6 +63,22 @@ export function formatHolidayDate(date: string | Date | null | undefined): strin
   }
 }
 
+/**
+ * Converts a Date to a local ISO string without timezone conversion.
+ * Returns format: "2026-04-02T14:00:00" (no 'Z' suffix)
+ * Use this instead of toISOString() when sending dates to the backend
+ * to avoid UTC conversion that causes 3-hour shifts in GMT-3.
+ */
+export function toLocalISOString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 type DocumentWithDocNo = {
   doc_no?: string;
   invoice_doc_no?: string;

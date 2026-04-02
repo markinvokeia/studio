@@ -1327,6 +1327,7 @@ export default function QuotesPage() {
                                                             isLoading={isLoadingOrderItems}
                                                             onItemsUpdate={loadOrderItems}
                                                             quoteId={selectedQuote.id}
+                                                            quoteDocNo={selectedQuote.doc_no}
                                                             userId={selectedOrder.user_id}
                                                             patient={{
                                                                 id: selectedQuote.user_id,

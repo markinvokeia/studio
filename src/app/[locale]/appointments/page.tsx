@@ -829,7 +829,7 @@ export default function AppointmentsPage() {
                             <div className="grid gap-4 py-4">
                                 <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
                                 <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
-                                <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {selectedAppointment.date}</div>
+                                <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
                                 <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
                                 <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
                                 <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>

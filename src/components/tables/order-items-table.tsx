@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -49,12 +49,13 @@ interface OrderItemsTableProps {
   isLoading?: boolean;
   onItemsUpdate?: () => void;
   quoteId?: string;
+  quoteDocNo?: string;
   isSales?: boolean;
   userId?: string;
   patient?: UserType;
 }
 
-export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, isSales = true, userId, patient }: OrderItemsTableProps) {
+export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -201,7 +202,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       const queryPayload: any = {
         action: actionType,
         order_item_id: parseInt(selectedItem.id, 10),
-        schedule_date_time: selectedDate.toISOString(),
+        schedule_date_time: toLocalISOString(selectedDate),
         user_id: userId,
       };
 
@@ -252,7 +253,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       const queryPayload = {
         action: 'schedule',
         order_item_id: parseInt(selectedItem.id, 10),
-        schedule_date_time: selectedDate.toISOString(),
+        schedule_date_time: toLocalISOString(selectedDate),
         user_id: userId,
         appointment_id: appointment.appointment_id || appointment.appointmentId || appointment.id,
       };
@@ -523,8 +524,10 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           user: patient || patientUser || undefined,
           summary: selectedItem?.service_name || '',
           description: selectedItem?.service_name || '',
-          services: selectedItem ? allServices.filter(s => String(s.id) === String(selectedItem.service_id)) : []
+          services: selectedItem ? allServices.filter(s => String(s.id) === String(selectedItem.service_id)) : [],
+          quote: quoteId ? { id: quoteId, doc_no: quoteDocNo || '', user_id: '', total: 0, status: 'draft', payment_status: 'unpaid', billing_status: 'not_invoiced', currency: 'USD', exchange_rate: 1, notes: '', createdAt: '' } : undefined,
         }}
+        readOnlyFields={{ user: true, services: true, quote: true }}
         onSaveSuccess={handleAppointmentSaveSuccess}
         calendars={calendars}
         doctors={doctors}

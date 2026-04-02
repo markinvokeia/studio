@@ -350,6 +350,7 @@ function OrdersPageContent() {
                                                     isLoading={isLoadingOrderItems}
                                                     onItemsUpdate={loadOrderItems}
                                                     quoteId={selectedOrder.quote_id}
+                                                    quoteDocNo={selectedOrder.quote_doc_no}
                                                     isSales={false}
                                                     userId={selectedOrder.user_id}
                                                     patient={{
