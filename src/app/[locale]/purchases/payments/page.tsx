@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/PurchasePrepaidFormDialog';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
@@ -39,6 +40,7 @@ function PaymentsPageContent() {
     const canViewList = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_VIEW_LIST);
     const canCreatePayment = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
     const canViewDetail = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_VIEW_DETAIL);
+    const canPrepaidCreate = hasPermission(PURCHASES_PERMISSIONS.PREPAYMENTS_CREATE);
 
     const {
         payments,
@@ -62,8 +64,11 @@ function PaymentsPageContent() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [paymentAllocations, setPaymentAllocations] = React.useState<PaymentAllocation[]>([]);
     const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
+    const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
 
-
+    const handleCreatePrepaid = React.useCallback(() => {
+        setIsPrepaidDialogOpen(true);
+    }, []);
 
     const handlePrintPayment = React.useCallback(async (payment: Payment) => {
         const fileName = getDocumentFileName(payment, 'payment');
@@ -217,6 +222,8 @@ function PaymentsPageContent() {
                         isRefreshing={isLoading}
                         onPrint={handlePrintPayment}
                         onSendEmail={handleSendEmailClick}
+                        onCreate={handleCreatePrepaid}
+                        canCreate={canPrepaidCreate}
                         pagination={pagination}
                         onPaginationChange={handlePaginationChange}
                         pageCount={totalPages}
@@ -320,6 +327,12 @@ function PaymentsPageContent() {
                 onOpenChange={setIsWarningDialogOpen}
                 disabledItems={disabledEmails}
                 onConfirm={handleWarningConfirm}
+            />
+
+            <PurchasePrepaidFormDialog
+                open={isPrepaidDialogOpen}
+                onOpenChange={setIsPrepaidDialogOpen}
+                onSaveSuccess={refreshPayments}
             />
         </div>
     );

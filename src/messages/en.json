@@ -83,6 +83,38 @@
     "Dashboards": "Dashboards",
     "Analytics": "Analytics"
   },
+  "purchases": {
+    "prepaidDialog": {
+      "title": "New Supplier Pre-payment",
+      "selectSupplier": "Select Supplier",
+      "searchSupplier": "Search supplier",
+      "noSupplier": "No supplier found",
+      "supplier": "Supplier",
+      "amount": "Amount",
+      "currency": "Currency",
+      "paymentMethod": "Payment Method",
+      "paymentDate": "Payment Date",
+      "pickDate": "Pick a date",
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes...",
+      "isHistorical": "Historical payment (no open register required)",
+      "isHistoricalDescription": "Check this option to record a past payment not reflected in the current register.",
+      "isHistoricalWarning": "This payment will not be recorded in the current cash session.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "confirmTitle": "Confirm Pre-payment",
+      "confirmDescription": "Are you sure you want to register this pre-payment?",
+      "confirm": "Confirm",
+      "selectMethod": "Select method",
+      "searching": "Searching...",
+      "toasts": {
+        "successTitle": "Success",
+        "successDescription": "Pre-payment registered successfully",
+        "errorTitle": "Error",
+        "errorDescription": "Error registering pre-payment"
+      }
+    }
+  },
   "Header": {
     "toggleLanguage": "Toggle language",
     "english": "English",

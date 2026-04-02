@@ -506,17 +506,22 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const handlePaymentSubmit = async (values: PaymentFormValues) => {
     if (!selectedInvoiceForPayment) return;
 
+    // Capture sessionId synchronously to avoid race condition with state updates
+    let sessionId: string | null = null;
+
     if (!values.is_historical) {
       const sessionValidation = await validateActiveSession();
       if (!sessionValidation.isValid) {
         setIsNoSessionAlertOpen(true);
         return;
       }
-      setActiveCashSessionId(sessionValidation.sessionId!);
+      sessionId = sessionValidation.sessionId || null;
+      setActiveCashSessionId(sessionId);
       if (sessionValidation.exchangeRate) {
         setSessionExchangeRate(sessionValidation.exchangeRate);
       }
     } else {
+      sessionId = null;
       setActiveCashSessionId(null);
       setSessionExchangeRate(1);
     }
@@ -580,7 +585,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
 
     try {
       const payload = {
-        cash_session_id: activeCashSessionId || null,
+        cash_session_id: sessionId,
         user: user,
         client_user: { id: selectedInvoiceForPayment.user_id, name: selectedInvoiceForPayment.user_name, email: selectedInvoiceForPayment.userEmail },
         credit_payment: Array.from(appliedCredits.entries()).map(([id, amount]) => {

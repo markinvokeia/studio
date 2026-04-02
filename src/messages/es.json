@@ -83,6 +83,38 @@
         "Dashboards": "Tableros",
         "Analytics": "Analítica"
     },
+    "purchases": {
+        "prepaidDialog": {
+            "title": "Nuevo Pre-pago a Proveedor",
+            "selectSupplier": "Seleccionar Proveedor",
+            "searchSupplier": "Buscar proveedor",
+            "noSupplier": "Ningún proveedor encontrado",
+            "supplier": "Proveedor",
+            "amount": "Monto",
+            "currency": "Moneda",
+            "paymentMethod": "Método de Pago",
+            "paymentDate": "Fecha de Pago",
+            "pickDate": "Seleccionar fecha",
+            "notes": "Notas",
+            "notesPlaceholder": "Agregar notas adicionales...",
+            "isHistorical": "Pago histórico (no requiere caja abierta)",
+            "isHistoricalDescription": "Marque esta opción para registrar un pago realizado en el pasado que no está reflejado en la caja actual.",
+            "isHistoricalWarning": "Este pago no se registrará en la sesión de caja actual.",
+            "cancel": "Cancelar",
+            "save": "Guardar",
+            "confirmTitle": "Confirmar Pre-pago",
+            "confirmDescription": "¿Está seguro de que desea registrar este pre-pago?",
+            "confirm": "Confirmar",
+            "selectMethod": "Seleccionar método",
+            "searching": "Buscando...",
+            "toasts": {
+                "successTitle": "Éxito",
+                "successDescription": "Pre-pago registrado correctamente",
+                "errorTitle": "Error",
+                "errorDescription": "Error al registrar el pre-pago"
+            }
+        }
+    },
     "Header": {
         "toggleLanguage": "Cambiar idioma",
         "english": "English",
