@@ -192,9 +192,11 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
 // ── Component ─────────────────────────────────────────────────────────────────
 interface UserInvoicesProps {
   userId: string;
+  onDataChange?: () => void;
+  refreshTrigger?: number;
 }
 
-export function UserInvoices({ userId }: UserInvoicesProps) {
+export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoicesProps) {
   const t = useTranslations();
   const tStatus = useTranslations('InvoicesPage.status');
   const { toast } = useToast();
@@ -205,6 +207,25 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  // Sync selectedInvoice when invoices array changes
+  React.useEffect(() => {
+    if (selectedInvoice && invoices.length > 0) {
+      const updatedInvoice = invoices.find(inv => inv.id === selectedInvoice.id);
+      if (updatedInvoice) {
+        const hasChanges =
+          updatedInvoice.status !== selectedInvoice.status ||
+          updatedInvoice.payment_status !== selectedInvoice.payment_status ||
+          updatedInvoice.total !== selectedInvoice.total;
+        if (hasChanges) {
+          setSelectedInvoice(updatedInvoice);
+        }
+      } else {
+        setSelectedInvoice(null);
+        setRowSelection({});
+      }
+    }
+  }, [invoices]);
 
   // Items
   const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
@@ -278,6 +299,13 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
 
   React.useEffect(() => { loadInvoices(); }, [loadInvoices]);
 
+  // Efecto para refrescar cuando cambia refreshTrigger
+  React.useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadInvoices(true);
+    }
+  }, [refreshTrigger]);
+
   // ── Row selection ────────────────────────────────────────────────────────────
   const handleRowSelectionChange = React.useCallback((selectedRows: Invoice[]) => {
     const invoice = selectedRows[0] ?? null;
@@ -320,6 +348,7 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       await api.post(API_ROUTES.SALES.INVOICES_CONFIRM, { id: parseInt(selectedInvoice.id, 10) });
       toast({ title: 'Factura confirmada' });
       await loadInvoices(true);
+      onDataChange?.();
     } catch {
       toast({ title: 'Error al confirmar', variant: 'destructive' });
     }
@@ -399,6 +428,7 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       setIsEditInvoiceOpen(false);
       await loadInvoices(true);
       loadItems(selectedInvoice.id);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
     } finally {
@@ -465,6 +495,7 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       toast({ title: 'Pago registrado' });
       setIsPaymentDialogOpen(false);
       await loadInvoices(true);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al registrar el pago', variant: 'destructive' });
     } finally {
@@ -498,6 +529,7 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
       setIsItemDialogOpen(false);
       loadItems(selectedInvoice.id);
+      onDataChange?.();
     } catch {
       toast({ title: 'Error al guardar ítem', variant: 'destructive' });
     } finally {
@@ -512,6 +544,7 @@ export function UserInvoices({ userId }: UserInvoicesProps) {
       toast({ title: 'Ítem eliminado' });
       setDeletingItem(null);
       if (selectedInvoice) loadItems(selectedInvoice.id);
+      onDataChange?.();
     } catch {
       toast({ title: 'Error al eliminar', variant: 'destructive' });
     }

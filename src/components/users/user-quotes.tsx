@@ -183,9 +183,11 @@ const BILLING_BADGE: Record<string, any> = { invoiced: 'success', partially_invo
 interface UserQuotesProps {
   userId: string;
   onQuoteSelect?: (quote: Quote | null) => void;
+  onDataChange?: () => void;
+  refreshTrigger?: number;
 }
 
-export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
+export function UserQuotes({ userId, onQuoteSelect, onDataChange, refreshTrigger }: UserQuotesProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { activeCashSession } = useAuth();
@@ -195,6 +197,24 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  // Sync selectedQuote when userQuotes array changes
+  React.useEffect(() => {
+    if (selectedQuote && userQuotes.length > 0) {
+      const updatedQuote = userQuotes.find(q => q.id === selectedQuote.id);
+      if (updatedQuote) {
+        const hasChanges =
+          updatedQuote.status !== selectedQuote.status ||
+          updatedQuote.total !== selectedQuote.total;
+        if (hasChanges) {
+          setSelectedQuote(updatedQuote);
+        }
+      } else {
+        setSelectedQuote(null);
+        setRowSelection({});
+      }
+    }
+  }, [userQuotes]);
 
   // Items
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -260,6 +280,13 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
 
   React.useEffect(() => { loadQuotes(); }, [loadQuotes]);
 
+  // Efecto para refrescar cuando cambia refreshTrigger
+  React.useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadQuotes(true);
+    }
+  }, [refreshTrigger]);
+
   // ── Row selection ────────────────────────────────────────────────────────────
   const handleRowSelectionChange = React.useCallback((selectedRows: Quote[]) => {
     const quote = selectedRows[0] ?? null;
@@ -312,6 +339,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       setConfirmAction(null);
       setActionNotes('');
       await loadQuotes(true);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al procesar la acción', variant: 'destructive' });
     } finally {
@@ -331,6 +359,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       setSelectedQuote(null);
       onQuoteSelect?.(null);
       await loadQuotes(true);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al eliminar', variant: 'destructive' });
     }
@@ -429,6 +458,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       setIsEditQuoteOpen(false);
       await loadQuotes(true);
       loadItems(selectedQuote.id);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
     } finally {
@@ -466,6 +496,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
       setIsItemDialogOpen(false);
       loadItems(selectedQuote.id);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al guardar ítem', variant: 'destructive' });
     } finally {
@@ -481,6 +512,7 @@ export function UserQuotes({ userId, onQuoteSelect }: UserQuotesProps) {
       toast({ title: 'Ítem eliminado' });
       setDeletingItem(null);
       loadItems(selectedQuote.id);
+      onDataChange?.();
     } catch (e: any) {
       toast({ title: e?.message || 'Error al eliminar', variant: 'destructive' });
     }

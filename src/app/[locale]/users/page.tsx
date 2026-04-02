@@ -601,6 +601,11 @@ export default function UsersPage() {
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
+  const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
+  const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
+  const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
+  const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
+  const [refreshAppointmentsTrigger, setRefreshAppointmentsTrigger] = React.useState(0);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
@@ -1478,6 +1483,10 @@ export default function UsersPage() {
                               userName={selectedUser.name}
                               createSessionTrigger={createSessionTrigger}
                               createDocumentTrigger={createDocumentTrigger}
+                              onClinicalDataChange={() => {
+                                fetchPatientAllergies(selectedUser.id);
+                                fetchPatientConditions(selectedUser.id);
+                              }}
                             />
                           </TabsContent>
                           {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
@@ -1486,19 +1495,48 @@ export default function UsersPage() {
                             </TabsContent>
                           )}
                           <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserQuotes userId={selectedUser.id} onQuoteSelect={setSelectedQuote} />
+                            <UserQuotes
+                              userId={selectedUser.id}
+                              onQuoteSelect={setSelectedQuote}
+                              refreshTrigger={refreshQuotesTrigger}
+                              onDataChange={() => {
+                                fetchUserFinancialData(selectedUser.id);
+                                loadUsers();
+                              }}
+                            />
                           </TabsContent>
                           <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserOrders userId={selectedUser.id} patient={selectedUser} />
+                            <UserOrders
+                              userId={selectedUser.id}
+                              patient={selectedUser}
+                              refreshTrigger={refreshOrdersTrigger}
+                              onDataChange={() => {
+                                fetchUserFinancialData(selectedUser.id);
+                                loadUsers();
+                              }}
+                            />
                           </TabsContent>
                           <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserInvoices userId={selectedUser.id} />
+                            <UserInvoices
+                              userId={selectedUser.id}
+                              refreshTrigger={refreshInvoicesTrigger}
+                              onDataChange={() => {
+                                fetchUserFinancialData(selectedUser.id);
+                                loadUsers();
+                              }}
+                            />
                           </TabsContent>
                           <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserPayments userId={selectedUser.id} />
+                            <UserPayments
+                              userId={selectedUser.id}
+                              refreshTrigger={refreshPaymentsTrigger}
+                            />
                           </TabsContent>
                           <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserAppointments user={selectedUser} />
+                            <UserAppointments
+                              user={selectedUser}
+                              refreshTrigger={refreshAppointmentsTrigger}
+                            />
                           </TabsContent>
                           <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
                             <UserMessages userId={selectedUser.id} />
@@ -1881,6 +1919,9 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsPrepaidDialogOpen(false);
             setActiveTab('payments');
+            setRefreshPaymentsTrigger(t => t + 1);
+            fetchUserFinancialData(selectedUser.id);
+            loadUsers();
           }}
         />
       )}
@@ -1894,6 +1935,9 @@ export default function UsersPage() {
           onInvoiceCreated={() => {
             setIsInvoiceDialogOpen(false);
             setActiveTab('invoices');
+            setRefreshInvoicesTrigger(t => t + 1);
+            fetchUserFinancialData(selectedUser.id);
+            loadUsers();
           }}
         />
       )}
@@ -1906,6 +1950,9 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsQuoteDialogOpen(false);
             setActiveTab('quotes');
+            setRefreshQuotesTrigger(t => t + 1);
+            fetchUserFinancialData(selectedUser.id);
+            loadUsers();
           }}
         />
       )}
@@ -1925,6 +1972,9 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsAppointmentDialogOpen(false);
             setActiveTab('appointments');
+            setRefreshAppointmentsTrigger(t => t + 1);
+            fetchUserFinancialData(selectedUser.id);
+            loadUsers();
           }}
         />
       )}

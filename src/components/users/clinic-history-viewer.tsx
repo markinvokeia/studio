@@ -91,11 +91,12 @@ interface ClinicHistoryViewerProps {
     userName?: string;
     createSessionTrigger?: number;
     createDocumentTrigger?: number;
+    onClinicalDataChange?: () => void;
 }
 
 type ActiveView = 'anamnesis' | 'timeline' | 'odontogram' | 'documents';
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0 }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, onClinicalDataChange }: ClinicHistoryViewerProps) {
     const t = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const [activeView, setActiveView] = React.useState<ActiveView>('anamnesis');
@@ -242,6 +243,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                                 onUpdatePatientHabits={updatePatientHabits}
                                 onFetchAilmentsCatalog={fetchAilmentsCatalog}
                                 onFetchMedicationsCatalog={fetchMedicationsCatalog}
+                                onClinicalDataChange={onClinicalDataChange}
                             />
                         )}
                         {activeView === 'timeline' && (
@@ -340,6 +342,7 @@ interface AnamnesisSectionProps {
     onUpdatePatientHabits: (userId: string, data: PatientHabitsType) => Promise<void>;
     onFetchAilmentsCatalog: () => Promise<void>;
     onFetchMedicationsCatalog: (search: string) => Promise<void>;
+    onClinicalDataChange?: () => void;
 }
 
 function AnamnesisSection({
@@ -378,6 +381,7 @@ function AnamnesisSection({
     onUpdatePatientHabits,
     onFetchAilmentsCatalog,
     onFetchMedicationsCatalog,
+    onClinicalDataChange,
 }: AnamnesisSectionProps) {
     const t = useTranslations('ClinicHistoryPage.anamnesis');
     const tHabits = useTranslations('ClinicHistoryPage.habits');
@@ -613,6 +617,7 @@ function AnamnesisSection({
             }
             toast({ title: t('toast.success') });
             setIsPersonalDialogOpen(false);
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         }
@@ -627,6 +632,7 @@ function AnamnesisSection({
         try {
             await onDeletePersonalHistory(userId, deletingPersonalItem.id);
             toast({ title: t('toast.deleteSuccess') });
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         } finally {
@@ -655,6 +661,7 @@ function AnamnesisSection({
             }
             toast({ title: t('toast.success') });
             setIsFamilyDialogOpen(false);
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         }
@@ -669,6 +676,7 @@ function AnamnesisSection({
         try {
             await onDeleteFamilyHistory(userId, deletingFamilyItem.id);
             toast({ title: t('toast.deleteSuccess') });
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         } finally {
@@ -693,6 +701,7 @@ function AnamnesisSection({
             }
             toast({ title: t('toast.success') });
             setIsAllergyDialogOpen(false);
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         }
@@ -707,6 +716,7 @@ function AnamnesisSection({
         try {
             await onDeleteAllergy(userId, deletingAllergyItem.id);
             toast({ title: t('toast.deleteSuccess') });
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         } finally {
@@ -741,6 +751,7 @@ function AnamnesisSection({
             }
             toast({ title: t('toast.success') });
             setIsMedicationDialogOpen(false);
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         }
@@ -755,6 +766,7 @@ function AnamnesisSection({
         try {
             await onDeleteMedication(userId, deletingMedicationItem.id);
             toast({ title: t('toast.deleteSuccess') });
+            onClinicalDataChange?.();
         } catch (error) {
             toast({ title: t('toast.error'), variant: 'destructive' });
         } finally {

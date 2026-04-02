@@ -148,9 +148,10 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
 interface UserPaymentsProps {
   userId: string;
   selectedQuote?: Quote | null;
+  refreshTrigger?: number;
 }
 
-export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
+export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaymentsProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -193,6 +194,13 @@ export function UserPayments({ userId, selectedQuote }: UserPaymentsProps) {
   }, []);
 
   React.useEffect(() => { loadPayments(); }, [loadPayments]);
+
+  // Efecto para refrescar cuando cambia refreshTrigger
+  React.useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadPayments(true);
+    }
+  }, [refreshTrigger]);
 
   // ── Row selection ────────────────────────────────────────────────────────────
   const handleRowSelectionChange = React.useCallback((selectedRows: Payment[]) => {

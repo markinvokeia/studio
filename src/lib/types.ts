@@ -173,6 +173,7 @@ export type Order = {
   user_name?: string;
   currency?: 'UYU' | 'USD';
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  is_invoiced?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;

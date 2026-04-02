@@ -200,9 +200,10 @@ async function getAppointmentsForUser(
 
 interface UserAppointmentsProps {
   user: User;
+  refreshTrigger?: number;
 }
 
-export function UserAppointments({ user }: UserAppointmentsProps) {
+export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps) {
   const t = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const tAppointmentsPage = useTranslations('AppointmentsPage');
@@ -242,6 +243,13 @@ export function UserAppointments({ user }: UserAppointmentsProps) {
       loadAppointments();
     }
   }, [calendars, loadAppointments]);
+
+  // Efecto para refrescar cuando cambia refreshTrigger
+  React.useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadAppointments();
+    }
+  }, [refreshTrigger]);
 
   if (isLoading) {
     return (

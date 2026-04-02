@@ -130,9 +130,11 @@ interface UserOrdersProps {
   userId: string;
   selectedQuote?: Quote | null;
   patient?: UserType;
+  onDataChange?: () => void;
+  refreshTrigger?: number;
 }
 
-export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) {
+export function UserOrders({ userId, selectedQuote, patient, onDataChange, refreshTrigger }: UserOrdersProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
@@ -144,6 +146,24 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+
+  // Sync selectedOrder when orders array changes
+  React.useEffect(() => {
+    if (selectedOrder && orders.length > 0) {
+      const updatedOrder = orders.find(o => o.id === selectedOrder.id);
+      if (updatedOrder) {
+        const hasChanges =
+          updatedOrder.status !== selectedOrder.status ||
+          updatedOrder.is_invoiced !== selectedOrder.is_invoiced;
+        if (hasChanges) {
+          setSelectedOrder(updatedOrder);
+        }
+      } else {
+        setSelectedOrder(null);
+        setRowSelection({});
+      }
+    }
+  }, [orders]);
 
   // Items
   const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
@@ -198,6 +218,13 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
   }, []);
 
   React.useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  // Efecto para refrescar cuando cambia refreshTrigger
+  React.useEffect(() => {
+    if (refreshTrigger && refreshTrigger > 0) {
+      loadOrders(true);
+    }
+  }, [refreshTrigger]);
 
   // ── Row selection ────────────────────────────────────────────────────────────
   const handleRowSelectionChange = React.useCallback((selectedRows: Order[]) => {
@@ -255,6 +282,7 @@ export function UserOrders({ userId, selectedQuote, patient }: UserOrdersProps) 
 
       loadOrders(true);
       setIsInvoiceDialogOpen(false);
+      onDataChange?.();
 
     } catch (error) {
       setInvoiceSubmissionError(error instanceof Error ? error.message : t('OrdersPage.invoiceDialog.createError'));
