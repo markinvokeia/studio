@@ -185,15 +185,12 @@ const BILLING_BADGE: Record<string, any> = { invoiced: 'success', partially_invo
 interface UserQuotesProps {
   userId: string;
   onQuoteSelect?: (quote: Quote | null) => void;
+  mode?: UserDetailMode;
   onDataChange?: () => void;
   refreshTrigger?: number;
 }
 
-export function UserQuotes({ userId, onQuoteSelect, onDataChange, refreshTrigger }: UserQuotesProps) {
-  mode ?: UserDetailMode;
-}
-
-export function UserQuotes({ userId, onQuoteSelect, mode = 'sales' }: UserQuotesProps) {
+export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange, refreshTrigger }: UserQuotesProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { activeCashSession } = useAuth();

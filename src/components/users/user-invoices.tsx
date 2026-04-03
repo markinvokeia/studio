@@ -1,4 +1,3 @@
-
 'use client';
 
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
@@ -194,15 +193,12 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
 // ── Component ─────────────────────────────────────────────────────────────────
 interface UserInvoicesProps {
   userId: string;
+  mode?: UserDetailMode;
   onDataChange?: () => void;
   refreshTrigger?: number;
 }
 
-export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoicesProps) {
-  mode ?: UserDetailMode;
-}
-
-export function UserInvoices({ userId, mode = 'sales' }: UserInvoicesProps) {
+export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrigger }: UserInvoicesProps) {
   const t = useTranslations();
   const tStatus = useTranslations('InvoicesPage.status');
   const { toast } = useToast();

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -130,15 +129,12 @@ interface UserOrdersProps {
   userId: string;
   selectedQuote?: Quote | null;
   patient?: UserType;
+  mode?: UserDetailMode;
   onDataChange?: () => void;
   refreshTrigger?: number;
 }
 
-export function UserOrders({ userId, selectedQuote, patient, onDataChange, refreshTrigger }: UserOrdersProps) {
-  mode ?: UserDetailMode;
-}
-
-export function UserOrders({ userId, selectedQuote, patient, mode = 'sales' }: UserOrdersProps) {
+export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onDataChange, refreshTrigger }: UserOrdersProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
@@ -450,12 +446,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales' }: U
                   isLoading={isLoadingItems}
                   onItemsUpdate={() => loadItems(selectedOrder.id, selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined)}
                   quoteId={selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined}
-<<<<<<< HEAD
-                  quoteDocNo={selectedOrder.quote_doc_no}
-                  isSales={true}
-=======
                   isSales={isSales}
->>>>>>> lr.proveedores
                   userId={userId}
                   patient={patient}
                 />

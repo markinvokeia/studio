@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Payment, PaymentAllocation, Quote } from '@/lib/types';
+import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { api } from '@/services/api';
@@ -20,7 +19,6 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { UserDetailMode } from '@/lib/types';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -149,14 +147,11 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
 interface UserPaymentsProps {
   userId: string;
   selectedQuote?: Quote | null;
+  mode?: UserDetailMode;
   refreshTrigger?: number;
 }
 
-export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaymentsProps) {
-  mode ?: UserDetailMode;
-}
-
-export function UserPayments({ userId, selectedQuote, mode = 'sales' }: UserPaymentsProps) {
+export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTrigger }: UserPaymentsProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const isSales = mode === 'sales';
