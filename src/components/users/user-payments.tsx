@@ -20,6 +20,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { UserDetailMode } from '@/lib/types';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -152,8 +153,13 @@ interface UserPaymentsProps {
 }
 
 export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaymentsProps) {
+  mode ?: UserDetailMode;
+}
+
+export function UserPayments({ userId, selectedQuote, mode = 'sales' }: UserPaymentsProps) {
   const t = useTranslations();
   const { toast } = useToast();
+  const isSales = mode === 'sales';
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -183,7 +189,10 @@ export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaym
   const loadAllocations = React.useCallback(async (paymentId: string) => {
     setIsLoadingAllocations(true);
     try {
-      const data = await api.get(API_ROUTES.SALES.PAYMENT_ALLOCATIONS, { payment_id: paymentId });
+      const data = await api.get(
+        isSales ? API_ROUTES.SALES.PAYMENT_ALLOCATIONS : API_ROUTES.PURCHASES.PAYMENT_ALLOCATIONS,
+        { payment_id: paymentId }
+      );
       const raw = Array.isArray(data) ? data : (data.allocations || data.data || []);
       setAllocations(raw);
     } catch {
@@ -191,7 +200,7 @@ export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaym
     } finally {
       setIsLoadingAllocations(false);
     }
-  }, []);
+  }, [isSales]);
 
   React.useEffect(() => { loadPayments(); }, [loadPayments]);
 
@@ -225,7 +234,10 @@ export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaym
   const handlePrint = async () => {
     if (!selectedPayment) return;
     try {
-      const blob = await api.getBlob(API_ROUTES.SALES.API_PAYMENT_PRINT, { payment_id: selectedPayment.id });
+      const blob = await api.getBlob(
+        isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT,
+        { payment_id: selectedPayment.id }
+      );
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
       URL.revokeObjectURL(url);
@@ -237,7 +249,10 @@ export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaym
   const handleSend = async () => {
     if (!selectedPayment) return;
     try {
-      await api.post(API_ROUTES.SALES.API_PAYMENT_SEND, { payment_id: selectedPayment.id });
+      await api.post(
+        isSales ? API_ROUTES.SALES.API_PAYMENT_SEND : API_ROUTES.PURCHASES.API_PAYMENT_SEND,
+        { payment_id: selectedPayment.id }
+      );
       toast({ title: 'Pago enviado por correo' });
     } catch {
       toast({ title: 'Error al enviar', variant: 'destructive' });
@@ -313,7 +328,7 @@ export function UserPayments({ userId, selectedQuote, refreshTrigger }: UserPaym
             extraButtons={toolbarActions}
             columnTranslations={{
               doc_no: t('PaymentsPage.columns.doc_no'),
-              user_name: t('PaymentsPage.columns.user'),
+              user_name: isSales ? t('PaymentsPage.columns.user') : t('InvoicesPage.columns.provider'),
               invoice_doc_no: t('InvoicesPage.columns.docNo'),
               amount: t('PaymentsPage.columns.amount'),
               method: t('PaymentsPage.columns.method'),

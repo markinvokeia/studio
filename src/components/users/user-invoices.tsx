@@ -19,13 +19,15 @@ import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { Invoice, InvoiceItem, PaymentMethod, Service } from '@/lib/types';
+import { Invoice, InvoiceItem, PaymentMethod, Service, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
-import { getSalesServices } from '@/services/services';
+import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2 } from 'lucide-react';
@@ -197,10 +199,16 @@ interface UserInvoicesProps {
 }
 
 export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoicesProps) {
+  mode ?: UserDetailMode;
+}
+
+export function UserInvoices({ userId, mode = 'sales' }: UserInvoicesProps) {
   const t = useTranslations();
   const tStatus = useTranslations('InvoicesPage.status');
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -249,7 +257,13 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   const isDraft = selectedInvoice?.status?.toLowerCase() === 'draft';
   const isBookedUnpaid = selectedInvoice?.status?.toLowerCase() === 'booked'
     && !['paid'].includes(selectedInvoice?.payment_status?.toLowerCase() || '');
-  const canEditItems = isDraft;
+  const canConfirmInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_CONFIRM : PURCHASES_PERMISSIONS.INVOICES_CONFIRM);
+  const canUpdateInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_UPDATE : PURCHASES_PERMISSIONS.INVOICES_UPDATE);
+  const canAddItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_ADD_ITEM : PURCHASES_PERMISSIONS.INVOICES_ADD_ITEM);
+  const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_UPDATE_ITEM : PURCHASES_PERMISSIONS.INVOICES_UPDATE_ITEM);
+  const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_DELETE_ITEM : PURCHASES_PERMISSIONS.INVOICES_DELETE_ITEM);
+  const canCreatePayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
+  const canEditItems = isDraft && (canAddItem || canUpdateItem || canDeleteItem);
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadInvoices = React.useCallback(async (silent = false) => {
@@ -263,7 +277,10 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   const loadItems = React.useCallback(async (invoiceId: string) => {
     setIsLoadingItems(true);
     try {
-      const data = await api.get(API_ROUTES.SALES.INVOICE_ITEMS, { invoice_id: invoiceId, is_sales: 'true' });
+      const data = await api.get(
+        isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS,
+        { invoice_id: invoiceId, is_sales: isSales ? 'true' : 'false' }
+      );
       const raw = Array.isArray(data) ? data : (data.items || data.data || []);
       setInvoiceItems(raw.map((i: any) => ({
         id: String(i.id),
@@ -278,15 +295,15 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
     } finally {
       setIsLoadingItems(false);
     }
-  }, []);
+  }, [isSales]);
 
   const loadServices = React.useCallback(async () => {
     if (services.length > 0) return;
     try {
-      const data = await getSalesServices({ limit: 500 });
+      const data = await (isSales ? getSalesServices({ limit: 500 }) : getPurchaseServices({ limit: 500 }));
       setServices(data.items || []);
     } catch { /* silent */ }
-  }, [services.length]);
+  }, [isSales, services.length]);
 
   const loadPaymentMethods = React.useCallback(async () => {
     if (paymentMethods.length > 0) return;
@@ -322,7 +339,10 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   const handlePrint = async () => {
     if (!selectedInvoice) return;
     try {
-      const blob = await api.getBlob(API_ROUTES.SALES.API_INVOICE_PRINT, { id: selectedInvoice.id });
+      const blob = await api.getBlob(
+        isSales ? API_ROUTES.SALES.API_INVOICE_PRINT : API_ROUTES.PURCHASES.API_INVOICE_PRINT,
+        { id: selectedInvoice.id }
+      );
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
       URL.revokeObjectURL(url);
@@ -334,7 +354,10 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   const handleSend = async () => {
     if (!selectedInvoice) return;
     try {
-      await api.post(API_ROUTES.SALES.API_INVOICE_SEND, { invoiceId: selectedInvoice.id });
+      await api.post(
+        isSales ? API_ROUTES.SALES.API_INVOICE_SEND : API_ROUTES.PURCHASES.API_INVOICE_SEND,
+        { invoiceId: selectedInvoice.id }
+      );
       toast({ title: 'Factura enviada' });
       await loadInvoices(true);
     } catch {
@@ -343,9 +366,12 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   };
 
   const handleConfirm = async () => {
-    if (!selectedInvoice) return;
+    if (!selectedInvoice || !canConfirmInvoice) return;
     try {
-      await api.post(API_ROUTES.SALES.INVOICES_CONFIRM, { id: parseInt(selectedInvoice.id, 10) });
+      await api.post(
+        isSales ? API_ROUTES.SALES.INVOICES_CONFIRM : API_ROUTES.PURCHASES.INVOICES_CONFIRM,
+        { id: parseInt(selectedInvoice.id, 10) }
+      );
       toast({ title: 'Factura confirmada' });
       await loadInvoices(true);
       onDataChange?.();
@@ -405,7 +431,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
     setIsSubmittingInvoice(true);
     try {
       const calculatedTotal = (values.items || []).reduce((sum, i) => sum + (Number(i.total) || 0), 0);
-      await api.post(API_ROUTES.SALES.INVOICES_UPSERT, {
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT, {
         id: selectedInvoice.id,
         user_id: selectedInvoice.user_id,
         type: values.type,
@@ -415,7 +441,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
         quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
         notes: values.notes || '',
         is_historical: values.is_historical ?? false,
-        is_sales: true,
+        is_sales: isSales,
         items: (values.items || []).map(i => ({
           id: i.id,
           service_id: i.service_id,
@@ -449,7 +475,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
       is_historical: selectedInvoice.is_historical || false
     });
     loadPaymentMethods();
-  }, [isPaymentDialogOpen, selectedInvoice, paymentForm]);
+  }, [isPaymentDialogOpen, loadPaymentMethods, paymentForm, selectedInvoice]);
 
   const handleSubmitPayment = async (values: PaymentFormValues) => {
     if (!selectedInvoice) return;
@@ -470,7 +496,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
     try {
       const method = paymentMethods.find(m => m.id === values.payment_method_id);
       const paymentDate = new Date(values.payment_date).toISOString();
-      await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, {
+      await api.post(isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT, {
         cash_session_id: cashSessionId,
         credit_payment: [],
         client_user: { id: userId, name: '', email: '' },
@@ -486,7 +512,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
           invoice_currency: selectedInvoice.currency || 'USD',
           payment_currency: selectedInvoice.currency || 'USD',
           exchange_rate: 1,
-          is_sales: true,
+          is_sales: isSales,
           total_paid: values.amount,
           notes: values.notes || '',
           is_historical: values.is_historical || false,
@@ -517,14 +543,14 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
     if (!selectedInvoice) return;
     setIsSubmittingItem(true);
     try {
-      await api.post(API_ROUTES.SALES.INVOICES_ITEMS_UPSERT, {
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_ITEMS_UPSERT : API_ROUTES.PURCHASES.INVOICES_ITEMS_UPSERT, {
         ...(editingItem ? { id: parseInt(editingItem.id, 10) } : {}),
         invoice_id: parseInt(selectedInvoice.id, 10),
         service_id: parseInt(values.service_id, 10),
         quantity: values.quantity,
         unit_price: values.unit_price,
         total: values.quantity * values.unit_price,
-        is_sales: true,
+        is_sales: isSales,
       });
       toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
       setIsItemDialogOpen(false);
@@ -540,7 +566,10 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   const handleConfirmDeleteItem = async () => {
     if (!deletingItem) return;
     try {
-      await api.post(API_ROUTES.SALES.INVOICES_ITEMS_DELETE, { id: parseInt(deletingItem.id, 10) });
+      await api.post(
+        isSales ? API_ROUTES.SALES.INVOICES_ITEMS_DELETE : API_ROUTES.PURCHASES.INVOICES_ITEMS_DELETE,
+        { id: parseInt(deletingItem.id, 10) }
+      );
       toast({ title: 'Ítem eliminado' });
       setDeletingItem(null);
       if (selectedInvoice) loadItems(selectedInvoice.id);
@@ -554,7 +583,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
   const toolbarActions = selectedInvoice ? (
     <div className="flex items-center gap-1.5">
       {/* Acciones principales fuera del dropdown */}
-      {isDraft && (
+      {isDraft && canConfirmInvoice && (
         <Button
           variant="default"
           size="sm"
@@ -565,7 +594,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
           Confirmar
         </Button>
       )}
-      {isBookedUnpaid && (
+      {isBookedUnpaid && canCreatePayment && (
         <Button
           variant="default"
           size="sm"
@@ -592,7 +621,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
             <Send className="h-4 w-4 mr-2" />
             Enviar
           </DropdownMenuItem>
-          {isDraft && (
+          {isDraft && canUpdateInvoice && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setIsEditInvoiceOpen(true)}>
@@ -716,13 +745,13 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
             {/* Actions */}
             <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
               {/* Acciones principales */}
-              {isDraft && (
+              {isDraft && canConfirmInvoice && (
                 <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirm}>
                   <CheckCircle className="h-3.5 w-3.5" />
                   Confirmar
                 </Button>
               )}
-              {isBookedUnpaid && (
+              {isBookedUnpaid && canCreatePayment && (
                 <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsPaymentDialogOpen(true)}>
                   <CreditCard className="h-3.5 w-3.5" />
                   Agregar pago
@@ -754,8 +783,8 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
                   items={invoiceItems}
                   isLoading={isLoadingItems}
                   canEdit={canEditItems}
-                  onEdit={(item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}
-                  onDelete={setDeletingItem}
+                  onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : undefined}
+                  onDelete={canDeleteItem ? setDeletingItem : undefined}
                 />
               </div>
             </div>
@@ -829,14 +858,16 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
                   <CardContent className="p-0">
                     <div className="flex items-center justify-between px-4 pt-4 pb-2">
                       <p className="text-sm font-semibold">Ítems de la factura</p>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
-                      >
-                        Agregar ítem
-                      </Button>
+                      {canAddItem && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
+                        >
+                          Agregar ítem
+                        </Button>
+                      )}
                     </div>
                     <div className="overflow-x-auto px-4 pb-4">
                       {isLoadingItems ? (
@@ -862,7 +893,7 @@ export function UserInvoices({ userId, onDataChange, refreshTrigger }: UserInvoi
                                   <FormField control={invoiceEditForm.control} name={`items.${index}.service_id`} render={({ field }) => (
                                     <FormItem>
                                       <ServiceSelector
-                                        isSales={true}
+                                        isSales={isSales}
                                         value={field.value}
                                         onValueChange={(serviceId, service) => {
                                           field.onChange(serviceId);

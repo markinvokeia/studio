@@ -14,10 +14,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { API_ROUTES } from '@/constants/routes';
-import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { Order, OrderItem, Quote, User as UserType } from '@/lib/types';
+import { Order, OrderItem, Quote, User as UserType, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -135,10 +135,19 @@ interface UserOrdersProps {
 }
 
 export function UserOrders({ userId, selectedQuote, patient, onDataChange, refreshTrigger }: UserOrdersProps) {
+  mode ?: UserDetailMode;
+}
+
+export function UserOrders({ userId, selectedQuote, patient, mode = 'sales' }: UserOrdersProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
-  const canInvoiceFromOrder = hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
+  const isSales = mode === 'sales';
+  const canInvoiceFromOrder = hasPermission(
+    isSales
+      ? SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER
+      : PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE
+  );
 
   const [orders, setOrders] = React.useState<Order[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -195,7 +204,8 @@ export function UserOrders({ userId, selectedQuote, patient, onDataChange, refre
     try {
       const params: Record<string, string> = { order_id: orderId };
       if (quoteId) params.quote_id = quoteId;
-      const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, params);
+      params.is_sales = isSales ? 'true' : 'false';
+      const data = await api.get(isSales ? API_ROUTES.SALES.ORDER_ITEMS : API_ROUTES.PURCHASES.ORDER_ITEMS, params);
       const raw = Array.isArray(data) ? data : (data.items || data.data || []);
       setOrderItems(raw.map((i: any) => ({
         id: String(i.id),
@@ -215,7 +225,7 @@ export function UserOrders({ userId, selectedQuote, patient, onDataChange, refre
     } finally {
       setIsLoadingItems(false);
     }
-  }, []);
+  }, [isSales]);
 
   React.useEffect(() => { loadOrders(); }, [loadOrders]);
 
@@ -256,17 +266,20 @@ export function UserOrders({ userId, selectedQuote, patient, onDataChange, refre
     try {
       const payload = {
         order_id: selectedOrder.id,
-        is_sales: true,
+        is_sales: isSales,
         query: JSON.stringify({
           order_id: parseInt(selectedOrder.id, 10),
           invoice_date: invoiceDate.toISOString(),
-          is_sales: true,
+          is_sales: isSales,
           user_id: selectedOrder.user_id,
           notes: invoiceNotes || '',
         }),
       };
 
-      const responseData = await api.post(API_ROUTES.SALES.ORDER_INVOICE, payload);
+      const responseData = await api.post(
+        isSales ? API_ROUTES.SALES.ORDER_INVOICE : API_ROUTES.PURCHASES.ORDER_INVOICE,
+        payload
+      );
       if (responseData.error || (responseData.code && responseData.code >= 400)) {
         if (responseData.message) {
           setInvoiceSubmissionError(responseData.message);
@@ -437,8 +450,12 @@ export function UserOrders({ userId, selectedQuote, patient, onDataChange, refre
                   isLoading={isLoadingItems}
                   onItemsUpdate={() => loadItems(selectedOrder.id, selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined)}
                   quoteId={selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined}
+<<<<<<< HEAD
                   quoteDocNo={selectedOrder.quote_doc_no}
                   isSales={true}
+=======
+                  isSales={isSales}
+>>>>>>> lr.proveedores
                   userId={userId}
                   patient={patient}
                 />

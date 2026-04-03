@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -45,6 +45,7 @@ import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
+import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserMessages } from '@/components/users/user-messages';
@@ -64,7 +65,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Banknote, Bell, Cake, CalendarIcon, CheckCircle, ChevronDown, ChevronUp, CreditCard, DollarSign, Eye, EyeOff, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, SlidersHorizontal, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, SlidersHorizontal, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -106,126 +107,6 @@ type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
 type GetUsersResponse = {
   users: User[];
   total: number;
-};
-
-const UserStats = ({ user, t, financialData, isOpen, onToggle, onPrint }: { user: User, t: (key: string) => string, financialData?: UserFinancial | null, isOpen: boolean, onToggle: () => void, onPrint: () => void }) => {
-  const formatCurrency = (value: any, currency: 'USD' | 'UYU') => {
-    const symbol = currency === 'USD' ? 'U$S' : '$U';
-    const numericValue = Number(value) || 0;
-    const formattedValue = new Intl.NumberFormat('es-UY', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(numericValue);
-    return { symbol, formattedValue, full: `${symbol} ${formattedValue}` };
-  };
-
-  const renderStatValue = (value: any, valueColor: string) => {
-    const usd = value?.USD ?? 0;
-    const uyu = value?.UYU ?? 0;
-    const usdFormatted = formatCurrency(usd, 'USD');
-    const uyuFormatted = formatCurrency(uyu, 'UYU');
-
-    return (
-      <div className="flex flex-col leading-tight">
-        <span className={cn("text-sm font-bold tracking-tight", valueColor)}>
-          {uyuFormatted.full}
-        </span>
-        <span className="text-[11px] font-medium opacity-70">
-          {usdFormatted.full}
-        </span>
-      </div>
-    );
-  };
-
-  const stats = [
-    {
-      title: t('UsersPage.stats.totalInvoiced'),
-      value: {
-        USD: financialData?.financial_data?.USD?.total_invoiced ?? 0,
-        UYU: financialData?.financial_data?.UYU?.total_invoiced ?? 0,
-      },
-      valueColor: 'text-blue-700 dark:text-blue-300',
-      cardClass: 'bg-blue-50 dark:bg-blue-950/60 border-blue-100 dark:border-blue-900',
-    },
-    {
-      title: t('UsersPage.stats.totalPaid'),
-      value: {
-        USD: financialData?.financial_data?.USD?.total_paid ?? 0,
-        UYU: financialData?.financial_data?.UYU?.total_paid ?? 0,
-      },
-      valueColor: 'text-emerald-700 dark:text-emerald-300',
-      cardClass: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-100 dark:border-emerald-900',
-    },
-    {
-      title: t('UsersPage.stats.currentDebt'),
-      value: {
-        USD: financialData?.financial_data?.USD?.current_debt ?? 0,
-        UYU: financialData?.financial_data?.UYU?.current_debt ?? 0,
-      },
-      valueColor: 'text-rose-700 dark:text-rose-300',
-      cardClass: 'bg-rose-50 dark:bg-rose-950/60 border-rose-100 dark:border-rose-900',
-    },
-    {
-      title: t('UsersPage.stats.availableBalance'),
-      value: {
-        USD: financialData?.financial_data?.USD?.available_balance ?? 0,
-        UYU: financialData?.financial_data?.UYU?.available_balance ?? 0,
-      },
-      valueColor: 'text-violet-700 dark:text-violet-300',
-      cardClass: 'bg-violet-50 dark:bg-violet-950/60 border-violet-100 dark:border-violet-900',
-    },
-  ];
-
-  return (
-    <Collapsible open={isOpen} className="mb-2">
-      <div className="flex items-center justify-between pt-2 pb-1">
-        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
-          Estado financiero
-        </span>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
-            onClick={onToggle}
-          >
-            {isOpen ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            {isOpen ? 'Ocultar' : 'Ver balance'}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
-            onClick={onPrint}
-          >
-            <Printer className="h-3 w-3" />
-            Imprimir
-          </Button>
-        </div>
-      </div>
-      <CollapsibleContent className="transition-all">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pb-2">
-          {stats.map(stat => (
-            <div
-              key={stat.title}
-              className={cn(
-                "rounded-lg border px-3 py-2 flex flex-col gap-1 overflow-hidden shadow-none",
-                stat.cardClass
-              )}
-            >
-              <span className="text-[9px] uppercase font-bold tracking-tight truncate opacity-60">
-                {stat.title}
-              </span>
-              <div className="mt-0.5">
-                {renderStatValue(stat.value, stat.valueColor)}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CollapsibleContent>
-      <div className="border-t border-border mt-1" />
-    </Collapsible>
-  );
 };
 
 
@@ -1460,7 +1341,12 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserStats user={selectedUser} t={t} financialData={userFinancialData} isOpen={isStatsOpen} onToggle={() => setIsStatsOpen(v => !v)} onPrint={handlePrintFinancialSummary} />
+                      <UserFinancialSummaryStats
+                        financialData={userFinancialData}
+                        isOpen={isStatsOpen}
+                        onToggle={() => setIsStatsOpen(v => !v)}
+                        onPrint={handlePrintFinancialSummary}
+                      />
                       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
                         <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start">
                           {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
