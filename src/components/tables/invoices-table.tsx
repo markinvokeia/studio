@@ -437,7 +437,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     };
     try {
       const data = await api.get(API_ROUTES.USER_CREDIT, { user_id: userId });
-      setUserCredits(data || []);
+      const validCredits = Array.isArray(data) 
+        ? data.filter(c => c && c.source_id && c.available_balance !== undefined)
+        : [];
+      setUserCredits(validCredits);
     } catch (error) {
       console.error("Failed to fetch user credits", error);
       setUserCredits([]);
