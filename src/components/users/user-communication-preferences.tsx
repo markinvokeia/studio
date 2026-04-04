@@ -106,7 +106,7 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                     allCombinations.push({
                         channel_slug: platform.platform_name,
                         category_slug: category.slug,
-                        is_enabled: existing ? existing.is_enabled : true,
+                        is_enabled: existing ? existing.is_enabled : false,
                     });
                 });
             });
@@ -126,7 +126,7 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
         const pref = preferences.find(
             p => p.category_slug === categorySlug && p.channel_slug === channelSlug
         );
-        return pref ? pref.is_enabled : true;
+        return pref ? pref.is_enabled : false;
     };
 
     const doAutoSave = React.useCallback(async (key: string, newPreferences: PreferenceState[], prevPreferences: PreferenceState[]) => {

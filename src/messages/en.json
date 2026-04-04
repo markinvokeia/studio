@@ -1013,7 +1013,13 @@
       "recipients": "Recipients",
       "placeholder": "email1@example.com, email2@example.com",
       "helperText": "Separate multiple emails with commas.",
-      "sending": "Sending..."
+      "sending": "Sending...",
+      "cancel": "Cancel",
+      "send": "Send Email",
+      "success": "Quote sent successfully",
+      "error": "Failed to send quote",
+      "errorNoEmail": "Please enter at least one recipient email.",
+      "errorInvalidEmails": "Invalid email addresses: {emails}"
     },
     "confirmDialog": {
       "title": "Confirm Quote",
@@ -1439,7 +1445,11 @@
       "helperText": "Separate multiple emails with commas.",
       "errorNoEmail": "Please enter at least one recipient email.",
       "send": "Send Email",
-      "sending": "Sending..."
+      "sending": "Sending...",
+      "cancel": "Cancel",
+      "success": "Invoice sent successfully",
+      "error": "Failed to send invoice",
+      "errorInvalidEmails": "Invalid email addresses: {emails}"
     },
     "importDialog": {
       "title": "Import Invoice",
@@ -2023,6 +2033,20 @@
     },
     "notes": {
       "noNotes": "No notes available."
+    },
+    "sendEmailDialog": {
+      "title": "Send Payment Receipt by Email",
+      "description": "Enter the recipient emails for payment #{id}.",
+      "recipients": "Recipients",
+      "placeholder": "email1@example.com, email2@example.com",
+      "helperText": "Separate multiple emails with commas.",
+      "errorNoEmail": "Please enter at least one recipient email.",
+      "errorInvalidEmails": "Invalid email addresses: {emails}",
+      "send": "Send Email",
+      "sending": "Sending...",
+      "cancel": "Cancel",
+      "success": "Payment sent successfully",
+      "error": "Failed to send payment"
     }
   },
   "PaymentMethodsPage": {

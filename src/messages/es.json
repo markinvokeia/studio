@@ -1013,7 +1013,13 @@
             "recipients": "Destinatarios",
             "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
             "helperText": "Separe múltiples correos con comas.",
-            "sending": "Enviando..."
+            "sending": "Enviando...",
+            "cancel": "Cancelar",
+            "send": "Enviar correo",
+            "success": "Presupuesto enviado exitosamente",
+            "error": "Error al enviar presupuesto",
+            "errorNoEmail": "Por favor ingrese al menos un correo destinatario.",
+            "errorInvalidEmails": "Direcciones de correo inválidas: {emails}"
         },
         "confirmDialog": {
             "title": "Confirmar Presupuesto",
@@ -1439,7 +1445,11 @@
             "helperText": "Separe múltiples correos con comas.",
             "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
             "send": "Enviar Correo",
-            "sending": "Enviando..."
+            "sending": "Enviando...",
+            "cancel": "Cancelar",
+            "success": "Factura enviada exitosamente",
+            "error": "Error al enviar la factura",
+            "errorInvalidEmails": "Correos inválidos: {emails}"
         },
         "importDialog": {
             "title": "Importar Factura",
@@ -2023,6 +2033,20 @@
         },
         "notes": {
             "noNotes": "No hay notas disponibles."
+        },
+        "sendEmailDialog": {
+            "title": "Enviar Recibo de Pago por Correo",
+            "description": "Ingrese los correos de los destinatarios para el pago #{id}.",
+            "recipients": "Destinatarios",
+            "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
+            "helperText": "Separe múltiples correos con comas.",
+            "errorNoEmail": "Ingrese al menos un correo de destinatario.",
+            "errorInvalidEmails": "Correos inválidos: {emails}",
+            "send": "Enviar Correo",
+            "sending": "Enviando...",
+            "cancel": "Cancelar",
+            "success": "Pago enviado exitosamente",
+            "error": "Error al enviar el pago"
         }
     },
     "PaymentMethodsPage": {

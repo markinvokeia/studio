@@ -11,6 +11,7 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
@@ -22,6 +23,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, Service, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -192,6 +195,7 @@ interface UserQuotesProps {
 
 export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange, refreshTrigger }: UserQuotesProps) {
   const t = useTranslations();
+  const tQuotes = useTranslations('QuotesPage');
   const { toast } = useToast();
   const { activeCashSession } = useAuth();
   const { hasPermission } = usePermissions();
@@ -240,6 +244,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const [actionNotes, setActionNotes] = React.useState('');
   const [isSubmittingAction, setIsSubmittingAction] = React.useState(false);
 
+  // Email dialog states
+  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+  const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
+  const [emailRecipients, setEmailRecipients] = React.useState('');
+  const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+
   const columns = React.useMemo(() => getColumns(t), [t]);
   const isDraft = selectedQuote?.status?.toLowerCase() === 'draft';
   const canUpdateQuote = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
@@ -254,7 +266,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE_ITEM : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
   const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_DELETE_ITEM : PURCHASES_PERMISSIONS.QUOTES_DELETE);
   const canEditItems = canUpdateItem && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
-  const canSend = canSendQuote && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
+  const canSend = canSendQuote;
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadQuotes = React.useCallback(async (silent = false) => {
@@ -345,6 +357,74 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     } catch {
       toast({ title: 'Error al enviar', variant: 'destructive' });
     }
+  };
+
+  const handleSendEmailClick = (quote: Quote) => {
+    setSelectedQuoteForEmail(quote);
+    setEmailRecipients(quote.userEmail || '');
+    setIsSendEmailDialogOpen(true);
+  };
+
+  const sendEmail = async (emails: string[]) => {
+    if (!selectedQuoteForEmail) return;
+
+    setIsSendingEmail(true);
+    try {
+      await api.post(
+        API_ROUTES.PURCHASES.QUOTES_SEND,
+        {
+          quote_id: selectedQuoteForEmail.id,
+          is_sales: isSales,
+          emails,
+        }
+      );
+      toast({ title: tQuotes('sendEmailDialog.success') });
+      setIsSendEmailDialogOpen(false);
+      setSelectedQuoteForEmail(null);
+      setEmailRecipients('');
+    } catch {
+      toast({ title: tQuotes('sendEmailDialog.error'), variant: 'destructive' });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleConfirmSendEmail = async () => {
+    if (!selectedQuoteForEmail) return;
+
+    const emails = emailRecipients
+      .split(',')
+      .map(e => e.trim())
+      .filter(e => e);
+
+    if (emails.length === 0) {
+      toast({ title: tQuotes('sendEmailDialog.errorNoEmail'), variant: 'destructive' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter(e => !emailRegex.test(e));
+    if (invalidEmails.length > 0) {
+      toast({ title: tQuotes('sendEmailDialog.errorInvalidEmails', { emails: invalidEmails.join(', ') }), variant: 'destructive' });
+      return;
+    }
+
+    // Check communication preferences
+    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+    const disabled = getDisabledEmails(preferences);
+
+    if (disabled.length > 0) {
+      setDisabledEmails(disabled);
+      setIsWarningDialogOpen(true);
+      return;
+    }
+
+    await sendEmail(emails);
+  };
+
+  const handleWarningConfirm = async () => {
+    setIsWarningDialogOpen(false);
+    await sendEmail(emailRecipients.split(',').map(e => e.trim()).filter(e => e));
   };
 
   const handleConfirmAction = async () => {
@@ -595,7 +675,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             </DropdownMenuItem>
           )}
           {canSend && (
-            <DropdownMenuItem onClick={handleSend}>
+            <DropdownMenuItem onClick={() => handleSendEmailClick(selectedQuote)}>
               <Send className="h-4 w-4 mr-2" />
               Enviar
             </DropdownMenuItem>
@@ -763,7 +843,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </Button>
               )}
               {canSend && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
                   <Send className="h-3.5 w-3.5" />
                   Enviar
                 </Button>
@@ -1149,6 +1229,46 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Email Dialog ── */}
+      <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{tQuotes('sendEmailDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {tQuotes('sendEmailDialog.description', { id: selectedQuoteForEmail?.id || '' })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 px-6">
+            <Label htmlFor="email-recipients">{tQuotes('sendEmailDialog.recipients')}</Label>
+            <Input
+              id="email-recipients"
+              value={emailRecipients}
+              onChange={(e) => setEmailRecipients(e.target.value)}
+              placeholder={tQuotes('sendEmailDialog.placeholder')}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {tQuotes('sendEmailDialog.helperText')}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>
+              {tQuotes('sendEmailDialog.cancel')}
+            </Button>
+            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+              {isSendingEmail ? tQuotes('sendEmailDialog.sending') : tQuotes('sendEmailDialog.send')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Warning Dialog ── */}
+      <CommunicationWarningDialog
+        open={isWarningDialogOpen}
+        onOpenChange={setIsWarningDialogOpen}
+        disabledItems={disabledEmails}
+        onConfirm={handleWarningConfirm}
+      />
     </>
   );
 }

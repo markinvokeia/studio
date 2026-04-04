@@ -6,10 +6,15 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { API_ROUTES } from '@/constants/routes';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
@@ -130,7 +135,7 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
       source_currency: apiPayment.currency,
       exchange_rate: parseFloat(apiPayment.exchange_rate),
       payment_method: apiPayment.payment_method,
-      transaction_type: apiPayment.transaction_type,
+      transaction_type: apiPayment.transaction_type || 'direct_payment',
       transaction_id: apiPayment.transaction_id,
       reference_doc_id: apiPayment.reference_doc_id,
       is_historical: apiPayment.is_historical || false,
@@ -153,6 +158,7 @@ interface UserPaymentsProps {
 
 export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTrigger }: UserPaymentsProps) {
   const t = useTranslations();
+  const tPayments = useTranslations('PaymentsPage');
   const { toast } = useToast();
   const isSales = mode === 'sales';
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -165,6 +171,14 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   // Allocations
   const [allocations, setAllocations] = React.useState<PaymentAllocation[]>([]);
   const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
+
+  // Email dialog
+  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+  const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
+  const [emailRecipients, setEmailRecipients] = React.useState('');
+  const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
 
   const columns = React.useMemo(() => getColumns(t), [t]);
 
@@ -225,32 +239,87 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     }
   }, [loadAllocations]);
 
+  const handleSendEmailClick = (payment: Payment) => {
+    setSelectedPaymentForEmail(payment);
+    setEmailRecipients(payment.userEmail || '');
+    setIsSendEmailDialogOpen(true);
+  };
+
+  const handleConfirmSendEmail = async () => {
+    if (!selectedPaymentForEmail) return;
+
+    const emails = emailRecipients.split(',').map(e => e.trim()).filter(e => e);
+    if (emails.length === 0) {
+      toast({ title: tPayments('sendEmailDialog.errorNoEmail'), variant: 'destructive' });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const invalidEmails = emails.filter(e => !emailRegex.test(e));
+    if (invalidEmails.length > 0) {
+      toast({ title: tPayments('sendEmailDialog.errorInvalidEmails', { emails: invalidEmails.join(', ') }), variant: 'destructive' });
+      return;
+    }
+
+    // Verificar preferencias de comunicación
+    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+    const disabled = getDisabledEmails(preferences);
+
+    if (disabled.length > 0) {
+      setDisabledEmails(disabled);
+      setIsWarningDialogOpen(true);
+      return;
+    }
+
+    await sendEmail(emails);
+  };
+
+  const sendEmail = async (emails: string[]) => {
+    if (!selectedPaymentForEmail) return;
+
+    setIsSendingEmail(true);
+    try {
+      await api.post(
+        isSales ? API_ROUTES.SALES.API_PAYMENT_SEND : API_ROUTES.PURCHASES.API_PAYMENT_SEND,
+        { 
+          transaction_id: selectedPaymentForEmail.transaction_id || selectedPaymentForEmail.id,
+          transaction_type: selectedPaymentForEmail.transaction_type,
+          emails 
+        }
+      );
+      toast({ title: tPayments('sendEmailDialog.success') });
+      setIsSendEmailDialogOpen(false);
+      setSelectedPaymentForEmail(null);
+      setEmailRecipients('');
+    } catch {
+      toast({ title: tPayments('sendEmailDialog.error'), variant: 'destructive' });
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleWarningConfirm = async () => {
+    setIsWarningDialogOpen(false);
+    const emails = emailRecipients.split(',').map(e => e.trim()).filter(e => e);
+    await sendEmail(emails);
+  };
+
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
     if (!selectedPayment) return;
     try {
       const blob = await api.getBlob(
         isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT,
-        { payment_id: selectedPayment.id }
+        { 
+          transaction_id: selectedPayment.transaction_id || selectedPayment.id,
+          transaction_type: selectedPayment.transaction_type 
+        }
       );
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
       URL.revokeObjectURL(url);
     } catch {
       toast({ title: 'Error al imprimir', variant: 'destructive' });
-    }
-  };
-
-  const handleSend = async () => {
-    if (!selectedPayment) return;
-    try {
-      await api.post(
-        isSales ? API_ROUTES.SALES.API_PAYMENT_SEND : API_ROUTES.PURCHASES.API_PAYMENT_SEND,
-        { payment_id: selectedPayment.id }
-      );
-      toast({ title: 'Pago enviado por correo' });
-    } catch {
-      toast({ title: 'Error al enviar', variant: 'destructive' });
     }
   };
 
@@ -275,7 +344,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleSend}>
+          <DropdownMenuItem onClick={() => handleSendEmailClick(selectedPayment)}>
             <Send className="h-4 w-4 mr-2" />
             Enviar
           </DropdownMenuItem>
@@ -426,7 +495,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                 Imprimir
               </Button>
               {/* Acciones secundarias */}
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleSend}>
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
                 <Send className="h-3.5 w-3.5" />
                 Enviar
               </Button>
@@ -447,6 +516,46 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
           </>
         )}
       </ResizableSheet>
+
+      {/* Email Dialog */}
+      <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{tPayments('sendEmailDialog.title')}</DialogTitle>
+            <DialogDescription>
+              {tPayments('sendEmailDialog.description', { id: selectedPaymentForEmail?.id || '' })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 px-6">
+            <Label htmlFor="email-recipients">{tPayments('sendEmailDialog.recipients')}</Label>
+            <Input
+              id="email-recipients"
+              value={emailRecipients}
+              onChange={(e) => setEmailRecipients(e.target.value)}
+              placeholder={tPayments('sendEmailDialog.placeholder')}
+            />
+            <p className="text-sm text-muted-foreground mt-1">
+              {tPayments('sendEmailDialog.helperText')}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>
+              {tPayments('sendEmailDialog.cancel')}
+            </Button>
+            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+              {isSendingEmail ? tPayments('sendEmailDialog.sending') : tPayments('sendEmailDialog.send')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warning Dialog */}
+      <CommunicationWarningDialog
+        open={isWarningDialogOpen}
+        onOpenChange={setIsWarningDialogOpen}
+        disabledItems={disabledEmails}
+        onConfirm={handleWarningConfirm}
+      />
     </>
   );
 }
