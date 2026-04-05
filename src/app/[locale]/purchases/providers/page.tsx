@@ -17,6 +17,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +32,10 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InvoiceFormDialog } from '@/components/tables/invoices-table';
+import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
+import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { UserInvoices } from '@/components/users/user-invoices';
@@ -36,13 +48,13 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { User, UserFinancial } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, isValidString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Briefcase, CalendarIcon, CreditCard, Loader2, Mail, MapPin, Phone, Printer, SlidersHorizontal, X } from 'lucide-react';
+import { AlertTriangle, Briefcase, CalendarIcon, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, SlidersHorizontal, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -285,6 +297,9 @@ function ProvidersPageContent() {
   const canViewOrders = hasPermission(PURCHASES_PERMISSIONS.ORDERS_VIEW_LIST);
   const canViewInvoices = hasPermission(PURCHASES_PERMISSIONS.INVOICES_VIEW_LIST);
   const canViewPayments = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_VIEW_LIST);
+  const canCreateQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_CREATE);
+  const canCreateInvoice = hasPermission(PURCHASES_PERMISSIONS.INVOICES_CREATE);
+  const canCreatePayment = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
 
   const [providers, setProviders] = React.useState<User[]>([]);
   const [providerCount, setProviderCount] = React.useState(0);
@@ -311,6 +326,17 @@ function ProvidersPageContent() {
     to: undefined,
   });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
+
+  // Dialog states for creating documents
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
+  const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
+  const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+
+  // Refresh triggers for tabs
+  const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
+  const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
+  const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
+  const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
 
   const form = useForm<ProviderFormValues>({
     resolver: zodResolver(providerFormSchema(t)),
@@ -429,10 +455,11 @@ function ProvidersPageContent() {
   React.useEffect(() => {
     if (selectedProvider) {
       fetchProviderFinancialData(selectedProvider.id);
-      setActiveTab('summary');
+      // No cambiar setActiveTab aquí - mantener la pestaña actual
     } else {
       setProviderFinancialData(null);
       setIsPreferencesOpen(false);
+      setActiveTab('summary'); // Solo cambiar a summary cuando se cierra/deselecciona
     }
   }, [fetchProviderFinancialData, selectedProvider]);
 
@@ -622,6 +649,40 @@ function ProvidersPageContent() {
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-1 ml-2 flex-none">
+                    {/* + Quick create dropdown */}
+                    <TooltipProvider>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
+                            <Plus className="h-4 w-4" />
+                            {t('ProvidersPage.quickCreate.title')}
+                            <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">{t('ProvidersPage.quickCreate.financial')}</DropdownMenuLabel>
+                          {canCreateQuote && (
+                            <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
+                              <FileText className="h-4 w-4 mr-2 text-emerald-600" />
+                              {t('ProvidersPage.quickCreate.quote')}
+                            </DropdownMenuItem>
+                          )}
+                          {canCreateInvoice && (
+                            <DropdownMenuItem onClick={() => setIsInvoiceDialogOpen(true)}>
+                              <Receipt className="h-4 w-4 mr-2 text-emerald-600" />
+                              {t('ProvidersPage.quickCreate.invoice')}
+                            </DropdownMenuItem>
+                          )}
+                          {canCreatePayment && (
+                            <DropdownMenuItem onClick={() => setIsPrepaidDialogOpen(true)}>
+                              <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />
+                              {t('ProvidersPage.quickCreate.prepaid')}
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TooltipProvider>
+
                     <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -653,18 +714,18 @@ function ProvidersPageContent() {
                 </div>
 
                 <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
-                  {selectedProvider.email && (
+                  {isValidString(selectedProvider.email) && (
                     <a
-                      href={`mailto:${selectedProvider.email}`}
+                      href={`mailto:${encodeURIComponent(selectedProvider.email)}`}
                       className="flex items-center gap-1 max-w-[220px] truncate hover:text-foreground hover:underline"
                     >
                       <Mail className="h-3 w-3 flex-none" />
                       {selectedProvider.email}
                     </a>
                   )}
-                  {selectedProvider.phone_number && (
+                  {isValidString(selectedProvider.phone_number) && (
                     <a
-                      href={`https://wa.me/${selectedProvider.phone_number.replace(/^\+/, '')}`}
+                      href={`https://wa.me/${String(selectedProvider.phone_number).replace(/^\+/, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-foreground hover:underline"
@@ -673,19 +734,19 @@ function ProvidersPageContent() {
                       {selectedProvider.phone_number}
                     </a>
                   )}
-                  {selectedProvider.alternative_phone && (
+                  {isValidString(selectedProvider.alternative_phone) && (
                     <span className="flex items-center gap-1">
                       <Phone className="h-3 w-3" />
                       {selectedProvider.alternative_phone}
                     </span>
                   )}
-                  {selectedProvider.identity_document && (
+                  {isValidString(selectedProvider.identity_document) && (
                     <span className="flex items-center gap-1">
                       <CreditCard className="h-3 w-3" />
                       {selectedProvider.identity_document}
                     </span>
                   )}
-                  {selectedProvider.address && (
+                  {isValidString(selectedProvider.address) && (
                     <span className="flex items-center gap-1 max-w-[260px] truncate">
                       <MapPin className="h-3 w-3" />
                       {selectedProvider.address}
@@ -781,22 +842,51 @@ function ProvidersPageContent() {
                     )}
                     {canViewQuotes && (
                       <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserQuotes userId={selectedProvider.id} mode="purchases" />
+                        <UserQuotes
+                          userId={selectedProvider.id}
+                          mode="purchases"
+                          refreshTrigger={refreshQuotesTrigger}
+                          onDataChange={() => {
+                            fetchProviderFinancialData(selectedProvider.id);
+                            loadProviders();
+                          }}
+                        />
                       </TabsContent>
                     )}
                     {canViewOrders && (
                       <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserOrders userId={selectedProvider.id} patient={selectedProvider} mode="purchases" />
+                        <UserOrders
+                          userId={selectedProvider.id}
+                          patient={selectedProvider}
+                          mode="purchases"
+                          refreshTrigger={refreshOrdersTrigger}
+                          onDataChange={() => {
+                            fetchProviderFinancialData(selectedProvider.id);
+                            loadProviders();
+                          }}
+                        />
                       </TabsContent>
                     )}
                     {canViewInvoices && (
                       <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserInvoices userId={selectedProvider.id} mode="purchases" />
+                        <UserInvoices
+                          userId={selectedProvider.id}
+                          mode="purchases"
+                          refreshTrigger={refreshInvoicesTrigger}
+                          onDataChange={() => {
+                            fetchProviderFinancialData(selectedProvider.id);
+                            loadProviders();
+                          }}
+                        />
                       </TabsContent>
                     )}
                     {canViewPayments && (
                       <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserPayments userId={selectedProvider.id} mode="purchases" />
+                        <UserPayments
+                          userId={selectedProvider.id}
+                          mode="purchases"
+                          refreshTrigger={refreshPaymentsTrigger}
+                        />
                       </TabsContent>
                     )}
                     <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
@@ -1040,6 +1130,52 @@ function ProvidersPageContent() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {selectedProvider && (
+        <PrepaidFormDialog
+          open={isPrepaidDialogOpen}
+          onOpenChange={setIsPrepaidDialogOpen}
+          initialUser={selectedProvider}
+          onSaveSuccess={() => {
+            setIsPrepaidDialogOpen(false);
+            setActiveTab('payments');
+            setRefreshPaymentsTrigger(t => t + 1);
+            fetchProviderFinancialData(selectedProvider.id);
+            loadProviders();
+          }}
+        />
+      )}
+
+      {selectedProvider && (
+        <InvoiceFormDialog
+          isOpen={isInvoiceDialogOpen}
+          onOpenChange={setIsInvoiceDialogOpen}
+          isSales={false}
+          initialUser={selectedProvider}
+          onInvoiceCreated={() => {
+            setIsInvoiceDialogOpen(false);
+            setActiveTab('invoices');
+            setRefreshInvoicesTrigger(t => t + 1);
+            fetchProviderFinancialData(selectedProvider.id);
+            loadProviders();
+          }}
+        />
+      )}
+
+      {selectedProvider && (
+        <QuoteFormDialog
+          open={isQuoteDialogOpen}
+          onOpenChange={setIsQuoteDialogOpen}
+          initialData={{ user: selectedProvider }}
+          onSaveSuccess={() => {
+            setIsQuoteDialogOpen(false);
+            setActiveTab('quotes');
+            setRefreshQuotesTrigger(t => t + 1);
+            fetchProviderFinancialData(selectedProvider.id);
+            loadProviders();
+          }}
+        />
+      )}
     </div>
   );
 }

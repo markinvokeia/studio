@@ -336,20 +336,23 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
         <Printer className="h-3.5 w-3.5" />
         Imprimir
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-            Acciones
-            <ChevronDown className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => handleSendEmailClick(selectedPayment)}>
-            <Send className="h-4 w-4 mr-2" />
-            Enviar
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* El dropdown siempre tiene al menos la acción Enviar */}
+      {(true) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              Acciones
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleSendEmailClick(selectedPayment)}>
+              <Send className="h-4 w-4 mr-2" />
+              Enviar
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedPayment)}>
         <Eye className="h-3.5 w-3.5" />
         Ver detalles

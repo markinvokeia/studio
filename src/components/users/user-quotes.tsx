@@ -660,45 +660,48 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           </Button>
         </>
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-            Acciones
-            <ChevronDown className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {canPrintQuote && (
-            <DropdownMenuItem onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir
-            </DropdownMenuItem>
-          )}
-          {canSend && (
-            <DropdownMenuItem onClick={() => handleSendEmailClick(selectedQuote)}>
-              <Send className="h-4 w-4 mr-2" />
-              Enviar
-            </DropdownMenuItem>
-          )}
-          {isDraft && (canUpdateQuote || canDeleteQuote) && (
-            <>
-              <DropdownMenuSeparator />
-              {canUpdateQuote && (
-                <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-              )}
-              {canDeleteQuote && (
-                <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Eliminar
-                </DropdownMenuItem>
-              )}
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Determinar si hay acciones disponibles para el dropdown */}
+      {((canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote)))) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              Acciones
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canPrintQuote && (
+              <DropdownMenuItem onClick={handlePrint}>
+                <Printer className="h-4 w-4 mr-2" />
+                Imprimir
+              </DropdownMenuItem>
+            )}
+            {canSend && (
+              <DropdownMenuItem onClick={() => handleSendEmailClick(selectedQuote)}>
+                <Send className="h-4 w-4 mr-2" />
+                Enviar
+              </DropdownMenuItem>
+            )}
+            {isDraft && (canUpdateQuote || canDeleteQuote) && (
+              <>
+                <DropdownMenuSeparator />
+                {canUpdateQuote && (
+                  <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
+                {canDeleteQuote && (
+                  <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </DropdownMenuItem>
+                )}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedQuote)}>
         <Eye className="h-3.5 w-3.5" />
         Ver detalles

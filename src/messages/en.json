@@ -2257,8 +2257,15 @@
       "saveError": "Error saving",
       "saveErrorDescription": "Could not save the notes. Try again."
     },
-    "setInitialPassword": "Set Initial Password",
-    "close": "Close details"
+        "setInitialPassword": "Set Initial Password",
+        "close": "Close details",
+        "quickCreate": {
+          "title": "Create",
+          "financial": "Financial",
+          "quote": "Quote",
+          "invoice": "Invoice",
+          "prepaid": "Prepaid"
+        }
   },
   "ProviderColumns": {
     "name": "Name",

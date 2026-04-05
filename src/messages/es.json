@@ -2258,7 +2258,14 @@
             "saveErrorDescription": "No se pudieron guardar las notas. Intente de nuevo."
         },
         "setInitialPassword": "Establecer Contraseña Inicial",
-        "close": "Cerrar detalles"
+        "close": "Cerrar detalles",
+        "quickCreate": {
+            "title": "Crear",
+            "financial": "Financiero",
+            "quote": "Presupuesto",
+            "invoice": "Factura",
+            "prepaid": "Prepago"
+        }
     },
     "ProviderColumns": {
         "name": "Nombre",

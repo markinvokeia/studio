@@ -663,33 +663,36 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           Agregar pago
         </Button>
       )}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-            Acciones
-            <ChevronDown className="h-3.5 w-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handlePrint}>
-            <Printer className="h-4 w-4 mr-2" />
-            Imprimir
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleSendEmailClick(selectedInvoice)}>
-            <Send className="h-4 w-4 mr-2" />
-            Enviar
-          </DropdownMenuItem>
-          {isDraft && canUpdateInvoice && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsEditInvoiceOpen(true)}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Editar
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {/* Print y Enviar son siempre visibles; Editar es condicional */}
+      {(true) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+              Acciones
+              <ChevronDown className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={handlePrint}>
+              <Printer className="h-4 w-4 mr-2" />
+              Imprimir
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleSendEmailClick(selectedInvoice)}>
+              <Send className="h-4 w-4 mr-2" />
+              Enviar
+            </DropdownMenuItem>
+            {isDraft && canUpdateInvoice && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setIsEditInvoiceOpen(true)}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedInvoice)}>
         <Eye className="h-3.5 w-3.5" />
         Ver detalles

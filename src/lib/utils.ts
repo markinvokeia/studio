@@ -96,3 +96,10 @@ export function getDocumentFileName(doc: DocumentWithDocNo, type: DocumentType):
   if (type === 'payment' && doc.payment_doc_no) return doc.payment_doc_no;
   return doc.id;
 }
+
+/**
+ * Validates that a value is a non-empty string (excluding 'null' string)
+ */
+export function isValidString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '' && value !== 'null';
+}
