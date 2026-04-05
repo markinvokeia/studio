@@ -230,12 +230,16 @@
       "Friday",
       "Saturday"
     ],
-    "labelPrevious": "Go to previous month",
-    "labelNext": "Go to next month",
-    "labelMonthDropdown": "Choose the month",
-    "labelYearDropdown": "Choose the year",
-    "labelToday": "Go to today",
-    "pickDate": "Pick a date"
+      "labelPrevious": "Go to previous month",
+      "labelNext": "Go to next month",
+      "labelMonthDropdown": "Choose the month",
+      "labelYearDropdown": "Choose the year",
+      "labelToday": "Go to today",
+      "pickDate": "Pick a date",
+      "selectMonth": "Select month",
+      "selectYear": "Select year",
+      "manualInputPlaceholder": "MM/DD/YYYY",
+      "invalidDate": "Invalid date"
   },
   "DateVariableInput": {
     "date": "Date",

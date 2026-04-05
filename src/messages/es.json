@@ -235,7 +235,11 @@
         "labelMonthDropdown": "Elegir el mes",
         "labelYearDropdown": "Elegir el año",
         "labelToday": "Ir a hoy",
-        "pickDate": "Seleccionar fecha"
+        "pickDate": "Seleccionar fecha",
+        "selectMonth": "Seleccionar mes",
+        "selectYear": "Seleccionar año",
+        "manualInputPlaceholder": "DD/MM/AAAA",
+        "invalidDate": "Fecha inválida"
     },
     "DateVariableInput": {
         "date": "Fecha",
