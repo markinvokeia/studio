@@ -12,6 +12,8 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
@@ -25,14 +27,16 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, PaymentMethod, Service, UserDetailMode } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -64,7 +68,7 @@ type InvoiceEditFormValues = z.infer<typeof invoiceEditSchema>;
 const paymentSchema = z.object({
   amount: z.coerce.number().min(0.01, 'Monto requerido'),
   payment_method_id: z.string().min(1, 'Selecciona un método de pago'),
-  payment_date: z.string().min(1, 'Fecha requerida'),
+  payment_date: z.date({ required_error: 'Fecha requerida' }),
   notes: z.string().optional(),
   is_historical: z.boolean().optional(),
 });
@@ -528,7 +532,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     paymentForm.reset({
       amount: selectedInvoice.total,
       payment_method_id: '',
-      payment_date: new Date().toISOString().split('T')[0],
+      payment_date: new Date(),
       notes: '',
       is_historical: selectedInvoice.is_historical || false
     });
@@ -553,7 +557,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     setIsSubmittingPayment(true);
     try {
       const method = paymentMethods.find(m => m.id === values.payment_method_id);
-      const paymentDate = new Date(values.payment_date).toISOString();
+      const paymentDate = values.payment_date.toISOString();
       await api.post(isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT, {
         cash_session_id: cashSessionId,
         credit_payment: [],
@@ -1076,9 +1080,21 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     </FormItem>
                   )} />
                   <FormField control={paymentForm.control} name="payment_date" render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Fecha</FormLabel>
-                      <FormControl><Input type="date" {...field} /></FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
+                              {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Seleccionar fecha</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )} />
