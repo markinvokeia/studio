@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
 import { formatDateTime, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
-import { getPurchaseServices, getSalesServices } from '@/services/services';
+import { getPurchaseServices, getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CalendarCheck, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -117,23 +117,9 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         }));
         setDoctors(doctorsMapped);
 
-        // Fetch services for each doctor to populate doctorServiceMap
-        const serviceMap = new Map<string, Service[]>();
-        await Promise.all(doctorsMapped.map(async (doctor) => {
-          if (doctor.id) {
-            try {
-              const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: doctor.id });
-              const doctorServices = Array.isArray(data) ? data : (data.user_services || data.data || []);
-              serviceMap.set(doctor.id, doctorServices.map((s: any) => ({
-                ...s,
-                id: String(s.id),
-                duration_minutes: s.duration_minutes || 30
-              })));
-            } catch (e) {
-              console.error(`Error fetching services for doctor ${doctor.id}:`, e);
-            }
-          }
-        }));
+        // Fetch services for all doctors in a single batch request
+        const doctorIds = doctorsMapped.map(d => d.id).filter(Boolean);
+        const serviceMap = await getUsersServicesBatch(doctorIds);
         setDoctorServiceMap(serviceMap);
 
         const servicesList = srvData.items || [];

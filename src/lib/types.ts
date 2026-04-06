@@ -319,6 +319,11 @@ export type Service = {
   is_sales?: boolean;
 };
 
+export interface UserServicesEntry {
+  user_id: string;
+  services: Service[];
+}
+
 export type Clinic = {
   id: string;
   name: string;

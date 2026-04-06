@@ -58,7 +58,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Calendar as CalendarType, PatientDischarge, Quote, Service, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
-import { getSalesServices, getUserServices } from '@/services/services';
+import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -232,12 +232,6 @@ async function fetchDoctorsForAppt(): Promise<User[]> {
   } catch { return []; }
 }
 
-async function fetchDoctorServicesForAppt(doctorId: string): Promise<Service[]> {
-  try {
-    const result = await getUserServices(doctorId);
-    return Array.isArray(result) ? result : [];
-  } catch { return []; }
-}
 
 async function upsertUser(userData: UserFormValues) {
   const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, filter_type: 'PACIENTE', is_sales: true });
@@ -527,12 +521,8 @@ export default function UsersPage() {
         if (calCfg) setCheckCalendarAvailability(String(calCfg.value).toLowerCase() === 'true');
         if (docCfg) setCheckDoctorAvailability(String(docCfg.value).toLowerCase() === 'true');
       }
-      const serviceMap = new Map<string, Service[]>();
-      for (const doctor of doctors) {
-        if (doctor.id) {
-          serviceMap.set(doctor.id, await fetchDoctorServicesForAppt(doctor.id));
-        }
-      }
+      const doctorIds = doctors.map(d => d.id).filter(Boolean);
+      const serviceMap = await getUsersServicesBatch(doctorIds);
       setApptDoctorServiceMap(serviceMap);
       apptDataLoaded.current = true;
     } finally {

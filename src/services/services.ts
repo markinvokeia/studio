@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Service } from '@/lib/types';
+import { Service, UserServicesEntry } from '@/lib/types';
 import { api } from './api';
 
 export interface ServicesResponse {
@@ -101,5 +101,49 @@ export async function getUserServices(userId: string): Promise<Service[]> {
     } catch (error) {
         console.error('Failed to fetch user services:', error);
         return [];
+    }
+}
+
+/**
+ * Obtiene servicios asignados a múltiples doctores/usuarios en una sola petición
+ * @param userIds - Lista de IDs de usuarios
+ * @returns Map con user_id como clave y sus servicios como valor
+ */
+export async function getUsersServicesBatch(userIds: string[]): Promise<Map<string, Service[]>> {
+    const serviceMap = new Map<string, Service[]>();
+    if (userIds.length === 0) return serviceMap;
+
+    try {
+        const data = await api.get(API_ROUTES.USERS_SERVICES, {
+            users_ids: userIds.join(','),
+        });
+
+        const entries: UserServicesEntry[] = Array.isArray(data) ? data : (data.data || []);
+
+        for (const entry of entries) {
+            const services = (entry.services || []).map((s: any) => ({
+                ...s,
+                id: String(s.id),
+                currency: s.currency || 'USD',
+                duration_minutes: s.duration_minutes || 30,
+            }));
+            serviceMap.set(entry.user_id, services);
+        }
+
+        // Asegurar que todos los userIds solicitados tengan una entrada (aunque sea vacía)
+        for (const userId of userIds) {
+            if (!serviceMap.has(userId)) {
+                serviceMap.set(userId, []);
+            }
+        }
+
+        return serviceMap;
+    } catch (error) {
+        console.error('Failed to fetch users services batch:', error);
+        // Retornar map vacío con entradas para cada userId
+        for (const userId of userIds) {
+            serviceMap.set(userId, []);
+        }
+        return serviceMap;
     }
 }

@@ -38,7 +38,7 @@ import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Appointment, Calendar as CalendarType, PatientSession, Service, User as UserType } from '@/lib/types';
 import api from '@/services/api';
-import { getSalesServices, getUserServices } from '@/services/services';
+import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
@@ -283,15 +283,6 @@ async function getDoctors(): Promise<UserType[]> {
     }
 }
 
-async function getDoctorServices(doctorId: string): Promise<Service[]> {
-    try {
-        const result = await getUserServices(doctorId);
-        return Array.isArray(result) ? result : (result || []);
-    } catch (error) {
-        console.error(`Failed to fetch services for doctor ${doctorId}:`, error);
-        return [];
-    }
-}
 
 export default function AppointmentsPage() {
     const t = useTranslations('AppointmentsPage');
@@ -535,13 +526,8 @@ export default function AppointmentsPage() {
             }
         }
 
-        const serviceMap = new Map<string, Service[]>();
-        for (const doctor of fetchedDoctors) {
-            if (doctor.id) {
-                const doctorServices = await getDoctorServices(doctor.id);
-                serviceMap.set(doctor.id, doctorServices);
-            }
-        }
+        const doctorIds = fetchedDoctors.map(d => d.id).filter(Boolean);
+        const serviceMap = await getUsersServicesBatch(doctorIds);
         setDoctorServiceMap(serviceMap);
 
         setSelectedDoctorIds(fetchedDoctors.map(d => d.id));

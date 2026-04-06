@@ -16,6 +16,7 @@ export const API_ROUTES = {
     CALENDARS_DELETE: '/calendarios/delete',
     SERVICES: '/services',
     USER_SERVICES: '/services/user_services',
+    USERS_SERVICES: '/users_services',
     USER_SERVICES_ASSIGN: '/services/assign',
     USERS: '/users',
     USERS_DOCTORS: '/users/doctors',
