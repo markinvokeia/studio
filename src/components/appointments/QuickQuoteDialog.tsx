@@ -256,7 +256,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
               </CardHeader>
               <CardContent className="bg-card">
                 <div className="space-y-4">
-                  <table className="w-full text-sm">
+                  <table className="w-full table-fixed text-sm">
                     <thead>
                       <tr className="text-muted-foreground text-center">
                         <th className="text-left font-semibold p-2">{t('QuotesPage.quoteDialog.items.service')}</th>
@@ -277,17 +277,15 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
                       ) : (
                         items.map((item, index) => (
                           <tr key={item.id} className="align-top">
-                            <td className="p-1">
-                              <div className="max-w-[300px] overflow-hidden">
-                                <ServiceSelector
-                                  isSales={true}
-                                  value={item.service_id}
-                                  onValueChange={(serviceId, service) => handleUpdateItem(index, 'service_id', serviceId, service)}
-                                  placeholder={t('QuotesPage.quickQuote.selectService')}
-                                  noResultsText={t('General.noResults')}
-                                  triggerText={t('QuotesPage.quickQuote.selectService')}
-                                />
-                              </div>
+                            <td className="p-1 max-w-0">
+                              <ServiceSelector
+                                isSales={true}
+                                value={item.service_id}
+                                onValueChange={(serviceId, service) => handleUpdateItem(index, 'service_id', serviceId, service)}
+                                placeholder={t('QuotesPage.quickQuote.selectService')}
+                                noResultsText={t('General.noResults')}
+                                triggerText={t('QuotesPage.quickQuote.selectService')}
+                              />
                             </td>
                             <td className="p-1">
                               <Input

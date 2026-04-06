@@ -358,7 +358,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                 </CardHeader>
                                 <CardContent className="bg-card">
                                     <div className="space-y-4">
-                                        <table className="w-full text-sm">
+                                        <table className="w-full table-fixed text-sm">
                                             <thead>
                                                 <tr className="text-muted-foreground text-center">
                                                     <th className="text-left font-semibold p-2">{t('quoteDialog.items.service')}</th>
@@ -372,28 +372,26 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                             <tbody>
                                                 {fields.map((fieldItem, index) => (
                                                     <tr key={fieldItem.id} className="align-top">
-                                                        <td className="p-1">
-                                                            <div className="max-w-[400px] overflow-hidden">
-                                                                <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
-                                                                    <FormItem>
-                                                                        <ServiceSelector
-                                                                            isSales={true}
-                                                                            value={field.value}
-                                                                            onValueChange={(serviceId, service) => {
-                                                                                field.onChange(serviceId);
-                                                                                if (service) {
-                                                                                    const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                                                                    update(index, { ...form.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * quantity });
-                                                                                }
-                                                                            }}
-                                                                            placeholder={t('itemDialog.searchService')}
-                                                                            noResultsText={t('itemDialog.noServiceFound')}
-                                                                            triggerText={t('quoteDialog.items.selectService')}
-                                                                        />
-                                                                        <FormMessage />
-                                                                    </FormItem>
-                                                                )} />
-                                                            </div>
+                                                        <td className="p-1 max-w-0">
+                                                            <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <ServiceSelector
+                                                                        isSales={true}
+                                                                        value={field.value}
+                                                                        onValueChange={(serviceId, service) => {
+                                                                            field.onChange(serviceId);
+                                                                            if (service) {
+                                                                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                                                                update(index, { ...form.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * quantity });
+                                                                            }
+                                                                        }}
+                                                                        placeholder={t('itemDialog.searchService')}
+                                                                        noResultsText={t('itemDialog.noServiceFound')}
+                                                                        triggerText={t('quoteDialog.items.selectService')}
+                                                                    />
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
                                                         </td>
                                                         <td className="p-1">
                                                             <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
