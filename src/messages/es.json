@@ -424,7 +424,25 @@
             "slotUnavailableTitle": "Horario no disponible",
             "unexpectedError": "Error inesperado",
             "endTimeInvalid": "La hora de fin debe ser posterior a la de inicio",
-            "loadQuoteServicesError": "Error al cargar servicios del presupuesto"
+            "loadQuoteServicesError": "Error al cargar servicios del presupuesto",
+            "sessionCreated": "Sesión clínica creada",
+            "sessionCreatedDesc": "La sesión clínica se ha registrado exitosamente.",
+            "sessionUpdated": "Sesión clínica actualizada",
+            "errorCreatingSession": "Error al guardar sesión",
+            "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
+            "patientIdRequired": "Se requiere el ID del paciente"
+        },
+        "linkedSession": "Sesión Clínica Enlazada",
+        "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
+        "createSession": "Crear sesión",
+        "editSession": "Editar sesión",
+        "procedure": "Procedimiento",
+        "createSessionOnSave": "Crear sesión clínica al guardar",
+        "clinicSession": "Sesión Clínica",
+        "contextMenu": {
+            "createSession": "Registrar sesión clínica",
+            "services": "Servicios",
+            "notes": "Notas"
         }
     },
     "AppointmentsColumns": {
@@ -3507,7 +3525,120 @@
         "upload": "Subir"
     },
     "UserQuotes": {
-        "filterPlaceholder": "Filtrar aquí..."
+        "filterPlaceholder": "Filtrar presupuestos...",
+        "clinicSessions": "Sesiones Clínicas",
+        "noSessionsFound": "No se encontraron sesiones",
+        "columns": {
+            "date": "Fecha",
+            "doctor": "Doctor",
+            "procedure": "Procedimiento",
+            "status": "Estado",
+            "notes": "Notas Clínicas",
+            "clinicalNotes": "Notas Clínicas"
+        },
+        "actions": {
+            "title": "Acciones",
+            "confirm": "Confirmar",
+            "reject": "Rechazar",
+            "print": "Imprimir",
+            "send": "Enviar",
+            "edit": "Editar",
+            "delete": "Eliminar",
+            "viewDetails": "Ver detalles"
+        },
+        "budget": {
+            "title": "Presupuesto"
+        },
+        "items": {
+            "title": "Ítems del presupuesto",
+            "service": "Servicio",
+            "quantity": "Cantidad",
+            "unitPrice": "Precio unit.",
+            "total": "Total",
+            "toothNumber": "N° diente"
+        },
+        "dialogs": {
+            "editQuote": {
+                "title": "Editar presupuesto",
+                "description": "Modifica los datos del presupuesto {docNo}.",
+                "currency": "Moneda",
+                "exchangeRate": "Tipo de cambio",
+                "notes": "Notas",
+                "notesOptional": "Notas (opcional)",
+                "notesPlaceholder": "Observaciones...",
+                "items": "Ítems del presupuesto",
+                "addItem": "Agregar ítem",
+                "cancel": "Cancelar",
+                "save": "Guardar cambios"
+            },
+            "confirmAction": {
+                "confirmTitle": "Confirmar presupuesto",
+                "rejectTitle": "Rechazar presupuesto",
+                "confirmDescription": "¿Confirmar el presupuesto {docNo}?",
+                "rejectDescription": "¿Rechazar el presupuesto {docNo}? Esta acción no se puede deshacer.",
+                "notesLabel": "Notas",
+                "notesPlaceholder": "Agrega una observación...",
+                "optional": "(opcional)",
+                "cancel": "Cancelar",
+                "confirm": "Confirmar",
+                "reject": "Rechazar"
+            },
+            "deleteQuote": {
+                "title": "Eliminar presupuesto",
+                "description": "¿Estás seguro de que deseas eliminar {docNo}? Esta acción no se puede deshacer.",
+                "cancel": "Cancelar",
+                "delete": "Eliminar"
+            },
+            "itemDialog": {
+                "title": "Agregar ítem",
+                "editTitle": "Editar ítem",
+                "description": "Completa los datos del ítem del presupuesto.",
+                "service": "Servicio",
+                "selectService": "Seleccionar servicio",
+                "quantity": "Cantidad",
+                "unitPrice": "Precio unitario",
+                "total": "Total",
+                "toothNumber": "N° de diente",
+                "toothNumberOptional": "N° de diente (opcional)",
+                "cancel": "Cancelar",
+                "save": "Guardar cambios",
+                "add": "Agregar"
+            },
+            "deleteItem": {
+                "title": "Eliminar ítem",
+                "description": "¿Estás seguro de que deseas eliminar {itemName}? Esta acción no se puede deshacer.",
+                "cancel": "Cancelar",
+                "delete": "Eliminar"
+            },
+            "noItems": "Sin ítems. Agrega uno con el botón superior."
+        },
+        "toasts": {
+            "quoteConfirmed": "Presupuesto confirmado",
+            "quoteRejected": "Presupuesto rechazado",
+            "quoteDeleted": "Presupuesto eliminado",
+            "quoteUpdated": "Presupuesto actualizado",
+            "itemAdded": "Ítem agregado",
+            "itemUpdated": "Ítem actualizado",
+            "itemDeleted": "Ítem eliminado",
+            "errorPrinting": "Error al imprimir",
+            "errorSending": "Error al enviar",
+            "errorDeleting": "Error al eliminar",
+            "errorUpdating": "Error al actualizar",
+            "errorSavingItem": "Error al guardar ítem",
+            "errorDeletingItem": "Error al eliminar ítem"
+        }
+    },
+    "UserAppointments": {
+        "appointmentDetails": "Detalles de la Cita",
+        "linkedSessions": "Sesiones Enlazadas",
+        "noLinkedSessions": "No se encontraron sesiones enlazadas",
+        "noAppointmentSelected": "Selecciona una cita para ver los detalles",
+        "columns": {
+            "date": "Fecha",
+            "doctor": "Doctor",
+            "procedure": "Procedimiento",
+            "status": "Estado"
+        }
     },
     "UserOrders": {
         "showingForQuote": "Mostrando órdenes para el presupuesto"
@@ -4428,5 +4559,45 @@
             "import": "Importar",
             "cancel": "Cancelar"
         }
+    },
+    "ClinicSessionDialog": {
+        "treatments": {
+            "title": "Tratamientos por diente",
+            "toothNumber": "N° diente",
+            "description": "Descripción",
+            "add": "Agregar tratamiento",
+            "noTreatments": "Sin tratamientos",
+            "treatmentPlaceholder": "Descripción del tratamiento..."
+        },
+        "attachments": {
+            "title": "Archivos adjuntos",
+            "dropzone": "Arrastra archivos aquí o haz clic para seleccionar",
+            "noFiles": "Sin archivos adjuntos",
+            "existing": "Archivos existentes",
+            "new": "Nuevos archivos",
+            "browseFiles": "buscar archivos"
+        },
+        "createTitle": "Crear Sesión",
+        "editTitle": "Editar Sesión",
+        "date": "Fecha",
+        "doctor": "Doctor",
+        "selectDoctor": "Seleccionar un doctor",
+        "doctorRequired": "El doctor es obligatorio.",
+        "procedure": "Procedimiento",
+        "procedurePlaceholder": "Ingrese el procedimiento realizado...",
+        "diagnosis": "Diagnóstico",
+        "diagnosisPlaceholder": "Ingrese el diagnóstico...",
+        "notes": "Notas Clínicas",
+        "notesPlaceholder": "Ingrese notas clínicas adicionales...",
+        "nextSessionPlan": "Plan para la Próxima Sesión",
+        "nextSessionPlanPlaceholder": "Ingrese el plan para la siguiente cita...",
+        "nextSessionDate": "Fecha Próxima Cita",
+        "nextSessionDatePlaceholder": "Seleccione fecha...",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "saving": "Guardando...",
+        "fileUploadError": "Error al subir archivos",
+        "fileTooBig": "El archivo excede el límite de {size}MB",
+        "fileTypeNotAllowed": "Tipo de archivo no permitido"
     }
 }

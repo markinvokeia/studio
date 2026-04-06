@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   ContextMenu,
   ContextMenuContent,
+  ContextMenuItem,
   ContextMenuTrigger
 } from "@/components/ui/context-menu";
 import {
@@ -78,6 +79,7 @@ interface CalendarProps {
   groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
   onSlotClick?: (date: Date) => void;
+  onEventContextMenu?: (event: any) => React.ReactNode;
 }
 
 const Calendar: React.FC<CalendarProps> = ({
@@ -90,7 +92,8 @@ const Calendar: React.FC<CalendarProps> = ({
   groupBy = 'none',
   groupingColumns = [],
   onEventColorChange,
-  onSlotClick
+  onSlotClick,
+  onEventContextMenu
 }) => {
   const t = useTranslations('Calendar');
   const locale = useLocale();
@@ -203,40 +206,52 @@ const Calendar: React.FC<CalendarProps> = ({
     return format(dateValue, 'p', { locale: dateLocale });
   }, [dateLocale]);
 
-  const EventComponent = ({ event }: { event: CalendarEvent }) => (
-    <ContextMenu>
-      <ContextMenuTrigger>
+  const renderColorPicker = (eventData: any) => (
+    <div className="grid grid-cols-4 gap-2 p-2">
+      {GOOGLE_CALENDAR_COLORS.map(color => (
         <div
-          className="event"
-          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+          key={color.id}
+          className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
+          style={{ backgroundColor: color.hex }}
           onClick={(e) => {
-            if (e.button !== 0) return;
             e.stopPropagation();
-            onEventClick(event.data);
+            onEventColorChange(eventData, color.id);
           }}
-        >
-          <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
-          <span className="event-time">{formatEventTime(event.start)}</span>
-          <span className="event-title">{event.title}</span>
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent>
-        <div className="grid grid-cols-4 gap-2 p-2">
-          {GOOGLE_CALENDAR_COLORS.map(color => (
-            <div
-              key={color.id}
-              className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-              style={{ backgroundColor: color.hex }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventColorChange(event.data, color.id);
-              }}
-            />
-          ))}
-        </div>
-      </ContextMenuContent>
-    </ContextMenu>
+        />
+      ))}
+    </div>
   );
+
+  const EventComponent = ({ event }: { event: CalendarEvent }) => {
+    const handleContextMenu = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger onContextMenu={handleContextMenu}>
+          <div
+            className="event"
+            style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+            onClick={(e) => {
+              if (e.button !== 0) return;
+              e.stopPropagation();
+              onEventClick(event.data);
+            }}
+          >
+            <span className='mr-2' style={{ backgroundColor: event.color }}>&nbsp;</span>
+            <span className="event-time">{formatEventTime(event.start)}</span>
+            <span className="event-title">{event.title}</span>
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          {renderColorPicker(event.data)}
+          {onEventContextMenu && onEventContextMenu(event.data)}
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  };
 
   const EventInDayViewComponent = ({ event, style }: { event: CalendarEvent; style: React.CSSProperties }) => {
     const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
@@ -281,6 +296,7 @@ const Calendar: React.FC<CalendarProps> = ({
               />
             ))}
           </div>
+          {onEventContextMenu && onEventContextMenu(event.data)}
         </ContextMenuContent>
       </ContextMenu>
     );

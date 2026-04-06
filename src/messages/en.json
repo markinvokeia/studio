@@ -424,7 +424,25 @@
       "slotUnavailableTitle": "Slot Unavailable",
       "unexpectedError": "Unexpected error",
       "endTimeInvalid": "End time must be after start time",
-      "loadQuoteServicesError": "Failed to load services from quote"
+      "loadQuoteServicesError": "Failed to load services from quote",
+      "sessionCreated": "Clinic session created",
+      "sessionCreatedDesc": "The clinic session has been registered successfully.",
+      "sessionUpdated": "Clinic session updated",
+      "errorCreatingSession": "Error saving session",
+      "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
+      "patientIdRequired": "Patient ID is required"
+    },
+    "linkedSession": "Linked Clinic Session",
+    "noLinkedSession": "No clinic session linked to this appointment",
+    "createSession": "Create session",
+    "editSession": "Edit session",
+    "procedure": "Procedure",
+    "createSessionOnSave": "Create clinic session after saving",
+    "clinicSession": "Clinic Session",
+    "contextMenu": {
+      "createSession": "Create clinic session",
+      "services": "Services",
+      "notes": "Notes"
     }
   },
   "AppointmentsColumns": {
@@ -3506,7 +3524,120 @@
     "uploadDocument": "Upload Document"
   },
   "UserQuotes": {
-    "filterPlaceholder": "Filter quotes..."
+    "filterPlaceholder": "Filter quotes...",
+    "clinicSessions": "Clinical Sessions",
+    "noSessionsFound": "No sessions found",
+    "columns": {
+      "date": "Date",
+      "doctor": "Doctor",
+      "procedure": "Procedure",
+      "status": "Status",
+      "notes": "Clinical Notes",
+      "clinicalNotes": "Clinical Notes"
+    },
+    "actions": {
+      "title": "Actions",
+      "confirm": "Confirm",
+      "reject": "Reject",
+      "print": "Print",
+      "send": "Send",
+      "edit": "Edit",
+      "delete": "Delete",
+      "viewDetails": "View details"
+    },
+    "budget": {
+      "title": "Quote"
+    },
+    "items": {
+      "title": "Quote Items",
+      "service": "Service",
+      "quantity": "Quantity",
+      "unitPrice": "Unit Price",
+      "total": "Total",
+      "toothNumber": "Tooth #"
+    },
+    "dialogs": {
+      "editQuote": {
+        "title": "Edit Quote",
+        "description": "Modify the quote {docNo} details.",
+        "currency": "Currency",
+        "exchangeRate": "Exchange Rate",
+        "notes": "Notes",
+        "notesOptional": "Notes (optional)",
+        "notesPlaceholder": "Observations...",
+        "items": "Quote Items",
+        "addItem": "Add Item",
+        "cancel": "Cancel",
+        "save": "Save changes"
+      },
+      "confirmAction": {
+        "confirmTitle": "Confirm Quote",
+        "rejectTitle": "Reject Quote",
+        "confirmDescription": "Confirm quote {docNo}?",
+        "rejectDescription": "Reject quote {docNo}? This action cannot be undone.",
+        "notesLabel": "Notes",
+        "notesPlaceholder": "Add a note...",
+        "optional": "(optional)",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "reject": "Reject"
+      },
+      "deleteQuote": {
+        "title": "Delete Quote",
+        "description": "Are you sure you want to delete {docNo}? This action cannot be undone.",
+        "cancel": "Cancel",
+        "delete": "Delete"
+      },
+      "itemDialog": {
+        "title": "Add Item",
+        "editTitle": "Edit Item",
+        "description": "Complete the quote item details.",
+        "service": "Service",
+        "selectService": "Select service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "total": "Total",
+        "toothNumber": "Tooth #",
+        "toothNumberOptional": "Tooth # (optional)",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "add": "Add"
+      },
+      "deleteItem": {
+        "title": "Delete Item",
+        "description": "Are you sure you want to delete {itemName}? This action cannot be undone.",
+        "cancel": "Cancel",
+        "delete": "Delete"
+      },
+      "noItems": "No items. Add one with the button above."
+    },
+    "toasts": {
+      "quoteConfirmed": "Quote confirmed",
+      "quoteRejected": "Quote rejected",
+      "quoteDeleted": "Quote deleted",
+      "quoteUpdated": "Quote updated",
+      "itemAdded": "Item added",
+      "itemUpdated": "Item updated",
+      "itemDeleted": "Item deleted",
+      "errorPrinting": "Error printing",
+      "errorSending": "Error sending",
+      "errorDeleting": "Error deleting",
+      "errorUpdating": "Error updating",
+      "errorSavingItem": "Error saving item",
+      "errorDeletingItem": "Error deleting item"
+    }
+  },
+  "UserAppointments": {
+    "appointmentDetails": "Appointment Details",
+    "linkedSessions": "Linked Sessions",
+    "noLinkedSessions": "No linked sessions found",
+    "noAppointmentSelected": "Select an appointment to view details",
+    "columns": {
+      "date": "Date",
+      "doctor": "Doctor",
+      "procedure": "Procedure",
+      "status": "Status"
+    }
   },
   "UserOrders": {
     "showingForQuote": "Showing orders for quote"
@@ -4427,5 +4558,45 @@
       "import": "Import",
       "cancel": "Cancel"
     }
+  },
+  "ClinicSessionDialog": {
+    "treatments": {
+      "title": "Tooth Treatments",
+      "toothNumber": "Tooth #",
+      "description": "Description",
+      "add": "Add treatment",
+      "noTreatments": "No treatments",
+      "treatmentPlaceholder": "Treatment description..."
+    },
+    "attachments": {
+      "title": "Attachments",
+      "dropzone": "Drop files here or click to select",
+      "noFiles": "No attachments",
+      "existing": "Existing attachments",
+      "new": "New attachments",
+      "browseFiles": "browse files"
+    },
+    "createTitle": "Create Session",
+    "editTitle": "Edit Session",
+    "date": "Date",
+    "doctor": "Doctor",
+    "selectDoctor": "Select a doctor",
+    "doctorRequired": "Doctor is required.",
+    "procedure": "Procedure",
+    "procedurePlaceholder": "Enter the procedure performed...",
+    "diagnosis": "Diagnosis",
+    "diagnosisPlaceholder": "Enter the diagnosis...",
+    "notes": "Clinical Notes",
+    "notesPlaceholder": "Enter additional clinical notes...",
+    "nextSessionPlan": "Next Session Plan",
+    "nextSessionPlanPlaceholder": "Enter the plan for the next appointment...",
+    "nextSessionDate": "Next Session Date",
+    "nextSessionDatePlaceholder": "Select date...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "fileUploadError": "Error uploading files",
+    "fileTooBig": "File exceeds the {size}MB limit",
+    "fileTypeNotAllowed": "File type not allowed"
   }
 }

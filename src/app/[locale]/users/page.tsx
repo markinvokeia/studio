@@ -1399,6 +1399,7 @@ export default function UsersPage() {
                               onDataChange={() => {
                                 fetchUserFinancialData(selectedUser.id);
                                 loadUsers();
+                                setRefreshQuotesTrigger(prev => prev + 1);
                               }}
                             />
                           </TabsContent>

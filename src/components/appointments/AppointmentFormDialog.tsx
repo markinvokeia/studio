@@ -2,6 +2,8 @@
 'use client';
 
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
+import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -22,13 +24,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Appointment, Calendar as CalendarType, Quote, Service, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientSession, Quote, Service, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { getOrderServicesByQuoteId } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { Check, ChevronsUpDown, FilePlus, Link2, Loader2, X } from 'lucide-react';
+import { Check, ChevronsUpDown, FilePlus, Link2, Loader2, Stethoscope, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -127,6 +129,13 @@ export function AppointmentFormDialog({
     const [isLoadingQuoteServices, setIsLoadingQuoteServices] = React.useState(false);
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
 
+    // Clinic session states
+    const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+    const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
+    const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
+    const [createSessionOnSave, setCreateSessionOnSave] = React.useState(false);
+    const [pendingSaveResult, setPendingSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
+
     // Load user quotes when user changes
     React.useEffect(() => {
         const loadUserQuotes = async () => {
@@ -183,6 +192,11 @@ export function AppointmentFormDialog({
     React.useEffect(() => {
         if (open) {
             setErrors([]);
+            setCreateSessionOnSave(false);
+            setPendingSaveResult(null);
+            if (!editingAppointment) {
+                setLinkedSession(null);
+            }
             if (editingAppointment) {
                 let foundCalendar = calendars.find(c => c.google_calendar_id === editingAppointment.calendar_id);
                 if (!foundCalendar) {
@@ -222,6 +236,7 @@ export function AppointmentFormDialog({
                     } : null,
                 });
                 setOriginalCalendarId(editingAppointment.google_calendar_id || editingAppointment.calendar_id);
+                loadLinkedSession(editingAppointment);
             } else if (initialData) {
                 setAppointment({
                     user: initialData.user || null,
@@ -570,8 +585,13 @@ export function AppointmentFormDialog({
 
             if (isSuccess) {
                 toast({ title: isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
-                onOpenChange(false);
-                if (onSaveSuccess) onSaveSuccess(result, startDateTime);
+                if (!isEditing && createSessionOnSave) {
+                    setPendingSaveResult({ result, startDateTime });
+                    setIsSessionDialogOpen(true);
+                } else {
+                    onOpenChange(false);
+                    if (onSaveSuccess) onSaveSuccess(result, startDateTime);
+                }
             } else {
                 const errorMessage = result?.error?.description || result?.error?.message || result?.message || tToasts('unexpectedError');
                 if (errorMessage.includes("No existe disponibilidad")) {
@@ -583,6 +603,84 @@ export function AppointmentFormDialog({
             }
         } catch (error) {
             toast({ variant: "destructive", title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+        }
+    };
+
+    const loadLinkedSession = React.useCallback(async (appt: Appointment) => {
+        const patientId = appt.patientId;
+        if (!patientId || !appt.id) return;
+        setIsLoadingLinkedSession(true);
+        try {
+            const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: patientId });
+            const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+            const match = sessions.find((s: any) => s?.appointment_id?.toString() === appt.id);
+            if (match) {
+                setLinkedSession({
+                    sesion_id: Number(match.sesion_id),
+                    tipo_sesion: match.tipo_sesion,
+                    fecha_sesion: match.fecha_sesion || '',
+                    diagnostico: match.diagnostico || null,
+                    procedimiento_realizado: match.procedimiento_realizado || '',
+                    notas_clinicas: match.notas_clinicas || '',
+                    plan_proxima_cita: match.plan_proxima_cita,
+                    fecha_proxima_cita: match.fecha_proxima_cita,
+                    doctor_id: match.doctor_id || null,
+                    doctor_name: match.doctor_name || match.nombre_doctor,
+                    nombre_doctor: match.nombre_doctor || match.doctor_name,
+                    estado_odontograma: match.estado_odontograma,
+                    tratamientos: match.tratamientos || [],
+                    archivos_adjuntos: match.archivos_adjuntos || [],
+                    quote_id: match.quote_id?.toString(),
+                    quote_doc_no: match.quote_doc_no,
+                    appointment_id: match.appointment_id?.toString(),
+                });
+            } else {
+                setLinkedSession(null);
+            }
+        } catch {
+            setLinkedSession(null);
+        } finally {
+            setIsLoadingLinkedSession(false);
+        }
+    }, []);
+
+    const handleSaveSession = async (sessionData: ClinicSessionFormData) => {
+        const patientId = appointment.user?.id || editingAppointment?.patientId || pendingSaveResult?.result?.patient_id;
+        if (!patientId) {
+            toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('patientIdRequired') });
+            return;
+        }
+
+        const appointmentId = pendingSaveResult?.result?.appointment_id
+            || pendingSaveResult?.result?.id
+            || editingAppointment?.id;
+        const quoteId = appointment.quote?.id || editingAppointment?.quote_id;
+
+        const payload = {
+            ...sessionData,
+            patient_id: patientId,
+            ...(appointmentId ? { appointment_id: appointmentId } : {}),
+            ...(quoteId ? { quote_id: quoteId } : {}),
+        };
+
+        try {
+            const isEditing = !!sessionData.sesion_id;
+            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, payload);
+            toast({
+                title: isEditing ? tToasts('sessionUpdated') : tToasts('sessionCreated'),
+                ...(isEditing ? {} : { description: tToasts('sessionCreatedDesc') }),
+            });
+            setIsSessionDialogOpen(false);
+            if (pendingSaveResult) {
+                onOpenChange(false);
+                if (onSaveSuccess) onSaveSuccess(pendingSaveResult.result, pendingSaveResult.startDateTime);
+                setPendingSaveResult(null);
+            } else {
+                // Refresh linked session display
+                if (editingAppointment) loadLinkedSession(editingAppointment);
+            }
+        } catch (error) {
+            toast({ variant: 'destructive', title: tToasts('errorCreatingSession'), description: tToasts('errorCreatingSessionDesc') });
         }
     };
 
@@ -879,6 +977,54 @@ export function AppointmentFormDialog({
                         </div>
                     </div>
 
+                    {/* Clinic Session Section */}
+                    <div className="border-t px-6 pt-4 pb-2">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm font-medium">{t('clinicSession')}</span>
+                        </div>
+                        {editingAppointment ? (
+                            <div className="space-y-2">
+                                {isLoadingLinkedSession ? (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span>{t('checking')}</span>
+                                    </div>
+                                ) : linkedSession ? (
+                                    <div className="flex items-center justify-between rounded-md border p-3">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
+                                            </p>
+                                        </div>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('editSession')}
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                            {t('createSession')}
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="createSessionOnSave"
+                                    checked={createSessionOnSave}
+                                    onCheckedChange={(checked) => setCreateSessionOnSave(checked === true)}
+                                />
+                                <Label htmlFor="createSessionOnSave" className="text-sm font-normal cursor-pointer">
+                                    {t('createSessionOnSave')}
+                                </Label>
+                            </div>
+                        )}
+                    </div>
+
                     {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
                         <div className="border-t pt-4 px-6 mb-4">
                             <h3 className="text-lg font-medium mb-4 text-center">{t('createDialog.suggestedTimes')}</h3>
@@ -913,6 +1059,19 @@ export function AppointmentFormDialog({
                     <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
                 </DialogFooter>
             </DialogContent>
+
+            {/* Clinic Session Dialog */}
+            <ClinicSessionDialog
+                open={isSessionDialogOpen}
+                onOpenChange={setIsSessionDialogOpen}
+                existingSession={linkedSession ?? undefined}
+                showTreatments={false}
+                showAttachments={false}
+                quoteId={appointment.quote?.id || editingAppointment?.quote_id}
+                appointmentId={editingAppointment?.id || pendingSaveResult?.result?.appointment_id || pendingSaveResult?.result?.id}
+                userId={appointment.user?.id || editingAppointment?.patientId || ''}
+                onSave={handleSaveSession}
+            />
 
             {/* Quick Quote Dialog */}
             <QuickQuoteDialog

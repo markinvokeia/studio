@@ -7,10 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DatePicker } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
@@ -21,6 +19,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CalendarCheck, CheckCircle2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 
 type ActionType = 'schedule' | 'complete';
 
@@ -59,12 +58,12 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
+  const [isClinicSessionDialogOpen, setIsClinicSessionDialogOpen] = React.useState(false);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
   const [actionType, setActionType] = React.useState<ActionType | null>(null);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [itemNotes, setItemNotes] = React.useState('');
 
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
   const [doctors, setDoctors] = React.useState<UserType[]>([]);
@@ -186,7 +185,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       setIsAppointmentDialogOpen(true);
     } else {
       setSelectedDate(new Date());
-      setIsDatePickerOpen(true);
+      setIsClinicSessionDialogOpen(true);
     }
   };
 
@@ -205,11 +204,6 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         schedule_date_time: toLocalISOString(selectedDate),
         user_id: userId,
       };
-
-      // Include notes for complete action
-      if (actionType === 'complete' && itemNotes) {
-        queryPayload.notes = itemNotes;
-      }
 
       const apiRoute = isSales
         ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE
@@ -242,7 +236,82 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       setIsDatePickerOpen(false);
       setSelectedItem(null);
       setActionType(null);
-      setItemNotes('');
+    }
+  };
+
+  const handleClinicSessionSave = async (data: ClinicSessionFormData) => {
+    if (!selectedItem || !quoteId || !userId) return;
+
+    try {
+      // Create the clinic session via API
+      const formData = new FormData();
+      
+      // Handle standard fields
+      (Object.keys(data) as Array<keyof ClinicSessionFormData>).forEach(key => {
+        if (key === 'tratamientos' || key === 'archivos_adjuntos' || key === 'deletedAttachmentIds') return;
+        const value = data[key];
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+      
+      // Handle tratamientos (JSON stringified array)
+      if (data.tratamientos && data.tratamientos.length > 0) {
+        formData.append('tratamientos', JSON.stringify(data.tratamientos));
+      }
+      
+      // Handle deletedAttachmentIds (JSON stringified array)
+      if (data.deletedAttachmentIds && data.deletedAttachmentIds.length > 0) {
+        formData.append('deletedAttachmentIds', JSON.stringify(data.deletedAttachmentIds));
+      }
+      
+      // Handle archivos_adjuntos (File objects)
+      if (data.archivos_adjuntos && data.archivos_adjuntos.length > 0) {
+        data.archivos_adjuntos.forEach((file, index) => {
+          formData.append(`archivos_adjuntos[${index}]`, file);
+        });
+      }
+      
+      formData.append('paciente_id', userId);
+
+      await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+
+      // Now complete the order item
+      const queryPayload: any = {
+        action: 'complete',
+        order_item_id: parseInt(selectedItem.id, 10),
+        schedule_date_time: toLocalISOString(selectedDate || new Date()),
+        user_id: userId,
+      };
+
+      const apiRoute = isSales
+        ? API_ROUTES.SALES.QUOTES_LINES_SCHEDULE
+        : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
+
+      await api.post(apiRoute, {
+        query: JSON.stringify(queryPayload),
+        quote_number: parseInt(quoteId, 10),
+        order_item_id: parseInt(selectedItem.id, 10),
+        schedule_complete: 'complete',
+        is_sales: isSales,
+      });
+
+      toast({
+        title: t('toast.completedTitle'),
+        description: t('toast.updateSuccess'),
+      });
+
+      if (onItemsUpdate) {
+        onItemsUpdate();
+      }
+
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: t('toast.error'),
+        description: error instanceof Error ? error.message : t('toast.updateError'),
+      });
+      throw error;
     }
   };
 
@@ -479,43 +548,24 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         </CardContent>
       </Card>
 
-      <Dialog open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {actionType === 'schedule' ? t('dialog.scheduleTitle') : t('dialog.completeTitle')}
-            </DialogTitle>
-            <DialogDescription>
-              {actionType === 'schedule' ? t('dialog.scheduleDescription') : t('dialog.completeDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center py-4">
-            <DatePicker
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border shadow"
-            />
-          </div>
-          {actionType === 'complete' && (
-            <div className="px-6 pb-4">
-              <label className="text-sm font-medium">{t('dialog.notesLabel')}</label>
-              <Textarea
-                value={itemNotes}
-                onChange={(e) => setItemNotes(e.target.value)}
-                placeholder={t('dialog.notesPlaceholder')}
-                className="mt-2 min-h-[80px]"
-              />
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDatePickerOpen(false)}>
-              {t('actions.cancel')}
-            </Button>
-            <Button onClick={handleDateSave}>{t('actions.save')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ClinicSessionDialog
+        open={isClinicSessionDialogOpen}
+        onOpenChange={(open) => {
+          setIsClinicSessionDialogOpen(open);
+          if (!open) {
+            setSelectedItem(null);
+            setActionType(null);
+          }
+        }}
+        onSave={handleClinicSessionSave}
+        userId={userId || ''}
+        quoteId={quoteId || ''}
+        appointmentId={selectedItem?.appointment_id}
+        defaultDate={selectedDate}
+        serviceName={selectedItem?.service_name}
+        showTreatments={true}
+        showAttachments={true}
+      />
 
       <AppointmentFormDialog
         open={isAppointmentDialogOpen}

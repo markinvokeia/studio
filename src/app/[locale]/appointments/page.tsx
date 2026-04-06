@@ -26,18 +26,25 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/components/ui/dialog';
+import {
+    ContextMenuItem,
+} from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Appointment, Calendar as CalendarType, Service, User as UserType } from '@/lib/types';
+import { useClinicHistory } from '@/hooks/useClinicHistory';
+import { usePermissions } from '@/hooks/usePermissions';
+import { Appointment, Calendar as CalendarType, PatientSession, Service, User as UserType } from '@/lib/types';
 import api from '@/services/api';
 import { getSalesServices, getUserServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
-import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, PlusCircle, RefreshCw, Trash2, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { getAppointmentColumns } from './columns';
 
 
@@ -320,6 +327,14 @@ export default function AppointmentsPage() {
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState('month');
 
+    // Clinic Session Dialog state
+    const [isClinicSessionOpen, setIsClinicSessionOpen] = React.useState(false);
+    const [clinicSessionAppointment, setClinicSessionAppointment] = React.useState<Appointment | null>(null);
+    const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+    const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
+    const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
+    const { hasPermission } = usePermissions();
+
 
 
 
@@ -359,9 +374,50 @@ export default function AppointmentsPage() {
         }
     }, [groupBy, selectedCalendarIds]);
 
+    const loadLinkedSession = React.useCallback(async (appointment: Appointment) => {
+        const patientId = appointment.patientId;
+        if (!patientId) { setLinkedSession(null); return; }
+        setIsLoadingLinkedSession(true);
+        try {
+            const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: patientId });
+            const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+            const match = sessions.find((s: any) => s?.appointment_id?.toString() === appointment.id);
+            if (match) {
+                const s = match;
+                setLinkedSession({
+                    sesion_id: Number(s.sesion_id),
+                    tipo_sesion: s.tipo_sesion,
+                    fecha_sesion: s.fecha_sesion || '',
+                    diagnostico: s.diagnostico || null,
+                    procedimiento_realizado: s.procedimiento_realizado || '',
+                    notas_clinicas: s.notas_clinicas || '',
+                    plan_proxima_cita: s.plan_proxima_cita,
+                    fecha_proxima_cita: s.fecha_proxima_cita,
+                    doctor_id: s.doctor_id || null,
+                    doctor_name: s.doctor_name || s.nombre_doctor,
+                    nombre_doctor: s.nombre_doctor || s.doctor_name,
+                    estado_odontograma: s.estado_odontograma,
+                    tratamientos: s.tratamientos || [],
+                    archivos_adjuntos: s.archivos_adjuntos || [],
+                    quote_id: s.quote_id?.toString(),
+                    quote_doc_no: s.quote_doc_no,
+                    appointment_id: s.appointment_id?.toString(),
+                });
+            } else {
+                setLinkedSession(null);
+            }
+        } catch {
+            setLinkedSession(null);
+        } finally {
+            setIsLoadingLinkedSession(false);
+        }
+    }, []);
+
     const handleEventClick = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
+        setLinkedSession(null);
         setIsDetailViewOpen(true);
+        loadLinkedSession(appointment);
     };
 
     const handleEdit = (appointment: Appointment) => {
@@ -376,6 +432,56 @@ export default function AppointmentsPage() {
     const handleCancel = (appointment: Appointment) => {
         setDeletingAppointment(appointment);
         setIsDeleteAlertOpen(true);
+    };
+
+    // Clinic Session Handlers
+    const handleOpenClinicSession = (appointment: Appointment) => {
+        setClinicSessionAppointment(appointment);
+        setIsClinicSessionOpen(true);
+    };
+
+    const handleSaveClinicSession = async (data: ClinicSessionFormData) => {
+        if (!clinicSessionAppointment?.patientId) {
+            toast({
+                variant: 'destructive',
+                title: t('toasts.errorCreatingSession'),
+                description: t('toasts.patientIdRequired'),
+            });
+            return;
+        }
+
+        try {
+            const sessionData = {
+                ...data,
+                appointment_id: clinicSessionAppointment.id,
+                quote_id: clinicSessionAppointment.quote_id,
+            };
+
+            if (data.sesion_id) {
+                await updateSession(
+                    data.sesion_id,
+                    clinicSessionAppointment.patientId,
+                    sessionData,
+                    data.archivos_adjuntos,
+                    data.deletedAttachmentIds,
+                );
+                toast({ title: t('toasts.sessionUpdated') });
+            } else {
+                await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
+                toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
+            }
+
+            setIsClinicSessionOpen(false);
+            setClinicSessionAppointment(null);
+            loadLinkedSession(clinicSessionAppointment);
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('toasts.errorCreatingSession'),
+                description: error instanceof Error ? error.message : t('toasts.errorCreatingSessionDesc'),
+            });
+            throw error;
+        }
     };
 
     const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
@@ -641,6 +747,24 @@ export default function AppointmentsPage() {
         return t('grouping.options.none');
     }, [groupBy, t]);
 
+    // Render additional context menu items for clinic session
+    const renderClinicSessionMenuItem = (appointment: Appointment) => {
+        if (!hasPermission('CLINIC_HISTORY_SESSION_CREATE') && !hasPermission('CLINIC_HISTORY_CREATE')) {
+            return null;
+        }
+
+        return (
+            <ContextMenuItem
+                key="clinic-session"
+                onClick={() => handleOpenClinicSession(appointment)}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <Stethoscope className="h-4 w-4" />
+                {t('contextMenu.createSession')}
+            </ContextMenuItem>
+        );
+    };
+
     // Unused form logic removed
 
 
@@ -657,6 +781,7 @@ export default function AppointmentsPage() {
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
+                    onEventContextMenu={renderClinicSessionMenuItem}
                     groupBy={groupBy}
                     groupingColumns={groupingColumns}
                     onViewChange={setCurrentView}
@@ -807,6 +932,33 @@ export default function AppointmentsPage() {
                 checkDoctorAvailability={checkDoctorAvailability}
             />
 
+            {clinicSessionAppointment && (
+                <ClinicSessionDialog
+                    open={isClinicSessionOpen}
+                    onOpenChange={(open) => {
+                        setIsClinicSessionOpen(open);
+                        if (!open) setClinicSessionAppointment(null);
+                    }}
+                    onSave={handleSaveClinicSession}
+                    userId={clinicSessionAppointment.patientId}
+                    appointmentId={clinicSessionAppointment.id}
+                    quoteId={clinicSessionAppointment.quote_id}
+                    serviceName={clinicSessionAppointment.services && clinicSessionAppointment.services.length > 0
+                        ? clinicSessionAppointment.services.map(s => s.name).join(', ')
+                        : clinicSessionAppointment.service_name}
+                    defaultDate={clinicSessionAppointment.start?.dateTime
+                        ? new Date(clinicSessionAppointment.start.dateTime)
+                        : new Date(clinicSessionAppointment.date)}
+                    showTreatments={true}
+                    showAttachments={true}
+                    prefillData={{
+                        doctor_id: clinicSessionAppointment.doctorId,
+                        doctor_name: clinicSessionAppointment.doctorName,
+                    }}
+                    existingSession={linkedSession ?? undefined}
+                />
+            )}
+
             <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -820,35 +972,86 @@ export default function AppointmentsPage() {
                 </AlertDialogContent>
             </AlertDialog>
             <Dialog open={isDetailViewOpen} onOpenChange={setIsDetailViewOpen}>
-                <DialogContent>
+                <DialogContent maxWidth="2xl">
                     <DialogHeader>
-                    <DialogTitle>{selectedAppointment?.patientName} - {selectedAppointment?.services && selectedAppointment.services.length > 0 ? selectedAppointment.services.map(s => s.name).join(', ') : selectedAppointment?.service_name}</DialogTitle>
+                        <DialogTitle>{selectedAppointment?.patientName} - {selectedAppointment?.services && selectedAppointment.services.length > 0 ? selectedAppointment.services.map(s => s.name).join(', ') : selectedAppointment?.service_name}</DialogTitle>
                     </DialogHeader>
                     <DialogBody className="px-6 py-4">
                         {selectedAppointment && (
-                            <div className="grid gap-4 py-4">
-                                <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
-                                <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
-                                <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
-                                <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
-                                <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
-                                <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
-                                <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
-                                {selectedAppointment.services && selectedAppointment.services.length > 0 && (
-                                    <div className='flex gap-2'><strong>Servicios:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
-                                )}
-                                {selectedAppointment.quote_doc_no && (
-                                    <div className='flex items-center gap-2'>
-                                        <strong>{tColumns('quoteDocNo')}:</strong>
-                                        <Badge variant="secondary" className="font-mono gap-1.5">
-                                            <FileText className="h-3.5 w-3.5" />
-                                            {selectedAppointment.quote_doc_no}
-                                        </Badge>
+                            <div className="space-y-4">
+                                <div className="grid gap-3">
+                                    <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                                    <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                                    <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
+                                    <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
+                                    <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
+                                    <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
+                                    <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
+                                    {selectedAppointment.services && selectedAppointment.services.length > 0 && (
+                                        <div className='flex gap-2'><strong>{t('contextMenu.services')}:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
+                                    )}
+                                    {selectedAppointment.quote_doc_no && (
+                                        <div className='flex items-center gap-2'>
+                                            <strong>{tColumns('quoteDocNo')}:</strong>
+                                            <Badge variant="secondary" className="font-mono gap-1.5">
+                                                <FileText className="h-3.5 w-3.5" />
+                                                {selectedAppointment.quote_doc_no}
+                                            </Badge>
+                                        </div>
+                                    )}
+                                    {selectedAppointment.notes && (
+                                        <div className='flex gap-2 flex-col'><strong>{t('contextMenu.notes')}:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>
+                                    )}
+                                </div>
+
+                                <Separator />
+
+                                {/* Linked clinic session */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-sm font-semibold flex items-center gap-2">
+                                            <Stethoscope className="h-4 w-4" />
+                                            {t('linkedSession')}
+                                        </p>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-7 text-xs gap-1.5"
+                                            onClick={() => handleOpenClinicSession(selectedAppointment)}
+                                        >
+                                            <Stethoscope className="h-3.5 w-3.5" />
+                                            {linkedSession ? t('editSession') : t('createSession')}
+                                        </Button>
                                     </div>
-                                )}
-                                {selectedAppointment.notes && (
-                                    <div className='flex gap-2 flex-col'><strong>Notas:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>
-                                )}
+                                    {isLoadingLinkedSession ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        </div>
+                                    ) : linkedSession ? (
+                                        <div className="rounded-md border p-3 space-y-1.5 text-sm bg-muted/20">
+                                            <div className="flex gap-2">
+                                                <span className="font-medium">{t('createDialog.date')}:</span>
+                                                <span>{linkedSession.fecha_sesion ? format(parseISO(linkedSession.fecha_sesion), 'dd/MM/yyyy') : '—'}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className="font-medium">{tColumns('doctor')}:</span>
+                                                <span>{linkedSession.doctor_name || '—'}</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <span className="font-medium">{t('procedure')}:</span>
+                                                <span className="truncate">{linkedSession.procedimiento_realizado || '—'}</span>
+                                            </div>
+                                            {linkedSession.notas_clinicas && (
+                                                <div className="flex gap-2">
+                                                    <span className="font-medium">{t('contextMenu.notes')}:</span>
+                                                    <span className="text-muted-foreground line-clamp-2">{linkedSession.notas_clinicas}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground italic py-1">{t('noLinkedSession')}</p>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </DialogBody>

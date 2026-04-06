@@ -193,6 +193,7 @@ export type OrderItem = {
   scheduled_date?: string;
   completed_date?: string;
   invoiced_date?: string;
+  appointment_id?: string;
 };
 
 export type Invoice = {
@@ -586,6 +587,7 @@ export type PatientSession = {
   archivos_adjuntos: AttachedFile[];
   quote_id?: string;
   quote_doc_no?: string;
+  appointment_id?: string;
 };
 
 export type AvailabilityRule = {
@@ -964,4 +966,19 @@ export type UserCommunicationPreference = {
 export type UserCommunicationPreferences = {
   user_id: string;
   preferences: UserCommunicationPreference[];
+};
+
+export type QuoteClinicSession = {
+  id: string;
+  paciente_id: string;
+  doctor_id: string;
+  fecha_sesion: string;
+  procedimiento_realizado: string;
+  plan_proxima_cita: string | null;
+  diagnostico: string | null;
+  notas_clinicas: string;
+  fecha_proxima_cita: string | null;
+  quote_id: number;
+  paciente_nombre: string;
+  doctor_nombre: string | null;
 };

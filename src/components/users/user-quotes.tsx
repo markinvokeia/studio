@@ -18,6 +18,7 @@ import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -25,13 +26,13 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
-import { Quote, QuoteItem, Service, UserDetailMode } from '@/lib/types';
+import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Stethoscope, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -60,6 +61,80 @@ const quoteEditSchema = z.object({
   })).default([]),
 });
 type QuoteEditFormValues = z.infer<typeof quoteEditSchema>;
+
+// ── Clinic Session types ────────────────────────────────────────────────────────
+async function getQuoteClinicSessions(quoteId: string): Promise<QuoteClinicSession[]> {
+  try {
+    const data = await api.get(API_ROUTES.SALES.QUOTE_CLINIC_SESSIONS, { quote_id: quoteId });
+    const raw = Array.isArray(data) ? data : (data.sessions || data.data || data.result || []);
+    return raw
+      .filter((s: any) => {
+        if (Object.keys(s).length === 0) return false;
+        return s.id != null;
+      })
+      .map((s: any) => ({
+        id: s.id || '',
+        paciente_id: s.paciente_id || '',
+        doctor_id: s.doctor_id || '',
+        fecha_sesion: s.fecha_sesion || '',
+        procedimiento_realizado: s.procedimiento_realizado || '',
+        plan_proxima_cita: s.plan_proxima_cita || null,
+        diagnostico: s.diagnostico || null,
+        notas_clinicas: s.notas_clinicas || '',
+        fecha_proxima_cita: s.fecha_proxima_cita || null,
+        quote_id: s.quote_id || 0,
+        paciente_nombre: s.paciente_nombre || '',
+        doctor_nombre: s.doctor_nombre || null,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function getClinicSessionColumns(t: (key: string) => string): ColumnDef<QuoteClinicSession>[] {
+  return [
+    {
+      accessorKey: 'fecha_sesion',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.date')} />,
+      cell: ({ row }) => {
+        const val: string = row.getValue('fecha_sesion');
+        if (!val) return <span className="text-muted-foreground">—</span>;
+        const d = new Date(val);
+        return <span>{d.toLocaleDateString()}</span>;
+      },
+    },
+    {
+      accessorKey: 'procedimiento_realizado',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.procedure')} />,
+      cell: ({ row }) => (
+        <span className="truncate max-w-[300px] block" title={row.getValue('procedimiento_realizado')}>
+          {row.getValue('procedimiento_realizado')}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'doctor_nombre',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.doctor')} />,
+      cell: ({ row }) => {
+        const val: string | null = row.getValue('doctor_nombre');
+        return <span>{val || '—'}</span>;
+      },
+    },
+    {
+      accessorKey: 'notas_clinicas',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.notes')} />,
+      cell: ({ row }) => {
+        const val: string = row.getValue('notas_clinicas');
+        if (!val) return <span className="text-muted-foreground">—</span>;
+        return (
+          <span className="truncate max-w-[200px] block text-xs" title={val}>
+            {val.length > 50 ? `${val.substring(0, 50)}...` : val}
+          </span>
+        );
+      },
+    },
+  ];
+}
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
@@ -252,6 +327,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
   const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
 
+  // Clinic Sessions state
+  const [clinicSessions, setClinicSessions] = React.useState<QuoteClinicSession[]>([]);
+  const [isLoadingClinicSessions, setIsLoadingClinicSessions] = React.useState(false);
+
   const columns = React.useMemo(() => getColumns(t), [t]);
   const isDraft = selectedQuote?.status?.toLowerCase() === 'draft';
   const canUpdateQuote = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
@@ -309,12 +388,27 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     } catch { /* silent */ }
   }, [isSales, services.length]);
 
+  const loadQuoteClinicSessions = React.useCallback(async (quoteId: string) => {
+    setIsLoadingClinicSessions(true);
+    try {
+      const sessions = await getQuoteClinicSessions(quoteId);
+      setClinicSessions(sessions);
+    } catch {
+      setClinicSessions([]);
+    } finally {
+      setIsLoadingClinicSessions(false);
+    }
+  }, []);
+
   React.useEffect(() => { loadQuotes(); }, [loadQuotes]);
 
   // Efecto para refrescar cuando cambia refreshTrigger
   React.useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
       loadQuotes(true);
+      if (selectedQuote) {
+        loadQuoteClinicSessions(selectedQuote.id);
+      }
     }
   }, [refreshTrigger]);
 
@@ -333,7 +427,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     setIsSheetOpen(true);
     loadItems(quote.id);
     loadServices();
-  }, [loadItems, loadServices]);
+    loadQuoteClinicSessions(quote.id);
+  }, [loadItems, loadServices, loadQuoteClinicSessions]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
@@ -344,7 +439,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       window.open(url, '_blank');
       URL.revokeObjectURL(url);
     } catch {
-      toast({ title: 'Error al imprimir', variant: 'destructive' });
+      toast({ title: t('UserQuotes.toasts.errorPrinting'), variant: 'destructive' });
     }
   };
 
@@ -352,10 +447,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     if (!selectedQuote || !canSendQuote) return;
     try {
       await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quote_id: selectedQuote.id, is_sales: isSales });
-      toast({ title: 'Presupuesto enviado' });
+      toast({ title: tQuotes('sendEmailDialog.success') });
       await loadQuotes(true);
     } catch {
-      toast({ title: 'Error al enviar', variant: 'destructive' });
+      toast({ title: t('UserQuotes.toasts.errorSending'), variant: 'destructive' });
     }
   };
 
@@ -441,13 +536,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         notes: actionNotes,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
-      toast({ title: confirmAction === 'confirm' ? 'Presupuesto confirmado' : 'Presupuesto rechazado' });
+      toast({ title: confirmAction === 'confirm' ? t('UserQuotes.toasts.quoteConfirmed') : t('UserQuotes.toasts.quoteRejected') });
       setConfirmAction(null);
       setActionNotes('');
       await loadQuotes(true);
       onDataChange?.();
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al procesar la acción', variant: 'destructive' });
+      toast({ title: e?.message || t('QuotesPage.toast.quoteActionError', { action: confirmAction }), variant: 'destructive' });
     } finally {
       setIsSubmittingAction(false);
     }
@@ -461,7 +556,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         { id: selectedQuote.id, is_sales: isSales }
       );
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
-      toast({ title: 'Presupuesto eliminado' });
+      toast({ title: t('UserQuotes.toasts.quoteDeleted') });
       setIsDeletingQuote(false);
       setIsSheetOpen(false);
       setRowSelection({});
@@ -470,7 +565,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       await loadQuotes(true);
       onDataChange?.();
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al eliminar', variant: 'destructive' });
+      toast({ title: e?.message || t('UserQuotes.toasts.errorDeleting'), variant: 'destructive' });
     }
   };
 
@@ -563,13 +658,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         is_sales: isSales,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
-      toast({ title: 'Presupuesto actualizado' });
+      toast({ title: t('UserQuotes.toasts.quoteUpdated') });
       setIsEditQuoteOpen(false);
       await loadQuotes(true);
       loadItems(selectedQuote.id);
       onDataChange?.();
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
+      toast({ title: e?.message || t('UserQuotes.toasts.errorUpdating'), variant: 'destructive' });
     } finally {
       setIsSubmittingQuote(false);
     }
@@ -602,12 +697,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         is_sales: isSales,
       });
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
-      toast({ title: editingItem ? 'Ítem actualizado' : 'Ítem agregado' });
+      toast({ title: editingItem ? t('UserQuotes.toasts.itemUpdated') : t('UserQuotes.toasts.itemAdded') });
       setIsItemDialogOpen(false);
       loadItems(selectedQuote.id);
       onDataChange?.();
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al guardar ítem', variant: 'destructive' });
+      toast({ title: e?.message || t('UserQuotes.toasts.errorSavingItem'), variant: 'destructive' });
     } finally {
       setIsSubmittingItem(false);
     }
@@ -621,12 +716,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         { id: deletingItem.id, quote_id: selectedQuote.id, is_sales: isSales }
       );
       if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
-      toast({ title: 'Ítem eliminado' });
+      toast({ title: t('UserQuotes.toasts.itemDeleted') });
       setDeletingItem(null);
       loadItems(selectedQuote.id);
       onDataChange?.();
     } catch (e: any) {
-      toast({ title: e?.message || 'Error al eliminar', variant: 'destructive' });
+      toast({ title: e?.message || t('UserQuotes.toasts.errorDeletingItem'), variant: 'destructive' });
     }
   };
 
@@ -643,7 +738,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}
           >
             <CheckCircle className="h-3.5 w-3.5" />
-            Confirmar
+            {t('UserQuotes.actions.confirm')}
           </Button>
         </>
       )}
@@ -656,7 +751,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}
           >
             <XCircle className="h-3.5 w-3.5" />
-            Rechazar
+            {t('UserQuotes.actions.reject')}
           </Button>
         </>
       )}
@@ -665,7 +760,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-              Acciones
+              {t('UserQuotes.actions.title')}
               <ChevronDown className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -673,13 +768,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             {canPrintQuote && (
               <DropdownMenuItem onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
-                Imprimir
+                {t('UserQuotes.actions.print')}
               </DropdownMenuItem>
             )}
             {canSend && (
               <DropdownMenuItem onClick={() => handleSendEmailClick(selectedQuote)}>
                 <Send className="h-4 w-4 mr-2" />
-                Enviar
+                {t('UserQuotes.actions.send')}
               </DropdownMenuItem>
             )}
             {isDraft && (canUpdateQuote || canDeleteQuote) && (
@@ -688,13 +783,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 {canUpdateQuote && (
                   <DropdownMenuItem onClick={() => setIsEditQuoteOpen(true)}>
                     <Pencil className="h-4 w-4 mr-2" />
-                    Editar
+                    {t('UserQuotes.actions.edit')}
                   </DropdownMenuItem>
                 )}
                 {canDeleteQuote && (
                   <DropdownMenuItem onClick={() => setIsDeletingQuote(true)} className="text-destructive focus:text-destructive">
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar
+                    {t('UserQuotes.actions.delete')}
                   </DropdownMenuItem>
                 )}
               </>
@@ -704,7 +799,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       )}
       <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleOpenSheet(selectedQuote)}>
         <Eye className="h-3.5 w-3.5" />
-        Ver detalles
+        {t('UserQuotes.actions.viewDetails')}
       </Button>
     </div>
   ) : null;
@@ -754,7 +849,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         open={isSheetOpen}
         onOpenChange={(open) => {
           setIsSheetOpen(open);
-          if (!open) { setRowSelection({}); setSelectedQuote(null); setQuoteItems([]); onQuoteSelect?.(null); }
+          if (!open) { setRowSelection({}); setSelectedQuote(null); setQuoteItems([]); setClinicSessions([]); onQuoteSelect?.(null); }
         }}
         defaultWidth={800}
         minWidth={560}
@@ -771,7 +866,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedQuote.doc_no}</SheetTitle>
-                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Presupuesto</SheetDescription>
+                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">{t('UserQuotes.budget.title')}</SheetDescription>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -826,13 +921,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               {isDraft && canConfirmQuote && (
                 <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => { setConfirmAction('confirm'); setActionNotes(''); }}>
                   <CheckCircle className="h-3.5 w-3.5" />
-                  Confirmar
+                  {t('UserQuotes.actions.confirm')}
                 </Button>
               )}
               {isDraft && canRejectQuote && (
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
                   <XCircle className="h-3.5 w-3.5" />
-                  Rechazar
+                  {t('UserQuotes.actions.reject')}
                 </Button>
               )}
               {(canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote))) && (
@@ -842,44 +937,80 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               {canPrintQuote && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                   <Printer className="h-3.5 w-3.5" />
-                  Imprimir
+                  {t('UserQuotes.actions.print')}
                 </Button>
               )}
               {canSend && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
                   <Send className="h-3.5 w-3.5" />
-                  Enviar
+                  {t('UserQuotes.actions.send')}
                 </Button>
               )}
               {isDraft && canUpdateQuote && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditQuoteOpen(true)}>
                   <Pencil className="h-3.5 w-3.5" />
-                  Editar
+                  {t('UserQuotes.actions.edit')}
                 </Button>
               )}
               {isDraft && canDeleteQuote && (
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsDeletingQuote(true)}>
                   <Trash2 className="h-3.5 w-3.5" />
-                  Eliminar
+                  {t('UserQuotes.actions.delete')}
                 </Button>
               )}
             </div>
 
-            {/* Items */}
+            {/* Items y Sesiones Clínicas con Tabs */}
             <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-              <p className="text-sm font-semibold mb-2">Ítems del presupuesto</p>
-              <div className="flex-1 overflow-hidden">
-                <QuoteItemsTable
-                  items={quoteItems}
-                  isLoading={isLoadingItems}
-                  canEdit={canEditItems}
-                  onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => { }}
-                  onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => { }}
-                  onDelete={canDeleteItem ? setDeletingItem : () => { }}
-                  onRefresh={() => loadItems(selectedQuote.id)}
-                  showToothNumber={isSales}
-                />
-              </div>
+              <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                <TabsList>
+                  <TabsTrigger value="items" className="text-xs">Ítems</TabsTrigger>
+                  <TabsTrigger value="clinic-sessions" className="text-xs gap-1.5">
+                    <Stethoscope className="h-3.5 w-3.5" />
+                    {t('UserQuotes.clinicSessions')}
+                  </TabsTrigger>
+                </TabsList>
+                <div className="flex-1 min-h-0 mt-4 flex flex-col overflow-hidden">
+                  <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                    <p className="text-sm font-semibold mb-2">{t('UserQuotes.items.title')}</p>
+                    <div className="flex-1 overflow-hidden">
+                      <QuoteItemsTable
+                        items={quoteItems}
+                        isLoading={isLoadingItems}
+                        canEdit={canEditItems}
+                        onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => { }}
+                        onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => { }}
+                        onDelete={canDeleteItem ? setDeletingItem : () => { }}
+                        onRefresh={() => loadItems(selectedQuote.id)}
+                        showToothNumber={isSales}
+                      />
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="clinic-sessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4" />
+                        {t('UserQuotes.clinicSessions')}
+                      </h4>
+                      <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadQuoteClinicSessions(selectedQuote.id)} disabled={isLoadingClinicSessions}>
+                        <Loader2 className={`h-4 w-4 ${isLoadingClinicSessions ? 'animate-spin' : ''}`} />
+                      </Button>
+                    </div>
+                    <div className="flex-1 min-h-0">
+                      {clinicSessions.length === 0 && !isLoadingClinicSessions ? (
+                        <p className="text-muted-foreground text-sm text-center py-8">{t('UserQuotes.noSessionsFound')}</p>
+                      ) : (
+                        <DataTable
+                          columns={getClinicSessionColumns(t)}
+                          data={clinicSessions}
+                          isRefreshing={isLoadingClinicSessions}
+                          onRefresh={() => loadQuoteClinicSessions(selectedQuote.id)}
+                        />
+                      )}
+                    </div>
+                  </TabsContent>
+                </div>
+              </Tabs>
             </div>
           </>
         )}
@@ -891,15 +1022,15 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           <Form {...quoteEditForm}>
             <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogHeader>
-                <DialogTitle>Editar presupuesto</DialogTitle>
-                <DialogDescription>Modifica los datos del presupuesto {selectedQuote?.doc_no}.</DialogDescription>
+                <DialogTitle>{t('UserQuotes.dialogs.editQuote.title')}</DialogTitle>
+                <DialogDescription>{t('UserQuotes.dialogs.editQuote.description', { docNo: selectedQuote?.doc_no })}</DialogDescription>
               </DialogHeader>
               <DialogBody className="space-y-4 py-4 px-6">
                 {/* Currency + Exchange rate */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={quoteEditForm.control} name="currency" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Moneda</FormLabel>
+                      <FormLabel>{t('UserQuotes.dialogs.editQuote.currency')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                         <SelectContent>
@@ -912,7 +1043,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   )} />
                   <FormField control={quoteEditForm.control} name="exchange_rate" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tipo de cambio</FormLabel>
+                      <FormLabel>{t('UserQuotes.dialogs.editQuote.exchangeRate')}</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -933,8 +1064,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 {/* Notes */}
                 <FormField control={quoteEditForm.control} name="notes" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
+                    <FormLabel>{t('UserQuotes.dialogs.editQuote.notesOptional')}</FormLabel>
+                    <FormControl><Textarea rows={2} placeholder={t('UserQuotes.dialogs.editQuote.notesPlaceholder')} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -943,7 +1074,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 <Card>
                   <CardContent className="p-0">
                     <div className="flex items-center justify-between px-4 pt-4 pb-2">
-                      <p className="text-sm font-semibold">Ítems del presupuesto</p>
+                      <p className="text-sm font-semibold">{t('UserQuotes.dialogs.editQuote.items')}</p>
                       {canAddItem && (
                         <Button
                           type="button"
@@ -951,7 +1082,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           variant="outline"
                           onClick={() => { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); }}
                         >
-                          Agregar ítem
+                          {t('UserQuotes.dialogs.editQuote.addItem')}
                         </Button>
                       )}
                     </div>
@@ -965,11 +1096,11 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="text-muted-foreground text-center border-b">
-                              <th className="text-left font-semibold p-2">Servicio</th>
-                              <th className="font-semibold p-2 w-24">Cantidad</th>
-                              <th className="font-semibold p-2 w-28">Precio unit.</th>
-                              <th className="font-semibold p-2 w-28">Total</th>
-                              {isSales && <th className="font-semibold p-2 w-24">N° diente</th>}
+                              <th className="text-left font-semibold p-2">{t('UserQuotes.items.service')}</th>
+                              <th className="font-semibold p-2 w-24">{t('UserQuotes.items.quantity')}</th>
+                              <th className="font-semibold p-2 w-28">{t('UserQuotes.items.unitPrice')}</th>
+                              <th className="font-semibold p-2 w-28">{t('UserQuotes.items.total')}</th>
+                              {isSales && <th className="font-semibold p-2 w-24">{t('UserQuotes.items.toothNumber')}</th>}
                               <th className="p-2 w-10"></th>
                             </tr>
                           </thead>
@@ -989,9 +1120,9 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                             updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * qty });
                                           }
                                         }}
-                                        placeholder="Buscar servicio..."
-                                        noResultsText="Sin resultados"
-                                        triggerText="Seleccionar servicio"
+                                        placeholder={t('QuotesPage.itemDialog.searchService')}
+                                        noResultsText={t('QuotesPage.itemDialog.noServiceFound')}
+                                        triggerText={t('QuotesPage.itemDialog.selectService')}
                                       />
                                       <FormMessage />
                                     </FormItem>
@@ -1073,7 +1204,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                               </tr>
                             ))}
                             {editItemFields.length === 0 && (
-                              <tr><td colSpan={isSales ? 6 : 5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                              <tr><td colSpan={isSales ? 6 : 5} className="text-center text-muted-foreground text-xs py-4">{t('UserQuotes.dialogs.noItems')}</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -1092,10 +1223,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </Card>
               </DialogBody>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditQuoteOpen(false)}>Cancelar</Button>
+                <Button type="button" variant="outline" onClick={() => setIsEditQuoteOpen(false)}>{t('UserQuotes.dialogs.editQuote.cancel')}</Button>
                 <Button type="submit" disabled={isSubmittingQuote}>
                   {isSubmittingQuote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Guardar cambios
+                  {t('UserQuotes.dialogs.editQuote.save')}
                 </Button>
               </DialogFooter>
             </form>
@@ -1107,26 +1238,26 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
         <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
-            <DialogTitle>{confirmAction === 'confirm' ? 'Confirmar presupuesto' : 'Rechazar presupuesto'}</DialogTitle>
+            <DialogTitle>{confirmAction === 'confirm' ? t('UserQuotes.dialogs.confirmAction.confirmTitle') : t('UserQuotes.dialogs.confirmAction.rejectTitle')}</DialogTitle>
             <DialogDescription>
               {confirmAction === 'confirm'
-                ? `¿Confirmar el presupuesto ${selectedQuote?.doc_no}?`
-                : `¿Rechazar el presupuesto ${selectedQuote?.doc_no}? Esta acción no se puede deshacer.`}
+                ? t('UserQuotes.dialogs.confirmAction.confirmDescription', { docNo: selectedQuote?.doc_no })
+                : t('UserQuotes.dialogs.confirmAction.rejectDescription', { docNo: selectedQuote?.doc_no })}
             </DialogDescription>
           </DialogHeader>
           <div className="px-6 py-4 space-y-2">
-            <label className="text-sm font-medium">Notas <span className="text-muted-foreground">(opcional)</span></label>
-            <Textarea rows={3} placeholder="Agrega una observación..." value={actionNotes} onChange={e => setActionNotes(e.target.value)} />
+            <label className="text-sm font-medium">{t('UserQuotes.dialogs.confirmAction.notesLabel')} <span className="text-muted-foreground">{t('UserQuotes.dialogs.confirmAction.optional')}</span></label>
+            <Textarea rows={3} placeholder={t('UserQuotes.dialogs.confirmAction.notesPlaceholder')} value={actionNotes} onChange={e => setActionNotes(e.target.value)} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmAction(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setConfirmAction(null)}>{t('UserQuotes.dialogs.confirmAction.cancel')}</Button>
             <Button
               variant={confirmAction === 'reject' ? 'destructive' : 'default'}
               onClick={handleConfirmAction}
               disabled={isSubmittingAction}
             >
               {isSubmittingAction && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {confirmAction === 'confirm' ? 'Confirmar' : 'Rechazar'}
+              {confirmAction === 'confirm' ? t('UserQuotes.dialogs.confirmAction.confirm') : t('UserQuotes.dialogs.confirmAction.reject')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1136,14 +1267,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={isDeletingQuote} onOpenChange={setIsDeletingQuote}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Eliminar presupuesto</DialogTitle>
-            <DialogDescription>¿Estás seguro de que deseas eliminar <strong>{selectedQuote?.doc_no}</strong>? Esta acción no se puede deshacer.</DialogDescription>
+            <DialogTitle>{t('UserQuotes.dialogs.deleteQuote.title')}</DialogTitle>
+            <DialogDescription>{t('UserQuotes.dialogs.deleteQuote.description', { docNo: selectedQuote?.doc_no })}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeletingQuote(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setIsDeletingQuote(false)}>{t('UserQuotes.dialogs.deleteQuote.cancel')}</Button>
             <Button variant="destructive" onClick={handleDeleteQuote}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
+              {t('UserQuotes.dialogs.deleteQuote.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1153,21 +1284,21 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>{editingItem ? 'Editar ítem' : 'Agregar ítem'}</DialogTitle>
-            <DialogDescription>Completa los datos del ítem del presupuesto.</DialogDescription>
+            <DialogTitle>{editingItem ? t('UserQuotes.dialogs.itemDialog.editTitle') : t('UserQuotes.dialogs.itemDialog.title')}</DialogTitle>
+            <DialogDescription>{t('UserQuotes.dialogs.itemDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
             <form onSubmit={itemForm.handleSubmit(handleSubmitItem)}>
               <div className="px-6 py-4 space-y-4">
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Servicio</FormLabel>
+                    <FormLabel>{t('UserQuotes.dialogs.itemDialog.service')}</FormLabel>
                     <Select onValueChange={(val) => {
                       field.onChange(val);
                       const svc = services.find(s => s.id === val);
                       if (svc && !editingItem) itemForm.setValue('unit_price', svc.price);
                     }} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger></FormControl>
+                      <FormControl><SelectTrigger><SelectValue placeholder={t('UserQuotes.dialogs.itemDialog.selectService')} /></SelectTrigger></FormControl>
                       <SelectContent>
                         {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                       </SelectContent>
@@ -1178,14 +1309,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={itemForm.control} name="quantity" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Cantidad</FormLabel>
+                      <FormLabel>{t('UserQuotes.dialogs.itemDialog.quantity')}</FormLabel>
                       <FormControl><Input type="number" min={1} {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />
                   <FormField control={itemForm.control} name="unit_price" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Precio unitario</FormLabel>
+                      <FormLabel>{t('UserQuotes.dialogs.itemDialog.unitPrice')}</FormLabel>
                       <FormControl><Input type="number" min={0} step="0.01" {...field} /></FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1195,7 +1326,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 {isSales && (
                   <FormField control={itemForm.control} name="tooth_number" render={({ field }) => (
                     <FormItem>
-                      <FormLabel>N° de diente <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                      <FormLabel>{t('UserQuotes.dialogs.itemDialog.toothNumberOptional')}</FormLabel>
                       <FormControl>
                         <Input type="number" min={1} max={99} placeholder="—" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.value)} />
                       </FormControl>
@@ -1205,10 +1336,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 )}
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)}>Cancelar</Button>
+                <Button type="button" variant="outline" onClick={() => setIsItemDialogOpen(false)}>{t('UserQuotes.dialogs.itemDialog.cancel')}</Button>
                 <Button type="submit" disabled={isSubmittingItem}>
                   {isSubmittingItem && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  {editingItem ? 'Guardar cambios' : 'Agregar'}
+                  {editingItem ? t('UserQuotes.dialogs.itemDialog.save') : t('UserQuotes.dialogs.itemDialog.add')}
                 </Button>
               </DialogFooter>
             </form>
@@ -1220,14 +1351,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Eliminar ítem</DialogTitle>
-            <DialogDescription>¿Estás seguro de que deseas eliminar <strong>{deletingItem?.service_name}</strong>? Esta acción no se puede deshacer.</DialogDescription>
+            <DialogTitle>{t('UserQuotes.dialogs.deleteItem.title')}</DialogTitle>
+            <DialogDescription>{t('UserQuotes.dialogs.deleteItem.description', { itemName: deletingItem?.service_name })}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingItem(null)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setDeletingItem(null)}>{t('UserQuotes.dialogs.deleteItem.cancel')}</Button>
             <Button variant="destructive" onClick={handleConfirmDeleteItem}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Eliminar
+              {t('UserQuotes.dialogs.deleteItem.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

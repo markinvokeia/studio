@@ -444,8 +444,12 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
                 <OrderItemsTable
                   items={orderItems}
                   isLoading={isLoadingItems}
-                  onItemsUpdate={() => loadItems(selectedOrder.id, selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined)}
+                  onItemsUpdate={() => {
+                    loadItems(selectedOrder.id, selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined);
+                    onDataChange?.();
+                  }}
                   quoteId={selectedOrder.quote_id ? String(selectedOrder.quote_id) : undefined}
+                  quoteDocNo={selectedOrder.quote_doc_no}
                   isSales={isSales}
                   userId={userId}
                   patient={patient}
