@@ -75,7 +75,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
     accessorKey: 'amount',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.amount')} />,
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('amount'));
+      const amount = Math.abs(parseFloat(row.getValue('amount')));
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: row.original.currency || 'USD',
@@ -450,10 +450,10 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               {/* Información del documento integrada en el header */}
               <div className="px-6 py-3">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Monto:</span>
-                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(selectedPayment.amount)}</span>
-                  </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Monto:</span>
+                      <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}</span>
+                    </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Método:</span>
                     <span className="text-sm">{selectedPayment.method || '-'}</span>

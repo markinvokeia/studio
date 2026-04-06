@@ -49,7 +49,7 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('total')} />
       ),
       cell: ({ row }) => {
-        const amount = parseFloat(String(row.getValue('total')));
+        const amount = Math.abs(parseFloat(String(row.getValue('total'))));
         const formatted = new Intl.NumberFormat('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,

@@ -54,7 +54,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<PaymentAllocation>[] 
       cell: ({ row }) => {
         const monto = row.getValue('monto_desde_pago') as string;
         const moneda = row.original.moneda_pago;
-        const numMonto = parseFloat(monto);
+        const numMonto = Math.abs(parseFloat(monto));
         return (
           <div className="text-right">
             {moneda} {numMonto.toFixed(2)}
@@ -80,7 +80,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<PaymentAllocation>[] 
       cell: ({ row }) => {
         const monto = row.getValue('monto_aplicado_a_factura') as string;
         const moneda = row.original.moneda_allocation;
-        const numMonto = parseFloat(monto);
+        const numMonto = Math.abs(parseFloat(monto));
         return (
           <div className="text-right font-medium">
             {moneda} {numMonto.toFixed(2)}

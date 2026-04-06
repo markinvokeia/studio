@@ -115,7 +115,7 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('amount_applied')} />
       ),
       cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('amount_applied'));
+        const amount = Math.abs(parseFloat(row.getValue('amount_applied')));
         const formatted = new Intl.NumberFormat('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2,
@@ -129,7 +129,7 @@ const getColumns = (
         <DataTableColumnHeader column={column} title={t('source_amount')} />
       ),
       cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('source_amount'));
+        const amount = Math.abs(parseFloat(row.getValue('source_amount')));
         const currency = row.original.source_currency || 'USD';
         const formatted = new Intl.NumberFormat('en-US', {
           style: 'currency',
