@@ -10,7 +10,7 @@ import { CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePicker, DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogBody,
@@ -1515,31 +1515,13 @@ export default function UsersPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
-                            >
-                              {field.value
-                                ? format(parseISO(field.value), 'dd/MM/yyyy')
-                                : <span>{t('UsersPage.createDialog.birth_date_placeholder')}</span>
-                              }
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <DatePicker
-                            mode="single"
-                            selected={field.value ? parseISO(field.value) : undefined}
-                            onSelect={(date: Date | undefined) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
-                            disabled={(date: Date) => date > new Date() || date < new Date('1900-01-01')}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

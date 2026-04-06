@@ -2,14 +2,17 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { useLocale, useTranslations } from "next-intl"
 import { enUS, es } from 'date-fns/locale'
-import { format, setMonth } from "date-fns"
+import { format, parse, parseISO, setMonth } from "date-fns"
 import { Locale } from "date-fns"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const LOCALES = {
   en: enUS,
@@ -304,3 +307,193 @@ function DatePicker({
 DatePicker.displayName = "DatePicker"
 
 export { DatePicker }
+
+type DatePickerInputProps = {
+  value?: string
+  onChange?: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+}
+
+const DATE_FORMAT = 'dd/MM/yyyy'
+const DATE_FORMAT_REGEX = /^\d{2}\/\d{2}\/\d{4}$/
+
+function isValidDate(day: number, month: number, year: number): boolean {
+  const date = new Date(year, month - 1, day)
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  )
+}
+
+function isValidFormattedDate(value: string): boolean {
+  if (!DATE_FORMAT_REGEX.test(value)) return false
+  
+  const [day, month, year] = value.split('/').map(Number)
+  return isValidDate(day, month, year)
+}
+
+function isWithinRange(date: Date): boolean {
+  const minDate = new Date('1900-01-01')
+  const maxDate = new Date()
+  maxDate.setHours(23, 59, 59, 999)
+  return date >= minDate && date <= maxDate
+}
+
+function parseFormattedDate(value: string): Date | null {
+  if (!isValidFormattedDate(value)) return null
+  
+  const [day, month, year] = value.split('/').map(Number)
+  const date = new Date(year, month - 1, day)
+  
+  if (!isWithinRange(date)) return null
+  
+  return date
+}
+
+export function DatePickerInput({
+  value,
+  onChange,
+  placeholder = 'dd/mm/aaaa',
+  disabled = false,
+  className,
+}: DatePickerInputProps) {
+  const [inputValue, setInputValue] = React.useState<string>(() => {
+    if (!value) return ''
+    try {
+      const date = parseISO(value)
+      return format(date, DATE_FORMAT)
+    } catch {
+      return ''
+    }
+  })
+  
+  const [isOpen, setIsOpen] = React.useState(false)
+  const [error, setError] = React.useState(false)
+  
+  // Sync with external value changes
+  React.useEffect(() => {
+    if (!value) {
+      setInputValue('')
+      return
+    }
+    try {
+      const date = parseISO(value)
+      setInputValue(format(date, DATE_FORMAT))
+      setError(false)
+    } catch {
+      // Keep current input value if parsing fails
+    }
+  }, [value])
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value
+    
+    // Allow only digits and slashes
+    const filtered = rawValue.replace(/[^\d/]/g, '')
+    
+    // Auto-format: add slashes automatically
+    let formatted = filtered
+    if (filtered.length === 2 && !filtered.includes('/')) {
+      formatted = filtered + '/'
+    } else if (filtered.length === 5 && filtered.split('/').length === 2) {
+      formatted = filtered + '/'
+    }
+    
+    // Limit to 10 characters (dd/MM/yyyy)
+    if (formatted.length <= 10) {
+      setInputValue(formatted)
+      setError(false)
+    }
+  }
+  
+  const handleBlur = () => {
+    if (!inputValue) {
+      onChange?.('')
+      setError(false)
+      return
+    }
+    
+    const parsedDate = parseFormattedDate(inputValue)
+    
+    if (!parsedDate) {
+      setError(true)
+      return
+    }
+    
+    // Valid date - update parent
+    const isoValue = format(parsedDate, 'yyyy-MM-dd')
+    onChange?.(isoValue)
+    setInputValue(format(parsedDate, DATE_FORMAT))
+    setError(false)
+  }
+  
+  const handleCalendarSelect = (date: Date | undefined) => {
+    if (!date) {
+      onChange?.('')
+      setInputValue('')
+      return
+    }
+    
+    const isoValue = format(date, 'yyyy-MM-dd')
+    onChange?.(isoValue)
+    setInputValue(format(date, DATE_FORMAT))
+    setError(false)
+    setIsOpen(false)
+  }
+  
+  const selectedDate = value ? (() => {
+    try {
+      return parseISO(value)
+    } catch {
+      return undefined
+    }
+  })() : undefined
+  
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <div className="relative">
+        <Input
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={cn(
+            'pr-10',
+            error && 'border-destructive focus-visible:ring-destructive',
+            className
+          )}
+          inputMode="numeric"
+          maxLength={10}
+        />
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+            disabled={disabled}
+            onClick={(e) => {
+              e.preventDefault()
+              setIsOpen(!isOpen)
+            }}
+          >
+            <CalendarIcon className="h-4 w-4" />
+            <span className="sr-only">Open calendar</span>
+          </button>
+        </PopoverTrigger>
+      </div>
+      <PopoverContent className="w-auto p-0" align="start">
+        <DatePicker
+          mode="single"
+          selected={selectedDate}
+          onSelect={handleCalendarSelect}
+          disabled={(date: Date) => date > new Date() || date < new Date('1900-01-01')}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
