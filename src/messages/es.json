@@ -1665,7 +1665,8 @@
                 "amount": "Monto",
                 "registeredUser": "Entidad/Tercero",
                 "method": "Método",
-                "date": "Fecha"
+                "date": "Fecha",
+                "today": "Hoy"
             },
             "title": "Sesión Activa",
             "description": "Sesión Activa",

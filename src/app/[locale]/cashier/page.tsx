@@ -22,7 +22,7 @@ import { CajaMovimiento, CajaSesion, CashPoint } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
-import { format } from 'date-fns';
+import { format, isToday, parseISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Banknote, BookOpenCheck, Box, Coins, CreditCard, DollarSign, Info, Minus, Plus, Printer, RefreshCw, TrendingDown, TrendingUp, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -493,7 +493,13 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 return tPaymentMethods(methodCode) || methodCode;
             }
         },
-        { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+        { accessorKey: 'fecha', header: tColumns('date'), cell: ({ row }) => {
+            const dateStr = row.original.fecha;
+            const parsed = typeof dateStr === 'string' ? parseISO(dateStr.replace('Z', '')) : new Date(dateStr);
+            return isToday(parsed)
+                ? `${tColumns('today')} - ${format(parsed, 'HH:mm')}`
+                : format(parsed, 'dd/MM/yyyy HH:mm');
+        }},
     ];
 
     const renderAmount = (amount: number, currency: 'UYU' | 'USD') => {

@@ -1665,7 +1665,8 @@
         "amount": "Amount",
         "registeredUser": "Entity/Third Party",
         "method": "Method",
-        "date": "Date"
+        "date": "Date",
+        "today": "Today"
       },
       "title": "Active Session",
       "description": "Active Session",
