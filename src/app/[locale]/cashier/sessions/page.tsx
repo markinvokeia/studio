@@ -418,7 +418,7 @@ export default function CashSessionsPage() {
             </Card>
 
             <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
-                <DialogContent className="max-w-4xl">
+                <DialogContent maxWidth="6xl">
                     {selectedSession && (
                         <>
                             <DialogHeader>
