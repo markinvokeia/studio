@@ -5,16 +5,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
+import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Appointment, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { FileText, Loader2, Stethoscope, Calendar as CalendarIcon, Clock, UserCircle } from 'lucide-react';
+import { FileText, Stethoscope, Calendar as CalendarIcon, Clock, UserCircle, RefreshCw, Info } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -278,17 +277,21 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
     setIsLoading(false);
   }, [user, calendars]);
 
-  // Load linked sessions for an appointment
-  const loadLinkedSessions = React.useCallback(async (quoteId: string) => {
-    if (!quoteId) {
+  // Load linked sessions for an appointment: fetch all patient sessions, then filter by quote_id
+  const loadLinkedSessions = React.useCallback(async (userId: string, quoteId: string) => {
+    if (!userId || !quoteId) {
       setLinkedSessions([]);
       return;
     }
     setIsLoadingLinkedSessions(true);
     try {
-      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { quote_id: quoteId });
-      const sessionsData = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
-      setLinkedSessions(sessionsData.map((s: any): PatientSession => ({
+      const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: userId });
+      const sessionsData: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+
+      // Filter by quote_id on the client side
+      const filtered = sessionsData.filter((s: any) => s.quote_id != null && String(s.quote_id) === String(quoteId));
+
+      setLinkedSessions(filtered.map((s: any): PatientSession => ({
         sesion_id: Number(s.sesion_id || s.id),
         tipo_sesion: s.tipo_sesion,
         fecha_sesion: s.fecha_sesion || '',
@@ -342,7 +345,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
     if (appointment) {
       setIsSheetOpen(true);
       if (appointment.quote_id) {
-        loadLinkedSessions(appointment.quote_id);
+        loadLinkedSessions(String(user.id), appointment.quote_id);
       } else {
         setLinkedSessions([]);
       }
@@ -403,122 +406,146 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         storageKey="user-appointments-sheet-width"
       >
         {selectedAppointment && (
-          <>
+          <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex-none bg-card shadow-sm border-b border-border">
-              <div className="px-6 py-4 border-b border-border/50">
-                <div className="flex items-start justify-between gap-4 pr-10">
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <SheetTitle className="text-2xl font-bold text-card-foreground">
-                        {selectedAppointment.summary}
-                      </SheetTitle>
-                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                        {tUserAppointments('appointmentDetails')}
-                      </SheetDescription>
-                    </div>
+            <div className="flex-none border-b border-border bg-card">
+              <div className="px-6 py-5 pr-12">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <SheetTitle className="text-lg font-semibold text-card-foreground truncate">
+                      {selectedAppointment.summary}
+                    </SheetTitle>
+                    <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                      {tUserAppointments('appointmentDetails')}
+                    </SheetDescription>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    <Badge
-                      variant={
-                        selectedAppointment.status === 'completed' ? 'success' :
-                        selectedAppointment.status === 'cancelled' ? 'destructive' :
-                        selectedAppointment.status === 'pending' ? 'info' : 'default'
-                      }
-                      className="capitalize"
-                    >
-                      {tStatus(selectedAppointment.status.toLowerCase())}
-                    </Badge>
-                  </div>
+                  <Badge
+                    variant={
+                      selectedAppointment.status === 'completed' ? 'success' :
+                      selectedAppointment.status === 'cancelled' ? 'destructive' :
+                      selectedAppointment.status === 'pending' ? 'info' : 'default'
+                    }
+                    className="capitalize shrink-0"
+                  >
+                    {tStatus(selectedAppointment.status.toLowerCase())}
+                  </Badge>
                 </div>
               </div>
+            </div>
 
-              {/* Appointment Info */}
-              <div className="px-6 py-3">
-                <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                  <div className="flex items-center gap-2">
+            {/* Appointment Info Grid */}
+            <div className="flex-none px-6 py-4 border-b border-border">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{selectedAppointment.date}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('date')}</p>
+                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{selectedAppointment.time}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('time')}</p>
+                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.time}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                     <UserCircle className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{selectedAppointment.doctorName || '—'}</span>
                   </div>
-                  {selectedAppointment.quote_doc_no && (
-                    <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('doctor')}</p>
+                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.doctorName || '—'}</p>
+                  </div>
+                </div>
+                {selectedAppointment.quote_doc_no && (
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                       <FileText className="h-4 w-4 text-muted-foreground" />
-                      <Badge variant="secondary" className="font-mono gap-1.5">
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('quote')}</p>
+                      <Badge variant="secondary" className="font-mono mt-0.5 text-xs">
                         {selectedAppointment.quote_doc_no}
                       </Badge>
                     </div>
-                  )}
-                </div>
-                {selectedAppointment.description && (
-                  <div className="mt-2 flex items-start gap-2">
-                    <span className="text-xs text-muted-foreground">Notas:</span>
-                    <span className="text-sm text-muted-foreground">{selectedAppointment.description}</span>
                   </div>
                 )}
               </div>
+
+              {selectedAppointment.description && (
+                <>
+                  <Separator className="my-3" />
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">{tUserAppointments('notes')}</p>
+                    <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
+                      {selectedAppointment.description}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Linked Sessions Tab */}
-            <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-              <Tabs defaultValue="linked-sessions" className="flex-1 flex flex-col min-h-0">
-                <TabsList>
-                  <TabsTrigger value="linked-sessions" className="text-xs gap-1.5">
-                    <Stethoscope className="h-3.5 w-3.5" />
-                    {tUserAppointments('linkedSessions')}
-                  </TabsTrigger>
-                </TabsList>
-                <div className="flex-1 min-h-0 mt-4 flex flex-col overflow-hidden">
-                  <TabsContent value="linked-sessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
-                    {selectedAppointment.quote_id ? (
-                      <>
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-semibold flex items-center gap-2">
-                            <Stethoscope className="h-4 w-4" />
-                            {tUserAppointments('linkedSessions')}
-                          </h4>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => selectedAppointment.quote_id && loadLinkedSessions(selectedAppointment.quote_id)}
-                            disabled={isLoadingLinkedSessions}
-                          >
-                            <Loader2 className={`h-4 w-4 ${isLoadingLinkedSessions ? 'animate-spin' : ''}`} />
-                          </Button>
-                        </div>
-                        <div className="flex-1 min-h-0">
-                          {linkedSessions.length === 0 && !isLoadingLinkedSessions ? (
-                            <p className="text-muted-foreground text-sm text-center py-8">
-                              {tUserAppointments('noLinkedSessions')}
-                            </p>
-                          ) : (
-                            <DataTable
-                              columns={getLinkedSessionColumns(tUserAppointments)}
-                              data={linkedSessions}
-                              isRefreshing={isLoadingLinkedSessions}
-                              onRefresh={() => selectedAppointment.quote_id && loadLinkedSessions(selectedAppointment.quote_id)}
-                            />
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-muted-foreground text-sm text-center py-8">
-                        {tUserAppointments('noLinkedSessions')}
-                      </p>
-                    )}
-                  </TabsContent>
-                </div>
-              </Tabs>
+            {/* Linked Sessions */}
+            <div className="flex-1 flex flex-col overflow-hidden px-6 py-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                  {tUserAppointments('linkedSessions')}
+                  {linkedSessions.length > 0 && (
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0 font-normal">
+                      {linkedSessions.length}
+                    </Badge>
+                  )}
+                </h4>
+                {selectedAppointment.quote_id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => selectedAppointment.quote_id && loadLinkedSessions(String(user.id), selectedAppointment.quote_id)}
+                    disabled={isLoadingLinkedSessions}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isLoadingLinkedSessions ? 'animate-spin' : ''}`} />
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                {!selectedAppointment.quote_id ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+                      <Info className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {tUserAppointments('noLinkedQuote')}
+                    </p>
+                  </div>
+                ) : linkedSessions.length === 0 && !isLoadingLinkedSessions ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
+                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {tUserAppointments('noLinkedSessions')}
+                    </p>
+                  </div>
+                ) : (
+                  <DataTable
+                    columns={getLinkedSessionColumns(tUserAppointments)}
+                    data={linkedSessions}
+                    isRefreshing={isLoadingLinkedSessions}
+                    onRefresh={() => selectedAppointment.quote_id && loadLinkedSessions(String(user.id), selectedAppointment.quote_id)}
+                  />
+                )}
+              </div>
             </div>
-          </>
+          </div>
         )}
       </ResizableSheet>
     </>

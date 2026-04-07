@@ -48,7 +48,22 @@ interface ClinicSessionDialogProps {
         doctor_name?: string;
         procedimiento_realizado?: string;
     };
+    prefillTreatments?: { numero_diente: number | null; descripcion: string }[];
     existingSession?: PatientSession;  // Para edición de sesión existente
+    // Datos de cita pendiente para crear junto con la sesión
+    pendingAppointmentData?: {
+        start: string;
+        end: string;
+        doctor_id: string;
+        doctor_name: string;
+        patient_id: string;
+        patient_name: string;
+        service_ids: string[];
+        service_names: string;
+        notes?: string;
+        google_calendar_id: string;
+        quote_id?: string;
+    };
 }
 
 export interface ClinicSessionFormData {
@@ -56,7 +71,6 @@ export interface ClinicSessionFormData {
     doctor_name: string;
     fecha_sesion: string;
     procedimiento_realizado: string;
-    notas_clinicas?: string;
     plan_proxima_cita?: string;
     fecha_proxima_cita?: string;
     quote_id?: string;
@@ -96,9 +110,12 @@ export function ClinicSessionDialog({
     showTreatments = false,
     showAttachments = false,
     prefillData,
+    prefillTreatments,
     existingSession,
+    pendingAppointmentData,
 }: ClinicSessionDialogProps) {
     const t = useTranslations('ClinicSessionDialog');
+    const tCommon = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const { toast } = useToast();
 
@@ -108,9 +125,7 @@ export function ClinicSessionDialog({
     const [doctorError, setDoctorError] = React.useState(false);
 
     // Treatments state
-    const [treatments, setTreatments] = React.useState<{ numero_diente: string; descripcion: string }[]>([]);
-    const [newToothNumber, setNewToothNumber] = React.useState('');
-    const [newTreatmentDescription, setNewTreatmentDescription] = React.useState('');
+    const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
 
     // Attachments state
     const [attachedFiles, setAttachedFiles] = React.useState<File[]>([]);
@@ -123,7 +138,6 @@ export function ClinicSessionDialog({
         doctor_name: '',
         fecha_sesion: defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         procedimiento_realizado: serviceName || '',
-        notas_clinicas: '',
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
         quote_id: quoteId,
@@ -148,7 +162,6 @@ export function ClinicSessionDialog({
                     ? existingSession.fecha_sesion.split('T')[0] 
                     : (defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
                 procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
-                notas_clinicas: existingSession?.notas_clinicas || '',
                 plan_proxima_cita: existingSession?.plan_proxima_cita || '',
                 fecha_proxima_cita: existingSession?.fecha_proxima_cita || '',
                 quote_id: existingSession?.quote_id || quoteId,
@@ -159,9 +172,11 @@ export function ClinicSessionDialog({
             // Reset treatments
             if (existingSession?.tratamientos && existingSession.tratamientos.length > 0) {
                 setTreatments(existingSession.tratamientos.map(t => ({
-                    numero_diente: t.numero_diente ? String(t.numero_diente) : '',
+                    numero_diente: t.numero_diente,
                     descripcion: t.descripcion || '',
                 })));
+            } else if (prefillTreatments && prefillTreatments.length > 0) {
+                setTreatments(prefillTreatments.map(t => ({ ...t })));
             } else {
                 setTreatments([]);
             }
@@ -177,7 +192,7 @@ export function ClinicSessionDialog({
 
             setDoctorError(false);
         }
-    }, [open, defaultDate, serviceName, quoteId, appointmentId, existingSession, prefillData]);
+    }, [open, defaultDate, serviceName, quoteId, appointmentId, existingSession, prefillData, prefillTreatments]);
 
     const fetchDoctors = async () => {
         setIsLoadingDoctors(true);
@@ -206,7 +221,7 @@ export function ClinicSessionDialog({
             const dataToSave: ClinicSessionFormData = {
                 ...form,
                 tratamientos: treatments.length > 0 ? treatments.map(t => ({
-                    numero_diente: t.numero_diente ? parseInt(t.numero_diente, 10) : null,
+                    numero_diente: t.numero_diente,
                     descripcion: t.descripcion,
                 })) : undefined,
                 ...(showAttachments ? {
@@ -215,6 +230,8 @@ export function ClinicSessionDialog({
                 } : {}),
             };
 
+            // If there's pending appointment data, the parent handles creating both appointment and session
+            // Otherwise, just save the session normally
             await onSave(dataToSave);
             toast({ title: t('save') });
             onOpenChange(false);
@@ -227,14 +244,7 @@ export function ClinicSessionDialog({
 
     // Treatment handlers
     const handleAddTreatment = () => {
-        if (!newTreatmentDescription.trim()) return;
-        
-        setTreatments([
-            ...treatments,
-            { numero_diente: newToothNumber, descripcion: newTreatmentDescription }
-        ]);
-        setNewToothNumber('');
-        setNewTreatmentDescription('');
+        setTreatments([...treatments, { numero_diente: null, descripcion: '' }]);
     };
 
     const handleRemoveTreatment = (index: number) => {
@@ -327,20 +337,23 @@ export function ClinicSessionDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent maxWidth="4xl" className="max-h-[90vh] overflow-hidden flex flex-col">
-                <DialogHeader className="px-6 py-4 border-b">
+            <DialogContent
+                maxWidth="4xl"
+                showMaximize
+                maximizeLabel={tCommon('viewer.maximize')}
+                restoreLabel={tCommon('viewer.restore')}
+                className="h-[88vh] max-w-[95vw] p-0"
+            >
+                <DialogHeader className="border-b px-6 py-4">
                     <DialogTitle>
                         {existingSession ? t('editTitle') : t('createTitle')}
                     </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-                    <DialogBody className="p-6 overflow-y-auto flex-1">
-                        <div className={cn(
-                            "gap-6",
-                            (showTreatments || showAttachments) ? "grid grid-cols-2" : "flex flex-col space-y-5"
-                        )}>
+                <form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
+                    <DialogBody className="flex-1 overflow-y-auto px-6 py-4">
+                        <div className="grid h-full min-h-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
                             {/* LEFT column — form fields */}
-                            <div className="space-y-5">
+                            <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
                                 {/* Date */}
                                 <div className="space-y-2">
                                     <Label>{t('date')}</Label>
@@ -404,7 +417,7 @@ export function ClinicSessionDialog({
                                 </div>
 
                                 {/* Procedure */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 md:col-span-2">
                                     <Label>{t('procedure')}</Label>
                                     <Textarea
                                         value={form.procedimiento_realizado}
@@ -414,19 +427,8 @@ export function ClinicSessionDialog({
                                     />
                                 </div>
 
-                                {/* Clinical Notes */}
-                                <div className="space-y-2">
-                                    <Label>{t('notes')}</Label>
-                                    <Textarea
-                                        value={form.notas_clinicas || ''}
-                                        onChange={(e) => setForm({ ...form, notas_clinicas: e.target.value })}
-                                        placeholder={t('notesPlaceholder')}
-                                        className="min-h-[80px] resize-y"
-                                    />
-                                </div>
-
                                 {/* Next Appointment Plan */}
-                                <div className="space-y-2">
+                                <div className="space-y-2 md:col-span-2">
                                     <Label>{t('nextSessionPlan')}</Label>
                                     <Textarea
                                         value={form.plan_proxima_cita || ''}
@@ -435,97 +437,116 @@ export function ClinicSessionDialog({
                                         className="min-h-[80px] resize-y"
                                     />
                                 </div>
+
+                                {/* Next Appointment Date */}
+                                <div className="space-y-2">
+                                    <Label>{t('nextAppointmentDate')}</Label>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className={cn(
+                                                    "w-full justify-start text-left font-normal h-10 border-input",
+                                                    !form.fecha_proxima_cita && "text-muted-foreground"
+                                                )}
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {form.fecha_proxima_cita
+                                                    ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
+                                                    : t('selectNextAppointmentDate')}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                mode="single"
+                                                selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
+                                                onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? date.toISOString().split('T')[0] : '' })}
+                                                initialFocus
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
                             </div>
 
                             {/* RIGHT column — treatments + attachments (only rendered when enabled) */}
                             {(showTreatments || showAttachments) && (
-                                <div className="space-y-5">
+                                <div className="flex min-h-0 flex-col gap-4">
                                     {/* Treatments */}
                                     {showTreatments && (
-                                        <div className="space-y-3">
-                                            <Label className="text-base font-semibold">{t('treatments.title')}</Label>
-                                            <Card className="bg-muted/5">
-                                                <CardContent className="p-4">
-                                                    <div className="flex gap-2 items-start mb-4">
-                                                        <div className="w-24 shrink-0">
+                                        <Card className="flex min-h-0 flex-1 flex-col shadow-none border bg-muted/5">
+                                            <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
+                                                <CardTitle className="text-sm font-bold">{t('treatments.title')}</CardTitle>
+                                                <Button type="button" variant="ghost" size="sm" onClick={handleAddTreatment} className="h-7 px-2 text-xs">
+                                                    <Plus className="h-3 w-3 mr-1" />
+                                                    {t('treatments.add') || 'Añadir'}
+                                                </Button>
+                                            </CardHeader>
+                                            <CardContent className="flex-1 min-h-0 p-2 pt-0">
+                                                <div className="h-full min-h-[180px] overflow-y-auto pr-2 space-y-2">
+                                                    {treatments.length === 0 ? (
+                                                        <div className="flex h-full min-h-[160px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                            {t('treatments.noTreatments')}
+                                                        </div>
+                                                    ) : treatments.map((treatment, index) => (
+                                                        <div key={index} className="flex gap-2 items-start p-2 bg-background border rounded-md">
                                                             <Input
                                                                 type="number"
                                                                 placeholder={t('treatments.toothNumber')}
-                                                                value={newToothNumber}
-                                                                onChange={(e) => setNewToothNumber(e.target.value)}
-                                                                className="h-9"
-                                                                min="1"
-                                                                max="85"
+                                                                value={treatment.numero_diente ?? ''}
+                                                                onChange={(e) => {
+                                                                    const newTreatments = [...treatments];
+                                                                    newTreatments[index].numero_diente = e.target.value ? parseInt(e.target.value, 10) : null;
+                                                                    setTreatments(newTreatments);
+                                                                }}
+                                                                className="h-7 text-xs px-2 w-16"
                                                             />
+                                                            <Textarea
+                                                                placeholder={t('treatments.treatmentPlaceholder')}
+                                                                value={treatment.descripcion}
+                                                                onChange={(e) => {
+                                                                    const newTreatments = [...treatments];
+                                                                    newTreatments[index].descripcion = e.target.value;
+                                                                    setTreatments(newTreatments);
+                                                                }}
+                                                                className="min-h-[28px] h-7 text-xs p-1 flex-1 resize-none"
+                                                            />
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-7 w-7 text-destructive"
+                                                                onClick={() => handleRemoveTreatment(index)}
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </Button>
                                                         </div>
-                                                        <Textarea
-                                                            placeholder={t('treatments.treatmentPlaceholder')}
-                                                            value={newTreatmentDescription}
-                                                            onChange={(e) => setNewTreatmentDescription(e.target.value)}
-                                                            className="flex-1 h-9 min-h-[unset] resize-none"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            onClick={handleAddTreatment}
-                                                            disabled={!newTreatmentDescription.trim()}
-                                                            size="icon"
-                                                            className="h-9 w-9 shrink-0"
-                                                        >
-                                                            <Plus className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                                                        {treatments.length === 0 ? (
-                                                            <div className="text-center py-6 text-sm text-muted-foreground italic border border-dashed rounded-md">
-                                                                {t('treatments.noTreatments')}
-                                                            </div>
-                                                        ) : (
-                                                            treatments.map((treatment, index) => (
-                                                                <div
-                                                                    key={index}
-                                                                    className="flex gap-2 items-start p-2 bg-background border rounded-md"
-                                                                >
-                                                                    <div className="w-16 text-center font-medium text-sm">
-                                                                        {treatment.numero_diente || '-'}
-                                                                    </div>
-                                                                    <div className="flex-1 text-sm">
-                                                                        {treatment.descripcion}
-                                                                    </div>
-                                                                    <Button
-                                                                        type="button"
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-7 w-7 text-destructive shrink-0"
-                                                                        onClick={() => handleRemoveTreatment(index)}
-                                                                    >
-                                                                        <Trash2 className="h-3.5 w-3.5" />
-                                                                    </Button>
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
-                                                </CardContent>
-                                            </Card>
-                                        </div>
+                                                    ))}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
                                     )}
 
                                     {/* Attachments */}
                                     {showAttachments && (
-                                        <div className="space-y-3">
-                                            <Label className="text-base font-semibold">{t('attachments.title')}</Label>
-                                            <Card className="bg-muted/5">
-                                                <CardContent className="p-4">
-                                                    <div
-                                                        className={cn(
-                                                            "border-2 border-dashed rounded-lg p-6 transition-colors text-center",
-                                                            isDragOver ? "border-primary bg-primary/10" : "border-muted-foreground/25"
-                                                        )}
-                                                        onDragOver={handleDragOver}
-                                                        onDragLeave={handleDragLeave}
-                                                        onDrop={handleDrop}
-                                                    >
-                                                        <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                                                        <p className="text-sm text-muted-foreground mb-2">
+                                        <Card className="flex min-h-0 flex-[1.15] flex-col shadow-none border bg-muted/5">
+                                            <CardHeader className="py-2 px-3">
+                                                <CardTitle className="text-sm font-bold">{t('attachments.title')}</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="flex min-h-0 flex-1 flex-col p-3">
+                                                {/* Drag and Drop Area */}
+                                                <div
+                                                    className={cn(
+                                                        "border-2 border-dashed rounded-lg p-4 transition-colors shrink-0",
+                                                        isDragOver ? "border-primary bg-primary/10" : "border-muted-foreground/25"
+                                                    )}
+                                                    onDragOver={handleDragOver}
+                                                    onDragLeave={handleDragLeave}
+                                                    onDrop={handleDrop}
+                                                >
+                                                    <div className="flex flex-col items-center text-center">
+                                                        <Upload className="w-6 h-6 text-muted-foreground mb-2" />
+                                                        <p className="text-xs text-muted-foreground mb-2">
                                                             {t('attachments.dropzone')}
                                                         </p>
                                                         <Input
@@ -538,78 +559,78 @@ export function ClinicSessionDialog({
                                                         />
                                                         <Label
                                                             htmlFor="session-file-upload"
-                                                            className="cursor-pointer text-sm font-semibold text-primary hover:underline"
+                                                            className="cursor-pointer text-xs font-semibold text-primary hover:underline"
                                                         >
                                                             {t('attachments.browseFiles')}
                                                         </Label>
                                                     </div>
+                                                </div>
 
+                                                <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
                                                     {existingAttachments.length > 0 && (
-                                                        <div className="mt-4 space-y-2">
-                                                            <Label className="text-xs uppercase font-bold text-muted-foreground">
+                                                        <div className="min-h-0 flex-1 space-y-2">
+                                                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">
                                                                 {t('attachments.existing')}
                                                             </Label>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {existingAttachments.map((attachment: AttachedFile, idx: number) => (
-                                                                    <div
-                                                                        key={idx}
-                                                                        className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs"
-                                                                    >
-                                                                        <File className="w-3 h-3" />
-                                                                        <span className="truncate max-w-[160px]">
-                                                                            {attachment.file_name || attachment.ruta || 'File'}
-                                                                        </span>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-4 w-4 text-destructive"
-                                                                            onClick={() => attachment.id && handleDeleteExistingAttachment(attachment.id)}
+                                                            <div className="max-h-full overflow-y-auto">
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {existingAttachments.map((attachment: AttachedFile, idx: number) => (
+                                                                        <div
+                                                                            key={idx}
+                                                                            className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs"
                                                                         >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
+                                                                            <File className="w-3 h-3" />
+                                                                            <span className="truncate max-w-[160px]">
+                                                                                {attachment.file_name || attachment.ruta || 'File'}
+                                                                            </span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-4 w-4 text-destructive"
+                                                                                onClick={() => attachment.id && handleDeleteExistingAttachment(attachment.id)}
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     )}
 
                                                     {attachedFiles.length > 0 && (
-                                                        <div className="mt-4 space-y-2">
-                                                            <Label className="text-xs uppercase font-bold text-muted-foreground">
+                                                        <div className="min-h-0 flex-1 space-y-2">
+                                                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">
                                                                 {t('attachments.new')}
                                                             </Label>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {attachedFiles.map((file, idx) => (
-                                                                    <div
-                                                                        key={idx}
-                                                                        className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs"
-                                                                    >
-                                                                        <File className="w-3 h-3" />
-                                                                        <span className="truncate max-w-[160px]">{file.name}</span>
-                                                                        <Button
-                                                                            type="button"
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-4 w-4"
-                                                                            onClick={() => handleRemoveNewFile(idx)}
+                                                            <div className="max-h-full overflow-y-auto">
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {attachedFiles.map((file, idx) => (
+                                                                        <div
+                                                                            key={idx}
+                                                                            className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs"
                                                                         >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
+                                                                            <File className="w-3 h-3" />
+                                                                            <span className="truncate max-w-[160px]">{file.name}</span>
+                                                                            <Button
+                                                                                type="button"
+                                                                                variant="ghost"
+                                                                                size="icon"
+                                                                                className="h-4 w-4"
+                                                                                onClick={() => handleRemoveNewFile(idx)}
+                                                                            >
+                                                                                <X className="h-3 w-3" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     )}
-
-                                                    {existingAttachments.length === 0 && attachedFiles.length === 0 && (
-                                                        <div className="mt-4 text-center text-sm text-muted-foreground italic">
-                                                            {t('attachments.noFiles')}
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
                                     )}
                                 </div>
                             )}

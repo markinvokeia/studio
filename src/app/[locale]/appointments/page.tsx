@@ -36,8 +36,9 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, Calendar as CalendarType, PatientSession, Service, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
 import api from '@/services/api';
+import { getQuoteItems } from '@/services/quotes';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
@@ -323,6 +324,7 @@ export default function AppointmentsPage() {
     const [clinicSessionAppointment, setClinicSessionAppointment] = React.useState<Appointment | null>(null);
     const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
     const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
+    const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const { hasPermission } = usePermissions();
 
@@ -426,8 +428,25 @@ export default function AppointmentsPage() {
     };
 
     // Clinic Session Handlers
-    const handleOpenClinicSession = (appointment: Appointment) => {
+    const handleOpenClinicSession = async (appointment: Appointment) => {
         setClinicSessionAppointment(appointment);
+        setLinkedSession(null); // Reset linkedSession to avoid interference with existingSession
+        if (appointment.quote_id) {
+            try {
+                const items = await getQuoteItems(appointment.quote_id);
+                setQuoteItems(items);
+            } catch (error) {
+                console.error('Error al cargar ítems del presupuesto:', error);
+                setQuoteItems([]);
+                toast({
+                    variant: 'destructive',
+                    title: tToasts('errorLoadingQuoteItems'),
+                    description: tToasts('errorLoadingQuoteItemsDesc'),
+                });
+            }
+        } else {
+            setQuoteItems([]);
+        }
         setIsClinicSessionOpen(true);
     };
 
@@ -758,6 +777,18 @@ export default function AppointmentsPage() {
         setAppointments([]);
     }, [selectedCalendarIds]);
 
+    // Stabilize prefillTreatments with useMemo to prevent unnecessary recalculations
+    // Include all quote items as treatments: items with tooth_number get it prefilled, others get null
+    const prefillTreatments = React.useMemo(() => {
+        return quoteItems.map(item => {
+            const toothNum = item.tooth_number != null ? Number(item.tooth_number) : null;
+            return {
+                numero_diente: toothNum != null && !isNaN(toothNum) && toothNum > 0 ? toothNum : null,
+                descripcion: item.service_name,
+            };
+        });
+    }, [quoteItems]);
+
     return (
         <Card className="border-none shadow-none h-full">
             <CardContent className="p-0 h-[calc(100vh-6rem)] min-h-[600px]">
@@ -941,6 +972,7 @@ export default function AppointmentsPage() {
                         doctor_id: clinicSessionAppointment.doctorId,
                         doctor_name: clinicSessionAppointment.doctorName,
                     }}
+                    prefillTreatments={prefillTreatments}
                     existingSession={linkedSession ?? undefined}
                 />
             )}

@@ -371,7 +371,8 @@
             "noQuote": "Sin presupuesto",
             "loadingQuotes": "Cargando presupuestos...",
             "loadingServices": "Cargando servicios...",
-            "selectUserFirst": "Seleccione un paciente primero"
+            "selectUserFirst": "Seleccione un paciente primero",
+            "notes": "Notas"
         },
         "AppointmentsColumns": {
             "service": "Servicio",
@@ -430,7 +431,12 @@
             "sessionUpdated": "Sesión clínica actualizada",
             "errorCreatingSession": "Error al guardar sesión",
             "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
-            "patientIdRequired": "Se requiere el ID del paciente"
+            "patientIdRequired": "Se requiere el ID del paciente",
+            "errorLoadingQuoteItems": "Error al cargar tratamientos",
+            "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
+            "quoteAutoConfirmed": "Presupuesto confirmado",
+            "quoteAutoConfirmedDesc": "El presupuesto fue confirmado automáticamente al crear la cita.",
+            "quoteAutoConfirmError": "No se pudo confirmar el presupuesto. La cita no fue creada."
         },
         "linkedSession": "Sesión Clínica Enlazada",
         "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -3631,9 +3637,15 @@
     },
     "UserAppointments": {
         "appointmentDetails": "Detalles de la Cita",
-        "linkedSessions": "Sesiones Enlazadas",
-        "noLinkedSessions": "No se encontraron sesiones enlazadas",
+        "linkedSessions": "Sesiones Clínicas",
+        "noLinkedSessions": "No se encontraron sesiones enlazadas a esta cita",
+        "noLinkedQuote": "Esta cita no tiene un presupuesto vinculado",
         "noAppointmentSelected": "Selecciona una cita para ver los detalles",
+        "doctor": "Doctor",
+        "date": "Fecha",
+        "time": "Hora",
+        "quote": "Presupuesto",
+        "notes": "Notas",
         "columns": {
             "date": "Fecha",
             "doctor": "Doctor",
@@ -4594,6 +4606,8 @@
         "nextSessionPlanPlaceholder": "Ingrese el plan para la siguiente cita...",
         "nextSessionDate": "Fecha Próxima Cita",
         "nextSessionDatePlaceholder": "Seleccione fecha...",
+        "nextAppointmentDate": "Fecha Próxima Cita",
+        "selectNextAppointmentDate": "Seleccione la fecha de la próxima cita",
         "cancel": "Cancelar",
         "save": "Guardar",
         "saving": "Guardando...",

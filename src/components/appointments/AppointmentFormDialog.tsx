@@ -24,11 +24,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Appointment, Calendar as CalendarType, PatientSession, Quote, Service, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
-import { getOrderServicesByQuoteId } from '@/services/quotes';
+import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { Check, ChevronsUpDown, FilePlus, Link2, Loader2, Stethoscope, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -135,6 +135,42 @@ export function AppointmentFormDialog({
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [createSessionOnSave, setCreateSessionOnSave] = React.useState(false);
     const [pendingSaveResult, setPendingSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
+    const [hasPendingSession, setHasPendingSession] = React.useState(false);
+    // NEW: Pending appointment data when creating with session
+    const [pendingAppointmentPayload, setPendingAppointmentPayload] = React.useState<any>(null);
+
+    // Quote items for prefilling treatments in clinic session
+    const [sessionQuoteItems, setSessionQuoteItems] = React.useState<QuoteItem[]>([]);
+
+    // Load quote items when a quote is selected (for prefilling session treatments)
+    React.useEffect(() => {
+        const loadQuoteItems = async () => {
+            const quoteId = appointment.quote?.id || editingAppointment?.quote_id;
+            if (!quoteId) {
+                setSessionQuoteItems([]);
+                return;
+            }
+            try {
+                const items = await getQuoteItems(quoteId);
+                setSessionQuoteItems(items);
+            } catch (error) {
+                console.error('Failed to load quote items for session:', error);
+                setSessionQuoteItems([]);
+            }
+        };
+        loadQuoteItems();
+    }, [appointment.quote?.id, editingAppointment?.quote_id]);
+
+    // Compute prefillTreatments from quote items
+    const prefillTreatments = React.useMemo(() => {
+        return sessionQuoteItems.map(item => {
+            const toothNum = item.tooth_number != null ? Number(item.tooth_number) : null;
+            return {
+                numero_diente: toothNum != null && !isNaN(toothNum) && toothNum > 0 ? toothNum : null,
+                descripcion: item.service_name,
+            };
+        });
+    }, [sessionQuoteItems]);
 
     // Load user quotes when user changes
     React.useEffect(() => {
@@ -194,6 +230,8 @@ export function AppointmentFormDialog({
             setErrors([]);
             setCreateSessionOnSave(false);
             setPendingSaveResult(null);
+            setHasPendingSession(false);
+            setPendingAppointmentPayload(null);
             if (!editingAppointment) {
                 setLinkedSession(null);
             }
@@ -480,6 +518,22 @@ export function AppointmentFormDialog({
         }
     }, [calculatedEndTime, editingAppointment]);
 
+    // Auto-confirm quote if it's not already confirmed
+    const confirmQuoteIfNeeded = async (quote: Quote | null | undefined) => {
+        if (!quote || quote.status === 'confirmed') return;
+        try {
+            const payload = { quote_number: quote.id, confirm_reject: 'confirm', is_sales: true, notes: '' };
+            await api.post(API_ROUTES.SALES.QUOTE_CONFIRM, payload);
+            // Update local quote status so we don't try to confirm again
+            setAppointment(prev => prev.quote ? { ...prev, quote: { ...prev.quote, status: 'confirmed' } } : prev);
+            toast({ title: tToasts('quoteAutoConfirmed'), description: tToasts('quoteAutoConfirmedDesc') });
+        } catch (error) {
+            console.error('Failed to auto-confirm quote:', error);
+            toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('quoteAutoConfirmError') });
+            throw error; // Prevent appointment creation if quote confirmation fails
+        }
+    };
+
     const handleSave = async () => {
         const isEditing = !!editingAppointment;
         if (isEditing) {
@@ -504,6 +558,12 @@ export function AppointmentFormDialog({
         if (newErrors.length > 0) {
             setErrors(newErrors);
             toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('fillRequired') });
+            return;
+        }
+
+        // If there's a pending session, reopen the session dialog instead of saving
+        if (hasPendingSession) {
+            setIsSessionDialogOpen(true);
             return;
         }
         
@@ -575,6 +635,24 @@ export function AppointmentFormDialog({
             payload.quote_id = appointment.quote?.id || null;
         }
 
+        // Auto-confirm the quote if not yet confirmed (only when creating, not editing)
+        if (!isEditing && appointment.quote && appointment.quote.status !== 'confirmed') {
+            try {
+                await confirmQuoteIfNeeded(appointment.quote);
+            } catch {
+                return; // Abort if confirmation fails
+            }
+        }
+
+        // NEW FLOW: If creating with session, save payload and open session dialog WITHOUT creating appointment yet
+        if (!isEditing && createSessionOnSave) {
+            setPendingAppointmentPayload(payload);
+            setHasPendingSession(true);
+            setIsSessionDialogOpen(true);
+            return; // ← IMPORTANT: Return without creating the appointment yet
+        }
+
+        // Original flow: Create appointment immediately (no session)
         try {
             const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
@@ -585,13 +663,8 @@ export function AppointmentFormDialog({
 
             if (isSuccess) {
                 toast({ title: isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
-                if (!isEditing && createSessionOnSave) {
-                    setPendingSaveResult({ result, startDateTime });
-                    setIsSessionDialogOpen(true);
-                } else {
-                    onOpenChange(false);
-                    if (onSaveSuccess) onSaveSuccess(result, startDateTime);
-                }
+                onOpenChange(false);
+                if (onSaveSuccess) onSaveSuccess(result, startDateTime);
             } else {
                 const errorMessage = result?.error?.description || result?.error?.message || result?.message || tToasts('unexpectedError');
                 if (errorMessage.includes("No existe disponibilidad")) {
@@ -621,7 +694,6 @@ export function AppointmentFormDialog({
                     fecha_sesion: match.fecha_sesion || '',
                     diagnostico: match.diagnostico || null,
                     procedimiento_realizado: match.procedimiento_realizado || '',
-                    notas_clinicas: match.notas_clinicas || '',
                     plan_proxima_cita: match.plan_proxima_cita,
                     fecha_proxima_cita: match.fecha_proxima_cita,
                     doctor_id: match.doctor_id || null,
@@ -645,6 +717,83 @@ export function AppointmentFormDialog({
     }, []);
 
     const handleSaveSession = async (sessionData: ClinicSessionFormData) => {
+        // NEW FLOW: If there's pending appointment payload, create both appointment and session together
+        if (pendingAppointmentPayload) {
+            const patientId = pendingAppointmentPayload.patient_id;
+            if (!patientId) {
+                toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('patientIdRequired') });
+                return;
+            }
+
+            try {
+                // 1. Create the appointment first
+                const appointmentResponse = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, pendingAppointmentPayload);
+                console.log('[handleSaveSession] Raw appointment response:', JSON.stringify(appointmentResponse));
+
+                // Extract appointment ID from response: { code, message, data: { id } }
+                const appointmentResult = Array.isArray(appointmentResponse) ? appointmentResponse[0] : appointmentResponse;
+                const responseData = appointmentResult?.data;
+                const appointmentId: string | undefined =
+                    (responseData?.id != null ? String(responseData.id) : undefined) ||
+                    (responseData?.appointment_id != null ? String(responseData.appointment_id) : undefined) ||
+                    (appointmentResult?.id != null ? String(appointmentResult.id) : undefined) ||
+                    (appointmentResult?.appointment_id != null ? String(appointmentResult.appointment_id) : undefined) ||
+                    undefined;
+                console.log('[handleSaveSession] Extracted appointmentId:', appointmentId);
+
+                if (!appointmentId) {
+                    console.error('[handleSaveSession] Could not extract appointment ID. Response keys:', Object.keys(appointmentResult || {}), 'Data keys:', Object.keys(responseData || {}));
+                    toast({ variant: 'destructive', title: tToasts('error'), description: 'No se pudo obtener el ID de la cita creada. Por favor, cree la sesión manualmente desde el historial del paciente.' });
+                    const startDateTime = parseISO(pendingAppointmentPayload.start);
+                    if (onSaveSuccess) onSaveSuccess(appointmentResult || {}, startDateTime);
+                    return;
+                }
+
+                // 2. Create the session with the appointment_id
+                const sessionPayload = {
+                    paciente_id: patientId,
+                    doctor_id: sessionData.doctor_id,
+                    doctor_name: sessionData.doctor_name,
+                    fecha_sesion: sessionData.fecha_sesion,
+                    procedimiento_realizado: sessionData.procedimiento_realizado,
+                    plan_proxima_cita: sessionData.plan_proxima_cita || '',
+                    fecha_proxima_cita: sessionData.fecha_proxima_cita || '',
+                    appointment_id: appointmentId,
+                    quote_id: pendingAppointmentPayload.quote_id || null,
+                    tratamientos: sessionData.tratamientos || [],
+                    archivos_adjuntos: sessionData.archivos_adjuntos || [],
+                };
+                console.log('[handleSaveSession] Session payload:', JSON.stringify(sessionPayload));
+
+                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionPayload);
+
+                toast({
+                    title: tToasts('sessionCreated'),
+                    description: tToasts('sessionCreatedDesc'),
+                });
+
+                // Calculate start datetime from payload for callback
+                const startDateTime = parseISO(pendingAppointmentPayload.start);
+                
+                setIsSessionDialogOpen(false);
+                setPendingAppointmentPayload(null);
+                setHasPendingSession(false);
+                onOpenChange(false);
+                if (onSaveSuccess) onSaveSuccess(appointmentResult, startDateTime);
+            } catch (error: any) {
+                console.error('[handleSaveSession] Error creating appointment/session:', error);
+                const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+                toast({
+                    variant: 'destructive',
+                    title: tToasts('errorCreatingSession'),
+                    description: errorMessage
+                });
+                throw error; // Re-throw so the session dialog knows it failed
+            }
+            return;
+        }
+
+        // ORIGINAL FLOW: Session only (editing or creating for existing appointment)
         const patientId = appointment.user?.id || editingAppointment?.patientId || pendingSaveResult?.result?.patient_id;
         if (!patientId) {
             toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('patientIdRequired') });
@@ -671,6 +820,7 @@ export function AppointmentFormDialog({
                 ...(isEditing ? {} : { description: tToasts('sessionCreatedDesc') }),
             });
             setIsSessionDialogOpen(false);
+            setHasPendingSession(false);
             if (pendingSaveResult) {
                 onOpenChange(false);
                 if (onSaveSuccess) onSaveSuccess(pendingSaveResult.result, pendingSaveResult.startDateTime);
@@ -679,9 +829,15 @@ export function AppointmentFormDialog({
                 // Refresh linked session display
                 if (editingAppointment) loadLinkedSession(editingAppointment);
             }
-        } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('errorCreatingSession'), description: tToasts('errorCreatingSessionDesc') });
-        }
+        } catch (error: any) {
+                console.error('[handleSaveSession] Error:', error);
+                const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+                toast({ 
+                    variant: 'destructive', 
+                    title: tToasts('errorCreatingSession'), 
+                    description: errorMessage 
+                });
+            }
     };
 
     const filteredDoctors = React.useMemo(() => {
@@ -803,13 +959,13 @@ export function AppointmentFormDialog({
                                                                 setQuoteSearchOpen(false);
                                                                 setAppointment(prev => ({ ...prev, quote }));
                                                                 
-                                                                // Load services from the quote's order
+                                                                // Load services from the quote items
                                                                 setIsLoadingQuoteServices(true);
                                                                 try {
-                                                                    const orderServices = await getOrderServicesByQuoteId(quote.id);
+                                                                    const quoteServices = await getServicesByQuoteId(quote.id);
                                                                     setAppointment(prev => ({
                                                                         ...prev,
-                                                                        services: orderServices
+                                                                        services: quoteServices
                                                                     }));
                                                                 } catch (error) {
                                                                     console.error('Failed to load services from quote:', error);
@@ -971,7 +1127,7 @@ export function AppointmentFormDialog({
                                 <Input id="endTime" type="time" value={appointment.endTime} onChange={e => setAppointment(prev => ({ ...prev, endTime: e.target.value }))} />
                             </div>
                              <div className="space-y-2">
-                                <Label htmlFor="notes">Notas</Label>
+                                <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                 <Textarea id="notes" value={appointment.notes} onChange={e => setAppointment(prev => ({ ...prev, notes: e.target.value }))} />
                             </div>
                         </div>
@@ -1055,7 +1211,7 @@ export function AppointmentFormDialog({
                     )}
                 </DialogBody>
                 <DialogFooter>
-                    <Button onClick={handleSave}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
+                    <Button onClick={handleSave} disabled={isSessionDialogOpen}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
                 </DialogFooter>
             </DialogContent>
@@ -1063,14 +1219,53 @@ export function AppointmentFormDialog({
             {/* Clinic Session Dialog */}
             <ClinicSessionDialog
                 open={isSessionDialogOpen}
-                onOpenChange={setIsSessionDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open && pendingAppointmentPayload) {
+                        // If user closes the dialog when there's a pending appointment,
+                        // cancel the whole flow - don't create anything
+                        setPendingAppointmentPayload(null);
+                        setHasPendingSession(false);
+                        setIsSessionDialogOpen(open);
+                        return;
+                    }
+                    if (!open && hasPendingSession) {
+                        // Prevent closing without saving session - show confirmation
+                        toast({
+                            title: tToasts('pendingSessionTitle') || 'Session pending',
+                            description: tToasts('pendingSessionDesc') || 'Please complete the clinical session before closing.',
+                            variant: 'destructive',
+                        });
+                        return;
+                    }
+                    setIsSessionDialogOpen(open);
+                }}
                 existingSession={linkedSession ?? undefined}
-                showTreatments={false}
-                showAttachments={false}
+                showTreatments={true}
+                showAttachments={true}
                 quoteId={appointment.quote?.id || editingAppointment?.quote_id}
                 appointmentId={editingAppointment?.id || pendingSaveResult?.result?.appointment_id || pendingSaveResult?.result?.id}
                 userId={appointment.user?.id || editingAppointment?.patientId || ''}
                 onSave={handleSaveSession}
+                prefillData={{
+                    doctor_id: appointment.doctor?.id || '',
+                    doctor_name: appointment.doctor?.name || '',
+                    procedimiento_realizado: appointment.services.map(s => s.name).join(', '),
+                }}
+                prefillTreatments={prefillTreatments}
+                // NEW: Pass pending appointment data when creating together with session
+                pendingAppointmentData={pendingAppointmentPayload ? {
+                    start: pendingAppointmentPayload.start,
+                    end: pendingAppointmentPayload.end,
+                    doctor_id: pendingAppointmentPayload.doctor_id,
+                    doctor_name: pendingAppointmentPayload.doctor_name,
+                    patient_id: pendingAppointmentPayload.patient_id,
+                    patient_name: pendingAppointmentPayload.patient_name,
+                    service_ids: pendingAppointmentPayload.service_ids,
+                    service_names: pendingAppointmentPayload.service_names,
+                    notes: pendingAppointmentPayload.notes,
+                    google_calendar_id: pendingAppointmentPayload.google_calendar_id,
+                    quote_id: pendingAppointmentPayload.quote_id,
+                } : undefined}
             />
 
             {/* Quick Quote Dialog */}
@@ -1078,9 +1273,20 @@ export function AppointmentFormDialog({
                 open={isQuickQuoteOpen}
                 onOpenChange={setIsQuickQuoteOpen}
                 user={appointment.user}
-                onQuoteCreated={(quote) => {
+                onQuoteCreated={async (quote) => {
                     setUserQuotes(prev => [quote, ...prev]);
                     setAppointment(prev => ({ ...prev, quote }));
+
+                    // Pre-load services from the newly created quote
+                    setIsLoadingQuoteServices(true);
+                    try {
+                        const quoteServices = await getServicesByQuoteId(quote.id);
+                        setAppointment(prev => ({ ...prev, services: quoteServices }));
+                    } catch (error) {
+                        console.error('Failed to load services from new quote:', error);
+                    } finally {
+                        setIsLoadingQuoteServices(false);
+                    }
                 }}
             />
         </Dialog>

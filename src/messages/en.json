@@ -371,7 +371,8 @@
       "noQuote": "No quote",
       "loadingQuotes": "Loading quotes...",
       "loadingServices": "Loading services...",
-      "selectUserFirst": "Select a patient first"
+      "selectUserFirst": "Select a patient first",
+      "notes": "Notes"
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -430,7 +431,12 @@
       "sessionUpdated": "Clinic session updated",
       "errorCreatingSession": "Error saving session",
       "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
-      "patientIdRequired": "Patient ID is required"
+      "patientIdRequired": "Patient ID is required",
+      "errorLoadingQuoteItems": "Error loading treatments",
+      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote.",
+      "quoteAutoConfirmed": "Quote confirmed",
+      "quoteAutoConfirmedDesc": "The quote was automatically confirmed when creating the appointment.",
+      "quoteAutoConfirmError": "Could not confirm the quote. The appointment was not created."
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -3630,9 +3636,15 @@
   },
   "UserAppointments": {
     "appointmentDetails": "Appointment Details",
-    "linkedSessions": "Linked Sessions",
-    "noLinkedSessions": "No linked sessions found",
+    "linkedSessions": "Clinical Sessions",
+    "noLinkedSessions": "No sessions linked to this appointment",
+    "noLinkedQuote": "This appointment has no linked quote",
     "noAppointmentSelected": "Select an appointment to view details",
+    "doctor": "Doctor",
+    "date": "Date",
+    "time": "Time",
+    "quote": "Quote",
+    "notes": "Notes",
     "columns": {
       "date": "Date",
       "doctor": "Doctor",
@@ -4592,8 +4604,10 @@
     "nextSessionPlan": "Next Session Plan",
     "nextSessionPlanPlaceholder": "Enter the plan for the next appointment...",
     "nextSessionDate": "Next Session Date",
-    "nextSessionDatePlaceholder": "Select date...",
-    "cancel": "Cancel",
+        "nextSessionDatePlaceholder": "Select date...",
+        "nextAppointmentDate": "Next Appointment Date",
+        "selectNextAppointmentDate": "Select the next appointment date",
+        "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
     "fileUploadError": "Error uploading files",
