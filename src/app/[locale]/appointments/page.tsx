@@ -430,23 +430,29 @@ export default function AppointmentsPage() {
     // Clinic Session Handlers
     const handleOpenClinicSession = async (appointment: Appointment) => {
         setClinicSessionAppointment(appointment);
-        setLinkedSession(null); // Reset linkedSession to avoid interference with existingSession
+        setLinkedSession(null);
+
+        const tasks: Promise<any>[] = [loadLinkedSession(appointment)];
+
         if (appointment.quote_id) {
-            try {
-                const items = await getQuoteItems(appointment.quote_id);
-                setQuoteItems(items);
-            } catch (error) {
-                console.error('Error al cargar ítems del presupuesto:', error);
-                setQuoteItems([]);
-                toast({
-                    variant: 'destructive',
-                    title: tToasts('errorLoadingQuoteItems'),
-                    description: tToasts('errorLoadingQuoteItemsDesc'),
-                });
-            }
+            tasks.push(
+                getQuoteItems(appointment.quote_id)
+                    .then((items) => setQuoteItems(items))
+                    .catch((error) => {
+                        console.error('Error al cargar ítems del presupuesto:', error);
+                        setQuoteItems([]);
+                        toast({
+                            variant: 'destructive',
+                            title: tToasts('errorLoadingQuoteItems'),
+                            description: tToasts('errorLoadingQuoteItemsDesc'),
+                        });
+                    })
+            );
         } else {
             setQuoteItems([]);
         }
+
+        await Promise.all(tasks);
         setIsClinicSessionOpen(true);
     };
 

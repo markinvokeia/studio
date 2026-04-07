@@ -725,28 +725,24 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         return blob;
     }, []);
 
+    const uploadSessionFiles = async (identifiers: Record<string, string>, files: File[]) => {
+        const formData = new FormData();
+        Object.entries(identifiers).forEach(([k, v]) => formData.append(k, v));
+        files.forEach(file => formData.append('newly_added_files', file));
+        await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+    };
+
     const createSession = useCallback(async (userId: string, data: any, files?: File[]) => {
         setIsSubmittingSession(true);
         try {
-            const formData = new FormData();
-            Object.keys(data).forEach(key => {
-                if (data[key] !== undefined && data[key] !== null) {
-                    if (typeof data[key] === 'object' && !Array.isArray(data[key])) {
-                        formData.append(key, JSON.stringify(data[key]));
-                    } else {
-                        formData.append(key, data[key]);
-                    }
-                }
-            });
-            formData.append('paciente_id', userId);
-
+            const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
+            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, { ...sessionData, paciente_id: userId });
             if (files && files.length > 0) {
-                files.forEach((file) => {
-                    formData.append('newly_added_files', file);
-                });
+                await uploadSessionFiles(
+                    { paciente_id: userId, ...(sessionData.appointment_id ? { appointment_id: String(sessionData.appointment_id) } : {}) },
+                    files,
+                );
             }
-
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
             await fetchPatientSessions(userId);
         } catch (error) {
             console.error("Failed to create session:", error);
@@ -759,35 +755,19 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const updateSession = useCallback(async (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[], existingAttachments?: any[]) => {
         setIsSubmittingSession(true);
         try {
-            const formData = new FormData();
-            formData.append('sesion_id', String(sessionId));
-            formData.append('paciente_id', userId);
-
-            Object.keys(data).forEach(key => {
-                if (data[key] !== undefined && data[key] !== null) {
-                    if (typeof data[key] === 'object' && !Array.isArray(data[key])) {
-                        formData.append(key, JSON.stringify(data[key]));
-                    } else {
-                        formData.append(key, data[key]);
-                    }
-                }
+            const { archivos_adjuntos, deletedAttachmentIds: _deleted, ...sessionData } = data;
+            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, {
+                ...sessionData,
+                sesion_id: sessionId,
+                paciente_id: userId,
+                deleted_attachment_ids: deletedAttachmentIds || [],
+                ...(existingAttachments && existingAttachments.length > 0
+                    ? { existing_attachment_ids: existingAttachments.map((att: any) => String(att.id)) }
+                    : {}),
             });
-
-            formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds || []));
-
-            // Also send existing attachment IDs that were kept
-            if (existingAttachments && existingAttachments.length > 0) {
-                const existingIds = existingAttachments.map((att: any) => String(att.id));
-                formData.append('existing_attachment_ids', JSON.stringify(existingIds));
-            }
-
             if (files && files.length > 0) {
-                files.forEach((file) => {
-                    formData.append('newly_added_files', file);
-                });
+                await uploadSessionFiles({ sesion_id: String(sessionId), paciente_id: userId }, files);
             }
-
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
             await fetchPatientSessions(userId);
         } catch (error) {
             console.error("Failed to update session:", error);

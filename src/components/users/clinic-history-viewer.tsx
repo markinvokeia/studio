@@ -1815,10 +1815,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
         try {
             const dataToSave = {
                 ...sessionForm,
-                tratamientos: sessionTreatments.length > 0 ? JSON.stringify(sessionTreatments.map(t => ({
+                tratamientos: sessionTreatments.length > 0 ? sessionTreatments.map(t => ({
                     numero_diente: t.numero_diente ? parseInt(t.numero_diente, 10) : null,
-                    descripcion: t.descripcion
-                }))) : undefined
+                    descripcion: t.descripcion,
+                })) : undefined,
             };
 
             if (editingSession?.sesion_id) {

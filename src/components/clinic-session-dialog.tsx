@@ -151,48 +151,50 @@ export function ClinicSessionDialog({
         }
     }, [open]);
 
-    // Reset form when dialog opens with new props
+    // Reset form only when the dialog transitions from closed to open
+    const prevOpenRef = React.useRef(false);
     React.useEffect(() => {
-        if (open) {
-            // Reset form
-            setForm({
-                doctor_id: existingSession?.doctor_id || prefillData?.doctor_id || '',
-                doctor_name: existingSession?.doctor_name || prefillData?.doctor_name || '',
-                fecha_sesion: existingSession?.fecha_sesion 
-                    ? existingSession.fecha_sesion.split('T')[0] 
-                    : (defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
-                procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
-                plan_proxima_cita: existingSession?.plan_proxima_cita || '',
-                fecha_proxima_cita: existingSession?.fecha_proxima_cita || '',
-                quote_id: existingSession?.quote_id || quoteId,
-                appointment_id: existingSession?.appointment_id || appointmentId,
-                sesion_id: existingSession?.sesion_id,
-            });
+        const justOpened = open && !prevOpenRef.current;
+        prevOpenRef.current = open;
+        if (!justOpened) return;
 
-            // Reset treatments
-            if (existingSession?.tratamientos && existingSession.tratamientos.length > 0) {
-                setTreatments(existingSession.tratamientos.map(t => ({
-                    numero_diente: t.numero_diente,
-                    descripcion: t.descripcion || '',
-                })));
-            } else if (prefillTreatments && prefillTreatments.length > 0) {
-                setTreatments(prefillTreatments.map(t => ({ ...t })));
-            } else {
-                setTreatments([]);
-            }
+        setForm({
+            doctor_id: existingSession?.doctor_id || prefillData?.doctor_id || '',
+            doctor_name: existingSession?.doctor_name || prefillData?.doctor_name || '',
+            fecha_sesion: existingSession?.fecha_sesion
+                ? existingSession.fecha_sesion.split('T')[0]
+                : (defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+            procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
+            plan_proxima_cita: existingSession?.plan_proxima_cita || '',
+            fecha_proxima_cita: existingSession?.fecha_proxima_cita
+                ? existingSession.fecha_proxima_cita.split('T')[0]
+                : '',
+            quote_id: existingSession?.quote_id || quoteId,
+            appointment_id: existingSession?.appointment_id || appointmentId,
+            sesion_id: existingSession?.sesion_id,
+        });
 
-            // Reset attachments
-            if (existingSession?.archivos_adjuntos && existingSession.archivos_adjuntos.length > 0) {
-                setExistingAttachments(existingSession.archivos_adjuntos);
-            } else {
-                setExistingAttachments([]);
-            }
-            setAttachedFiles([]);
-            setDeletedAttachmentIds([]);
-
-            setDoctorError(false);
+        if (existingSession?.tratamientos && existingSession.tratamientos.length > 0) {
+            setTreatments(existingSession.tratamientos.map(t => ({
+                numero_diente: t.numero_diente,
+                descripcion: t.descripcion || '',
+            })));
+        } else if (prefillTreatments && prefillTreatments.length > 0) {
+            setTreatments(prefillTreatments.map(t => ({ ...t })));
+        } else {
+            setTreatments([]);
         }
-    }, [open, defaultDate, serviceName, quoteId, appointmentId, existingSession, prefillData, prefillTreatments]);
+
+        if (existingSession?.archivos_adjuntos && existingSession.archivos_adjuntos.length > 0) {
+            setExistingAttachments(existingSession.archivos_adjuntos);
+        } else {
+            setExistingAttachments([]);
+        }
+        setAttachedFiles([]);
+        setDeletedAttachmentIds([]);
+        setDoctorError(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
 
     const fetchDoctors = async () => {
         setIsLoadingDoctors(true);
@@ -495,9 +497,9 @@ export function ClinicSessionDialog({
                                                                 placeholder={t('treatments.toothNumber')}
                                                                 value={treatment.numero_diente ?? ''}
                                                                 onChange={(e) => {
-                                                                    const newTreatments = [...treatments];
-                                                                    newTreatments[index].numero_diente = e.target.value ? parseInt(e.target.value, 10) : null;
-                                                                    setTreatments(newTreatments);
+                                                                    setTreatments(prev => prev.map((t, i) =>
+                                                                        i === index ? { ...t, numero_diente: e.target.value ? parseInt(e.target.value, 10) : null } : t
+                                                                    ));
                                                                 }}
                                                                 className="h-7 text-xs px-2 w-16"
                                                             />
@@ -505,9 +507,9 @@ export function ClinicSessionDialog({
                                                                 placeholder={t('treatments.treatmentPlaceholder')}
                                                                 value={treatment.descripcion}
                                                                 onChange={(e) => {
-                                                                    const newTreatments = [...treatments];
-                                                                    newTreatments[index].descripcion = e.target.value;
-                                                                    setTreatments(newTreatments);
+                                                                    setTreatments(prev => prev.map((t, i) =>
+                                                                        i === index ? { ...t, descripcion: e.target.value } : t
+                                                                    ));
                                                                 }}
                                                                 className="min-h-[28px] h-7 text-xs p-1 flex-1 resize-none"
                                                             />

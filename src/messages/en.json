@@ -4606,7 +4606,7 @@
     "nextSessionDate": "Next Session Date",
         "nextSessionDatePlaceholder": "Select date...",
         "nextAppointmentDate": "Next Appointment Date",
-        "selectNextAppointmentDate": "Select the next appointment date",
+        "selectNextAppointmentDate": "Select date",
         "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
