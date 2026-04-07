@@ -73,24 +73,27 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
   },
 ];
 
-async function getServicesForUser(userId: string, t: any): Promise<Service[]> {
+async function getServicesForUser(userId: string, t: any, isSalesUser: boolean): Promise<Service[]> {
   if (!userId) return [];
   try {
-    const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: userId });
+    const data = await api.get(API_ROUTES.USER_SERVICES, { user_id: userId, is_sales: String(isSalesUser) });
     const userServicesData = Array.isArray(data) ? data : (data.user_services || data.data || data.result || []);
 
     if (userServicesData.length === 0 || (userServicesData.length === 1 && Object.keys(userServicesData[0]).length === 0)) {
       return [];
     }
 
-    return userServicesData.map((apiService: any) => ({
+    const mapped = userServicesData.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
       name: apiService.name || t('General.unknown'),
       category: apiService.category || t('General.notAvailable'),
       price: apiService.price || 0,
       duration_minutes: apiService.duration_minutes || 0,
       is_active: apiService.is_active,
+      is_sales: apiService.is_sales as boolean | undefined,
     }));
+    // Filter client-side when the backend returns is_sales in the response
+    return mapped.filter((s: { is_sales?: boolean }) => s.is_sales === undefined || s.is_sales === isSalesUser);
   } catch (error) {
     console.error("Failed to fetch user services:", error);
     return [];
@@ -100,7 +103,7 @@ async function getServicesForUser(userId: string, t: any): Promise<Service[]> {
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
     const result = isSalesUser ? await getSalesServices({ limit: 100 }) : await getPurchaseServices({ limit: 100 });
-    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active }));
+    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active, is_sales: service.is_sales as boolean | undefined }));
   } catch (error) {
     console.error("Failed to fetch all services:", error);
     return [];
@@ -129,10 +132,10 @@ export function UserServices({ userId, isSalesUser }: UserServicesProps) {
   const loadUserServices = React.useCallback(async () => {
     if (!userId) return;
     setIsLoading(true);
-    const fetchedUserServices = await getServicesForUser(userId, t);
+    const fetchedUserServices = await getServicesForUser(userId, t, isSalesUser);
     setUserServices(fetchedUserServices);
     setIsLoading(false);
-  }, [userId, t]);
+  }, [userId, t, isSalesUser]);
 
   React.useEffect(() => {
     loadUserServices();

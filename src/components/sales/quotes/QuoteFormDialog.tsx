@@ -60,8 +60,8 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
 
-async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
-    const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: true });
+async function upsertQuote(quoteData: QuoteFormValues, isSales: boolean, t: (key: string) => string) {
+    const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: isSales });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         const message = responseData[0]?.message ? responseData[0].message : t('errors.failedToSaveQuote');
         throw new Error(message);
@@ -93,9 +93,10 @@ export interface QuoteFormDialogProps {
     onOpenChange: (open: boolean) => void;
     initialData?: { user?: User };
     onSaveSuccess?: () => void;
+    isSales?: boolean;
 }
 
-export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess }: QuoteFormDialogProps) {
+export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, isSales = true }: QuoteFormDialogProps) {
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession } = useAuth();
@@ -204,7 +205,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
 
             const payload = { ...values, billing_status: normalizeBilling(values.billing_status), items: itemsToSubmit };
-            await upsertQuote(payload as any, t);
+            await upsertQuote(payload as any, isSales, t);
             toast({ title: t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             onOpenChange(false);
             onSaveSuccess?.();
@@ -376,7 +377,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                             <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                                                                 <FormItem>
                                                                     <ServiceSelector
-                                                                        isSales={true}
+                                                                        isSales={isSales}
                                                                         value={field.value}
                                                                         onValueChange={(serviceId, service) => {
                                                                             field.onChange(serviceId);

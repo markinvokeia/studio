@@ -203,7 +203,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
         { payment_id: paymentId }
       );
       const raw = Array.isArray(data) ? data : (data.allocations || data.data || []);
-      setAllocations(raw);
+      setAllocations(raw.filter((item: PaymentAllocation) => item && item.allocation_id));
     } catch {
       setAllocations([]);
     } finally {
@@ -462,16 +462,10 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                     <span className="text-xs text-muted-foreground">Fecha:</span>
                     <span className="text-sm">{formatDateTime(selectedPayment.createdAt)}</span>
                   </div>
-                  {selectedPayment.order_doc_no && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Orden:</span>
-                      <span className="text-sm font-medium">{selectedPayment.order_doc_no}</span>
-                    </div>
-                  )}
                   {selectedPayment.transaction_type && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Tipo:</span>
-                      <span className="text-sm capitalize">{selectedPayment.transaction_type.replace(/_/g, ' ')}</span>
+                      <span className="text-sm">{tPayments(`transactionType.${selectedPayment.transaction_type}`)}</span>
                     </div>
                   )}
                   {selectedPayment.exchange_rate && selectedPayment.exchange_rate !== 1 && (

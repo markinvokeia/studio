@@ -34,7 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
-import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
+import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/PurchasePrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
@@ -1132,7 +1132,7 @@ function ProvidersPageContent() {
       </Dialog>
 
       {selectedProvider && (
-        <PrepaidFormDialog
+        <PurchasePrepaidFormDialog
           open={isPrepaidDialogOpen}
           onOpenChange={setIsPrepaidDialogOpen}
           initialUser={selectedProvider}
@@ -1166,6 +1166,7 @@ function ProvidersPageContent() {
         <QuoteFormDialog
           open={isQuoteDialogOpen}
           onOpenChange={setIsQuoteDialogOpen}
+          isSales={false}
           initialData={{ user: selectedProvider }}
           onSaveSuccess={() => {
             setIsQuoteDialogOpen(false);

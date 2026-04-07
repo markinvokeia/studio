@@ -424,7 +424,7 @@ export default function DoctorsPage() {
                   </TabsList>
                   <div className="flex-1 overflow-auto mt-4">
                     <TabsContent value="services" className="m-0">
-                      <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales || true} />
+                      <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales !== false} />
                     </TabsContent>
                     <TabsContent value="messages" className="m-0">
                       <UserMessages userId={selectedUser.id} />
