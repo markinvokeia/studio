@@ -196,7 +196,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
 
       await api.post(apiRoute, {
-        query: JSON.stringify(queryPayload),
+        query: queryPayload,
         quote_number: parseInt(quoteId, 10),
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_complete: actionType,
@@ -229,38 +229,20 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     if (!selectedItem || !quoteId || !userId) return;
 
     try {
-      // Create the clinic session via API
-      const formData = new FormData();
-      
-      // Handle standard fields
-      (Object.keys(data) as Array<keyof ClinicSessionFormData>).forEach(key => {
-        if (key === 'tratamientos' || key === 'archivos_adjuntos' || key === 'deletedAttachmentIds') return;
-        const value = data[key];
-        if (value !== undefined && value !== null) {
-          formData.append(key, String(value));
-        }
+      // Send session data as JSON (tratamientos must be a JSON array, not a string)
+      const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
+      await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, {
+        ...sessionData,
+        paciente_id: userId,
       });
-      
-      // Handle tratamientos (JSON stringified array)
-      if (data.tratamientos && data.tratamientos.length > 0) {
-        formData.append('tratamientos', JSON.stringify(data.tratamientos));
-      }
-      
-      // Handle deletedAttachmentIds (JSON stringified array)
-      if (data.deletedAttachmentIds && data.deletedAttachmentIds.length > 0) {
-        formData.append('deletedAttachmentIds', JSON.stringify(data.deletedAttachmentIds));
-      }
-      
-      // Handle archivos_adjuntos (File objects)
-      if (data.archivos_adjuntos && data.archivos_adjuntos.length > 0) {
-        data.archivos_adjuntos.forEach((file, index) => {
-          formData.append(`archivos_adjuntos[${index}]`, file);
-        });
-      }
-      
-      formData.append('paciente_id', userId);
 
-      await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+      // Upload files separately if any
+      if (archivos_adjuntos && archivos_adjuntos.length > 0) {
+        const formData = new FormData();
+        formData.append('paciente_id', userId);
+        archivos_adjuntos.forEach((file: File) => formData.append('newly_added_files', file));
+        await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+      }
 
       // Now complete the order item
       const queryPayload: any = {
@@ -275,7 +257,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
 
       await api.post(apiRoute, {
-        query: JSON.stringify(queryPayload),
+        query: queryPayload,
         quote_number: parseInt(quoteId, 10),
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_complete: 'complete',
@@ -318,7 +300,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         : API_ROUTES.PURCHASES.QUOTES_LINES_SCHEDULE;
 
       await api.post(apiRoute, {
-        query: JSON.stringify(queryPayload),
+        query: queryPayload,
         quote_number: parseInt(quoteId, 10),
         order_item_id: parseInt(selectedItem.id, 10),
         schedule_complete: 'schedule',
