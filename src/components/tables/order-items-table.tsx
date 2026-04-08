@@ -229,20 +229,28 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     if (!selectedItem || !quoteId || !userId) return;
 
     try {
-      // Send session data as JSON (tratamientos must be a JSON array, not a string)
       const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
-      await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, {
-        ...sessionData,
-        paciente_id: userId,
+      const formData = new FormData();
+
+      // Standard scalar fields
+      (Object.keys(sessionData) as Array<keyof typeof sessionData>).forEach(key => {
+        const value = sessionData[key];
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
       });
 
-      // Upload files separately if any
-      if (archivos_adjuntos && archivos_adjuntos.length > 0) {
-        const formData = new FormData();
-        formData.append('paciente_id', userId);
-        archivos_adjuntos.forEach((file: File) => formData.append('newly_added_files', file));
-        await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+      formData.append('paciente_id', userId);
+
+      if (sessionData.tratamientos && sessionData.tratamientos.length > 0) {
+        formData.append('tratamientos', JSON.stringify(sessionData.tratamientos));
       }
+
+      if (archivos_adjuntos && archivos_adjuntos.length > 0) {
+        archivos_adjuntos.forEach((file: File) => formData.append('newly_added_files', file));
+      }
+
+      await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
 
       // Now complete the order item
       const queryPayload: any = {

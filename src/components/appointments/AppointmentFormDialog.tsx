@@ -725,22 +725,24 @@ export function AppointmentFormDialog({
                 }
 
                 // 2. Create the session with the appointment_id
-                const sessionPayload = {
-                    paciente_id: patientId,
-                    doctor_id: sessionData.doctor_id,
-                    doctor_name: sessionData.doctor_name,
-                    fecha_sesion: sessionData.fecha_sesion,
-                    procedimiento_realizado: sessionData.procedimiento_realizado,
-                    plan_proxima_cita: sessionData.plan_proxima_cita || '',
-                    fecha_proxima_cita: sessionData.fecha_proxima_cita || '',
-                    appointment_id: appointmentId,
-                    quote_id: pendingAppointmentPayload.quote_id || null,
-                    tratamientos: sessionData.tratamientos || [],
-                    archivos_adjuntos: sessionData.archivos_adjuntos || [],
-                };
-                console.log('[handleSaveSession] Session payload:', JSON.stringify(sessionPayload));
+                const sessionFormData = new FormData();
+                sessionFormData.append('paciente_id', patientId);
+                if (sessionData.doctor_id) sessionFormData.append('doctor_id', String(sessionData.doctor_id));
+                if (sessionData.doctor_name) sessionFormData.append('doctor_name', String(sessionData.doctor_name));
+                if (sessionData.fecha_sesion) sessionFormData.append('fecha_sesion', String(sessionData.fecha_sesion));
+                if (sessionData.procedimiento_realizado) sessionFormData.append('procedimiento_realizado', String(sessionData.procedimiento_realizado));
+                sessionFormData.append('plan_proxima_cita', sessionData.plan_proxima_cita || '');
+                sessionFormData.append('fecha_proxima_cita', sessionData.fecha_proxima_cita || '');
+                sessionFormData.append('appointment_id', String(appointmentId));
+                if (pendingAppointmentPayload.quote_id) sessionFormData.append('quote_id', String(pendingAppointmentPayload.quote_id));
+                if (sessionData.tratamientos && sessionData.tratamientos.length > 0) {
+                    sessionFormData.append('tratamientos', JSON.stringify(sessionData.tratamientos));
+                }
+                if (sessionData.archivos_adjuntos && sessionData.archivos_adjuntos.length > 0) {
+                    (sessionData.archivos_adjuntos as File[]).forEach(file => sessionFormData.append('newly_added_files', file));
+                }
 
-                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionPayload);
+                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionFormData);
 
                 toast({
                     title: tToasts('sessionCreated'),
@@ -780,12 +782,20 @@ export function AppointmentFormDialog({
             || editingAppointment?.id;
         const quoteId = appointment.quote?.id || editingAppointment?.quote_id;
 
-        const payload = {
-            ...sessionData,
-            patient_id: patientId,
-            ...(appointmentId ? { appointment_id: appointmentId } : {}),
-            ...(quoteId ? { quote_id: quoteId } : {}),
-        };
+        const { archivos_adjuntos: sessionFiles, deletedAttachmentIds, tratamientos, ...scalarSessionData } = sessionData as any;
+        const payload = new FormData();
+        Object.entries(scalarSessionData).forEach(([k, v]) => {
+            if (v !== undefined && v !== null) payload.append(k, String(v));
+        });
+        payload.append('patient_id', patientId);
+        if (appointmentId) payload.append('appointment_id', String(appointmentId));
+        if (quoteId) payload.append('quote_id', String(quoteId));
+        if (tratamientos && tratamientos.length > 0) {
+            payload.append('tratamientos', JSON.stringify(tratamientos));
+        }
+        if (sessionFiles && sessionFiles.length > 0) {
+            (sessionFiles as File[]).forEach(file => payload.append('newly_added_files', file));
+        }
 
         try {
             const isEditing = !!sessionData.sesion_id;
