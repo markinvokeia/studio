@@ -340,7 +340,7 @@ export function RecentQuotesTable({
     });
 
     try {
-      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quoteId: quote.id.toString() });
+      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

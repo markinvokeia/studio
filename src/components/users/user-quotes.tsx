@@ -27,7 +27,7 @@ import { useToast } from '@/hooks/use-toast';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -434,10 +434,16 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const handlePrint = async () => {
     if (!selectedQuote || !canPrintQuote) return;
     try {
-      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: selectedQuote.id });
+      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: selectedQuote.id.toString() });
+      const fileName = getDocumentFileName(selectedQuote, 'quote');
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
       URL.revokeObjectURL(url);
+      a.remove();
     } catch {
       toast({ title: t('UserQuotes.toasts.errorPrinting'), variant: 'destructive' });
     }
