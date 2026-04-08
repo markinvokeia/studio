@@ -230,16 +230,16 @@
       "Friday",
       "Saturday"
     ],
-      "labelPrevious": "Go to previous month",
-      "labelNext": "Go to next month",
-      "labelMonthDropdown": "Choose the month",
-      "labelYearDropdown": "Choose the year",
-      "labelToday": "Go to today",
-      "pickDate": "Pick a date",
-      "selectMonth": "Select month",
-      "selectYear": "Select year",
-      "manualInputPlaceholder": "MM/DD/YYYY",
-      "invalidDate": "Invalid date"
+    "labelPrevious": "Go to previous month",
+    "labelNext": "Go to next month",
+    "labelMonthDropdown": "Choose the month",
+    "labelYearDropdown": "Choose the year",
+    "labelToday": "Go to today",
+    "pickDate": "Pick a date",
+    "selectMonth": "Select month",
+    "selectYear": "Select year",
+    "manualInputPlaceholder": "MM/DD/YYYY",
+    "invalidDate": "Invalid date"
   },
   "DateVariableInput": {
     "date": "Date",
@@ -433,10 +433,7 @@
       "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
       "patientIdRequired": "Patient ID is required",
       "errorLoadingQuoteItems": "Error loading treatments",
-      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote.",
-      "quoteAutoConfirmed": "Quote confirmed",
-      "quoteAutoConfirmedDesc": "The quote was automatically confirmed when creating the appointment.",
-      "quoteAutoConfirmError": "Could not confirm the quote. The appointment was not created."
+      "errorLoadingQuoteItemsDesc": "Could not load treatments from quote."
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -1184,15 +1181,15 @@
         "status": "Status"
       }
     },
-      "clinicSessions": {
-        "columns": {
-          "date": "Date",
-          "procedure": "Procedure",
-          "doctor": "Doctor",
-          "nextPlan": "Next Plan",
-          "nextDate": "Next Date"
-        }
-      },
+    "clinicSessions": {
+      "columns": {
+        "date": "Date",
+        "procedure": "Procedure",
+        "doctor": "Doctor",
+        "nextPlan": "Next Plan",
+        "nextDate": "Next Date"
+      }
+    },
     "UserColumns": {
       "status": "Status"
     },
@@ -2282,15 +2279,15 @@
       "saveError": "Error saving",
       "saveErrorDescription": "Could not save the notes. Try again."
     },
-        "setInitialPassword": "Set Initial Password",
-        "close": "Close details",
-        "quickCreate": {
-          "title": "Create",
-          "financial": "Financial",
-          "quote": "Quote",
-          "invoice": "Invoice",
-          "prepaid": "Prepaid"
-        }
+    "setInitialPassword": "Set Initial Password",
+    "close": "Close details",
+    "quickCreate": {
+      "title": "Create",
+      "financial": "Financial",
+      "quote": "Quote",
+      "invoice": "Invoice",
+      "prepaid": "Prepaid"
+    }
   },
   "ProviderColumns": {
     "name": "Name",
@@ -4604,10 +4601,10 @@
     "nextSessionPlan": "Next Session Plan",
     "nextSessionPlanPlaceholder": "Enter the plan for the next appointment...",
     "nextSessionDate": "Next Session Date",
-        "nextSessionDatePlaceholder": "Select date...",
-        "nextAppointmentDate": "Next Appointment Date",
-        "selectNextAppointmentDate": "Select date",
-        "cancel": "Cancel",
+    "nextSessionDatePlaceholder": "Select date...",
+    "nextAppointmentDate": "Next Appointment Date",
+    "selectNextAppointmentDate": "Select date",
+    "cancel": "Cancel",
     "save": "Save",
     "saving": "Saving...",
     "fileUploadError": "Error uploading files",

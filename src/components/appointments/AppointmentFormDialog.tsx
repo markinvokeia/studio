@@ -518,22 +518,6 @@ export function AppointmentFormDialog({
         }
     }, [calculatedEndTime, editingAppointment]);
 
-    // Auto-confirm quote if it's not already confirmed
-    const confirmQuoteIfNeeded = async (quote: Quote | null | undefined) => {
-        if (!quote || quote.status === 'confirmed') return;
-        try {
-            const payload = { quote_number: quote.id, confirm_reject: 'confirm', is_sales: true, notes: '' };
-            await api.post(API_ROUTES.SALES.QUOTE_CONFIRM, payload);
-            // Update local quote status so we don't try to confirm again
-            setAppointment(prev => prev.quote ? { ...prev, quote: { ...prev.quote, status: 'confirmed' } } : prev);
-            toast({ title: tToasts('quoteAutoConfirmed'), description: tToasts('quoteAutoConfirmedDesc') });
-        } catch (error) {
-            console.error('Failed to auto-confirm quote:', error);
-            toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('quoteAutoConfirmError') });
-            throw error; // Prevent appointment creation if quote confirmation fails
-        }
-    };
-
     const handleSave = async () => {
         const isEditing = !!editingAppointment;
         if (isEditing) {
@@ -633,15 +617,6 @@ export function AppointmentFormDialog({
             payload.notes = notes || '';
             payload.google_calendar_id = calendar?.google_calendar_id || '';
             payload.quote_id = appointment.quote?.id || null;
-        }
-
-        // Auto-confirm the quote if not yet confirmed (only when creating, not editing)
-        if (!isEditing && appointment.quote && appointment.quote.status !== 'confirmed') {
-            try {
-                await confirmQuoteIfNeeded(appointment.quote);
-            } catch {
-                return; // Abort if confirmation fails
-            }
         }
 
         // NEW FLOW: If creating with session, save payload and open session dialog WITHOUT creating appointment yet

@@ -433,10 +433,7 @@
             "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
             "patientIdRequired": "Se requiere el ID del paciente",
             "errorLoadingQuoteItems": "Error al cargar tratamientos",
-            "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
-            "quoteAutoConfirmed": "Presupuesto confirmado",
-            "quoteAutoConfirmedDesc": "El presupuesto fue confirmado automáticamente al crear la cita.",
-            "quoteAutoConfirmError": "No se pudo confirmar el presupuesto. La cita no fue creada."
+            "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto."
         },
         "linkedSession": "Sesión Clínica Enlazada",
         "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
