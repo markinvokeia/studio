@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,30 +12,64 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { useTVDisplay } from '@/context/tv-display-context';
-import type { Calendar } from '@/lib/types';
+import type { Calendar, TVDisplaySettings } from '@/lib/types';
 
 interface SettingsFormProps {
   calendars: Calendar[];
+}
+
+function VideoUrlList({
+  urls,
+  onAdd,
+  onRemove,
+  placeholder,
+}: {
+  urls: string[];
+  onAdd: (url: string) => void;
+  onRemove: (idx: number) => void;
+  placeholder: string;
+}) {
+  const [newUrl, setNewUrl] = React.useState('');
+  const add = () => {
+    if (!newUrl.trim()) return;
+    onAdd(newUrl.trim());
+    setNewUrl('');
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <Input
+          value={newUrl}
+          onChange={(e) => setNewUrl(e.target.value)}
+          placeholder={placeholder}
+          onKeyDown={(e) => e.key === 'Enter' && add()}
+        />
+        <Button type="button" size="sm" variant="outline" onClick={add}>
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+      {urls.length === 0 && (
+        <p className="text-xs text-muted-foreground">Sin videos. Agrega una URL para comenzar.</p>
+      )}
+      {urls.map((url, i) => (
+        <div key={i} className="flex items-center gap-2 text-sm">
+          <span className="flex-1 truncate text-muted-foreground">{url}</span>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => onRemove(i)}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function SettingsForm({ calendars }: SettingsFormProps) {
   const t = useTranslations('TVDisplayPage.settings');
   const { settings, updateSettings } = useTVDisplay();
   const { toast } = useToast();
-  const [newVideoUrl, setNewVideoUrl] = React.useState('');
 
   const handleSave = () => {
     toast({ description: t('saved') });
-  };
-
-  const addVideo = () => {
-    if (!newVideoUrl.trim()) return;
-    updateSettings({ videoUrls: [...settings.videoUrls, newVideoUrl.trim()] });
-    setNewVideoUrl('');
-  };
-
-  const removeVideo = (idx: number) => {
-    updateSettings({ videoUrls: settings.videoUrls.filter((_, i) => i !== idx) });
   };
 
   const toggleCalendar = (googleCalId: string, checked: boolean) => {
@@ -45,25 +79,20 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
     updateSettings({ selectedCalendarIds: next });
   };
 
+  const videoPos = settings.videoColumnPosition ?? 'none';
+  const showVideoColumnSection = videoPos !== 'none';
+  const isVertical = videoPos === 'left' || videoPos === 'right';
+  const isHorizontal = videoPos === 'top' || videoPos === 'bottom';
+
   return (
     <div className="space-y-6">
-      {/* Display info */}
+      {/* Theme */}
       <div className="space-y-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="displayTitle">{t('displayTitle')}</Label>
-          <Input
-            id="displayTitle"
-            value={settings.displayTitle}
-            onChange={(e) => updateSettings({ displayTitle: e.target.value })}
-            placeholder={t('displayTitlePlaceholder')}
-          />
-        </div>
-
         <div className="space-y-1.5">
           <Label>{t('theme')}</Label>
           <Select
             value={settings.theme}
-            onValueChange={(v) => updateSettings({ theme: v as 'dark' | 'light' | 'branded' })}
+            onValueChange={(v) => updateSettings({ theme: v as TVDisplaySettings['theme'] })}
           >
             <SelectTrigger>
               <SelectValue />
@@ -113,6 +142,9 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
           [
             ['showClock', 'showClock'],
             ['showDate', 'showDate'],
+            ['showClinicPhone', 'showClinicPhone'],
+            ['showClinicAddress', 'showClinicAddress'],
+            ['showClinicEmail', 'showClinicEmail'],
             ['showPatientName', 'showPatientName'],
             ['showDoctorName', 'showDoctorName'],
             ['showAppointmentTime', 'showAppointmentTime'],
@@ -133,57 +165,93 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
 
       <Separator />
 
-      {/* Refresh interval */}
-      <div className="space-y-1.5">
-        <Label htmlFor="refreshInterval">{t('refreshInterval')}</Label>
-        <Input
-          id="refreshInterval"
-          type="number"
-          min={1}
-          max={60}
-          value={settings.refreshIntervalMinutes}
-          onChange={(e) => updateSettings({ refreshIntervalMinutes: Number(e.target.value) || 5 })}
-          className="w-24"
-        />
+      {/* Intervals */}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="refreshInterval">{t('refreshInterval')}</Label>
+          <Input
+            id="refreshInterval"
+            type="number"
+            min={1}
+            max={60}
+            value={settings.refreshIntervalMinutes}
+            onChange={(e) => updateSettings({ refreshIntervalMinutes: Number(e.target.value) || 5 })}
+            className="w-24"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="promoInterval">{t('promoInterval')}</Label>
+          <Input
+            id="promoInterval"
+            type="number"
+            min={1}
+            max={120}
+            value={settings.promoIntervalMinutes}
+            onChange={(e) => updateSettings({ promoIntervalMinutes: Number(e.target.value) || 15 })}
+            className="w-24"
+          />
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label htmlFor="promoInterval">{t('promoInterval')}</Label>
-        <Input
-          id="promoInterval"
-          type="number"
-          min={1}
-          max={120}
-          value={settings.promoIntervalMinutes}
-          onChange={(e) => updateSettings({ promoIntervalMinutes: Number(e.target.value) || 15 })}
-          className="w-24"
+      <Separator />
+
+      {/* ── Promo videos (fullscreen) ── */}
+      <div className="space-y-3">
+        <div>
+          <Label className="text-sm font-semibold">{t('promoVideos')}</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">{t('promoVideosHint')}</p>
+        </div>
+        <VideoUrlList
+          urls={settings.promoVideoUrls ?? []}
+          onAdd={(url) => updateSettings({ promoVideoUrls: [...(settings.promoVideoUrls ?? []), url] })}
+          onRemove={(idx) => updateSettings({ promoVideoUrls: (settings.promoVideoUrls ?? []).filter((_, i) => i !== idx) })}
+          placeholder={t('videoUrlPlaceholder')}
         />
       </div>
 
       <Separator />
 
-      {/* Videos */}
+      {/* ── Video column ── */}
       <div className="space-y-3">
-        <Label className="text-sm font-semibold">{t('videos')}</Label>
-        <div className="flex gap-2">
-          <Input
-            value={newVideoUrl}
-            onChange={(e) => setNewVideoUrl(e.target.value)}
-            placeholder={t('videoUrlPlaceholder')}
-            onKeyDown={(e) => e.key === 'Enter' && addVideo()}
-          />
-          <Button type="button" size="sm" variant="outline" onClick={addVideo}>
-            <Plus className="h-4 w-4" />
-          </Button>
+        <div>
+          <Label className="text-sm font-semibold">{t('videoColumnPosition')}</Label>
+          <p className="text-xs text-muted-foreground mt-0.5">{t('videoColumnHint')}</p>
         </div>
-        {settings.videoUrls.map((url, i) => (
-          <div key={i} className="flex items-center gap-2 text-sm">
-            <span className="flex-1 truncate text-muted-foreground">{url}</span>
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeVideo(i)}>
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
+        <Select
+          value={videoPos}
+          onValueChange={(v) => updateSettings({ videoColumnPosition: v as TVDisplaySettings['videoColumnPosition'] })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">{t('videoColumnNone')}</SelectItem>
+            <SelectItem value="left">{t('videoColumnLeft')}</SelectItem>
+            <SelectItem value="right">{t('videoColumnRight')}</SelectItem>
+            <SelectItem value="top">{t('videoColumnTop')}</SelectItem>
+            <SelectItem value="bottom">{t('videoColumnBottom')}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Orientation hint */}
+        {(isVertical || isHorizontal) && (
+          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3 py-2">
+            <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              {isVertical ? t('videoColumnNoteVertical') : t('videoColumnNoteHorizontal')}
+            </p>
           </div>
-        ))}
+        )}
+
+        {/* Video URLs for the column — only shown when a position is selected */}
+        {showVideoColumnSection && (
+          <VideoUrlList
+            urls={settings.videoUrls}
+            onAdd={(url) => updateSettings({ videoUrls: [...settings.videoUrls, url] })}
+            onRemove={(idx) => updateSettings({ videoUrls: settings.videoUrls.filter((_, i) => i !== idx) })}
+            placeholder={t('videoUrlPlaceholder')}
+          />
+        )}
       </div>
 
       <Separator />

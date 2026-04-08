@@ -13,6 +13,8 @@ interface AppointmentCardProps {
   animationKey?: string | number;
   /** Relative size for "next" slots — 1 = first next, 2 = second next, etc. */
   nextPosition?: number;
+  /** True when this card was just promoted from a "next" slot to "current" */
+  promoted?: boolean;
 }
 
 export function AppointmentCard({
@@ -22,6 +24,7 @@ export function AppointmentCard({
   accentColor = '#3B82F6',
   animationKey,
   nextPosition = 1,
+  promoted = false,
 }: AppointmentCardProps) {
   const t = useTranslations('TVDisplayPage.screen');
   const isCurrent = variant === 'current';
@@ -30,12 +33,12 @@ export function AppointmentCard({
   return (
     <div
       key={animationKey}
-      className={cn(
-        'rounded-2xl transition-all duration-700',
+      className={cn('rounded-2xl')}
+      style={
         isCurrent
-          ? 'animate-in fade-in slide-in-from-bottom-6 duration-700'
-          : 'animate-in fade-in slide-in-from-bottom-3 duration-500',
-      )}
+          ? { animation: promoted ? 'card-promote 0.75s cubic-bezier(0.175,0.885,0.32,1.275) forwards' : 'card-enter 0.6s ease-out forwards' }
+          : { animation: 'fade-up 0.45s ease-out forwards' }
+      }
     >
       {isCurrent ? (
         /* ── CURRENT PATIENT — large card ───────────────────── */
@@ -104,9 +107,7 @@ export function AppointmentCard({
           }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <span
-              className="text-[10px] font-bold tracking-widest uppercase shrink-0 opacity-50"
-            >
+            <span className="text-[10px] font-bold tracking-widest uppercase shrink-0 opacity-50">
               {t('next')}
             </span>
             {settings.showPatientName && (

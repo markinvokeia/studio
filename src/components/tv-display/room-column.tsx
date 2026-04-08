@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { CalendarX2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { AppointmentCard } from './appointment-card';
 import type { TVRoomState, TVDisplaySettings } from '@/lib/types';
 
@@ -17,6 +16,19 @@ export function RoomColumn({ room, settings, totalRooms }: RoomColumnProps) {
   const t = useTranslations('TVDisplayPage.screen');
   const current = room.appointments[room.currentIndex];
 
+  // Track previous index to detect when next→current promotion happened
+  const prevIndexRef = React.useRef(room.currentIndex);
+  const [promoted, setPromoted] = React.useState(false);
+
+  React.useEffect(() => {
+    if (room.currentIndex !== prevIndexRef.current) {
+      setPromoted(true);
+      prevIndexRef.current = room.currentIndex;
+      const timer = setTimeout(() => setPromoted(false), 900);
+      return () => clearTimeout(timer);
+    }
+  }, [room.currentIndex]);
+
   // Show up to 2 next patients
   const nextSlots = settings.showNextPatient
     ? room.appointments.slice(room.currentIndex + 1, room.currentIndex + 3)
@@ -26,11 +38,8 @@ export function RoomColumn({ room, settings, totalRooms }: RoomColumnProps) {
 
   return (
     <div
-      className={cn(
-        'flex flex-col h-full rounded-3xl overflow-hidden',
-        'border border-white/8',
-      )}
-      style={{ background: 'rgba(255,255,255,0.025)' }}
+      className="flex flex-col h-full rounded-3xl overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.08)' }}
     >
       {/* Room header */}
       <div
@@ -67,6 +76,7 @@ export function RoomColumn({ room, settings, totalRooms }: RoomColumnProps) {
               settings={settings}
               accentColor={accentColor}
               animationKey={`${room.calendarId}-${room.currentIndex}`}
+              promoted={promoted}
             />
 
             {nextSlots.length > 0 && (

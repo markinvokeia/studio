@@ -983,6 +983,8 @@ export interface TVDisplaySettings {
   showNextPatient: boolean;
   autoAdvance: boolean;
   videoUrls: string[];
+  videoColumnPosition: 'none' | 'left' | 'right' | 'top' | 'bottom';
+  promoVideoUrls: string[];
   musicEnabled: boolean;
   musicUrl: string;
   displayTitle: string;
@@ -992,6 +994,9 @@ export interface TVDisplaySettings {
   selectedCalendarIds: string[];
   showClock: boolean;
   showDate: boolean;
+  showClinicPhone: boolean;
+  showClinicAddress: boolean;
+  showClinicEmail: boolean;
 }
 
 export interface TVRoomState {

@@ -1,5 +1,7 @@
 
 export const API_ROUTES = {
+    CLINIC: '/clinic',
+    CLINIC_LOGO: '/clinic/logo',
     USERS_APPOINTMENTS: '/users_appointments',
     USER_QUOTES: '/user_quotes',
     USER_PAYMENTS: '/user_payments',
@@ -98,9 +100,7 @@ export const API_ROUTES = {
     },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
-    CLINIC: '/clinic',
     CLINIC_UPDATE: '/clinic/update',
-    CLINIC_LOGO: '/clinic/logo',
     AVAILABILITY_EXCEPTIONS_SEARCH: '/availability_exceptions/search',
     AVAILABILITY_EXCEPTIONS_UPSERT: '/availability_exceptions/upsert',
     AVAILABILITY_EXCEPTIONS_DELETE: '/availability_exceptions/delete',

@@ -6,18 +6,22 @@ interface PromoPlayerProps {
   videoUrls: string[];
   musicUrl?: string;
   musicEnabled?: boolean;
-  /** Called when all videos have finished (or immediately if no videos configured) */
+  /** Index to resume from (persists across promo interruptions) */
+  initialIndex?: number;
+  /** Called with the next index whenever a video ends, so the parent can persist it */
+  onIndexChange?: (nextIndex: number) => void;
+  /** Called when promo should close (interrupted or all videos done) */
   onEnded?: () => void;
-  /** Max seconds to show each video/promo before returning to schedule. Default 60. */
+  /** Max seconds per video before forcing advance. Default 90. */
   maxDurationSeconds?: number;
 }
 
-function getEmbedUrl(url: string): string {
+function getEmbedUrl(url: string, startSeconds = 0): string {
   const ytMatch = url.match(
     /(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/
   );
   if (ytMatch) {
-    return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&loop=1&playlist=${ytMatch[1]}&controls=0&rel=0&modestbranding=1`;
+    return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=0&loop=0&controls=0&rel=0&modestbranding=1&start=${startSeconds}`;
   }
   return url;
 }
@@ -30,36 +34,45 @@ export function PromoPlayer({
   videoUrls,
   musicUrl,
   musicEnabled,
+  initialIndex = 0,
+  onIndexChange,
   onEnded,
-  maxDurationSeconds = 60,
+  maxDurationSeconds = 90,
 }: PromoPlayerProps) {
-  const [currentIdx, setCurrentIdx] = React.useState(0);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const fallbackTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onEndedRef = React.useRef(onEnded);
-  onEndedRef.current = onEnded;
-
   const validUrls = videoUrls.filter(Boolean);
   const hasVideos = validUrls.length > 0;
 
-  // If no videos configured, return to schedule after a brief moment
+  // Start from the persisted index, clamped to valid range
+  const [currentIdx, setCurrentIdx] = React.useState(() =>
+    hasVideos ? initialIndex % validUrls.length : 0
+  );
+
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const fallbackTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onEndedRef = React.useRef(onEnded);
+  const onIndexChangeRef = React.useRef(onIndexChange);
+  onEndedRef.current = onEnded;
+  onIndexChangeRef.current = onIndexChange;
+
+  // If no videos, close immediately
   React.useEffect(() => {
     if (!hasVideos) {
-      const t = setTimeout(() => onEndedRef.current?.(), 500);
+      const t = setTimeout(() => onEndedRef.current?.(), 300);
       return () => clearTimeout(t);
     }
   }, [hasVideos]);
 
-  // Safety fallback: if video never fires onEnded (e.g. iframe), return after maxDuration
+  // Safety fallback per video (for iframes that never fire onEnded)
   React.useEffect(() => {
     if (!hasVideos) return;
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     fallbackTimerRef.current = setTimeout(() => {
-      onEndedRef.current?.();
+      advanceToNext(currentIdx);
     }, maxDurationSeconds * 1000);
     return () => {
       if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdx, hasVideos, maxDurationSeconds]);
 
   // Music
@@ -73,14 +86,12 @@ export function PromoPlayer({
     }
   }, [musicEnabled, musicUrl]);
 
-  const handleVideoEnd = () => {
+  const advanceToNext = (fromIdx: number) => {
     if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
-    if (currentIdx < validUrls.length - 1) {
-      setCurrentIdx((i) => i + 1);
-    } else {
-      setCurrentIdx(0);
-      onEndedRef.current?.();
-    }
+    const nextIdx = (fromIdx + 1) % validUrls.length;
+    setCurrentIdx(nextIdx);
+    onIndexChangeRef.current?.(nextIdx);
+    // Loop indefinitely — promo only closes when externally interrupted (NEXT_PATIENT)
   };
 
   if (!hasVideos) {
@@ -104,17 +115,17 @@ export function PromoPlayer({
 
       {isDirect ? (
         <video
-          key={currentUrl}
+          key={`${currentUrl}-${currentIdx}`}
           src={currentUrl}
           className="w-full h-full object-cover"
           autoPlay
           muted={musicEnabled && !!musicUrl}
-          onEnded={handleVideoEnd}
+          onEnded={() => advanceToNext(currentIdx)}
           playsInline
         />
       ) : (
         <iframe
-          key={currentUrl}
+          key={`${currentUrl}-${currentIdx}`}
           src={embedUrl}
           className="w-full h-full border-0"
           allow="autoplay; fullscreen"

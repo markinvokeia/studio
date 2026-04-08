@@ -58,28 +58,34 @@ export default function TVDisplayPage() {
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[30%_70%] gap-4 overflow-hidden min-h-0">
-        {/* Left 30% — settings panel */}
-        <Card className="overflow-hidden flex flex-col min-h-0">
+      {/* Main grid — 35% settings | 65% preview+controls */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[35%_65%] gap-4 min-h-0 overflow-hidden">
+
+        {/* ── LEFT: Settings panel ── */}
+        <Card className="flex flex-col min-h-0 overflow-hidden">
           <CardHeader className="shrink-0 pb-3">
             <CardTitle className="text-base">{t('settings.title')}</CardTitle>
           </CardHeader>
           <Separator />
-          <ScrollArea className="flex-1">
-            <CardContent className="pt-4">
+          <ScrollArea className="flex-1 min-h-0">
+            <CardContent className="pt-4 pb-6">
               <SettingsForm calendars={calendars} />
             </CardContent>
           </ScrollArea>
         </Card>
 
-        {/* Right 70% — preview + controls */}
-        <div className="flex flex-col gap-4 overflow-hidden min-h-0">
+        {/* ── RIGHT: Preview + controls ── */}
+        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto pr-0.5">
+
+          {/* Preview */}
           <Card className="shrink-0">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">{t('preview.title')}</CardTitle>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">{t('preview.title')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <TVPreview />
+            <CardContent className="pb-3">
+              <div className="max-w-xs">
+                <TVPreview />
+              </div>
             </CardContent>
           </Card>
 

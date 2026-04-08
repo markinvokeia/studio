@@ -11,6 +11,11 @@ function mapRawAppointment(raw: any): Appointment {
   const startDateTimeStr = typeof startNode === 'string' ? startNode : startNode?.dateTime;
   const dt = startDateTimeStr ? parseISO(startDateTimeStr) : null;
 
+  // Extract time directly from the ISO string to preserve the intended local time
+  // (avoids UTC→local conversion artifacts).
+  // ISO format: "2024-01-01T14:30:00" or "2024-01-01T14:30:00-03:00" → "14:30"
+  const isoTime = startDateTimeStr ? startDateTimeStr.slice(11, 16) : null;
+
   return {
     id: String(raw.appointment_id ?? raw.appointmentId ?? raw.id ?? ''),
     patientId: String(raw.patient_id ?? raw.patientId ?? ''),
@@ -24,7 +29,7 @@ function mapRawAppointment(raw: any): Appointment {
     description: raw.description ?? '',
     notes: raw.notes ?? '',
     date: dt ? format(dt, 'yyyy-MM-dd') : (raw.date ?? ''),
-    time: dt ? format(dt, 'HH:mm') : (raw.time ?? ''),
+    time: isoTime ?? raw.time ?? '',
     status: raw.status ?? 'confirmed',
     created_at: raw.created_at,
     google_calendar_id: raw.google_calendar_id ?? raw.googleCalendarId ?? raw.calendar_id ?? '',
@@ -52,6 +57,14 @@ export interface TVAnnouncement {
   time?: string;
 }
 
+export interface TVClinicInfo {
+  name: string;
+  logoUrl: string;
+  phone?: string;
+  address?: string;
+  email?: string;
+}
+
 export type TVBroadcastMessage =
   | { type: 'STATUS_CHANGE'; status: TVDisplayStatus }
   | { type: 'NEXT_PATIENT'; calendarId: string; announcement: TVAnnouncement }
@@ -59,7 +72,7 @@ export type TVBroadcastMessage =
   | { type: 'REFRESH_DATA'; rooms: TVRoomState[] }
   | { type: 'SHOW_PROMO' }
   | { type: 'REQUEST_STATE' }
-  | { type: 'STATE_SYNC'; rooms: TVRoomState[]; status: TVDisplayStatus; settings: TVDisplaySettings };
+  | { type: 'STATE_SYNC'; rooms: TVRoomState[]; status: TVDisplayStatus; settings: TVDisplaySettings; clinicInfo: TVClinicInfo | null };
 
 const DEFAULT_SETTINGS: TVDisplaySettings = {
   isEnabled: false,
@@ -69,6 +82,8 @@ const DEFAULT_SETTINGS: TVDisplaySettings = {
   showNextPatient: true,
   autoAdvance: false,
   videoUrls: [],
+  videoColumnPosition: 'none',
+  promoVideoUrls: [],
   musicEnabled: false,
   musicUrl: '',
   displayTitle: '',
@@ -78,6 +93,9 @@ const DEFAULT_SETTINGS: TVDisplaySettings = {
   selectedCalendarIds: [],
   showClock: true,
   showDate: true,
+  showClinicPhone: true,
+  showClinicAddress: true,
+  showClinicEmail: true,
 };
 
 interface TVDisplayContextType {
@@ -85,6 +103,7 @@ interface TVDisplayContextType {
   status: TVDisplayStatus;
   rooms: TVRoomState[];
   calendars: Calendar[];
+  clinicInfo: TVClinicInfo | null;
   isLoading: boolean;
   tvWindowRef: React.MutableRefObject<Window | null>;
   updateSettings: (partial: Partial<TVDisplaySettings>) => void;
@@ -101,6 +120,7 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatusState] = React.useState<TVDisplayStatus>('off');
   const [rooms, setRooms] = React.useState<TVRoomState[]>([]);
   const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+  const [clinicInfo, setClinicInfo] = React.useState<TVClinicInfo | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const channelRef = React.useRef<BroadcastChannel | null>(null);
   const tvWindowRef = React.useRef<Window | null>(null);
@@ -126,16 +146,19 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     channelRef.current = ch;
     ch.onmessage = (event: MessageEvent<TVBroadcastMessage>) => {
       if (event.data.type === 'REQUEST_STATE') {
-        // Reply with current state so the new TV window can initialize
         setRooms((currentRooms) => {
           setStatusState((currentStatus) => {
             setSettings((currentSettings) => {
-              ch.postMessage({
-                type: 'STATE_SYNC',
-                rooms: currentRooms,
-                status: currentStatus,
-                settings: currentSettings,
-              } satisfies TVBroadcastMessage);
+              setClinicInfo((currentClinic) => {
+                ch.postMessage({
+                  type: 'STATE_SYNC',
+                  rooms: currentRooms,
+                  status: currentStatus,
+                  settings: currentSettings,
+                  clinicInfo: currentClinic,
+                } satisfies TVBroadcastMessage);
+                return currentClinic;
+              });
               return currentSettings;
             });
             return currentStatus;
@@ -209,10 +232,26 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     }
   }, [settings.selectedCalendarIds, broadcast]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Load calendars immediately on mount (needed for settings form)
+  // Load calendars + clinic info immediately on mount
   React.useEffect(() => {
     api.get(API_ROUTES.CALENDARS)
       .then((data) => setCalendars(Array.isArray(data) ? data : []))
+      .catch(() => { /* ignore */ });
+
+    api.get(API_ROUTES.CLINIC)
+      .then((raw: any) => {
+        // API returns an array — take first element
+        const data = Array.isArray(raw) ? raw[0] : raw;
+        if (data) {
+          setClinicInfo({
+            name: data.name ?? data.clinic_name ?? data.nombre ?? '',
+            logoUrl: `${process.env.NEXT_PUBLIC_API_URL ?? 'https://n8n-project-n8n.7ig1i3.easypanel.host'}/webhook/clinic/logo`,
+            phone: data.phone ?? data.telefono ?? data.phone_number ?? data.tel ?? '',
+            address: data.address ?? data.direccion ?? data.domicilio ?? '',
+            email: data.email ?? data.correo ?? '',
+          });
+        }
+      })
       .catch(() => { /* ignore */ });
   }, []);
 
@@ -295,6 +334,7 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
         status,
         rooms,
         calendars,
+        clinicInfo,
         isLoading,
         tvWindowRef,
         updateSettings,
