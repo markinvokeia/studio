@@ -8,6 +8,7 @@ import { getMessages } from 'next-intl/server';
 import { locales } from '@/i18n';
 import { AuthProvider } from '@/context/AuthContext';
 import { AlertNotificationsProvider } from '@/context/alert-notifications-context';
+import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 
 
@@ -44,9 +45,11 @@ return (
               `,
             }}
           />
-          <PrivateRoute>
-            {children}
-          </PrivateRoute>
+          <TVDisplayProvider>
+            <PrivateRoute>
+              {children}
+            </PrivateRoute>
+          </TVDisplayProvider>
         </NextIntlClientProvider>
         <Toaster />
       </AlertNotificationsProvider>

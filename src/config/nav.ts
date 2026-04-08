@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, SALES_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, SALES_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Archive,
@@ -39,6 +39,7 @@ import {
   ShoppingCart,
   Smile,
   Tags,
+  Tv,
   Upload,
   UserCheck,
   Users,
@@ -91,6 +92,11 @@ export const navItems: NavItem[] = [
     title: 'Appointments',
     href: '/appointments',
     icon: Calendar,
+  },
+  {
+    title: 'TVDisplay',
+    href: '/tv-display',
+    icon: Tv,
   },
   {
     title: 'Pacientes',

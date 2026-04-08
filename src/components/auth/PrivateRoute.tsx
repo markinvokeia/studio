@@ -31,6 +31,7 @@ export function PrivateRoute({
   const locale = useLocale();
 
   const isPublicPage = pathname === `/${locale}/login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
+  const isTVScreenPage = pathname === `/${locale}/tv-display/screen`;
 
   React.useEffect(() => {
     if (!isLoading) {
@@ -63,6 +64,11 @@ export function PrivateRoute({
   }
 
   if (user) {
+    // TV screen page renders without nav/sidebar layout
+    if (isTVScreenPage) {
+      return <>{children}</>;
+    }
+
     const hasAccess = !requiredPermission || hasPermission(requiredPermission);
     const hasAllAccess = !requiredPermissions || hasAllPermissions(requiredPermissions);
     const hasAnyAccess = !requiredAnyPermission || hasAnyPermission(requiredAnyPermission);

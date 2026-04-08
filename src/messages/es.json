@@ -81,7 +81,82 @@
         "InventoryReports": "Reportes de Inventario",
         "BI": "Inteligencia de Negocios",
         "Dashboards": "Tableros",
-        "Analytics": "Analítica"
+        "Analytics": "Analítica",
+        "TVDisplay": "Pantalla TV"
+    },
+    "TVDisplayPage": {
+        "title": "Pantalla TV",
+        "subtitle": "Gestiona la pantalla de sala de espera",
+        "settings": {
+            "title": "Configuración",
+            "displayTitle": "Nombre de la clínica en pantalla",
+            "displayTitlePlaceholder": "Ej: Bienvenido a nuestra clínica",
+            "theme": "Tema",
+            "themeDark": "Oscuro",
+            "themeLight": "Claro",
+            "themeBranded": "Corporativo",
+            "showClock": "Mostrar reloj",
+            "showDate": "Mostrar fecha",
+            "showPatientName": "Mostrar nombre del paciente",
+            "showDoctorName": "Mostrar nombre del doctor",
+            "showAppointmentTime": "Mostrar hora del turno",
+            "showNextPatient": "Mostrar próximo paciente",
+            "autoAdvance": "Avanzar automáticamente al inicio del turno",
+            "refreshInterval": "Actualizar cada (minutos)",
+            "promoInterval": "Mostrar promo cada (minutos)",
+            "calendars": "Consultorios a mostrar",
+            "noCalendars": "No hay calendarios disponibles",
+            "videos": "Videos promocionales",
+            "videoUrlPlaceholder": "Ingresa URL del video (YouTube, MP4...)",
+            "addVideo": "Agregar video",
+            "removeVideo": "Eliminar",
+            "music": "Música de fondo",
+            "musicEnabled": "Activar música de fondo",
+            "musicUrl": "URL de música",
+            "musicUrlPlaceholder": "Ingresa URL del stream de música",
+            "save": "Guardar configuración",
+            "saved": "Configuración guardada"
+        },
+        "controls": {
+            "turnOn": "Encender",
+            "turnOff": "Apagar",
+            "pause": "Pausar",
+            "resume": "Reanudar",
+            "openScreen": "Abrir pantalla TV",
+            "refresh": "Actualizar datos",
+            "showPromo": "Mostrar promo"
+        },
+        "status": {
+            "on": "ENCENDIDA",
+            "off": "APAGADA",
+            "paused": "PAUSADA",
+            "promo": "PROMO"
+        },
+        "preview": {
+            "title": "Vista previa",
+            "noCalendars": "No hay consultorios seleccionados",
+            "selectCalendars": "Selecciona consultorios en la configuración para ver una vista previa"
+        },
+        "screen": {
+            "nowAttending": "EN ATENCIÓN",
+            "next": "A continuación",
+            "noAppointments": "Sin turnos",
+            "dr": "Dr."
+        }
+    },
+    "TVDisplayWidget": {
+        "tooltip": "Pantalla TV",
+        "status": "Pantalla",
+        "next": "Siguiente",
+        "pause": "Pausar",
+        "resume": "Reanudar",
+        "showPromo": "Mostrar promo",
+        "configure": "Configurar",
+        "turnOff": "Apagar",
+        "turnOn": "Encender",
+        "on": "ENCENDIDA",
+        "off": "APAGADA",
+        "paused": "PAUSADA"
     },
     "purchases": {
         "prepaidDialog": {
