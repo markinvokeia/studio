@@ -260,7 +260,7 @@ export function AppointmentFormDialog({
                     calendar: foundCalendar || null,
                     date: editingAppointment.date || '',
                     time: editingAppointment.time || '',
-                    endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime), 'HH:mm') : '',
+                    endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '',
                     notes: editingAppointment.notes || '',
                     quote: editingAppointment.quote_id ? {
                         id: editingAppointment.quote_id,

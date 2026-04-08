@@ -138,7 +138,7 @@ async function getAppointments(
                 return null;
             }
 
-            const appointmentDateTime = parseISO(appointmentDateTimeStr);
+            const appointmentDateTime = parseISO(appointmentDateTimeStr.replace(/Z$/, ''));
             if (isNaN(appointmentDateTime.getTime())) {
                 console.error("Invalid appointment date:", appointmentDateTimeStr, apiAppt);
                 return null;
@@ -669,8 +669,8 @@ export default function AppointmentsPage() {
                 return null;
             }
             try {
-                const start = parseISO(appt.start.dateTime);
-                const end = parseISO(appt.end.dateTime);
+                const start = parseISO(appt.start.dateTime.replace(/Z$/, ''));
+                const end = parseISO(appt.end.dateTime.replace(/Z$/, ''));
 
                 if (!isValid(start) || !isValid(end)) {
                     console.error("Invalid start/end date for appointment", appt);
@@ -970,7 +970,7 @@ export default function AppointmentsPage() {
                         ? clinicSessionAppointment.services.map(s => s.name).join(', ')
                         : clinicSessionAppointment.service_name}
                     defaultDate={clinicSessionAppointment.start?.dateTime
-                        ? new Date(clinicSessionAppointment.start.dateTime)
+                        ? parseISO(clinicSessionAppointment.start.dateTime.replace(/Z$/, ''))
                         : new Date(clinicSessionAppointment.date)}
                     showTreatments={true}
                     showAttachments={true}
@@ -1008,7 +1008,7 @@ export default function AppointmentsPage() {
                                     <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
                                     <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
                                     <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
-                                    <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime), 'HH:mm') : '-'}</div>
+                                    <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '-'}</div>
                                     <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
                                     <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
                                     {selectedAppointment.services && selectedAppointment.services.length > 0 && (

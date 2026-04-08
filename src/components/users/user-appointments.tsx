@@ -146,7 +146,7 @@ async function getAppointmentsForUser(
       const appointmentDateTimeStr = typeof startNode === 'string' ? startNode : (startNode?.dateTime);
       if (!appointmentDateTimeStr) return null;
 
-      const appointmentDateTime = parseISO(appointmentDateTimeStr);
+      const appointmentDateTime = parseISO(appointmentDateTimeStr.replace(/Z$/, ''));
       if (isNaN(appointmentDateTime.getTime())) return null;
 
       const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
