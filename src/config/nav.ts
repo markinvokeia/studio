@@ -97,6 +97,7 @@ export const navItems: NavItem[] = [
     title: 'TVDisplay',
     href: '/tv-display',
     icon: Tv,
+    requiredPermission: TV_DISPLAY_PERMISSIONS.VIEW_MENU,
   },
   {
     title: 'Pacientes',
