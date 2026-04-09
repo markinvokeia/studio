@@ -5,7 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
@@ -21,8 +21,8 @@ import { PaymentMethod, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
-import { AlertTriangle, CalendarIcon, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -315,19 +315,12 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
                                 <FormField control={form.control} name="created_at" render={({ field }) => (
                                     <FormItem className="flex flex-col">
                                         <FormLabel>{t('prepaidDialog.paymentDate')}</FormLabel>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
-                                                    <Button variant="outline" className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                                                        {field.value ? format(field.value, 'PPP') : <span>{t('prepaidDialog.pickDate')}</span>}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
+                                        <FormControl>
+                                            <DatePickerInput
+                                                value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                                            />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )} />

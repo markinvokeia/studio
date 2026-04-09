@@ -16,6 +16,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -1101,7 +1102,7 @@ export function AppointmentFormDialog({
                         <div className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
-                                <Input id="date" type="date" value={appointment.date} onChange={e => { setAppointment(prev => ({ ...prev, date: e.target.value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
+                                <DatePickerInput value={appointment.date} onChange={value => { setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>

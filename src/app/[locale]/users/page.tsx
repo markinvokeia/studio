@@ -1520,6 +1520,7 @@ export default function UsersPage() {
                           value={field.value}
                           onChange={field.onChange}
                           placeholder={t('UsersPage.createDialog.birth_date_placeholder')}
+                          disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')}
                         />
                       </FormControl>
                       <FormMessage />

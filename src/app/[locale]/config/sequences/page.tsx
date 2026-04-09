@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataTable } from '@/components/ui/data-table';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -383,21 +384,17 @@ export default function SequencesPage() {
                         <div className="space-y-2">
                           <div>
                             <Label htmlFor="start-date" className="text-xs">{t('filters.startDate')}</Label>
-                            <Input
-                              id="start-date"
-                              type="date"
+                            <DatePickerInput
                               value={dateRange.start_date || ''}
-                              onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value || null }))}
+                              onChange={(value) => setDateRange(prev => ({ ...prev, start_date: value || null }))}
                               className="h-8"
                             />
                           </div>
                           <div>
                             <Label htmlFor="end-date" className="text-xs">{t('filters.endDate')}</Label>
-                            <Input
-                              id="end-date"
-                              type="date"
+                            <DatePickerInput
                               value={dateRange.end_date || ''}
-                              onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value || null }))}
+                              onChange={(value) => setDateRange(prev => ({ ...prev, end_date: value || null }))}
                               className="h-8"
                             />
                           </div>

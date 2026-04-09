@@ -11,7 +11,7 @@ import {
     CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogBody,
@@ -1254,20 +1254,16 @@ const AnamnesisDashboard = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="start-date">{t('anamnesis.dialogs.medication.startDate')}</Label>
-                                    <Input
-                                        id="start-date"
-                                        type="date"
+                                    <DatePickerInput
                                         value={medicationData.fecha_inicio}
-                                        onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_inicio: e.target.value }))}
+                                        onChange={(value) => setMedicationData(prev => ({ ...prev, fecha_inicio: value }))}
                                     />
                                 </div>
                                 <div>
                                     <Label htmlFor="end-date">{t('anamnesis.dialogs.medication.endDate')}</Label>
-                                    <Input
-                                        id="end-date"
-                                        type="date"
+                                    <DatePickerInput
                                         value={medicationData.fecha_fin}
-                                        onChange={(e) => setMedicationData(prev => ({ ...prev, fecha_fin: e.target.value }))}
+                                        onChange={(value) => setMedicationData(prev => ({ ...prev, fecha_fin: value }))}
                                     />
                                 </div>
                             </div>
@@ -1575,19 +1571,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     <FormField control={form.control} name="fecha_sesion" render={({ field }) => (
                                         <FormItem className="mb-2 flex flex-col">
                                             <FormLabel className="text-xs font-semibold">{t('date')}</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, "PPP") : <span>{t('pickDate')}</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus translationsNamespace="DatePicker" />
-                                                </PopoverContent>
-                                            </Popover>
+                                            <FormControl>
+                                                <DatePickerInput
+                                                    value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                    onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                                                    className="h-8"
+                                                />
+                                            </FormControl>
                                             <FormMessage className="text-[10px]" />
                                         </FormItem>
                                     )} />
@@ -1635,19 +1625,13 @@ const SessionDialog = ({ isOpen, onOpenChange, session, userId, onSave }: {
                                     <FormField control={form.control} name="fecha_proxima_cita" render={({ field }) => (
                                         <FormItem className="mb-2">
                                             <FormLabel className="text-xs font-semibold">{t('nextSessionDate')}</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant={"outline"} size="sm" className={cn("pl-3 text-left font-normal h-8 w-full", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? format(field.value, "dd/MM/yyyy") : <span>{t('nextSessionDatePlaceholder')}</span>}
-                                                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <DatePicker mode="single" selected={field.value} onSelect={field.onChange} initialFocus translationsNamespace="DatePicker" />
-                                                </PopoverContent>
-                                            </Popover>
+                                            <FormControl>
+                                                <DatePickerInput
+                                                    value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                    onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                                                    className="h-8"
+                                                />
+                                            </FormControl>
                                             <FormMessage className="text-[10px]" />
                                         </FormItem>
                                     )} />

@@ -22,6 +22,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
@@ -527,7 +528,7 @@ export default function MiscellaneousTransactionsPage() {
                                 </FormItem>
                             )} />
                             <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="transaction_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField
                                     control={form.control}
                                     name="payment_method_id"

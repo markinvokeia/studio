@@ -12,7 +12,7 @@ import { Locale } from "date-fns"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const LOCALES = {
   en: enUS,
@@ -289,7 +289,7 @@ function DatePicker({
       {view === "days" && props.mode === "single" && (
         <button
           type="button"
-          className="text-xs text-muted-foreground hover:text-foreground mt-2 cursor-pointer bg-transparent border-0 p-0"
+          className="text-xs text-muted-foreground hover:text-foreground mt-2 mb-3 cursor-pointer bg-transparent border-0 p-0"
           onClick={(e) => {
             e.preventDefault()
             if (props.onSelect) {
@@ -314,6 +314,7 @@ type DatePickerInputProps = {
   placeholder?: string
   disabled?: boolean
   className?: string
+  disabledDays?: (date: Date) => boolean
 }
 
 const DATE_FORMAT = 'dd/MM/yyyy'
@@ -359,6 +360,7 @@ export function DatePickerInput({
   placeholder = 'dd/mm/aaaa',
   disabled = false,
   className,
+  disabledDays,
 }: DatePickerInputProps) {
   const [inputValue, setInputValue] = React.useState<string>(() => {
     if (!value) return ''
@@ -454,43 +456,45 @@ export function DatePickerInput({
   
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <div className="relative">
-        <Input
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          disabled={disabled}
-          className={cn(
-            'pr-10',
-            error && 'border-destructive focus-visible:ring-destructive',
-            className
-          )}
-          inputMode="numeric"
-          maxLength={10}
-        />
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+      <PopoverAnchor asChild>
+        <div className="relative">
+          <Input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onBlur={handleBlur}
+            placeholder={placeholder}
             disabled={disabled}
-            onClick={(e) => {
-              e.preventDefault()
-              setIsOpen(!isOpen)
-            }}
-          >
-            <CalendarIcon className="h-4 w-4" />
-            <span className="sr-only">Open calendar</span>
-          </button>
-        </PopoverTrigger>
-      </div>
+            className={cn(
+              'pr-10',
+              error && 'border-destructive focus-visible:ring-destructive',
+              className
+            )}
+            inputMode="numeric"
+            maxLength={10}
+          />
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+              disabled={disabled}
+              onClick={(e) => {
+                e.preventDefault()
+                setIsOpen(!isOpen)
+              }}
+            >
+              <CalendarIcon className="h-4 w-4" />
+              <span className="sr-only">Open calendar</span>
+            </button>
+          </PopoverTrigger>
+        </div>
+      </PopoverAnchor>
       <PopoverContent className="w-auto p-0" align="start">
         <DatePicker
           mode="single"
           selected={selectedDate}
           onSelect={handleCalendarSelect}
-          disabled={(date: Date) => date > new Date() || date < new Date('1900-01-01')}
+          disabled={disabledDays}
           initialFocus
         />
       </PopoverContent>

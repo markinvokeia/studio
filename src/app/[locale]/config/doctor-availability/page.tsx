@@ -15,6 +15,7 @@ import {
     DialogHeader,
     DialogTitle
 } from "@/components/ui/dialog";
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -388,8 +389,8 @@ export default function DoctorAvailabilityPage() {
                                     <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startDate')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endDate')}</FormLabel><FormControl><Input type="date" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
                             </DialogBody>
                             <DialogFooter>

@@ -17,6 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -272,7 +273,7 @@ export default function HolidaysPage() {
                                         <FormItem>
                                             <FormLabel>{t('createDialog.date')}</FormLabel>
                                             <FormControl>
-                                                <Input type="date" {...field} />
+                                                <DatePickerInput value={field.value} onChange={field.onChange} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

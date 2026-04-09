@@ -18,6 +18,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -101,20 +102,16 @@ export default function CurrenciesPage() {
         <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="space-y-2">
                 <Label htmlFor="start-date">{t('startDate')}</Label>
-                <Input
-                    id="start-date"
-                    type="date"
+                <DatePickerInput
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(value) => setStartDate(value)}
                 />
             </div>
             <div className="space-y-2">
                 <Label htmlFor="end-date">{t('endDate')}</Label>
-                <Input
-                    id="end-date"
-                    type="date"
+                <DatePickerInput
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(value) => setEndDate(value)}
                 />
             </div>
             <Button onClick={handleApplyFilters} disabled={isLoading}>

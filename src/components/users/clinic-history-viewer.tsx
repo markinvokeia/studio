@@ -13,7 +13,7 @@ import {
     CommandItem,
     CommandList,
 } from '@/components/ui/command';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import {
     Dialog,
     DialogBody,
@@ -2130,31 +2130,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                 <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
                                     <div className="space-y-2">
                                             <Label>{tDialog('date')}</Label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal h-10 border-input",
-                                                            !sessionForm.fecha_sesion && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {sessionForm.fecha_sesion
-                                                            ? format(new Date(sessionForm.fecha_sesion + 'T00:00:00'), 'dd/MM/yyyy')
-                                                            : tDialog('date')}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <DatePicker
-                                                        mode="single"
-                                                        selected={sessionForm.fecha_sesion ? new Date(sessionForm.fecha_sesion + 'T00:00:00') : undefined}
-                                                        onSelect={(date) => setSessionForm({ ...sessionForm, fecha_sesion: date ? date.toISOString().split('T')[0] : '' })}
-                                                        initialFocus
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
+                                            <DatePickerInput
+                                                value={sessionForm.fecha_sesion}
+                                                onChange={(value) => setSessionForm({ ...sessionForm, fecha_sesion: value })}
+                                            />
                                     </div>
                                     <div className="space-y-2">
                                             <Label>{tDialog('doctor')}</Label>
@@ -2287,28 +2266,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                     </div>
                                     <div className="space-y-2">
                                         <Label>{tDialog('nextSessionDate')}</Label>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    className={cn('w-full justify-start text-left font-normal', !sessionForm.fecha_proxima_cita && 'text-muted-foreground')}
-                                                >
-                                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                                    {sessionForm.fecha_proxima_cita
-                                                        ? format(parseISO(sessionForm.fecha_proxima_cita), 'dd/MM/yyyy')
-                                                        : tDialog('nextSessionDatePlaceholder')}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <DatePicker
-                                                    mode="single"
-                                                    selected={sessionForm.fecha_proxima_cita ? parseISO(sessionForm.fecha_proxima_cita) : undefined}
-                                                    onSelect={(date) => setSessionForm({ ...sessionForm, fecha_proxima_cita: date ? date.toISOString().split('T')[0] : '' })}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
+                                        <DatePickerInput
+                                            value={sessionForm.fecha_proxima_cita}
+                                            onChange={(value) => setSessionForm({ ...sessionForm, fecha_proxima_cita: value })}
+                                        />
                                     </div>
                                 </div>
 
