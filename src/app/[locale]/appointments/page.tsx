@@ -46,6 +46,10 @@ import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, L
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
+import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
+import { InvoiceDetailSheet } from '@/components/appointments/InvoiceDetailSheet';
 import { getAppointmentColumns } from './columns';
 
 
@@ -332,6 +336,12 @@ export default function AppointmentsPage() {
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const { hasPermission } = usePermissions();
 
+    // Detail sheets
+    const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
+    const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
+    const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
+    const [selectedInvoiceForSheet, setSelectedInvoiceForSheet] = React.useState<Invoice | null>(null);
+
 
 
 
@@ -428,6 +438,7 @@ export default function AppointmentsPage() {
                 quote_doc_no: firstOrder.quote_doc_no,
                 status: firstOrder.status || 'pending',
                 is_invoiced: firstOrder.is_invoiced ?? false,
+                currency: firstOrder.currency,
                 createdAt: firstOrder.created_at || firstOrder.createdAt || '',
                 updatedAt: firstOrder.updated_at || firstOrder.updatedAt || '',
             } : null);
@@ -439,11 +450,16 @@ export default function AppointmentsPage() {
                 order_doc_no: inv.order_doc_no,
                 invoice_doc_no: inv.invoice_doc_no || inv.doc_no,
                 quote_id: inv.quote_id || quoteId,
+                quote_doc_no: inv.quote_doc_no,
                 user_name: inv.user_name || '',
                 user_id: inv.user_id || '',
                 total: parseFloat(inv.total) || 0,
+                paid_amount: parseFloat(inv.paid_amount) || 0,
                 status: inv.status || 'draft',
                 payment_status: inv.payment_state || inv.payment_status || 'unpaid',
+                type: inv.type || 'invoice',
+                currency: inv.currency,
+                is_historical: inv.is_historical || false,
                 createdAt: inv.created_at || inv.createdAt || '',
                 updatedAt: inv.updated_at || inv.updatedAt || '',
             })));
@@ -462,10 +478,9 @@ export default function AppointmentsPage() {
         setQuoteInvoices([]);
         setIsLoadingQuoteInfo(false);
         setIsDetailViewOpen(true);
-        loadLinkedSession(appointment);
-        if (appointment.quote_id) {
-            loadQuoteInfo(appointment.quote_id);
-        }
+        const tasks: Promise<void>[] = [loadLinkedSession(appointment)];
+        if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id));
+        Promise.all(tasks);
     };
 
     const handleEdit = (appointment: Appointment) => {
@@ -1060,9 +1075,27 @@ export default function AppointmentsPage() {
                             <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-x-4 gap-y-3">
                                     {/* Row 1: Paciente */}
-                                    <div className='col-span-3 flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                                    <div className='col-span-3 flex items-center gap-2'>
+                                        <strong>{tColumns('patient')}:</strong>
+                                        <Button
+                                            variant="link"
+                                            className="p-0 h-auto font-normal text-primary underline-offset-4"
+                                            onClick={() => setIsPatientSheetOpen(true)}
+                                        >
+                                            {selectedAppointment.patientName}
+                                        </Button>
+                                    </div>
                                     {/* Row 2: Doctor | Calendario */}
-                                    <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                                    <div className='flex items-center gap-2'>
+                                        <strong>{tColumns('doctor')}:</strong>
+                                        <Button
+                                            variant="link"
+                                            className="p-0 h-auto font-normal text-primary underline-offset-4"
+                                            onClick={() => setIsDoctorSheetOpen(true)}
+                                        >
+                                            {selectedAppointment.doctorName}
+                                        </Button>
+                                    </div>
                                     <div className='col-span-2 flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
                                     {/* Row 3: Fecha, hora inicio, hora fin */}
                                     <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
@@ -1075,27 +1108,36 @@ export default function AppointmentsPage() {
                                         <div className='col-span-3 flex gap-2'><strong>{t('contextMenu.services')}:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
                                     )}
                                     {/* Row 6: Presupuesto */}
-                                    {selectedAppointment.quote_doc_no && (
+                                    {selectedAppointment.quote_doc_no && selectedAppointment.quote_id && (
                                         <div className='col-span-3 flex items-center gap-2'>
                                             <strong>{tColumns('quoteDocNo')}:</strong>
-                                            <Badge variant="secondary" className="font-mono gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsQuoteSheetOpen(true)}
+                                                className="inline-flex items-center gap-1.5 font-mono text-xs rounded-md border border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 px-2.5 py-0.5 transition-colors"
+                                            >
                                                 <FileText className="h-3.5 w-3.5" />
                                                 {selectedAppointment.quote_doc_no}
-                                            </Badge>
+                                            </button>
                                         </div>
                                     )}
                                     {selectedAppointment.quote_id && (
-                                        <div className='col-span-3 flex items-center gap-2'>
+                                        <div className='col-span-3 flex items-center gap-2 flex-wrap'>
                                             <strong>{t('linkedInvoice')}:</strong>
                                             {isLoadingQuoteInfo ? (
                                                 <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                                             ) : quoteInvoices.length > 0 ? (
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     {quoteInvoices.map(inv => (
-                                                        <Badge key={inv.id} className="font-mono gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+                                                        <button
+                                                            key={inv.id}
+                                                            type="button"
+                                                            onClick={() => setSelectedInvoiceForSheet(inv)}
+                                                            className="inline-flex items-center gap-1.5 font-mono text-xs rounded-md bg-green-600 hover:bg-green-700 text-white px-2.5 py-0.5 transition-colors"
+                                                        >
                                                             <FileText className="h-3.5 w-3.5" />
                                                             {inv.doc_no || inv.invoice_ref}
-                                                        </Badge>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             ) : quoteOrder ? (
@@ -1186,6 +1228,50 @@ export default function AppointmentsPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Patient detail sheet */}
+            {selectedAppointment?.patientId && (
+                <PatientDetailSheet
+                    open={isPatientSheetOpen}
+                    onOpenChange={setIsPatientSheetOpen}
+                    userId={selectedAppointment.patientId}
+                    userName={selectedAppointment.patientName}
+                    userEmail={selectedAppointment.patientEmail}
+                    userPhone={selectedAppointment.patientPhone}
+                />
+            )}
+
+            {/* Doctor detail sheet */}
+            {selectedAppointment?.doctorId && (
+                <DoctorDetailSheet
+                    open={isDoctorSheetOpen}
+                    onOpenChange={setIsDoctorSheetOpen}
+                    doctorId={selectedAppointment.doctorId}
+                    doctorName={selectedAppointment.doctorName ?? ''}
+                    doctorEmail={selectedAppointment.doctorEmail}
+                    doctorColor={doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined}
+                />
+            )}
+
+            {/* Quote detail sheet */}
+            {selectedAppointment?.quote_id && (
+                <QuoteDetailSheet
+                    open={isQuoteSheetOpen}
+                    onOpenChange={setIsQuoteSheetOpen}
+                    quoteId={selectedAppointment.quote_id}
+                    quoteDocNo={selectedAppointment.quote_doc_no}
+                    patientName={selectedAppointment.patientName}
+                />
+            )}
+
+            {/* Invoice detail sheet */}
+            {selectedInvoiceForSheet && (
+                <InvoiceDetailSheet
+                    open={!!selectedInvoiceForSheet}
+                    onOpenChange={(open) => { if (!open) setSelectedInvoiceForSheet(null); }}
+                    invoice={selectedInvoiceForSheet}
+                />
+            )}
         </Card>
     );
 }

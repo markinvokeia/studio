@@ -539,7 +539,11 @@
         },
         "linkedInvoice": "Factura",
         "notInvoiced": "Sin facturar",
-        "noLinkedOrder": "Sin orden generada"
+        "noLinkedOrder": "Sin orden generada",
+        "viewPatient": "Ver paciente",
+        "viewDoctor": "Ver doctor",
+        "viewQuote": "Ver presupuesto",
+        "viewInvoice": "Ver factura"
     },
     "AppointmentsColumns": {
         "service": "Servicio",

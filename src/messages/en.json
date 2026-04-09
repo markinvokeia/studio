@@ -539,7 +539,11 @@
     },
     "linkedInvoice": "Invoice",
     "notInvoiced": "Not invoiced",
-    "noLinkedOrder": "No order generated"
+    "noLinkedOrder": "No order generated",
+    "viewPatient": "View patient",
+    "viewDoctor": "View doctor",
+    "viewQuote": "View quote",
+    "viewInvoice": "View invoice"
   },
   "AppointmentsColumns": {
     "service": "Service",
