@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS: TVDisplaySettings = {
   showClinicPhone: true,
   showClinicAddress: true,
   showClinicEmail: true,
+  groupByCalendar: true,
 };
 
 export default function TVScreenPage() {
@@ -457,36 +458,157 @@ export default function TVScreenPage() {
             </div>
           )}
 
-          {/* Rooms grid */}
-          <main
-            className="flex-1 grid gap-4 p-6 overflow-hidden min-h-0"
-            style={{
-              gridTemplateColumns:
-                rooms.length > 0 ? `repeat(${Math.min(rooms.length, 4)}, 1fr)` : '1fr',
-              opacity: showRooms ? 1 : 0,
-              transition: 'opacity 0.5s ease',
-            }}
-          >
-            {rooms.length === 0 ? (
-              <div
-                className="flex items-center justify-center opacity-15"
-                style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}
-              >
-                <p className="uppercase tracking-widest font-bold">
-                  No hay consultorios configurados
-                </p>
-              </div>
-            ) : (
-              rooms.map((room) => (
-                <RoomColumn
-                  key={room.calendarId}
-                  room={room}
-                  settings={settings}
-                  totalRooms={rooms.length}
-                />
-              ))
-            )}
-          </main>
+          {/* Rooms grid or flat list depending on groupByCalendar */}
+          {settings.groupByCalendar !== false ? (
+            <main
+              className="flex-1 grid gap-4 p-6 overflow-hidden min-h-0"
+              style={{
+                gridTemplateColumns:
+                  rooms.length > 0 ? `repeat(${Math.min(rooms.length, 4)}, 1fr)` : '1fr',
+                opacity: showRooms ? 1 : 0,
+                transition: 'opacity 0.5s ease',
+              }}
+            >
+              {rooms.length === 0 ? (
+                <div
+                  className="flex items-center justify-center opacity-15"
+                  style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}
+                >
+                  <p className="uppercase tracking-widest font-bold">
+                    No hay consultorios configurados
+                  </p>
+                </div>
+              ) : (
+                rooms.map((room) => (
+                  <RoomColumn
+                    key={room.calendarId}
+                    room={room}
+                    settings={settings}
+                    totalRooms={rooms.length}
+                  />
+                ))
+              )}
+            </main>
+          ) : (
+            /* ── FLAT LIST VIEW ─────────────────────────────────── */
+            <main
+              className="flex-1 flex flex-col p-6 gap-3 overflow-y-auto min-h-0"
+              style={{ opacity: showRooms ? 1 : 0, transition: 'opacity 0.5s ease' }}
+            >
+              {(() => {
+                const allAppts = rooms
+                  .flatMap((room) =>
+                    room.appointments.map((appt) => ({
+                      appt,
+                      calendarName: room.calendarName,
+                      calendarColor: room.calendarColor,
+                      isCurrent: room.appointments.indexOf(appt) === room.currentIndex,
+                    }))
+                  )
+                  .sort((a, b) => {
+                    const ta = a.appt.time ?? a.appt.start?.dateTime ?? '';
+                    const tb = b.appt.time ?? b.appt.start?.dateTime ?? '';
+                    return ta.localeCompare(tb);
+                  });
+
+                if (allAppts.length === 0) {
+                  return (
+                    <div className="flex items-center justify-center flex-1 opacity-15"
+                      style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}
+                    >
+                      <p className="uppercase tracking-widest font-bold">No hay citas programadas</p>
+                    </div>
+                  );
+                }
+
+                return allAppts.map(({ appt, calendarName, calendarColor, isCurrent }, idx) => {
+                  const time = appt.time ?? appt.start?.dateTime?.slice(11, 16);
+                  const color = calendarColor ?? '#3B82F6';
+                  return (
+                    <div
+                      key={`${appt.id}-${idx}`}
+                      className="flex items-center gap-4 rounded-2xl px-6 py-4 shrink-0"
+                      style={{
+                        background: isCurrent
+                          ? `linear-gradient(135deg, ${color}28 0%, ${color}10 100%)`
+                          : 'rgba(255,255,255,0.04)',
+                        border: isCurrent
+                          ? `1px solid ${color}50`
+                          : '1px solid rgba(255,255,255,0.07)',
+                        animation: `fade-up 0.45s ease-out ${idx * 0.04}s both`,
+                      }}
+                    >
+                      {/* Status dot */}
+                      <span
+                        className="shrink-0 rounded-full"
+                        style={{
+                          width: isCurrent ? 12 : 8,
+                          height: isCurrent ? 12 : 8,
+                          background: color,
+                          boxShadow: isCurrent ? `0 0 10px ${color}80` : undefined,
+                        }}
+                      />
+
+                      {/* Time */}
+                      {settings.showAppointmentTime && time && (
+                        <span
+                          className="tabular-nums font-bold shrink-0"
+                          style={{
+                            fontSize: 'clamp(0.9rem, 1.6vw, 1.3rem)',
+                            color: isCurrent ? color : undefined,
+                            opacity: isCurrent ? 1 : 0.7,
+                          }}
+                        >
+                          {time}
+                        </span>
+                      )}
+
+                      {/* Patient name */}
+                      {settings.showPatientName && (
+                        <span
+                          className="flex-1 font-bold truncate"
+                          style={{
+                            fontSize: isCurrent
+                              ? 'clamp(1.2rem, 2.2vw, 2rem)'
+                              : 'clamp(0.95rem, 1.6vw, 1.35rem)',
+                            opacity: isCurrent ? 1 : 0.75,
+                          }}
+                        >
+                          {appt.patientName}
+                        </span>
+                      )}
+
+                      {/* Doctor name */}
+                      {settings.showDoctorName && appt.doctorName && (
+                        <span
+                          className="shrink-0 font-medium"
+                          style={{
+                            fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
+                            opacity: 0.55,
+                          }}
+                        >
+                          Dr. {appt.doctorName}
+                        </span>
+                      )}
+
+                      {/* Calendar name — right aligned */}
+                      <span
+                        className="shrink-0 font-bold uppercase tracking-widest text-right"
+                        style={{
+                          fontSize: 'clamp(0.6rem, 0.9vw, 0.75rem)',
+                          color,
+                          opacity: isCurrent ? 0.9 : 0.6,
+                          minWidth: '6rem',
+                        }}
+                      >
+                        {calendarName}
+                      </span>
+                    </div>
+                  );
+                });
+              })()}
+            </main>
+          )}
         </div>
       </div>
     </>

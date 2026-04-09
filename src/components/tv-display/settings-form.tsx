@@ -137,9 +137,10 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       <Separator />
 
       {/* Visibility toggles */}
-      <div className="space-y-3">
+      <div className="space-y-1">
         {(
           [
+            ['groupByCalendar', 'groupByCalendar'],
             ['showClock', 'showClock'],
             ['showDate', 'showDate'],
             ['showClinicPhone', 'showClinicPhone'],
@@ -152,14 +153,18 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             ['autoAdvance', 'autoAdvance'],
           ] as const
         ).map(([field, labelKey]) => (
-          <div key={field} className="flex items-center justify-between">
-            <Label htmlFor={field} className="cursor-pointer">{t(labelKey)}</Label>
+          <label
+            key={field}
+            htmlFor={field}
+            className="flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/50 cursor-pointer transition-colors"
+          >
             <Switch
               id={field}
               checked={!!settings[field]}
               onCheckedChange={(v) => updateSettings({ [field]: v })}
             />
-          </div>
+            <span className="flex-1 text-sm leading-snug">{t(labelKey)}</span>
+          </label>
         ))}
       </div>
 
@@ -259,14 +264,17 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       {/* Music */}
       <div className="space-y-3">
         <Label className="text-sm font-semibold">{t('music')}</Label>
-        <div className="flex items-center justify-between">
-          <Label htmlFor="musicEnabled" className="cursor-pointer">{t('musicEnabled')}</Label>
+        <label
+          htmlFor="musicEnabled"
+          className="flex w-full items-center gap-3 rounded-md px-2 py-2 hover:bg-muted/50 cursor-pointer transition-colors"
+        >
           <Switch
             id="musicEnabled"
             checked={settings.musicEnabled}
             onCheckedChange={(v) => updateSettings({ musicEnabled: v })}
           />
-        </div>
+          <span className="flex-1 text-sm leading-snug">{t('musicEnabled')}</span>
+        </label>
         {settings.musicEnabled && (
           <div className="space-y-1.5">
             <Label htmlFor="musicUrl">{t('musicUrl')}</Label>

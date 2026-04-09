@@ -180,7 +180,7 @@ def build_document():
     bullets = [
         "Sigue los módulos en orden la primera vez que configures el sistema.",
         "Cada flujo incluye pasos numerados y consejos prácticos.",
-        "Los módulos 2 al 5 son los de uso diario; los módulos 6–8 son opcionales según tu clínica.",
+        "Los módulos 2 al 5 son los de uso diario; los módulos 6–9 son opcionales según tu clínica.",
     ]
     for b in bullets:
         p = doc.add_paragraph(b, style="List Bullet")
@@ -470,6 +470,50 @@ def build_document():
     ])
     add_tip(doc, "Las citas canceladas permanecen en el historial del paciente para referencia.")
 
+    add_section_heading(doc, "3.3  Enlazar una Cita con un Presupuesto")
+    doc.add_paragraph(
+        "Al crear o editar una cita es posible asociarla a un presupuesto existente o crear uno nuevo "
+        "en el mismo flujo, sin salir del formulario de cita."
+    )
+    add_step(doc, 1, "Abrir el formulario de cita", [
+        "Desde el Calendario, haz clic en un hueco horario o sobre una cita existente.",
+        "O usa el botón PROGRAMAR desde el ítem de servicio en una Orden de Venta.",
+    ])
+    add_step(doc, 2, "Ir a la sección 'Presupuesto asociado'", [
+        "Dentro del formulario de cita, busca el campo Presupuesto asociado.",
+    ])
+    add_step(doc, 3, "Seleccionar presupuesto existente", [
+        "Despliega la lista y elige un presupuesto activo del paciente.",
+        "El sistema filtra automáticamente los presupuestos del paciente seleccionado.",
+    ])
+    add_step(doc, 4, "O crear un presupuesto nuevo", [
+        "Haz clic en '+ Nuevo presupuesto' para abrir el diálogo rápido de creación.",
+        "Agrega los ítems, moneda y notas. Al confirmar, queda vinculado automáticamente.",
+    ])
+    add_step(doc, 5, "Guardar la cita", [
+        "Haz clic en Guardar. El presupuesto vinculado quedará visible en el detalle de la cita.",
+    ])
+    add_tip(doc, "Vincular la cita al presupuesto permite rastrear qué atenciones corresponden a cada propuesta comercial y facilita la facturación posterior.")
+
+    add_section_heading(doc, "3.4  Completar una Cita con Sesión Clínica")
+    doc.add_paragraph(
+        "Cuando se realiza la atención al paciente, la cita puede vincularse a una Sesión Clínica "
+        "que documenta lo ejecutado. Esto cierra el ciclo: de la cita agendada a la intervención registrada."
+    )
+    add_step(doc, 1, "Desde el Calendario", [
+        "Localiza la cita ejecutada y ábrela.",
+        "Haz clic en 'Registrar sesión' dentro del formulario de cita.",
+        "Ingresa los procedimientos, observaciones y adjuntos relevantes.",
+        "Al confirmar, la sesión queda vinculada y la cita pasa a estado Completada.",
+    ])
+    add_step(doc, 2, "Desde el botón COMPLETAR (en servicios de una Orden)", [
+        "Ve a la Orden de Venta y localiza el ítem de servicio atendido.",
+        "Haz clic en el botón COMPLETAR del ítem.",
+        "Se abre el diálogo de sesión clínica. Completa los datos de la atención.",
+        "Al confirmar: la sesión se registra en la historia del paciente y el ítem queda marcado como Completado.",
+    ])
+    add_tip(doc, "Solo los ítems en estado Completado son elegibles para incluirse en una factura. Completa el ítem antes de facturar.", kind="note")
+
     # ══════════════════════════════════════════════════════════════════════════
     # MÓDULO 4 — FLUJO COMERCIAL
     # ══════════════════════════════════════════════════════════════════════════
@@ -692,6 +736,88 @@ def build_document():
         "El paciente recibirá un enlace para ver el estudio desde su dispositivo.",
     ])
     add_tip(doc, "El visor de estudios es compatible con el estándar DICOM y permite visualizar series de imágenes.")
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # MÓDULO 9 — TV DISPLAY
+    # ══════════════════════════════════════════════════════════════════════════
+    add_module_heading(doc, 9, "Pantalla de Sala de Espera (TV Display)",
+                       "Proyecta los turnos del día en un monitor de sala de espera en tiempo real.")
+
+    doc.add_paragraph(
+        "La funcionalidad TV Display permite mostrar en una TV o monitor secundario los turnos "
+        "del día agrupados por consultorio. Se controla desde el sistema sin necesidad de tocar "
+        "la pantalla de TV."
+    )
+
+    add_section_heading(doc, "9.1  Configuración")
+    add_step(doc, 1, "Ir a Pantalla TV", [
+        "En el menú lateral, haz clic en Pantalla TV (ícono de monitor).",
+    ])
+    add_step(doc, 2, "Seleccionar consultorios", [
+        "En el campo Consultorios, selecciona los calendarios que quieres mostrar en pantalla.",
+        "Cada calendario aparecerá como una columna independiente en la TV.",
+    ])
+    add_step(doc, 3, "Configurar apariencia", [
+        "Tema: elige entre Oscuro, Claro o Branded.",
+        "Activa o desactiva el reloj y la fecha en el encabezado.",
+        "Elige qué datos del paciente mostrar: nombre, doctor, hora del turno, próximo paciente.",
+    ])
+    add_step(doc, 4, "Información de la clínica", [
+        "El nombre y logo se toman automáticamente de la configuración del sistema.",
+        "Activa o desactiva la visibilidad del teléfono, dirección y email de la clínica en el encabezado.",
+    ])
+    add_step(doc, 5, "Videos", [
+        "Videos de Promoción: URLs de videos o YouTube que se reproducen en pantalla completa entre cambios de paciente. Se reproducen en bucle.",
+        "Columna de Videos Lateral: videos permanentes en una columna a la izquierda, derecha, arriba o abajo de la grilla. Elige 'Ninguna' para desactivar.",
+    ])
+    add_step(doc, 6, "Intervalo de actualización", [
+        "Define cada cuántos minutos el sistema recarga los turnos del día automáticamente.",
+    ])
+    add_tip(doc, "El preview en la página de configuración refleja en tiempo real todos los cambios de configuración antes de encender la pantalla.")
+
+    add_section_heading(doc, "9.2  Encender la Pantalla")
+    add_step(doc, 1, "Hacer clic en 'Encender pantalla'", [
+        "Se abrirá una nueva ventana del navegador con la pantalla TV en modo fullscreen.",
+        "Arrastra esa ventana al monitor secundario o TV conectada a la computadora.",
+    ])
+    add_step(doc, 2, "Sincronización automática", [
+        "La pantalla TV se sincroniza automáticamente con el sistema vía BroadcastChannel.",
+        "No es necesario recargarla manualmente cuando se realizan cambios.",
+    ])
+    add_tip(doc, "Mantén la ventana TV abierta en el navegador del monitor de sala de espera durante toda la jornada.")
+
+    add_section_heading(doc, "9.3  Widget Flotante de Control Rápido")
+    doc.add_paragraph(
+        "Una vez encendida, aparece un widget flotante en la barra del sistema (ícono de TV "
+        "con indicador verde = encendida / rojo = apagada). Al hacer clic se despliega el menú de control:"
+    )
+    actions = [
+        ("Siguiente paciente por consultorio", "Un botón por cada consultorio activo. Al presionarlo, la TV muestra una tarjeta de anuncio con el próximo paciente y avanza el turno."),
+        ("Pausar pantalla", "Congela la visualización con superposición 'PAUSADO'. Útil durante recesos."),
+        ("Mostrar promoción", "Activa el modo promo: los videos de promoción se reproducen en pantalla completa."),
+        ("Actualizar datos", "Fuerza una recarga inmediata de los turnos desde el servidor."),
+        ("Apagar", "Apaga la pantalla TV (muestra superposición 'APAGADO')."),
+    ]
+    for action, desc in actions:
+        p = doc.add_paragraph(style="List Bullet")
+        run = p.add_run(action + ": ")
+        run.bold = True
+        p.add_run(desc)
+    doc.add_paragraph()
+
+    add_section_heading(doc, "9.4  Flujo Típico de Uso Diario")
+    add_step(doc, 1, "Inicio del día", [
+        "Ir a Pantalla TV → verificar que los consultorios correctos están seleccionados.",
+        "Hacer clic en Encender pantalla y mover la ventana al monitor de sala de espera.",
+    ])
+    add_step(doc, 2, "Durante la jornada", [
+        "Cuando un paciente pasa a consultorio: abrir el widget flotante → hacer clic en 'Siguiente: [Consultorio X]'.",
+        "La TV muestra el anuncio con el nombre del paciente entrante y avanza al siguiente turno.",
+    ])
+    add_step(doc, 3, "Fin del día o recesos", [
+        "Pausar o apagar la pantalla desde el widget flotante.",
+    ])
+    add_tip(doc, "Si hay videos de promoción configurados, puedes activar el modo Promo durante esperas largas o entre pacientes.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # APÉNDICE

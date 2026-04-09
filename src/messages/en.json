@@ -105,6 +105,7 @@
       "showAppointmentTime": "Show Appointment Time",
       "showNextPatient": "Show Next Patient",
       "autoAdvance": "Auto-advance at appointment time",
+      "groupByCalendar": "Group by consulting room (columns)",
       "refreshInterval": "Refresh every (minutes)",
       "promoInterval": "Show promo every (minutes)",
       "calendars": "Consulting Rooms to Display",

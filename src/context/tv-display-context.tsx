@@ -96,6 +96,7 @@ const DEFAULT_SETTINGS: TVDisplaySettings = {
   showClinicPhone: true,
   showClinicAddress: true,
   showClinicEmail: true,
+  groupByCalendar: true,
 };
 
 interface TVDisplayContextType {

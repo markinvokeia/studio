@@ -997,6 +997,7 @@ export interface TVDisplaySettings {
   showClinicPhone: boolean;
   showClinicAddress: boolean;
   showClinicEmail: boolean;
+  groupByCalendar: boolean;
 }
 
 export interface TVRoomState {

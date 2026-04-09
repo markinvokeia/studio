@@ -47,7 +47,7 @@ El Dashboard ofrece una visión de 360° del estado del negocio mediante indicad
 
 ### 4.2 Citas (Appointments)
 *   **Pre-requisitos:** El paciente, el servicio, el doctor y el calendario deben estar creados previamente.
-*   **Flujo de Reserva:** 
+*   **Flujo de Reserva:**
     1.  Selección de fecha y hora.
     2.  Verificación automática de disponibilidad (cruza horario del doctor, feriados y citas existentes).
     3.  **Sugerencias Inteligentes:** Si hay conflicto, el sistema ofrece alternativas basadas en los huecos libres en la agenda del doctor.

@@ -105,6 +105,7 @@
             "showAppointmentTime": "Mostrar hora del turno",
             "showNextPatient": "Mostrar próximo paciente",
             "autoAdvance": "Avanzar automáticamente al inicio del turno",
+            "groupByCalendar": "Agrupar por consultorio (columnas)",
             "refreshInterval": "Actualizar cada (minutos)",
             "promoInterval": "Mostrar promo cada (minutos)",
             "calendars": "Consultorios a mostrar",
