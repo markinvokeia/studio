@@ -973,6 +973,40 @@ export type UserCommunicationPreferences = {
   preferences: UserCommunicationPreference[];
 };
 
+// ── TV Display ────────────────────────────────────────────────────────────────
+
+export interface TVDisplaySettings {
+  isEnabled: boolean;
+  showPatientName: boolean;
+  showDoctorName: boolean;
+  showAppointmentTime: boolean;
+  showNextPatient: boolean;
+  autoAdvance: boolean;
+  videoUrls: string[];
+  videoColumnPosition: 'none' | 'left' | 'right' | 'top' | 'bottom';
+  promoVideoUrls: string[];
+  musicEnabled: boolean;
+  musicUrl: string;
+  displayTitle: string;
+  theme: 'dark' | 'light' | 'branded';
+  refreshIntervalMinutes: number;
+  promoIntervalMinutes: number;
+  selectedCalendarIds: string[];
+  showClock: boolean;
+  showDate: boolean;
+  showClinicPhone: boolean;
+  showClinicAddress: boolean;
+  showClinicEmail: boolean;
+}
+
+export interface TVRoomState {
+  calendarId: string;
+  calendarName: string;
+  calendarColor?: string;
+  currentIndex: number;
+  appointments: Appointment[];
+}
+
 export type QuoteClinicSession = {
   id: string;
   paciente_id: string;

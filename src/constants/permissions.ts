@@ -575,3 +575,12 @@ export const SYSTEM_PERMISSIONS = {
 } as const;
 
 export type SystemPermission = (typeof SYSTEM_PERMISSIONS)[keyof typeof SYSTEM_PERMISSIONS];
+
+export const TV_DISPLAY_PERMISSIONS = {
+  VIEW_MENU: 'TV_DISPLAY_VIEW_MENU',
+  VIEW_SCREEN: 'TV_DISPLAY_VIEW_SCREEN',
+  UPDATE_SETTINGS: 'TV_DISPLAY_UPDATE_SETTINGS',
+  CONTROL_DISPLAY: 'TV_DISPLAY_CONTROL_DISPLAY',
+} as const;
+
+export type TVDisplayPermission = (typeof TV_DISPLAY_PERMISSIONS)[keyof typeof TV_DISPLAY_PERMISSIONS];

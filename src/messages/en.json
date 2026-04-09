@@ -81,7 +81,97 @@
     "InventoryReports": "Inventory Reports",
     "BI": "Business Intelligence",
     "Dashboards": "Dashboards",
-    "Analytics": "Analytics"
+    "Analytics": "Analytics",
+    "TVDisplay": "TV Display"
+  },
+  "TVDisplayPage": {
+    "title": "TV Display",
+    "subtitle": "Manage the waiting room screen",
+    "settings": {
+      "title": "Settings",
+      "displayTitle": "Clinic Name on Screen",
+      "displayTitlePlaceholder": "e.g. Welcome to our clinic",
+      "theme": "Theme",
+      "themeDark": "Dark",
+      "themeLight": "Light",
+      "themeBranded": "Branded",
+      "showClock": "Show Clock",
+      "showDate": "Show Date",
+      "showClinicPhone": "Show phone in footer",
+      "showClinicAddress": "Show address in footer",
+      "showClinicEmail": "Show email in footer",
+      "showPatientName": "Show Patient Name",
+      "showDoctorName": "Show Doctor Name",
+      "showAppointmentTime": "Show Appointment Time",
+      "showNextPatient": "Show Next Patient",
+      "autoAdvance": "Auto-advance at appointment time",
+      "refreshInterval": "Refresh every (minutes)",
+      "promoInterval": "Show promo every (minutes)",
+      "calendars": "Consulting Rooms to Display",
+      "noCalendars": "No calendars available",
+      "promoVideos": "Promo Videos (fullscreen)",
+      "promoVideosHint": "Play in loop automatically at the configured interval. When interrupted, the next video resumes from where it left off.",
+      "videoColumnPosition": "Side Video Column",
+      "videoColumnHint": "Displayed alongside appointments while the screen is active.",
+      "videoColumnNone": "None",
+      "videoColumnLeft": "Left",
+      "videoColumnRight": "Right",
+      "videoColumnTop": "Top",
+      "videoColumnBottom": "Bottom",
+      "videoColumnNoteVertical": "For side columns, vertical format videos (9:16) are recommended.",
+      "videoColumnNoteHorizontal": "For top/bottom columns, horizontal format videos (16:9) are recommended.",
+      "videos": "Column Videos",
+      "noVideos": "No videos configured. Add a URL to get started.",
+      "videoUrlPlaceholder": "Enter video URL (YouTube, MP4...)",
+      "addVideo": "Add Video",
+      "removeVideo": "Remove",
+      "music": "Background Music",
+      "musicEnabled": "Enable Background Music",
+      "musicUrl": "Music URL",
+      "musicUrlPlaceholder": "Enter music stream URL",
+      "save": "Save Settings",
+      "saved": "Settings saved"
+    },
+    "controls": {
+      "turnOn": "Turn On",
+      "turnOff": "Turn Off",
+      "pause": "Pause",
+      "resume": "Resume",
+      "openScreen": "Open TV Screen",
+      "refresh": "Refresh Data",
+      "showPromo": "Show Promo"
+    },
+    "status": {
+      "on": "ON",
+      "off": "OFF",
+      "paused": "PAUSED",
+      "promo": "PROMO"
+    },
+    "preview": {
+      "title": "Preview",
+      "noCalendars": "No consulting rooms selected",
+      "selectCalendars": "Select consulting rooms in settings to see a preview"
+    },
+    "screen": {
+      "nowAttending": "NOW ATTENDING",
+      "next": "Up Next",
+      "noAppointments": "No appointments",
+      "dr": "Dr."
+    }
+  },
+  "TVDisplayWidget": {
+    "tooltip": "TV Display",
+    "status": "Screen",
+    "next": "Next",
+    "pause": "Pause",
+    "resume": "Resume",
+    "showPromo": "Show Promo",
+    "configure": "Configure",
+    "turnOff": "Turn Off",
+    "turnOn": "Turn On",
+    "on": "ON",
+    "off": "OFF",
+    "paused": "PAUSED"
   },
   "purchases": {
     "prepaidDialog": {

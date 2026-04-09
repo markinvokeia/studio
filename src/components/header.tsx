@@ -1,6 +1,7 @@
 'use client';
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
+import { TVDisplayWidget } from '@/components/tv-display-widget';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -110,6 +111,7 @@ export function Header() {
                     )}>
                         <div className="flex items-center gap-3 px-2">
                             <OpenCashSessionWidget />
+                            <TVDisplayWidget />
 
                             <div className="h-6 w-px bg-border/50" />
 
