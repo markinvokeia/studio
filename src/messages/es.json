@@ -457,7 +457,7 @@
         "edit": "Editar",
         "calendar": "Calendario",
         "patient": "Paciente",
-        "quoteDocNo": "Doc No"
+        "quoteDocNo": "Presupuesto"
     },
     "AppointmentStatus": {
         "completed": "Completada",

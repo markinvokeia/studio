@@ -1003,19 +1003,25 @@ export default function AppointmentsPage() {
                     <DialogBody className="px-6 py-4">
                         {selectedAppointment && (
                             <div className="space-y-4">
-                                <div className="grid gap-3">
-                                    <div className='flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                                <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+                                    {/* Row 1: Paciente */}
+                                    <div className='col-span-3 flex gap-2'><strong>{tColumns('patient')}:</strong> {selectedAppointment.patientName}</div>
+                                    {/* Row 2: Doctor | Calendario */}
                                     <div className='flex gap-2'><strong>{tColumns('doctor')}:</strong> {selectedAppointment.doctorName}</div>
+                                    <div className='col-span-2 flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
+                                    {/* Row 3: Fecha, hora inicio, hora fin */}
                                     <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
                                     <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
                                     <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '-'}</div>
-                                    <div className='flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
-                                    <div className="flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
+                                    {/* Row 4: Estado */}
+                                    <div className="col-span-3 flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
+                                    {/* Row 5: Servicios */}
                                     {selectedAppointment.services && selectedAppointment.services.length > 0 && (
-                                        <div className='flex gap-2'><strong>{t('contextMenu.services')}:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
+                                        <div className='col-span-3 flex gap-2'><strong>{t('contextMenu.services')}:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
                                     )}
+                                    {/* Row 6: Presupuesto */}
                                     {selectedAppointment.quote_doc_no && (
-                                        <div className='flex items-center gap-2'>
+                                        <div className='col-span-3 flex items-center gap-2'>
                                             <strong>{tColumns('quoteDocNo')}:</strong>
                                             <Badge variant="secondary" className="font-mono gap-1.5">
                                                 <FileText className="h-3.5 w-3.5" />
@@ -1024,7 +1030,7 @@ export default function AppointmentsPage() {
                                         </div>
                                     )}
                                     {selectedAppointment.notes && (
-                                        <div className='flex gap-2 flex-col'><strong>{t('contextMenu.notes')}:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>
+                                        <div className='col-span-3 flex gap-2 flex-col'><strong>{t('contextMenu.notes')}:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>
                                     )}
                                 </div>
 

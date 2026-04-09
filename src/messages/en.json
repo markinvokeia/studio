@@ -457,7 +457,7 @@
     "edit": "Edit",
     "calendar": "Calendar",
     "patient": "Patient",
-    "quoteDocNo": "Doc No"
+    "quoteDocNo": "Budget"
   },
   "AppointmentStatus": {
     "completed": "Completed",
