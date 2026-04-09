@@ -36,7 +36,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, Calendar as CalendarType, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
@@ -292,6 +292,7 @@ export default function AppointmentsPage() {
     const tGeneral = useTranslations('General');
     const tUserRoles = useTranslations('UserRoles');
     const tToasts = useTranslations('AppointmentsPage.toasts');
+    const tOrderStatus = useTranslations('OrderStatus');
 
     const { toast } = useToast();
 
@@ -325,6 +326,9 @@ export default function AppointmentsPage() {
     const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
     const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+    const [quoteOrder, setQuoteOrder] = React.useState<Order | null>(null);
+    const [quoteInvoices, setQuoteInvoices] = React.useState<Invoice[]>([]);
+    const [isLoadingQuoteInfo, setIsLoadingQuoteInfo] = React.useState(false);
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const { hasPermission } = usePermissions();
 
@@ -406,11 +410,62 @@ export default function AppointmentsPage() {
         }
     }, []);
 
+    const loadQuoteInfo = React.useCallback(async (quoteId: string) => {
+        setIsLoadingQuoteInfo(true);
+        try {
+            const [ordersData, invoicesData] = await Promise.all([
+                api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId }).catch(() => []),
+                api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId }).catch(() => []),
+            ]);
+            const orders: any[] = Array.isArray(ordersData) ? ordersData : (ordersData.orders || ordersData.data || []);
+            const invoices: any[] = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
+            const firstOrder = orders.length > 0 ? orders[0] : null;
+            setQuoteOrder(firstOrder ? {
+                id: String(firstOrder.id || ''),
+                doc_no: firstOrder.doc_no,
+                user_id: firstOrder.user_id,
+                quote_id: firstOrder.quote_id,
+                quote_doc_no: firstOrder.quote_doc_no,
+                status: firstOrder.status || 'pending',
+                is_invoiced: firstOrder.is_invoiced ?? false,
+                createdAt: firstOrder.created_at || firstOrder.createdAt || '',
+                updatedAt: firstOrder.updated_at || firstOrder.updatedAt || '',
+            } : null);
+            setQuoteInvoices(invoices.map((inv: any) => ({
+                id: String(inv.id || ''),
+                invoice_ref: inv.invoice_ref || '',
+                doc_no: inv.doc_no || inv.invoice_doc_no,
+                order_id: inv.order_id || '',
+                order_doc_no: inv.order_doc_no,
+                invoice_doc_no: inv.invoice_doc_no || inv.doc_no,
+                quote_id: inv.quote_id || quoteId,
+                user_name: inv.user_name || '',
+                user_id: inv.user_id || '',
+                total: parseFloat(inv.total) || 0,
+                status: inv.status || 'draft',
+                payment_status: inv.payment_state || inv.payment_status || 'unpaid',
+                createdAt: inv.created_at || inv.createdAt || '',
+                updatedAt: inv.updated_at || inv.updatedAt || '',
+            })));
+        } catch {
+            setQuoteOrder(null);
+            setQuoteInvoices([]);
+        } finally {
+            setIsLoadingQuoteInfo(false);
+        }
+    }, []);
+
     const handleEventClick = (appointment: Appointment) => {
         setSelectedAppointment(appointment);
         setLinkedSession(null);
+        setQuoteOrder(null);
+        setQuoteInvoices([]);
+        setIsLoadingQuoteInfo(false);
         setIsDetailViewOpen(true);
         loadLinkedSession(appointment);
+        if (appointment.quote_id) {
+            loadQuoteInfo(appointment.quote_id);
+        }
     };
 
     const handleEdit = (appointment: Appointment) => {
@@ -1027,6 +1082,27 @@ export default function AppointmentsPage() {
                                                 <FileText className="h-3.5 w-3.5" />
                                                 {selectedAppointment.quote_doc_no}
                                             </Badge>
+                                        </div>
+                                    )}
+                                    {selectedAppointment.quote_id && (
+                                        <div className='col-span-3 flex items-center gap-2'>
+                                            <strong>{t('linkedInvoice')}:</strong>
+                                            {isLoadingQuoteInfo ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                                            ) : quoteInvoices.length > 0 ? (
+                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                    {quoteInvoices.map(inv => (
+                                                        <Badge key={inv.id} className="font-mono gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+                                                            <FileText className="h-3.5 w-3.5" />
+                                                            {inv.doc_no || inv.invoice_ref}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            ) : quoteOrder ? (
+                                                <span className="text-sm text-muted-foreground italic">{t('notInvoiced')}</span>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground italic">{t('noLinkedOrder')}</span>
+                                            )}
                                         </div>
                                     )}
                                     {selectedAppointment.notes && (

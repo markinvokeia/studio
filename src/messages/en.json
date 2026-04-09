@@ -536,7 +536,10 @@
       "createSession": "Create clinic session",
       "services": "Services",
       "notes": "Notes"
-    }
+    },
+    "linkedInvoice": "Invoice",
+    "notInvoiced": "Not invoiced",
+    "noLinkedOrder": "No order generated"
   },
   "AppointmentsColumns": {
     "service": "Service",

@@ -536,7 +536,10 @@
             "createSession": "Registrar sesión clínica",
             "services": "Servicios",
             "notes": "Notas"
-        }
+        },
+        "linkedInvoice": "Factura",
+        "notInvoiced": "Sin facturar",
+        "noLinkedOrder": "Sin orden generada"
     },
     "AppointmentsColumns": {
         "service": "Servicio",
