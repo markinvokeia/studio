@@ -52,9 +52,11 @@ interface OrderItemsTableProps {
   isSales?: boolean;
   userId?: string;
   patient?: UserType;
+  canSchedule?: boolean;
+  canComplete?: boolean;
 }
 
-export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient }: OrderItemsTableProps) {
+export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
@@ -232,8 +234,10 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
       const formData = new FormData();
 
-      // Standard scalar fields
+      // Skip fields handled separately to avoid double-appending
+      const skipKeys = new Set(['tratamientos']);
       (Object.keys(sessionData) as Array<keyof typeof sessionData>).forEach(key => {
+        if (skipKeys.has(key as string)) return;
         const value = sessionData[key];
         if (value !== undefined && value !== null) {
           formData.append(key, String(value));
@@ -241,6 +245,11 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       });
 
       formData.append('paciente_id', userId);
+
+      if (data.sesion_id) {
+        formData.append('sesion_id', String(data.sesion_id));
+        formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds || []));
+      }
 
       if (sessionData.tratamientos && sessionData.tratamientos.length > 0) {
         formData.append('tratamientos', JSON.stringify(sessionData.tratamientos));
@@ -252,11 +261,14 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
       await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
 
+      // Use the session date from the form for the completion timestamp
+      const completionDate = data.fecha_sesion ? new Date(data.fecha_sesion) : new Date();
+
       // Now complete the order item
       const queryPayload: any = {
         action: 'complete',
         order_item_id: parseInt(selectedItem.id, 10),
-        schedule_date_time: toLocalISOString(selectedDate || new Date()),
+        schedule_date_time: toLocalISOString(completionDate),
         user_id: userId,
       };
 
@@ -469,7 +481,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   }
   const toolbarActions = selectedItem ? (
     <div className="ml-auto flex items-center gap-1.5">
-      {!selectedItem.scheduled_date && (
+      {canSchedule && !selectedItem.scheduled_date && (
         <Button
           variant="outline"
           size="sm"
@@ -480,7 +492,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           {t('actions.schedule')}
         </Button>
       )}
-      {!selectedItem.completed_date && (
+      {canComplete && !selectedItem.completed_date && (
         <Button
           variant="default"
           size="sm"

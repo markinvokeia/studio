@@ -358,6 +358,8 @@ export default function OrdersPage() {
                                                     is_active: true,
                                                     avatar: ''
                                                 }}
+                                                canSchedule={canScheduleItem}
+                                                canComplete={canCompleteItem}
                                             />
                                         </TabsContent>
                                         <TabsContent value="invoices" className="m-0 flex-1 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2 px-6 py-4">
