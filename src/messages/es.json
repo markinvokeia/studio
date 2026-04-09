@@ -1278,7 +1278,10 @@
         },
         "placeholders": {
             "total": "0.00",
-            "exchangeRate": "1.00"
+            "exchangeRate": "1.00",
+            "toothNumber": "Ej. 11",
+            "quantity": "Ej. 1",
+            "unitPrice": "0.00"
         },
         "defaults": {
             "noEmail": "sin-correo@ejemplo.com",
