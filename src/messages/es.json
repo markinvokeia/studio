@@ -4712,5 +4712,23 @@
         "fileUploadError": "Error al subir archivos",
         "fileTooBig": "El archivo excede el límite de {size}MB",
         "fileTypeNotAllowed": "Tipo de archivo no permitido"
+    },
+    "VoiceAssistant": {
+        "clickToSpeak": "Haz clic para hablar",
+        "clickToStop": "Haz clic para enviar",
+        "listeningForWakeWord": "Di «Hey Invoke» para activar",
+        "voiceMessageLabel": "Mensaje de voz",
+        "assistantReply": "Respuesta del asistente",
+        "sentSuccess": "Mensaje de voz enviado",
+        "sendError": "Error al enviar el audio. Intenta de nuevo.",
+        "micError": "No se pudo acceder al micrófono."
+    },
+    "VoiceChat": {
+        "emptyState": "Di «Hey Invoke» para hablar, o escribe tu mensaje aquí.",
+        "voiceMessage": "🎤 Mensaje de voz",
+        "inputPlaceholder": "Escribe un mensaje...",
+        "sendError": "Error al enviar el mensaje. Intenta de nuevo.",
+        "ttsEnable": "Activar voz",
+        "ttsDisable": "Silenciar voz"
     }
 }

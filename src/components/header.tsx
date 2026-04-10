@@ -16,6 +16,7 @@ import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
     Bell,
@@ -25,7 +26,9 @@ import {
     Globe,
     LifeBuoy,
     MessageSquare,
-    X
+    Volume2,
+    VolumeX,
+    X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -36,26 +39,219 @@ import { TelegramIcon } from './icons/telegram-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
 import { UyFlagIcon } from './icons/uy-flag-icon';
 import { WhatsAppIcon } from './icons/whatsapp-icon';
+import { VoiceAssistant } from './voice-assistant';
+import { VoiceChat, type ChatMessage } from './voice-chat';
+
+// ── Webhook URL ───────────────────────────────────────────────────────────────
+
+const CHAT_WEBHOOK_URL =
+    (process.env.NEXT_PUBLIC_API_URL ?? 'https://n8n-project-n8n.7ig1i3.easypanel.host') +
+    '/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat';
+
+// ── TTS ───────────────────────────────────────────────────────────────────────
+
+// Preferred voice names (ordered by preference). Chrome ships these on most platforms.
+const PREFERRED_VOICE_NAMES = [
+    'Google español',          // Chrome – es-ES, high quality
+    'Microsoft Sabina',        // Windows – es-MX
+    'Microsoft Helena',        // Windows – es-ES
+    'Paulina',                 // macOS – es-MX
+    'Monica',                  // macOS – es-ES
+    'Jorge',                   // macOS – es-ES (male fallback)
+    'Diego',                   // macOS – es-AR
+];
+
+/** Resolves the best Spanish voice available, waiting for voices to load if needed. */
+function pickSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
+    return new Promise((resolve) => {
+        const synth = window.speechSynthesis;
+
+        const find = () => {
+            const voices = synth.getVoices();
+            if (voices.length === 0) return null;
+
+            // 1. Try preferred names in order
+            for (const name of PREFERRED_VOICE_NAMES) {
+                const v = voices.find((v) => v.name.includes(name));
+                if (v) return v;
+            }
+            // 2. Any local Spanish voice
+            const local = voices.find((v) => v.lang.startsWith('es') && v.localService);
+            if (local) return local;
+            // 3. Any Spanish voice
+            return voices.find((v) => v.lang.startsWith('es')) ?? null;
+        };
+
+        const result = find();
+        if (result) { resolve(result); return; }
+
+        // Voices not loaded yet — wait for the event (fires once in Chrome)
+        const onLoaded = () => {
+            synth.removeEventListener('voiceschanged', onLoaded);
+            resolve(find());
+        };
+        synth.addEventListener('voiceschanged', onLoaded);
+        // Safety timeout: resolve with null if event never fires
+        setTimeout(() => { synth.removeEventListener('voiceschanged', onLoaded); resolve(null); }, 2000);
+    });
+}
+
+async function speakText(text: string, enabled: boolean) {
+    if (!enabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.92;
+    utterance.pitch = 1;
+
+    const voice = await pickSpanishVoice();
+    if (voice) utterance.voice = voice;
+
+    window.speechSynthesis.speak(utterance);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function Header() {
     const pathname = usePathname();
     const t = useTranslations('Header');
     const tFloating = useTranslations('FloatingActions');
+    const tChat = useTranslations('VoiceChat');
     const locale = useLocale();
     const router = useRouter();
-    const { activeCashSession } = useAuth();
+    const { activeCashSession, user } = useAuth();
     const { pendingCount } = useAlertNotifications();
     const { hasPermission } = usePermissions();
+    const { toast } = useToast();
 
     const [isExpanded, setIsExpanded] = React.useState(false);
     const [isChatOpen, setIsChatOpen] = React.useState(false);
+    const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
+    const [isSending, setIsSending] = React.useState(false);
+    const [ttsEnabled, setTtsEnabled] = React.useState(true);
+
+    const sessionId = React.useRef(`sid-${Date.now()}`);
+
+    // ── Send a message (text or voice) to the webhook ─────────────────────────
+
+    const sendToWebhook = React.useCallback(
+        async (chatInput: string, audioBlob?: Blob) => {
+            setIsSending(true);
+            try {
+                let body: BodyInit;
+
+                if (audioBlob) {
+                    const fd = new FormData();
+                    fd.append('action', 'sendMessage');
+                    fd.append('sessionId', sessionId.current);
+                    fd.append('chatInput', chatInput);
+                    if (user?.id) fd.append('user_id', String(user.id));
+                    fd.append('files', audioBlob, 'voice-message.webm');
+                    body = fd;
+                } else {
+                    body = JSON.stringify({
+                        action: 'sendMessage',
+                        sessionId: sessionId.current,
+                        chatInput,
+                        ...(user?.id ? { user_id: user.id } : {}),
+                    });
+                }
+
+                const response = await fetch(CHAT_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: audioBlob ? undefined : { 'Content-Type': 'application/json' },
+                    body,
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                let reply = '';
+                let redirect: string | null = null;
+                try {
+                    const data = await response.json() as Record<string, unknown>;
+                    reply =
+                        (data.output as string) ??
+                        (data.text as string) ??
+                        (data.message as string) ??
+                        (data.response as string) ??
+                        '';
+                    if (typeof data.redirect === 'string' && data.redirect) {
+                        redirect = data.redirect;
+                    }
+                } catch {
+                    reply = await response.text();
+                }
+
+                if (reply) {
+                    setChatMessages((prev) => [
+                        ...prev,
+                        {
+                            id: `${Date.now()}-ai`,
+                            role: 'assistant',
+                            content: reply,
+                            timestamp: new Date(),
+                        },
+                    ]);
+                    speakText(reply, ttsEnabled);
+                    if (redirect) router.push(`/${locale}${redirect}`);
+                }
+            } catch {
+                toast({ title: tChat('sendError'), variant: 'destructive', duration: 4000 });
+            } finally {
+                setIsSending(false);
+            }
+        },
+        [tChat, toast, ttsEnabled, locale, router, user],
+    );
+
+    // ── VoiceAssistant callback ───────────────────────────────────────────────
+
+    const handleAudioReady = React.useCallback(
+        (blob: Blob) => {
+            setIsChatOpen(true);
+            setChatMessages((prev) => [
+                ...prev,
+                {
+                    id: `${Date.now()}-user`,
+                    role: 'user',
+                    content: tChat('voiceMessage'),
+                    isVoice: true,
+                    timestamp: new Date(),
+                },
+            ]);
+            sendToWebhook(tChat('voiceMessage'), blob);
+        },
+        [sendToWebhook, tChat],
+    );
+
+    // ── Text chat callback ────────────────────────────────────────────────────
+
+    const handleSendText = React.useCallback(
+        (text: string) => {
+            setChatMessages((prev) => [
+                ...prev,
+                {
+                    id: `${Date.now()}-user`,
+                    role: 'user',
+                    content: text,
+                    timestamp: new Date(),
+                },
+            ]);
+            sendToWebhook(text);
+        },
+        [sendToWebhook],
+    );
+
+    // ── Locale switcher ───────────────────────────────────────────────────────
 
     const onSelectLocale = (newLocale: string) => {
         const searchParams = new URLSearchParams(window.location.search);
         const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
-        const newUrl = `${newPathname}?${searchParams.toString()}`;
-        router.replace(newUrl);
+        router.replace(`${newPathname}?${searchParams.toString()}`);
     };
+
+    // ── Help menu ─────────────────────────────────────────────────────────────
 
     const HelpMenu = () => (
         <DropdownMenu>
@@ -71,13 +267,21 @@ export function Header() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                    <Link href="https://wa.me/59894024661" target="_blank" className="flex items-center w-full">
+                    <Link
+                        href="https://wa.me/59894024661"
+                        target="_blank"
+                        className="flex items-center w-full"
+                    >
                         <WhatsAppIcon className="mr-2 h-4 w-4 text-green-500" />
                         <span>WhatsApp</span>
                     </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href="https://t.me/InvokIA_bot" target="_blank" className="flex items-center w-full">
+                    <Link
+                        href="https://t.me/InvokIA_bot"
+                        target="_blank"
+                        className="flex items-center w-full"
+                    >
                         <TelegramIcon className="mr-2 h-4 w-4 text-blue-500" />
                         <span>Telegram</span>
                     </Link>
@@ -90,11 +294,14 @@ export function Header() {
         </DropdownMenu>
     );
 
+    // ─────────────────────────────────────────────────────────────────────────
+
     return (
         <>
+            {/* ── Floating header bar ─────────────────────────────────────── */}
             <div className="fixed top-3 right-4 z-[50] flex flex-col items-end gap-2">
                 {!isExpanded ? (
-                    <div className="flex items-center bg-[hsl(var(--floating-header-bg)/0.8)] backdrop-blur-md p-1 rounded-full border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]">
+                    <div className="flex items-center gap-1 bg-[hsl(var(--floating-header-bg)/0.8)] backdrop-blur-md p-1 rounded-full border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -103,29 +310,41 @@ export function Header() {
                         >
                             <ChevronLeft className="h-4 w-4 text-muted-foreground" />
                         </Button>
+                        <VoiceAssistant
+                            onAudioReady={handleAudioReady}
+                            isProcessing={isSending}
+                        />
                     </div>
                 ) : (
-                    <div className={cn(
-                        "flex items-center gap-3 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all",
-                        "animate-in fade-in slide-in-from-right-10 duration-300"
-                    )}>
+                    <div
+                        className={cn(
+                            'flex items-center gap-3 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all',
+                            'animate-in fade-in slide-in-from-right-10 duration-300',
+                        )}
+                    >
                         <div className="flex items-center gap-3 px-2">
                             <OpenCashSessionWidget />
                             <TVDisplayWidget />
 
                             <div className="h-6 w-px bg-border/50" />
 
-                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
+                            {hasPermission(
+                                GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE,
+                            ) && (
                                 <Link href={`/${locale}/alerts`} passHref>
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         className={cn(
-                                            "relative rounded-full transition-all duration-300 h-9 w-9",
-                                            pendingCount > 0 && "bg-red-500/10 text-red-600"
+                                            'relative rounded-full transition-all duration-300 h-9 w-9',
+                                            pendingCount > 0 && 'bg-red-500/10 text-red-600',
                                         )}
                                     >
-                                        <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
+                                        <div
+                                            className={cn(
+                                                pendingCount > 0 && 'animate-bell-ring',
+                                            )}
+                                        >
                                             <Bell className="h-5 w-5" />
                                         </div>
                                         {pendingCount > 0 && (
@@ -138,33 +357,52 @@ export function Header() {
                                 </Link>
                             )}
 
-                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && <ExchangeRate activeCashSession={activeCashSession} />}
+                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) &&
+                                activeCashSession && (
+                                    <ExchangeRate activeCashSession={activeCashSession} />
+                                )}
 
                             {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="rounded-full h-9 w-9"
+                                        >
                                             <Globe className="h-5 w-5 text-muted-foreground" />
-                                            <span className="sr-only">{t('toggleLanguage')}</span>
+                                            <span className="sr-only">
+                                                {t('toggleLanguage')}
+                                            </span>
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="rounded-xl">
-                                        <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
+                                        <DropdownMenuItem
+                                            onSelect={() => onSelectLocale('es')}
+                                            disabled={locale === 'es'}
+                                        >
                                             <span className="flex items-center justify-between w-full font-medium">
                                                 <div className="flex items-center gap-2">
                                                     <UyFlagIcon className="h-4 w-4" />
                                                     {t('spanish')}
                                                 </div>
-                                                {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                                {locale === 'es' && (
+                                                    <Check className="h-4 w-4 ml-2 text-primary" />
+                                                )}
                                             </span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                                        <DropdownMenuItem
+                                            onSelect={() => onSelectLocale('en')}
+                                            disabled={locale === 'en'}
+                                        >
                                             <span className="flex items-center justify-between w-full font-medium">
                                                 <div className="flex items-center gap-2">
                                                     <UsFlagIcon className="h-4 w-4" />
                                                     {t('english')}
                                                 </div>
-                                                {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                                {locale === 'en' && (
+                                                    <Check className="h-4 w-4 ml-2 text-primary" />
+                                                )}
                                             </span>
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -172,6 +410,13 @@ export function Header() {
                             )}
 
                             <HelpMenu />
+
+                            <div className="h-6 w-px bg-border/50" />
+
+                            <VoiceAssistant
+                                onAudioReady={handleAudioReady}
+                                isProcessing={isSending}
+                            />
                         </div>
 
                         <Button
@@ -186,6 +431,7 @@ export function Header() {
                 )}
             </div>
 
+            {/* ── Chat panel ─────────────────────────────────────────────── */}
             {isChatOpen && (
                 <div className="fixed bottom-4 right-4 z-[60] w-full max-w-sm animate-in slide-in-from-bottom-4 duration-300">
                     <Card className="h-[60vh] flex flex-col shadow-2xl border-primary/20 overflow-hidden">
@@ -194,21 +440,46 @@ export function Header() {
                                 <MessageSquare className="h-4 w-4" />
                                 {tFloating('chatbotTitle')}
                             </CardTitle>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setIsChatOpen(false)}
-                                className="h-8 w-8 text-primary-foreground hover:bg-white/20"
-                            >
-                                <X className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                                {/* TTS toggle */}
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                        setTtsEnabled((v) => {
+                                            if (v) window.speechSynthesis?.cancel();
+                                            return !v;
+                                        });
+                                    }}
+                                    className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                                    title={
+                                        ttsEnabled
+                                            ? tChat('ttsDisable')
+                                            : tChat('ttsEnable')
+                                    }
+                                >
+                                    {ttsEnabled ? (
+                                        <Volume2 className="h-4 w-4" />
+                                    ) : (
+                                        <VolumeX className="h-4 w-4" />
+                                    )}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsChatOpen(false)}
+                                    className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </CardHeader>
                         <CardContent className="p-0 flex-1 overflow-hidden">
-                            <iframe
-                                src={`${process.env.NEXT_PUBLIC_API_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host'}/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat`}
-                                className="w-full h-full border-0"
-                                title="n8n Chatbot"
-                            ></iframe>
+                            <VoiceChat
+                                messages={chatMessages}
+                                onSendText={handleSendText}
+                                isSending={isSending}
+                            />
                         </CardContent>
                     </Card>
                 </div>

@@ -4711,5 +4711,23 @@
     "fileUploadError": "Error uploading files",
     "fileTooBig": "File exceeds the {size}MB limit",
     "fileTypeNotAllowed": "File type not allowed"
+  },
+  "VoiceAssistant": {
+    "clickToSpeak": "Click to speak",
+    "clickToStop": "Click to send",
+    "listeningForWakeWord": "Say «Hey Invoke» to activate",
+    "voiceMessageLabel": "Voice message",
+    "assistantReply": "Assistant reply",
+    "sentSuccess": "Voice message sent",
+    "sendError": "Error sending audio. Please try again.",
+    "micError": "Could not access microphone."
+  },
+  "VoiceChat": {
+    "emptyState": "Say «Hey Invoke» to speak, or type your message here.",
+    "voiceMessage": "🎤 Voice message",
+    "inputPlaceholder": "Type a message...",
+    "sendError": "Error sending message. Please try again.",
+    "ttsEnable": "Enable voice",
+    "ttsDisable": "Mute voice"
   }
 }
