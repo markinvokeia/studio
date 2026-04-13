@@ -316,6 +316,7 @@ export function QuoteDetailSheet({
                     orders={orders}
                     isSales={true}
                     columnsToHide={['user_name', 'quote_doc_no']}
+                    onRefresh={() => { setRefreshKey(prev => prev + 1); onDataChange?.(); }}
                   />
                 </TabsContent>
                 <TabsContent value="invoices" className="m-0">
@@ -323,6 +324,7 @@ export function QuoteDetailSheet({
                     invoices={invoices}
                     isSales={true}
                     canCreate={false}
+                    onRefresh={() => { setRefreshKey(prev => prev + 1); onDataChange?.(); }}
                   />
                 </TabsContent>
                 <TabsContent value="payments" className="m-0">

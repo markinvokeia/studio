@@ -292,6 +292,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
   const { user, checkActiveSession } = useAuth();
+  // Track selected row internally when no external handler is provided (for action bar)
+  const [internalSelectedInvoice, setInternalSelectedInvoice] = React.useState<Invoice | null>(null);
+  const handleCombinedRowSelection = React.useCallback((selectedRows: Invoice[]) => {
+    if (!onRowSelectionChange) {
+      setInternalSelectedInvoice(selectedRows[0] || null);
+    } else {
+      onRowSelectionChange(selectedRows);
+    }
+  }, [onRowSelectionChange]);
   const locale = useLocale();
 
   const { toast } = useToast();
@@ -722,8 +731,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             columns={columns}
             data={invoices}
             filterColumnId="doc_no"
-            onRowSelectionChange={onRowSelectionChange}
-            enableSingleRowSelection={!!onRowSelectionChange}
+            onRowSelectionChange={handleCombinedRowSelection}
+            enableSingleRowSelection={true}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
             onCreate={canCreate ? () => {
@@ -781,6 +790,57 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             onFilterChange={onFilterChange}
             filterValue={filterValue}
           />
+          {/* Action bar: shown when a row is selected and no external selection handler exists */}
+          {!onRowSelectionChange && internalSelectedInvoice && (() => {
+            const status = internalSelectedInvoice.status?.toLowerCase();
+            const isDraft = status === 'draft';
+            const isPayable = status === 'booked' && internalSelectedInvoice.payment_status?.toLowerCase() !== 'paid';
+            const hasActions = isDraft || isPayable || !!onPrint || !!onSendEmail;
+            if (!hasActions) return null;
+            return (
+              <div className="flex gap-2 items-center pt-3 mt-3 border-t flex-none flex-wrap">
+                {isDraft && (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={() => { setConfirmingInvoice(internalSelectedInvoice); setIsConfirmDialogOpen(true); }}
+                    >
+                      <Check className="mr-2 h-4 w-4" />
+                      {t('confirmInvoice')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => { setEditingInvoice(internalSelectedInvoice); setIsFormDialogOpen(true); }}
+                    >
+                      {t('actions.edit') || 'Edit'}
+                    </Button>
+                  </>
+                )}
+                {isPayable && (
+                  <Button
+                    size="sm"
+                    onClick={() => handleAddPaymentClick(internalSelectedInvoice)}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    {t('paymentDialog.add') || 'Register Payment'}
+                  </Button>
+                )}
+                {onPrint && (
+                  <Button size="sm" variant="outline" onClick={() => onPrint!(internalSelectedInvoice)}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    {t('actions.print')}
+                  </Button>
+                )}
+                {onSendEmail && (
+                  <Button size="sm" variant="outline" onClick={() => onSendEmail!(internalSelectedInvoice)}>
+                    <Send className="mr-2 h-4 w-4" />
+                    {t('actions.sendEmail')}
+                  </Button>
+                )}
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

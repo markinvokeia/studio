@@ -73,6 +73,15 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
   const { toast } = useToast();
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [selectedOrderForInvoice, setSelectedOrderForInvoice] = React.useState<Order | null>(null);
+  // Track selected row internally when no external handler is provided (for action bar)
+  const [internalSelectedOrder, setInternalSelectedOrder] = React.useState<Order | null>(null);
+  const handleCombinedRowSelection = React.useCallback((selectedRows: Order[]) => {
+    if (!onRowSelectionChange) {
+      setInternalSelectedOrder(selectedRows[0] || null);
+    } else {
+      onRowSelectionChange(selectedRows);
+    }
+  }, [onRowSelectionChange]);
   const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
   const [invoiceNotes, setInvoiceNotes] = React.useState('');
   const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
@@ -138,10 +147,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <RadioGroup
             value={isSelected ? row.id : ''}
             onValueChange={() => {
-              if (onRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
-              }
+              table.toggleAllPageRowsSelected(false);
+              row.toggleSelected(true);
             }}
           >
             <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
@@ -273,8 +280,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             columns={filteredColumns}
             data={orders}
             filterColumnId={filterColumnId}
-            onRowSelectionChange={onRowSelectionChange}
-            enableSingleRowSelection={onRowSelectionChange ? true : false}
+            onRowSelectionChange={handleCombinedRowSelection}
+            enableSingleRowSelection={true}
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
             onCreate={onCreate}
@@ -317,6 +324,19 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               createdAt: tOrderColumns('createdAt'),
             }}
           />
+          {/* Action bar: shown when a row is selected and no external selection handler exists */}
+          {!onRowSelectionChange && internalSelectedOrder && (
+            <div className="flex gap-2 items-center pt-3 mt-3 border-t flex-none flex-wrap">
+              {!internalSelectedOrder.is_invoiced && (
+                <Button
+                  size="sm"
+                  onClick={() => handleInvoiceClick(internalSelectedOrder)}
+                >
+                  {t('Navigation.InvoiceAction')}
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
