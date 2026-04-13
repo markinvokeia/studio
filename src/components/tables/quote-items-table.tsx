@@ -6,11 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
 import { QuoteItem } from '@/lib/types';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 interface QuoteItemsTableProps {
   items: QuoteItem[];
@@ -22,6 +24,9 @@ interface QuoteItemsTableProps {
   onEdit: (item: QuoteItem) => void;
   onDelete: (item: QuoteItem) => void;
   showToothNumber?: boolean;
+  onRowSelectionChange?: (selectedRows: QuoteItem[]) => void;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
 const getColumns = (
@@ -29,9 +34,32 @@ const getColumns = (
   onEdit: (item: QuoteItem) => void,
   onDelete: (item: QuoteItem) => void,
   canEdit: boolean,
-  showToothNumber: boolean = true
+  showToothNumber: boolean = true,
+  onRowSelectionChange?: (selectedRows: QuoteItem[]) => void
 ): ColumnDef<QuoteItem>[] => {
   const baseColumns: ColumnDef<QuoteItem>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.id : ''}
+            onValueChange={() => {
+              if (onRowSelectionChange) {
+                table.toggleAllPageRowsSelected(false);
+                row.toggleSelected(true);
+              }
+            }}
+          >
+            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          </RadioGroup>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'id',
       header: ({ column }) => (
@@ -126,7 +154,7 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const columns = getColumns(
@@ -140,7 +168,8 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
     onEdit,
     onDelete,
     canEdit,
-    showToothNumber
+    showToothNumber,
+    onRowSelectionChange
   );
 
   if (isLoading) {
@@ -164,6 +193,10 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
+          enableSingleRowSelection={onRowSelectionChange ? true : false}
+          onRowSelectionChange={onRowSelectionChange}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
           columnTranslations={{
             id: t('id'),
             service_name: t('service'),

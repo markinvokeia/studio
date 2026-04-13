@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { InvoiceItem } from '@/lib/types';
@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Button } from '../ui/button';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 
 interface InvoiceItemsTableProps {
   items: InvoiceItem[];
@@ -18,12 +19,37 @@ interface InvoiceItemsTableProps {
   canEdit?: boolean;
   onEdit?: (item: InvoiceItem) => void;
   onDelete?: (item: InvoiceItem) => void;
+  onRowSelectionChange?: (selectedRows: InvoiceItem[]) => void;
+  rowSelection?: RowSelectionState;
+  setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
-export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, onEdit, onDelete }: InvoiceItemsTableProps) {
+export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, onEdit, onDelete, onRowSelectionChange, rowSelection, setRowSelection }: InvoiceItemsTableProps) {
   const t = useTranslations('InvoicesPage.InvoiceItemsTable');
 
   const columns: ColumnDef<InvoiceItem>[] = [
+    {
+      id: 'select',
+      header: () => null,
+      cell: ({ row, table }) => {
+        const isSelected = row.getIsSelected();
+        return (
+          <RadioGroup
+            value={isSelected ? row.id : ''}
+            onValueChange={() => {
+              if (onRowSelectionChange) {
+                table.toggleAllPageRowsSelected(false);
+                row.toggleSelected(true);
+              }
+            }}
+          >
+            <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
+          </RadioGroup>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'id',
       header: ({ column }) => (
@@ -115,6 +141,10 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
           data={items}
           filterColumnId="service_name"
           filterPlaceholder={t('filterPlaceholder')}
+          enableSingleRowSelection={onRowSelectionChange ? true : false}
+          onRowSelectionChange={onRowSelectionChange}
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
           columnTranslations={{
             id: t('columns.id'),
             service_name: t('columns.service'),

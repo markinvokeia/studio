@@ -1130,6 +1130,19 @@
   "QuotesPage": {
     "title": "Quotes",
     "description": "Manage all your quotes here.",
+    "actions": {
+      "print": "Print",
+      "sendEmail": "Send Email",
+      "confirm": "Confirm",
+      "reject": "Reject",
+      "confirmSuccess": "Quote confirmed",
+      "confirmError": "Error confirming quote",
+      "rejectSuccess": "Quote rejected",
+      "rejectError": "Error rejecting quote",
+      "printError": "Error downloading quote",
+      "emailSuccess": "Quote sent by email",
+      "emailError": "Error sending quote"
+    },
     "sendEmailDialog": {
       "title": "Send Quote by Email",
       "description": "Enter the recipient emails for quote #{id}.",
@@ -1653,7 +1666,30 @@
       "title": "Actions",
       "edit": "Edit",
       "print": "Print",
-      "sendEmail": "Send Email"
+      "sendEmail": "Send Email",
+      "confirm": "Confirm",
+      "confirmSuccess": "Invoice confirmed",
+      "confirmError": "Error confirming invoice",
+      "printError": "Error downloading invoice",
+      "emailSuccess": "Invoice sent by email",
+      "emailError": "Error sending invoice",
+      "paymentSuccess": "Payment registered successfully",
+      "paymentError": "Error registering payment",
+      "registerPayment": "Register Payment",
+      "paymentDialogDescription": "Enter payment details for invoice {docNo}",
+      "cancel": "Cancel",
+      "register": "Register"
+    },
+    "fields": {
+      "amount": "Amount",
+      "paymentMethod": "Payment Method",
+      "reference": "Reference",
+      "referencePlaceholder": "Reference number"
+    },
+    "paymentMethods": {
+      "cash": "Cash",
+      "card": "Card",
+      "transfer": "Transfer"
     },
     "confirmation": {
       "confirm": "Confirm",

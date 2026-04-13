@@ -1130,6 +1130,19 @@
     "QuotesPage": {
         "title": "Presupuestos",
         "description": "Gestione todos sus presupuestos aquí.",
+        "actions": {
+            "print": "Imprimir",
+            "sendEmail": "Enviar Email",
+            "confirm": "Confirmar",
+            "reject": "Rechazar",
+            "confirmSuccess": "Presupuesto confirmado",
+            "confirmError": "Error al confirmar el presupuesto",
+            "rejectSuccess": "Presupuesto rechazado",
+            "rejectError": "Error al rechazar el presupuesto",
+            "printError": "Error al descargar el presupuesto",
+            "emailSuccess": "Presupuesto enviado por email",
+            "emailError": "Error al enviar el presupuesto"
+        },
         "sendEmailDialog": {
             "title": "Enviar Presupuesto por Correo",
             "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
@@ -1653,7 +1666,30 @@
             "title": "Acciones",
             "edit": "Editar",
             "print": "Imprimir",
-            "sendEmail": "Enviar Correo"
+            "sendEmail": "Enviar Correo",
+            "confirm": "Confirmar",
+            "confirmSuccess": "Factura confirmada",
+            "confirmError": "Error al confirmar la factura",
+            "printError": "Error al descargar la factura",
+            "emailSuccess": "Factura enviada por email",
+            "emailError": "Error al enviar la factura",
+            "paymentSuccess": "Pago registrado exitosamente",
+            "paymentError": "Error al registrar el pago",
+            "registerPayment": "Registrar Pago",
+            "paymentDialogDescription": "Ingrese los detalles del pago para la factura {docNo}",
+            "cancel": "Cancelar",
+            "register": "Registrar"
+        },
+        "fields": {
+            "amount": "Monto",
+            "paymentMethod": "Método de Pago",
+            "reference": "Referencia",
+            "referencePlaceholder": "Número de referencia"
+        },
+        "paymentMethods": {
+            "cash": "Efectivo",
+            "card": "Tarjeta",
+            "transfer": "Transferencia"
         },
         "confirmation": {
             "confirm": "Confirmar",

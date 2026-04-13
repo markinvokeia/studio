@@ -1,5 +1,5 @@
 import { API_ROUTES } from '@/constants/routes';
-import { QuoteItem, Service } from '@/lib/types';
+import { QuoteItem, Quote, Service } from '@/lib/types';
 import { api } from './api';
 
 /**
@@ -66,4 +66,24 @@ export async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
         console.error('Failed to fetch quote items:', error);
         throw error;
     }
+}
+
+// Confirmar presupuesto
+export async function confirmQuote(quoteId: string): Promise<Quote> {
+    return api.post(API_ROUTES.SALES.QUOTE_CONFIRM_URL(quoteId), {}) as Promise<Quote>;
+}
+
+// Rechazar presupuesto
+export async function rejectQuote(quoteId: string): Promise<Quote> {
+    return api.post(API_ROUTES.SALES.QUOTE_REJECT_URL(quoteId), {}) as Promise<Quote>;
+}
+
+// Enviar presupuesto por email
+export async function sendQuoteEmail(quoteId: string): Promise<void> {
+    return api.post(API_ROUTES.SALES.QUOTE_SEND_URL(quoteId), {}) as Promise<void>;
+}
+
+// Obtener URL de impresión
+export function getQuotePrintUrl(quoteId: string): string {
+    return API_ROUTES.SALES.QUOTE_PRINT_URL(quoteId);
 }

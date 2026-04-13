@@ -1,19 +1,23 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
+import { Button } from '@/components/ui/button';
+import { ResizableSheet, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { OrdersTable } from '@/components/tables/orders-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
+import { Can } from '@/components/auth/Can';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Invoice, Order, Payment, QuoteItem } from '@/lib/types';
+import { Invoice, Order, Payment, Quote, QuoteItem } from '@/lib/types';
 import { api } from '@/services/api';
+import { confirmQuote, rejectQuote, sendQuoteEmail } from '@/services/quotes';
+import { useToast } from '@/hooks/use-toast';
 import { SHEET_TAB_CLASS, hasValidPayments } from '@/components/appointments/sheet-utils';
-import { FileText } from 'lucide-react';
+import { Check, FileText, Loader2, Mail, Printer, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -128,6 +132,8 @@ interface QuoteDetailSheetProps {
   quoteId: string;
   quoteDocNo?: string;
   patientName?: string;
+  quoteStatus?: string;
+  onDataChange?: () => void;
 }
 
 export function QuoteDetailSheet({
@@ -136,10 +142,29 @@ export function QuoteDetailSheet({
   quoteId,
   quoteDocNo,
   patientName,
+  quoteStatus,
+  onDataChange,
 }: QuoteDetailSheetProps) {
   const t = useTranslations('QuotesPage');
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('items');
   const [isLoading, setIsLoading] = React.useState(true);
+  const [actionLoading, setActionLoading] = React.useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = React.useState(false);
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  // Local state for quote data (refreshed after actions)
+  const [quoteData, setQuoteData] = React.useState<Quote | null>(null);
+
+  // Fetch quote data when refreshKey changes
+  const fetchQuoteData = React.useCallback(async () => {
+    if (!quoteId) return;
+    try {
+      const data = await api.get(API_ROUTES.SALES.QUOTES, { id: quoteId, is_sales: 'true' });
+      const quote = Array.isArray(data) ? data[0] : (data.quote || data.data || data);
+      if (quote) setQuoteData(quote);
+    } catch { /* ignore */ }
+  }, [quoteId]);
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
@@ -155,6 +180,7 @@ export function QuoteDetailSheet({
       fetchQuoteOrders(quoteId),
       fetchQuoteInvoices(quoteId),
       fetchQuotePayments(quoteId),
+      fetchQuoteData(),
     ]).then(([i, o, inv, p]) => {
       if (!active) return;
       setItems(i);
@@ -164,7 +190,70 @@ export function QuoteDetailSheet({
       setIsLoading(false);
     });
     return () => { active = false; };
-  }, [open, quoteId]);
+  }, [open, quoteId, refreshKey, fetchQuoteData]);
+
+  const handleConfirm = React.useCallback(async () => {
+    setActionLoading('confirm');
+    try {
+      await confirmQuote(quoteId);
+      toast({ title: t('actions.confirmSuccess') || 'Presupuesto confirmado' });
+      setRefreshKey(prev => prev + 1);
+      onDataChange?.();
+    } catch {
+      toast({ variant: 'destructive', title: t('actions.confirmError') || 'Error al confirmar' });
+    } finally {
+      setActionLoading(null);
+    }
+  }, [quoteId, toast, onDataChange, t]);
+
+  const handleReject = React.useCallback(async () => {
+    setActionLoading('reject');
+    try {
+      await rejectQuote(quoteId);
+      toast({ title: t('actions.rejectSuccess') || 'Presupuesto rechazado' });
+      setRefreshKey(prev => prev + 1);
+      onDataChange?.();
+    } catch {
+      toast({ variant: 'destructive', title: t('actions.rejectError') || 'Error al rechazar' });
+    } finally {
+      setActionLoading(null);
+    }
+  }, [quoteId, toast, onDataChange, t]);
+
+  const handlePrint = React.useCallback(async () => {
+    setIsPrinting(true);
+    try {
+      const blob = await api.getBlob(API_ROUTES.SALES.QUOTE_PRINT, { quote_id: quoteId });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `presupuesto-${quoteDocNo || quoteId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast({ variant: 'destructive', title: t('actions.printError') || 'Error al descargar' });
+    } finally {
+      setIsPrinting(false);
+    }
+  }, [quoteId, quoteDocNo, toast, t]);
+
+  const handleSendEmail = React.useCallback(async () => {
+    setActionLoading('email');
+    try {
+      await sendQuoteEmail(quoteId);
+      toast({ title: t('actions.emailSuccess') || 'Presupuesto enviado por email' });
+    } catch {
+      toast({ variant: 'destructive', title: t('actions.emailError') || 'Error al enviar' });
+    } finally {
+      setActionLoading(null);
+    }
+  }, [quoteId, toast, t]);
+
+  const currentStatus = quoteData?.status || quoteStatus;
+  const canShowActions = currentStatus === 'draft' || currentStatus === 'pending';
 
   return (
     <ResizableSheet
@@ -201,7 +290,7 @@ export function QuoteDetailSheet({
         </div>
 
         {/* Tabs */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 px-6 pb-6 pt-3">
+        <div className="flex-1 overflow-hidden flex flex-col min-h-0 px-6 py-3">
           {isLoading ? (
             <div className="space-y-3 pt-2">
               <Skeleton className="h-8 w-64" />
@@ -249,7 +338,57 @@ export function QuoteDetailSheet({
             </Tabs>
           )}
         </div>
+
+        {/* Footer with Actions */}
+        <SheetFooter className="flex-col gap-2 sm:flex-row border-t border-border px-6 py-4">
+          <div className="flex gap-2 flex-wrap">
+            <Can permission="SALES_QUOTES_PRINT">
+              <Button variant="outline" size="sm" onClick={handlePrint} disabled={isPrinting}>
+                {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                {t('actions.print') || 'Imprimir'}
+              </Button>
+            </Can>
+            <Can permission="SALES_QUOTES_SEND_EMAIL">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSendEmail}
+                disabled={actionLoading === 'email'}
+              >
+                {actionLoading === 'email' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                {t('actions.sendEmail') || 'Enviar Email'}
+              </Button>
+            </Can>
+          </div>
+
+          {canShowActions && (
+            <div className="flex gap-2 flex-wrap">
+              <Can permission="SALES_QUOTES_CONFIRM">
+                <Button
+                  size="sm"
+                  onClick={handleConfirm}
+                  disabled={actionLoading === 'confirm'}
+                >
+                  {actionLoading === 'confirm' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                  {t('actions.confirm') || 'Confirmar'}
+                </Button>
+              </Can>
+              <Can permission="SALES_QUOTES_REJECT">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleReject}
+                  disabled={actionLoading === 'reject'}
+                >
+                  {actionLoading === 'reject' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                  {t('actions.reject') || 'Rechazar'}
+                </Button>
+              </Can>
+            </div>
+          )}
+        </SheetFooter>
       </div>
+
     </ResizableSheet>
   );
 }
