@@ -12,7 +12,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { Can } from '@/components/auth/Can';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Invoice, Order, Payment, Quote, QuoteItem } from '@/lib/types';
+import { Invoice, Order, Payment, QuoteItem } from '@/lib/types';
 import { api } from '@/services/api';
 import { confirmQuote, rejectQuote, sendQuoteEmail } from '@/services/quotes';
 import { useToast } from '@/hooks/use-toast';
@@ -153,18 +153,11 @@ export function QuoteDetailSheet({
   const [isPrinting, setIsPrinting] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
-  // Local state for quote data (refreshed after actions)
-  const [quoteData, setQuoteData] = React.useState<Quote | null>(null);
+  // Local status override — updated after confirm/reject actions without an extra fetch
+  const [localStatus, setLocalStatus] = React.useState<string | undefined>(undefined);
 
-  // Fetch quote data when refreshKey changes
-  const fetchQuoteData = React.useCallback(async () => {
-    if (!quoteId) return;
-    try {
-      const data = await api.get(API_ROUTES.SALES.QUOTES, { id: quoteId, is_sales: 'true' });
-      const quote = Array.isArray(data) ? data[0] : (data.quote || data.data || data);
-      if (quote) setQuoteData(quote);
-    } catch { /* ignore */ }
-  }, [quoteId]);
+  // Reset local status when the quote changes
+  React.useEffect(() => { setLocalStatus(undefined); }, [quoteId]);
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [orders, setOrders] = React.useState<Order[]>([]);
@@ -180,7 +173,6 @@ export function QuoteDetailSheet({
       fetchQuoteOrders(quoteId),
       fetchQuoteInvoices(quoteId),
       fetchQuotePayments(quoteId),
-      fetchQuoteData(),
     ]).then(([i, o, inv, p]) => {
       if (!active) return;
       setItems(i);
@@ -190,13 +182,14 @@ export function QuoteDetailSheet({
       setIsLoading(false);
     });
     return () => { active = false; };
-  }, [open, quoteId, refreshKey, fetchQuoteData]);
+  }, [open, quoteId, refreshKey]);
 
   const handleConfirm = React.useCallback(async () => {
     setActionLoading('confirm');
     try {
       await confirmQuote(quoteId);
       toast({ title: t('actions.confirmSuccess') || 'Presupuesto confirmado' });
+      setLocalStatus('confirmed');
       setRefreshKey(prev => prev + 1);
       onDataChange?.();
     } catch {
@@ -211,6 +204,7 @@ export function QuoteDetailSheet({
     try {
       await rejectQuote(quoteId);
       toast({ title: t('actions.rejectSuccess') || 'Presupuesto rechazado' });
+      setLocalStatus('rejected');
       setRefreshKey(prev => prev + 1);
       onDataChange?.();
     } catch {
@@ -252,7 +246,7 @@ export function QuoteDetailSheet({
     }
   }, [quoteId, toast, t]);
 
-  const currentStatus = quoteData?.status || quoteStatus;
+  const currentStatus = localStatus || quoteStatus;
   const canShowActions = currentStatus === 'draft' || currentStatus === 'pending';
 
   return (
