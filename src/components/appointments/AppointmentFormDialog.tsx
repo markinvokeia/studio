@@ -162,16 +162,19 @@ export function AppointmentFormDialog({
         loadQuoteItems();
     }, [appointment.quote?.id, editingAppointment?.quote_id]);
 
-    // Compute prefillTreatments from quote items
+    // Compute prefillTreatments from quote items, filtered to only the services still in the appointment
     const prefillTreatments = React.useMemo(() => {
-        return sessionQuoteItems.map(item => {
-            const toothNum = item.tooth_number != null ? Number(item.tooth_number) : null;
-            return {
-                numero_diente: toothNum != null && !isNaN(toothNum) && toothNum > 0 ? toothNum : null,
-                descripcion: item.service_name,
-            };
-        });
-    }, [sessionQuoteItems]);
+        const selectedServiceIds = new Set(appointment.services.map(s => s.id));
+        return sessionQuoteItems
+            .filter(item => selectedServiceIds.has(String(item.service_id)))
+            .map(item => {
+                const toothNum = item.tooth_number != null ? Number(item.tooth_number) : null;
+                return {
+                    numero_diente: toothNum != null && !isNaN(toothNum) && toothNum > 0 ? toothNum : null,
+                    descripcion: item.service_name,
+                };
+            });
+    }, [sessionQuoteItems, appointment.services]);
 
     // Load user quotes when user changes
     React.useEffect(() => {
