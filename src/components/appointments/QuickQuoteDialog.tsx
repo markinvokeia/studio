@@ -46,7 +46,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const { toast } = useToast();
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
-  const [currency, setCurrency] = React.useState<'USD' | 'UYU'>('USD');
+  const [currency, setCurrency] = React.useState<'USD' | 'UYU'>('UYU');
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
   const [notes, setNotes] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -55,7 +55,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   React.useEffect(() => {
     if (open) {
       setItems([]);
-      setCurrency('USD');
+      setCurrency('UYU');
       setExchangeRate(1);
       setNotes('');
     }
@@ -188,7 +188,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent maxWidth="3xl">
+      <DialogContent maxWidth="5xl">
         <DialogHeader>
           <DialogTitle>{t('QuotesPage.quickQuote.title')}</DialogTitle>
           <DialogDescription>

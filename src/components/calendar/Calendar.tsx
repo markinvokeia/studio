@@ -223,14 +223,9 @@ const Calendar: React.FC<CalendarProps> = ({
   );
 
   const EventComponent = ({ event }: { event: CalendarEvent }) => {
-    const handleContextMenu = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
     return (
       <ContextMenu>
-        <ContextMenuTrigger onContextMenu={handleContextMenu}>
+        <ContextMenuTrigger>
           <div
             className="event"
             style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
