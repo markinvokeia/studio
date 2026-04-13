@@ -291,6 +291,30 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
         startWakeWordListeningRef.current = startWakeWordListening;
     }, [startWakeWordListening]);
 
+    // ── Pause wake-word listening when tab is hidden ──────────────────────────
+    // SpeechRecognition keeps a live audio session even in background tabs,
+    // preventing Chrome from throttling or suspending the process.
+    React.useEffect(() => {
+        const handleVisibility = () => {
+            if (document.hidden) {
+                // Tab hidden — stop recognition to release mic + CPU
+                if (voiceStateRef.current === 'listening') {
+                    voiceStateRef.current = 'idle';
+                    setVoiceState('idle');
+                    try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
+                    wakeRecognitionRef.current = null;
+                }
+            } else {
+                // Tab visible again — resume if not recording/processing
+                if (voiceStateRef.current === 'idle') {
+                    startWakeWordListening();
+                }
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
+        return () => document.removeEventListener('visibilitychange', handleVisibility);
+    }, [startWakeWordListening]);
+
     // ── Sync processing state from parent ────────────────────────────────────
 
     React.useEffect(() => {

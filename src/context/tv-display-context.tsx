@@ -175,8 +175,16 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     channelRef.current?.postMessage(msg);
   }, []);
 
+  // Stable reference for selectedCalendarIds — avoids recreating fetchAppointments
+  // on every unrelated settings change (theme, title, etc.) that produces a new array ref.
+  const selectedCalendarIdsRef = React.useRef<string[]>(settings.selectedCalendarIds);
+  React.useEffect(() => {
+    selectedCalendarIdsRef.current = settings.selectedCalendarIds;
+  }, [settings.selectedCalendarIds]);
+
   const fetchAppointments = React.useCallback(async () => {
-    if (settings.selectedCalendarIds.length === 0) return;
+    const calendarIds = selectedCalendarIdsRef.current;
+    if (calendarIds.length === 0) return;
     setIsLoading(true);
     try {
       const now = new Date();
@@ -194,14 +202,14 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       const apptData = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
         startingDateAndTime: format(startOfDay, 'yyyy-MM-dd HH:mm:ss'),
         endingDateAndTime: format(endOfDay, 'yyyy-MM-dd HH:mm:ss'),
-        calendar_ids: settings.selectedCalendarIds.join(','),
+        calendar_ids: calendarIds.join(','),
       });
 
       const appointments: Appointment[] = Array.isArray(apptData)
         ? apptData.map(mapRawAppointment)
         : [];
 
-      const newRooms: TVRoomState[] = settings.selectedCalendarIds.map((googleCalId) => {
+      const newRooms: TVRoomState[] = calendarIds.map((googleCalId) => {
         const cal = allCalendars.find((c) => c.google_calendar_id === googleCalId);
         const calAppts = appointments
           .filter((a) => a.google_calendar_id === googleCalId)
@@ -211,37 +219,47 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
             const tb = b.time ?? b.start?.dateTime ?? '';
             return ta.localeCompare(tb);
           });
-        const calId = googleCalId;
 
-        const existingRoom = rooms.find((r) => r.calendarId === calId);
-
+        // Read currentIndex from state at call time via setter callback to avoid stale closure
         return {
-          calendarId: calId,
-          calendarName: cal?.name ?? calId,
+          calendarId: googleCalId,
+          calendarName: cal?.name ?? googleCalId,
           calendarColor: cal?.color,
-          currentIndex: existingRoom?.currentIndex ?? 0,
+          currentIndex: 0, // will be merged below
           appointments: calAppts,
         };
       });
 
-      setRooms(newRooms);
-      broadcast({ type: 'REFRESH_DATA', rooms: newRooms });
+      // Merge preserved currentIndex values from current rooms state
+      setRooms((prevRooms) => {
+        const merged = newRooms.map((room) => {
+          const existing = prevRooms.find((r) => r.calendarId === room.calendarId);
+          return { ...room, currentIndex: existing?.currentIndex ?? 0 };
+        });
+        broadcast({ type: 'REFRESH_DATA', rooms: merged });
+        return merged;
+      });
     } catch (err) {
       console.error('[TVDisplay] Failed to fetch appointments', err);
     } finally {
       setIsLoading(false);
     }
-  }, [settings.selectedCalendarIds, broadcast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [broadcast]);
 
-  // Load calendars + clinic info immediately on mount
-  React.useEffect(() => {
+  // Load calendars + clinic info — deferred until TV feature is actually used.
+  // Firing on every mount would cause two unnecessary API calls on every page
+  // for users who never open the TV display.
+  const didLoadStaticDataRef = React.useRef(false);
+  const loadStaticData = React.useCallback(() => {
+    if (didLoadStaticDataRef.current) return;
+    didLoadStaticDataRef.current = true;
+
     api.get(API_ROUTES.CALENDARS)
       .then((data) => setCalendars(Array.isArray(data) ? data : []))
       .catch(() => { /* ignore */ });
 
     api.get(API_ROUTES.CLINIC)
       .then((raw: any) => {
-        // API returns an array — take first element
         const data = Array.isArray(raw) ? raw[0] : raw;
         if (data) {
           setClinicInfo({
@@ -255,6 +273,14 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(() => { /* ignore */ });
   }, []);
+
+  // Trigger static data load only when TV feature is actually activated
+  // (selectedCalendarIds configured, or TV status turned on)
+  React.useEffect(() => {
+    if (settings.selectedCalendarIds.length > 0 || status === 'on' || status === 'paused') {
+      loadStaticData();
+    }
+  }, [settings.selectedCalendarIds, status, loadStaticData]);
 
   // Auto-refresh interval when screen is active
   React.useEffect(() => {
