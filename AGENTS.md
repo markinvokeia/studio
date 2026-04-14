@@ -174,10 +174,16 @@ Always use React Hook Form with Zod validation. Define schemas and use `z.infer<
 
 ### Date and Time Handling
 
-- Use `date-fns` for date manipulation and formatting
-- Store dates as ISO strings in API communications
-- Use consistent date formats across the application
-- Handle timezone considerations for international users
+**MANDATORY:** Load and follow the `date-formatting` skill whenever you read, display, or send a date or datetime value.
+
+- **Never** use `new Date(isoString).toLocaleString/toLocaleTimeString/toLocaleDateString()` — they apply local timezone offset to UTC strings, producing wrong results.
+- **Never** use `format(parseISO(isoString), '...')` directly with a UTC ISO string — same problem.
+- **Never** use `date.toISOString()` when sending dates to the backend — it shifts to UTC.
+- All date utilities live in `src/lib/utils.ts`. Quick reference:
+  - Display date + time → `formatDateTime(value)`
+  - Display date only (UI) → `formatDisplayDate(value)`
+  - Date in `yyyy-MM-dd` format → `formatDate(value)`
+  - Send date to backend → `toLocalISOString(dateObject)`
 
 ## Sistema de Permisos y Control de Acceso
 
@@ -224,6 +230,7 @@ Este proyecto cuenta con skills especializados que debes cargar cuando trabajes 
 | **vercel-react-best-practices** | Al escribir, revisar o refactorizar código React/Next.js. Optimiza patrones de rendimiento, uso de hooks, data fetching, y bundle optimization. Úsalo PROACTIVAMENTE en cualquier tarea de componentes o páginas. |
 | **tailwind-v4-shadcn** | Cuando tengas problemas con Tailwind v4, shadcn/ui, colores que no funcionan, errores de `@theme`, problemas de dark mode, o al inicial el proyecto con esta tecnología. Sigue el patrón de 4 pasos: CSS variables, Tailwind mapping, base styles, dark mode automático. |
 | **permissions-protection** | Ya documentado en la sección anterior. **SIEMPRE** cuando trabajes con control de acceso, permisos de usuario, o elementos de UI condicionales. |
+| **date-formatting** | **SIEMPRE** cuando leas, muestres o envíes una fecha o datetime. Evita conversiones incorrectas de timezone con strings ISO UTC que vienen de la API. |
 
 ### Cómo Cargar un Skill
 

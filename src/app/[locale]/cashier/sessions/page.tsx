@@ -12,7 +12,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
 import { CajaMovimiento, CajaSesion } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
@@ -206,7 +206,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
                 return tPaymentMethods(methodCode) || methodCode;
             }
         },
-        { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => new Date(row.original.fecha).toLocaleTimeString() },
+        { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={tMovementColumns('date')} />, cell: ({ row }) => formatDateTime(row.original.fecha) },
     ];
 
     return (

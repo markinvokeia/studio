@@ -104,6 +104,7 @@ React Hook Form + Zod only. Define the schema first, then derive the TypeScript 
 | `vercel-react-best-practices` | Any React/Next.js code task |
 | `permissions-protection` | Any access control or conditional UI work |
 | `tailwind-v4-shadcn` | Tailwind/shadcn issues, dark mode, CSS variables |
+| `date-formatting` | Any time a date or datetime is read, displayed, or sent to the backend |
 
 ## Environment variables
 
