@@ -1,7 +1,8 @@
 'use client';
 
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
@@ -14,8 +15,10 @@ import { UserMessages } from '@/components/users/user-messages';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { UserFinancial, User } from '@/lib/types';
-import { SHEET_TAB_CLASS } from '@/components/appointments/sheet-utils';
-import { Mail, Phone, Users } from 'lucide-react';
+import {
+  Mail, Phone, Users,
+  Stethoscope, FileText, ShoppingCart, Receipt, CreditCard, Calendar, MessageSquare,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -64,6 +67,16 @@ export function PatientDetailSheet({
     avatar: '',
   }), [userId, userName, userEmail, userPhone]);
 
+  const tabs: VerticalTab[] = [
+    { id: 'clinical-history', icon: Stethoscope, label: t('tabs.clinicalHistory') },
+    { id: 'quotes', icon: FileText, label: t('tabs.quotes') },
+    { id: 'orders', icon: ShoppingCart, label: t('tabs.orders') },
+    { id: 'invoices', icon: Receipt, label: t('tabs.invoices') },
+    { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
+    { id: 'appointments', icon: Calendar, label: t('tabs.appointments') },
+    { id: 'messages', icon: MessageSquare, label: t('tabs.messages') },
+  ];
+
   return (
     <ResizableSheet
       open={open}
@@ -75,13 +88,13 @@ export function PatientDetailSheet({
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex-none border-b border-border bg-card px-6 py-5 pr-14">
+        <div className="flex-none border-b border-border bg-card px-6 py-4 pr-14">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
-              <Users className="h-5 w-5 text-muted-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/8 shrink-0">
+              <Users className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0">
-              <SheetTitle className="text-lg font-semibold truncate">{userName}</SheetTitle>
+              <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                 {userEmail && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -99,55 +112,34 @@ export function PatientDetailSheet({
               <SheetDescription className="sr-only">{t('detailsFor', { name: userName })}</SheetDescription>
             </div>
           </div>
+          <div className="mt-3">
+            <UserFinancialSummaryStats
+              financialData={financialData}
+              isOpen={isStatsOpen}
+              onToggle={() => setIsStatsOpen(v => !v)}
+              onPrint={() => {}}
+            />
+          </div>
         </div>
 
-        {/* Financial stats */}
-        <div className="flex-none px-6 pt-3 pb-0">
-          <UserFinancialSummaryStats
-            financialData={financialData}
-            isOpen={isStatsOpen}
-            onToggle={() => setIsStatsOpen(v => !v)}
-            onPrint={() => {}}
+        {/* Body: vertical tabs + content */}
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          <VerticalTabStrip
+            tabs={tabs}
+            activeTabId={activeTab}
+            onTabClick={(tab) => setActiveTab(tab.id)}
           />
-        </div>
-
-        {/* Tabs */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 px-6 pb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start h-auto">
-              <TabsTrigger value="clinical-history" className={SHEET_TAB_CLASS}>{t('tabs.clinicalHistory')}</TabsTrigger>
-              <TabsTrigger value="quotes" className={SHEET_TAB_CLASS}>{t('tabs.quotes')}</TabsTrigger>
-              <TabsTrigger value="orders" className={SHEET_TAB_CLASS}>{t('tabs.orders')}</TabsTrigger>
-              <TabsTrigger value="invoices" className={SHEET_TAB_CLASS}>{t('tabs.invoices')}</TabsTrigger>
-              <TabsTrigger value="payments" className={SHEET_TAB_CLASS}>{t('tabs.payments')}</TabsTrigger>
-              <TabsTrigger value="appointments" className={SHEET_TAB_CLASS}>{t('tabs.appointments')}</TabsTrigger>
-              <TabsTrigger value="messages" className={SHEET_TAB_CLASS}>{t('tabs.messages')}</TabsTrigger>
-            </TabsList>
-
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-              <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <ClinicHistoryViewer userId={userId} userName={userName} />
-              </TabsContent>
-              <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserQuotes userId={userId} />
-              </TabsContent>
-              <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserOrders userId={userId} patient={user} />
-              </TabsContent>
-              <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserInvoices userId={userId} />
-              </TabsContent>
-              <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserPayments userId={userId} />
-              </TabsContent>
-              <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserAppointments user={user} />
-              </TabsContent>
-              <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserMessages userId={userId} />
-              </TabsContent>
-            </div>
-          </Tabs>
+          <div className="flex-1 overflow-hidden min-h-0 flex flex-col p-3">
+            {activeTab === 'clinical-history' && (
+              <ClinicHistoryViewer userId={userId} userName={userName} />
+            )}
+            {activeTab === 'quotes' && <UserQuotes userId={userId} />}
+            {activeTab === 'orders' && <UserOrders userId={userId} patient={user} />}
+            {activeTab === 'invoices' && <UserInvoices userId={userId} />}
+            {activeTab === 'payments' && <UserPayments userId={userId} />}
+            {activeTab === 'appointments' && <UserAppointments user={user} />}
+            {activeTab === 'messages' && <UserMessages userId={userId} />}
+          </div>
         </div>
       </div>
     </ResizableSheet>

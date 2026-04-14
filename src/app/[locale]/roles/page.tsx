@@ -1,6 +1,7 @@
 'use client';
 
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { DataCard } from '@/components/ui/data-card';
 import { RolePermissions } from '@/components/roles/role-permissions';
 import { RoleUsers } from '@/components/roles/role-users';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -34,6 +35,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { RolesColumnsWrapper } from './columns';
+import { useDeepLink } from '@/hooks/use-deep-link';
 
 const roleFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -66,6 +68,40 @@ async function deleteRole(id: string) {
 }
 
 
+function RolesTableNarrow({ columns, roles, selectedRole, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, filterPlaceholder }: {
+  columns: any[]; roles: any[]; selectedRole: any;
+  onRowSelectionChange: (rows: any[]) => void; onCreate?: () => void; onRefresh: () => void; isRefreshing: boolean;
+  rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  filterPlaceholder: string;
+}) {
+  const { isNarrow } = useNarrowMode();
+  return (
+    <DataTable
+      columns={columns}
+      data={roles}
+      filterColumnId="name"
+      filterPlaceholder={filterPlaceholder}
+      onRowSelectionChange={onRowSelectionChange}
+      enableSingleRowSelection={true}
+      onCreate={onCreate}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      isNarrow={isNarrow}
+      renderCard={(row: any) => (
+        <DataCard
+          title={row.name || ''}
+          subtitle={row.description || ''}
+          isSelected={selectedRole?.id === row.id}
+          showArrow
+          onClick={() => onRowSelectionChange([row])}
+        />
+      )}
+    />
+  );
+}
+
 export default function RolesPage() {
   const t = useTranslations('RolesPage');
   const tValidation = useTranslations('RolesPage.validation');
@@ -85,16 +121,24 @@ export default function RolesPage() {
 
   const [roles, setRoles] = React.useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = React.useState<Role | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [editingRole, setEditingRole] = React.useState<Role | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [deletingRole, setDeletingRole] = React.useState<Role | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [createError, setCreateError] = React.useState<string | null>(null);
+  const [detailError, setDetailError] = React.useState<string | null>(null);
+  const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const { toast } = useToast();
 
-  const form = useForm<RoleFormValues>({
+  // Form for create dialog
+  const createForm = useForm<RoleFormValues>({
+    resolver: zodResolver(roleFormSchema(tValidation)),
+    defaultValues: { name: '' },
+  });
+
+  // Form for inline detail edit
+  const detailForm = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema(tValidation)),
     defaultValues: { name: '' },
   });
@@ -110,20 +154,19 @@ export default function RolesPage() {
     loadRoles();
   }, [loadRoles]);
 
+  // Populate detail form when selection changes
+  React.useEffect(() => {
+    if (selectedRole) {
+      detailForm.reset({ id: selectedRole.id, name: selectedRole.name });
+      setDetailError(null);
+    }
+  }, [selectedRole, detailForm]);
+
   const handleCreate = () => {
     if (!canCreate) return;
-    setEditingRole(null);
-    form.reset({ name: '' });
-    setSubmissionError(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleEdit = (role: Role) => {
-    if (!canUpdate) return;
-    setEditingRole(role);
-    form.reset({ id: role.id, name: role.name });
-    setSubmissionError(null);
-    setIsDialogOpen(true);
+    createForm.reset({ name: '' });
+    setCreateError(null);
+    setIsCreateDialogOpen(true);
   };
 
   const handleDelete = (role: Role) => {
@@ -142,6 +185,10 @@ export default function RolesPage() {
       });
       setIsDeleteDialogOpen(false);
       setDeletingRole(null);
+      if (selectedRole?.id === deletingRole.id) {
+        setSelectedRole(null);
+        setRowSelection({});
+      }
       loadRoles();
     } catch (error) {
       toast({
@@ -162,23 +209,60 @@ export default function RolesPage() {
     setRowSelection({});
   };
 
-  const onSubmit = async (values: RoleFormValues) => {
-    setSubmissionError(null);
+  const onCreateSubmit = async (values: RoleFormValues) => {
+    setCreateError(null);
     try {
       await upsertRole(values);
       toast({
-        title: editingRole ? t('toast.editSuccess') : t('toast.createSuccess'),
+        title: t('toast.createSuccess'),
         description: t('toast.successDescription', { name: values.name }),
       });
-      setIsDialogOpen(false);
+      setIsCreateDialogOpen(false);
       loadRoles();
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : t('toast.saveError'));
+      setCreateError(error instanceof Error ? error.message : t('toast.saveError'));
     }
   };
 
-  const rolesColumns = RolesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete, canEdit: canUpdate, canDelete: canDelete });
+  const onDetailSubmit = async (values: RoleFormValues) => {
+    setDetailError(null);
+    setIsSavingDetail(true);
+    try {
+      await upsertRole(values);
+      toast({
+        title: t('toast.editSuccess'),
+        description: t('toast.successDescription', { name: values.name }),
+      });
+      // Update local state
+      setRoles(prev => prev.map(r => r.id === values.id ? { ...r, name: values.name } : r));
+      setSelectedRole(prev => prev ? { ...prev, name: values.name } : prev);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : t('toast.saveError'));
+    } finally {
+      setIsSavingDetail(false);
+    }
+  };
 
+  const rolesColumns = RolesColumnsWrapper({ onDelete: handleDelete, canDelete: canDelete });
+
+  const [activeTab, setActiveTab] = React.useState('details');
+  const [deepLinkFilter, setDeepLinkFilter] = React.useState('');
+  const deepLinkItems = deepLinkFilter
+    ? roles.filter(r => r.name.toLowerCase().includes(deepLinkFilter.toLowerCase()))
+    : roles;
+
+  useDeepLink<Role>({
+    tabMap: { 'Detalles': 'details', 'Usuarios': 'users', 'Permisos': 'permissions' },
+    onFilter: (v) => setDeepLinkFilter(v),
+    items: deepLinkItems,
+    allItems: roles,
+    isLoading: isRefreshing,
+    onAutoSelect: (role) => handleRowSelectionChange([role]),
+    setRowSelection,
+    onTabChange: (id) => setActiveTab(id),
+    actionMap: { 'Crear': () => handleCreate() },
+    filterDelay: 300,
+  });
 
   return (
     <>
@@ -197,19 +281,18 @@ export default function RolesPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
-              <DataTable
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 bg-card">
+              <RolesTableNarrow
                 columns={rolesColumns}
-                data={roles}
-                filterColumnId="name"
-                filterPlaceholder={t('filterPlaceholder')}
+                roles={roles}
+                selectedRole={selectedRole}
                 onRowSelectionChange={handleRowSelectionChange}
-                enableSingleRowSelection={true}
                 onCreate={canCreate ? handleCreate : undefined}
                 onRefresh={loadRoles}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
+                filterPlaceholder={t('filterPlaceholder')}
               />
             </CardContent>
           </Card>
@@ -233,12 +316,46 @@ export default function RolesPage() {
                 </Button>
               </CardHeader>
               <CardContent className="flex-1 overflow-auto p-4 pt-0">
-                <Tabs defaultValue="users" className="w-full h-full flex flex-col">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                   <TabsList>
+                    <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
                     {canViewUsers && <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>}
                     {canViewPermissions && <TabsTrigger value="permissions">{t('tabs.permissions')}</TabsTrigger>}
                   </TabsList>
                   <div className="flex-1 overflow-auto mt-4">
+                    <TabsContent value="details" className="m-0">
+                      <Form {...detailForm}>
+                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                          {detailError && (
+                            <Alert variant="destructive">
+                              <AlertTriangle className="h-4 w-4" />
+                              <AlertTitle>{t('toast.error')}</AlertTitle>
+                              <AlertDescription>{detailError}</AlertDescription>
+                            </Alert>
+                          )}
+                          <FormField
+                            control={detailForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('createDialog.nameLabel')}</FormLabel>
+                                <FormControl>
+                                  <Input placeholder={t('createDialog.namePlaceholder')} {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          {canUpdate && (
+                            <div className="flex gap-2 pt-2">
+                              <Button type="submit" disabled={isSavingDetail}>
+                                {isSavingDetail ? t('createDialog.editSave') + '...' : t('createDialog.editSave')}
+                              </Button>
+                            </div>
+                          )}
+                        </form>
+                      </Form>
+                    </TabsContent>
                     {canViewUsers && (
                       <TabsContent value="users" className="m-0">
                         <RoleUsers roleId={selectedRole.id} canAddUser={canAddUser} canRemoveUser={canRemoveUser} />
@@ -257,26 +374,25 @@ export default function RolesPage() {
         }
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Create dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingRole ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {editingRole ? t('createDialog.editDescription') : t('createDialog.description')}
-            </DialogDescription>
+            <DialogTitle>{t('createDialog.title')}</DialogTitle>
+            <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
-                {submissionError && (
+                {createError && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>{t('toast.error')}</AlertTitle>
-                    <AlertDescription>{submissionError}</AlertDescription>
+                    <AlertDescription>{createError}</AlertDescription>
                   </Alert>
                 )}
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
@@ -290,8 +406,8 @@ export default function RolesPage() {
                 />
               </DialogBody>
               <DialogFooter>
-                <Button type="submit">{editingRole ? t('createDialog.editSave') : t('createDialog.save')}</Button>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('createDialog.cancel')}</Button>
+                <Button type="submit">{t('createDialog.save')}</Button>
+                <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>{t('createDialog.cancel')}</Button>
               </DialogFooter>
             </form>
           </Form>

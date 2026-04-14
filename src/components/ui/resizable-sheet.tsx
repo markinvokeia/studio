@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ export function ResizableSheet({
 }: ResizableSheetProps) {
   const [width, setWidth] = React.useState(defaultWidth);
   const [isResizing, setIsResizing] = React.useState(false);
+  const [isFullscreen, setIsFullscreen] = React.useState(false);
   const resizeRef = React.useRef<{ startX: number; startWidth: number } | null>(null);
 
   // Load saved width from localStorage on mount
@@ -102,25 +104,41 @@ export function ResizableSheet({
       <SheetContent
         side={side}
         className={cn(
-          'flex flex-col p-0 gap-0 overflow-hidden',
+          'flex flex-col p-0 gap-0 overflow-hidden transition-[width] duration-150',
           side === 'right' ? 'border-l' : 'border-r'
         )}
-        style={{ width: `${width}px`, maxWidth: 'none' }}
+        style={isFullscreen ? { width: '100vw', maxWidth: 'none' } : { width: `${width}px`, maxWidth: 'none' }}
       >
-        {/* Resize Handle */}
-        <div
+        {/* Resize Handle — hidden in fullscreen */}
+        {!isFullscreen && (
+          <div
+            className={cn(
+              'absolute top-0 bottom-0 w-4 cursor-col-resize z-50 flex items-center justify-center group',
+              side === 'right' ? 'left-0 -translate-x-1/2' : 'right-0 translate-x-1/2'
+            )}
+            onMouseDown={handleResizeStart}
+          >
+            <div className={cn(
+              'w-1 h-12 rounded-full bg-border transition-colors',
+              'group-hover:bg-primary/50 group-active:bg-primary',
+              isResizing && 'bg-primary'
+            )} />
+          </div>
+        )}
+
+        {/* Fullscreen toggle button */}
+        <button
+          type="button"
+          onClick={() => setIsFullscreen((v) => !v)}
           className={cn(
-            'absolute top-0 bottom-0 w-4 cursor-col-resize z-50 flex items-center justify-center group',
-            side === 'right' ? 'left-0 -translate-x-1/2' : 'right-0 translate-x-1/2'
+            'absolute z-50 top-3 flex items-center justify-center w-7 h-7 rounded-lg',
+            'text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+            side === 'right' ? 'left-8' : 'right-8'
           )}
-          onMouseDown={handleResizeStart}
+          title={isFullscreen ? 'Restore' : 'Fullscreen'}
         >
-          <div className={cn(
-            'w-1 h-12 rounded-full bg-border transition-colors',
-            'group-hover:bg-primary/50 group-active:bg-primary',
-            isResizing && 'bg-primary'
-          )} />
-        </div>
+          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+        </button>
 
         {/* Content wrapper */}
         <div className="flex-1 flex flex-col overflow-hidden">

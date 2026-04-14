@@ -2,24 +2,15 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { ToggleLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { User } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void, onEdit: (user: User) => void): ColumnDef<User>[] => [
+export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void): ColumnDef<User>[] => [
   {
     id: 'select',
     header: () => null,
@@ -86,42 +77,24 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
       const t = useTranslations('ProviderColumns');
       const user = row.original;
       return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(user.id)}
-              >
-                {t('copyId')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onEdit(user)}>{t('edit')}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onToggleActivate(user)}>
-                {user.is_active ? t('deactivate') : t('activate')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onToggleActivate(user)}>
+            <ToggleLeft className="h-3.5 w-3.5" />
+            <span className="text-[9px] font-medium leading-tight">{user.is_active ? t('deactivate') : t('activate')}</span>
+          </button>
         </div>
       );
     },
   },
 ];
 
-export function ProviderColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate?: (user: User) => void; onEdit?: (user: User) => void; }) {
+export function ProviderColumnsWrapper({ onToggleActivate }: { onToggleActivate?: (user: User) => void; }) {
   const t = useTranslations('ProviderColumns');
 
   const handleToggleActivate = onToggleActivate ?? (() => { });
-  const handleEdit = onEdit ?? (() => { });
 
   const columns = React.useMemo(() => {
-    return getColumns(t, handleToggleActivate, handleEdit);
-  }, [t, handleToggleActivate, handleEdit]);
+    return getColumns(t, handleToggleActivate);
+  }, [t, handleToggleActivate]);
   return columns;
 }

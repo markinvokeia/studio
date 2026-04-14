@@ -46,10 +46,7 @@ import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, L
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
-import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
-import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
-import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
-import { InvoiceDetailSheet } from '@/components/appointments/InvoiceDetailSheet';
+import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { getAppointmentColumns } from './columns';
 
 
@@ -336,11 +333,7 @@ export default function AppointmentsPage() {
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const { hasPermission } = usePermissions();
 
-    // Detail sheets
-    const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
-    const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
-    const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
-    const [selectedInvoiceForSheet, setSelectedInvoiceForSheet] = React.useState<Invoice | null>(null);
+
 
 
 
@@ -803,6 +796,7 @@ export default function AppointmentsPage() {
                 id: doctor.id,
                 label: doctor.name,
                 value: doctor.id,
+                color: (doctor as any).color ?? undefined,
             }));
     }, [doctors, selectedDoctorIds]);
 
@@ -813,6 +807,7 @@ export default function AppointmentsPage() {
                 id: calendar.id,
                 label: calendar.name,
                 value: calendar.id,
+                color: (calendar as any).color ?? undefined,
             }));
     }, [calendars, selectedCalendarIds]);
 
@@ -978,11 +973,12 @@ export default function AppointmentsPage() {
                                                     </CommandItem>
                                                     <CommandItem
                                                         onSelect={() => {
-                                                            if (doctorGroupingColumns.length > 0) {
-                                                                setGroupBy('doctor');
+                                                            // Auto-select all doctors so columns are immediately visible
+                                                            if (selectedDoctorIds.length === 0 && doctors.length > 0) {
+                                                                setSelectedDoctorIds(doctors.map(d => d.id));
                                                             }
+                                                            setGroupBy('doctor');
                                                         }}
-                                                        disabled={doctorGroupingColumns.length === 0}
                                                     >
                                                         <div className="flex items-center justify-between w-full">
                                                             <span>{t('grouping.options.doctor')}</span>
@@ -1065,225 +1061,20 @@ export default function AppointmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <Dialog open={isDetailViewOpen} onOpenChange={setIsDetailViewOpen}>
-                <DialogContent maxWidth="2xl">
-                    <DialogHeader>
-                        <DialogTitle>{selectedAppointment?.patientName} - {selectedAppointment?.services && selectedAppointment.services.length > 0 ? selectedAppointment.services.map(s => s.name).join(', ') : selectedAppointment?.service_name}</DialogTitle>
-                    </DialogHeader>
-                    <DialogBody className="px-6 py-4">
-                        {selectedAppointment && (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-3 gap-x-4 gap-y-3">
-                                    {/* Row 1: Paciente */}
-                                    <div className='col-span-3 flex items-center gap-2'>
-                                        <strong>{tColumns('patient')}:</strong>
-                                        <Button
-                                            variant="link"
-                                            className="p-0 h-auto font-normal text-primary underline-offset-4"
-                                            onClick={() => setIsPatientSheetOpen(true)}
-                                        >
-                                            {selectedAppointment.patientName}
-                                        </Button>
-                                    </div>
-                                    {/* Row 2: Doctor | Calendario */}
-                                    <div className='flex items-center gap-2'>
-                                        <strong>{tColumns('doctor')}:</strong>
-                                        <Button
-                                            variant="link"
-                                            className="p-0 h-auto font-normal text-primary underline-offset-4"
-                                            onClick={() => setIsDoctorSheetOpen(true)}
-                                        >
-                                            {selectedAppointment.doctorName}
-                                        </Button>
-                                    </div>
-                                    <div className='col-span-2 flex gap-2'><strong>{tColumns('calendar')}:</strong> {selectedAppointment.calendar_name}</div>
-                                    {/* Row 3: Fecha, hora inicio, hora fin */}
-                                    <div className='flex gap-2'><strong>{tColumns('date')}:</strong> {format(parseISO(selectedAppointment.date), 'dd/MM/yyyy')}</div>
-                                    <div className='flex gap-2'><strong>{tColumns('time')}:</strong> {selectedAppointment.time}</div>
-                                    <div className='flex gap-2'><strong>{t('createDialog.endTime')}:</strong> {selectedAppointment.end?.dateTime ? format(parseISO(selectedAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '-'}</div>
-                                    {/* Row 4: Estado */}
-                                    <div className="col-span-3 flex items-center gap-2"><strong>{tColumns('status')}:</strong> <Badge className="capitalize">{tStatus(selectedAppointment.status.toLowerCase())}</Badge></div>
-                                    {/* Row 5: Servicios */}
-                                    {selectedAppointment.services && selectedAppointment.services.length > 0 && (
-                                        <div className='col-span-3 flex gap-2'><strong>{t('contextMenu.services')}:</strong> {selectedAppointment.services.map(s => s.name).join(', ')}</div>
-                                    )}
-                                    {/* Row 6: Presupuesto */}
-                                    {selectedAppointment.quote_doc_no && selectedAppointment.quote_id && (
-                                        <div className='col-span-3 flex items-center gap-2'>
-                                            <strong>{tColumns('quoteDocNo')}:</strong>
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsQuoteSheetOpen(true)}
-                                                className="inline-flex items-center gap-1.5 font-mono text-xs rounded-md border border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 px-2.5 py-0.5 transition-colors"
-                                            >
-                                                <FileText className="h-3.5 w-3.5" />
-                                                {selectedAppointment.quote_doc_no}
-                                            </button>
-                                        </div>
-                                    )}
-                                    {selectedAppointment.quote_id && (
-                                        <div className='col-span-3 flex items-center gap-2 flex-wrap'>
-                                            <strong>{t('linkedInvoice')}:</strong>
-                                            {isLoadingQuoteInfo ? (
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-                                            ) : quoteInvoices.length > 0 ? (
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    {quoteInvoices.map(inv => (
-                                                        <button
-                                                            key={inv.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedInvoiceForSheet(inv)}
-                                                            className="inline-flex items-center gap-1.5 font-mono text-xs rounded-md bg-green-600 hover:bg-green-700 text-white px-2.5 py-0.5 transition-colors"
-                                                        >
-                                                            <FileText className="h-3.5 w-3.5" />
-                                                            {inv.doc_no || inv.invoice_ref}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            ) : quoteOrder ? (
-                                                <span className="text-sm text-muted-foreground italic">{t('notInvoiced')}</span>
-                                            ) : (
-                                                <span className="text-sm text-muted-foreground italic">{t('noLinkedOrder')}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                    {selectedAppointment.notes && (
-                                        <div className='col-span-3 flex gap-2 flex-col'><strong>{t('contextMenu.notes')}:</strong> <span className="whitespace-pre-wrap">{selectedAppointment.notes}</span></div>
-                                    )}
-                                </div>
-
-                                <Separator />
-
-                                {/* Linked clinic session */}
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm font-semibold flex items-center gap-2">
-                                            <Stethoscope className="h-4 w-4" />
-                                            {t('linkedSession')}
-                                        </p>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="h-7 text-xs gap-1.5"
-                                            onClick={() => handleOpenClinicSession(selectedAppointment)}
-                                        >
-                                            <Stethoscope className="h-3.5 w-3.5" />
-                                            {linkedSession ? t('editSession') : t('createSession')}
-                                        </Button>
-                                    </div>
-                                    {isLoadingLinkedSession ? (
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        </div>
-                                    ) : linkedSession ? (
-                                        <div className="rounded-md border p-3 space-y-1.5 text-sm bg-muted/20">
-                                            <div className="flex gap-2">
-                                                <span className="font-medium">{t('createDialog.date')}:</span>
-                                                <span>{linkedSession.fecha_sesion ? format(parseISO(linkedSession.fecha_sesion), 'dd/MM/yyyy') : '—'}</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <span className="font-medium">{tColumns('doctor')}:</span>
-                                                <span>{linkedSession.doctor_name || '—'}</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <span className="font-medium">{t('procedure')}:</span>
-                                                <span className="truncate">{linkedSession.procedimiento_realizado || '—'}</span>
-                                            </div>
-                                            {linkedSession.notas_clinicas && (
-                                                <div className="flex gap-2">
-                                                    <span className="font-medium">{t('contextMenu.notes')}:</span>
-                                                    <span className="text-muted-foreground line-clamp-2">{linkedSession.notas_clinicas}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-muted-foreground italic py-1">{t('noLinkedSession')}</p>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </DialogBody>
-                    <DialogFooter className="justify-between">
-                        <Button variant="outline" onClick={() => setIsDetailViewOpen(false)} className="w-24">{t('createDialog.close')}</Button>
-                        <div className="flex gap-2">
-                            <Button onClick={() => {
-                                if (selectedAppointment) {
-                                    handleEdit(selectedAppointment);
-                                    setIsDetailViewOpen(false);
-                                }
-                            }} className="w-24">
-                                <Edit className="mr-2 h-4 w-4" />
-                                {tColumns('edit')}
-                            </Button>
-                            <Button variant="destructive" onClick={() => {
-                                if (selectedAppointment) {
-                                    handleCancel(selectedAppointment);
-                                    setIsDetailViewOpen(false);
-                                }
-                            }} className="w-28">
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                {t('AppointmentsColumns.cancel')}
-                            </Button>
-                        </div>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Patient detail sheet */}
-            {selectedAppointment?.patientId && (
-                <PatientDetailSheet
-                    open={isPatientSheetOpen}
-                    onOpenChange={setIsPatientSheetOpen}
-                    userId={selectedAppointment.patientId}
-                    userName={selectedAppointment.patientName}
-                    userEmail={selectedAppointment.patientEmail}
-                    userPhone={selectedAppointment.patientPhone}
-                />
-            )}
-
-            {/* Doctor detail sheet */}
-            {selectedAppointment?.doctorId && (
-                <DoctorDetailSheet
-                    open={isDoctorSheetOpen}
-                    onOpenChange={setIsDoctorSheetOpen}
-                    doctorId={selectedAppointment.doctorId}
-                    doctorName={selectedAppointment.doctorName ?? ''}
-                    doctorEmail={selectedAppointment.doctorEmail}
-                    doctorColor={doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined}
-                />
-            )}
-
-            {/* Quote detail sheet */}
-            {selectedAppointment?.quote_id && (
-                <QuoteDetailSheet
-                    open={isQuoteSheetOpen}
-                    onOpenChange={setIsQuoteSheetOpen}
-                    quoteId={selectedAppointment.quote_id}
-                    quoteDocNo={selectedAppointment.quote_doc_no}
-                    patientName={selectedAppointment.patientName}
-                    onDataChange={() => {
-                        // Recargar datos del appointment
-                        if (selectedAppointment?.quote_id) {
-                            loadQuoteInfo(selectedAppointment.quote_id);
-                        }
-                    }}
-                />
-            )}
-
-            {/* Invoice detail sheet */}
-            {selectedInvoiceForSheet && (
-                <InvoiceDetailSheet
-                    open={!!selectedInvoiceForSheet}
-                    onOpenChange={(open) => { if (!open) setSelectedInvoiceForSheet(null); }}
-                    invoice={selectedInvoiceForSheet}
-                    onDataChange={() => {
-                        // Recargar datos de facturas
-                        if (selectedAppointment?.quote_id) {
-                            loadQuoteInfo(selectedAppointment.quote_id);
-                        }
-                    }}
-                />
-            )}
+            <AppointmentPanel
+                open={isDetailViewOpen}
+                onOpenChange={setIsDetailViewOpen}
+                appointment={selectedAppointment}
+                linkedSession={linkedSession}
+                isLoadingLinkedSession={isLoadingLinkedSession}
+                quoteOrder={quoteOrder}
+                quoteInvoices={quoteInvoices}
+                isLoadingQuoteInfo={isLoadingQuoteInfo}
+                doctorColor={selectedAppointment?.doctorId ? (doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined) : undefined}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onOpenClinicSession={handleOpenClinicSession}
+            />
         </Card>
     );
 }

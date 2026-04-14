@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { OrdersTable } from '@/components/tables/orders-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
@@ -14,12 +15,11 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Invoice, Order, Payment, QuoteItem } from '@/lib/types';
 import { api } from '@/services/api';
-import { confirmQuote, rejectQuote, sendQuoteEmail } from '@/services/quotes';
-import { useToast } from '@/hooks/use-toast';
-import { SHEET_TAB_CLASS, hasValidPayments } from '@/components/appointments/sheet-utils';
-import { Check, FileText, Loader2, Mail, Printer, X } from 'lucide-react';
+import { hasValidPayments } from '@/components/appointments/sheet-utils';
+import { FileText, ListChecks, ShoppingCart, Receipt, CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 // ── Data fetching ────────────────────────────────────────────────────────────
 
@@ -85,7 +85,6 @@ async function fetchQuoteInvoices(quoteId: string): Promise<Invoice[]> {
     }));
   } catch { return []; }
 }
-
 
 async function fetchQuotePayments(quoteId: string): Promise<Payment[]> {
   try {
@@ -182,72 +181,14 @@ export function QuoteDetailSheet({
       setIsLoading(false);
     });
     return () => { active = false; };
-  }, [open, quoteId, refreshKey]);
+  }, [open, quoteId]);
 
-  const handleConfirm = React.useCallback(async () => {
-    setActionLoading('confirm');
-    try {
-      await confirmQuote(quoteId);
-      toast({ title: t('actions.confirmSuccess') || 'Presupuesto confirmado' });
-      setLocalStatus('confirmed');
-      setRefreshKey(prev => prev + 1);
-      onDataChange?.();
-    } catch {
-      toast({ variant: 'destructive', title: t('actions.confirmError') || 'Error al confirmar' });
-    } finally {
-      setActionLoading(null);
-    }
-  }, [quoteId, toast, onDataChange, t]);
-
-  const handleReject = React.useCallback(async () => {
-    setActionLoading('reject');
-    try {
-      await rejectQuote(quoteId);
-      toast({ title: t('actions.rejectSuccess') || 'Presupuesto rechazado' });
-      setLocalStatus('rejected');
-      setRefreshKey(prev => prev + 1);
-      onDataChange?.();
-    } catch {
-      toast({ variant: 'destructive', title: t('actions.rejectError') || 'Error al rechazar' });
-    } finally {
-      setActionLoading(null);
-    }
-  }, [quoteId, toast, onDataChange, t]);
-
-  const handlePrint = React.useCallback(async () => {
-    setIsPrinting(true);
-    try {
-      const blob = await api.getBlob(API_ROUTES.SALES.QUOTE_PRINT, { quote_id: quoteId });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `presupuesto-${quoteDocNo || quoteId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
-      toast({ variant: 'destructive', title: t('actions.printError') || 'Error al descargar' });
-    } finally {
-      setIsPrinting(false);
-    }
-  }, [quoteId, quoteDocNo, toast, t]);
-
-  const handleSendEmail = React.useCallback(async () => {
-    setActionLoading('email');
-    try {
-      await sendQuoteEmail(quoteId);
-      toast({ title: t('actions.emailSuccess') || 'Presupuesto enviado por email' });
-    } catch {
-      toast({ variant: 'destructive', title: t('actions.emailError') || 'Error al enviar' });
-    } finally {
-      setActionLoading(null);
-    }
-  }, [quoteId, toast, t]);
-
-  const currentStatus = localStatus || quoteStatus;
-  const canShowActions = currentStatus === 'draft' || currentStatus === 'pending';
+  const tabs: VerticalTab[] = [
+    { id: 'items', icon: ListChecks, label: t('tabs.items') },
+    { id: 'orders', icon: ShoppingCart, label: t('tabs.orders') },
+    { id: 'invoices', icon: Receipt, label: t('tabs.invoices') },
+    { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
+  ];
 
   return (
     <ResizableSheet
@@ -260,14 +201,14 @@ export function QuoteDetailSheet({
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex-none border-b border-border bg-card px-6 py-5 pr-14">
+        <div className="flex-none border-b border-border bg-card px-6 py-4 pr-14">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
-              <FileText className="h-5 w-5 text-muted-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
+              <FileText className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <SheetTitle className="text-lg font-semibold">
+                <SheetTitle className="text-base font-semibold leading-tight">
                   {t('quoteId')}: {quoteDocNo || quoteId}
                 </SheetTitle>
                 {patientName && (
@@ -283,106 +224,49 @@ export function QuoteDetailSheet({
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 px-6 py-3">
-          {isLoading ? (
-            <div className="space-y-3 pt-2">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-              <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start h-auto">
-                <TabsTrigger value="items" className={SHEET_TAB_CLASS}>{t('tabs.items')}</TabsTrigger>
-                <TabsTrigger value="orders" className={SHEET_TAB_CLASS}>{t('tabs.orders')}</TabsTrigger>
-                <TabsTrigger value="invoices" className={SHEET_TAB_CLASS}>{t('tabs.invoices')}</TabsTrigger>
-                <TabsTrigger value="payments" className={SHEET_TAB_CLASS}>{t('tabs.payments')}</TabsTrigger>
-              </TabsList>
-
-              <div className="flex-1 overflow-auto mt-3">
-                <TabsContent value="items" className="m-0">
-                  <QuoteItemsTable
-                    items={items}
-                    canEdit={false}
-                    onCreate={() => {}}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                  />
-                </TabsContent>
-                <TabsContent value="orders" className="m-0">
-                  <OrdersTable
-                    orders={orders}
-                    isSales={true}
-                    columnsToHide={['user_name', 'quote_doc_no']}
-                    onRefresh={() => { setRefreshKey(prev => prev + 1); onDataChange?.(); }}
-                  />
-                </TabsContent>
-                <TabsContent value="invoices" className="m-0">
-                  <InvoicesTable
-                    invoices={invoices}
-                    isSales={true}
-                    canCreate={false}
-                    onRefresh={() => { setRefreshKey(prev => prev + 1); onDataChange?.(); }}
-                  />
-                </TabsContent>
-                <TabsContent value="payments" className="m-0">
-                  <PaymentsTable payments={payments} />
-                </TabsContent>
-              </div>
-            </Tabs>
-          )}
-        </div>
-
-        {/* Footer with Actions */}
-        <SheetFooter className="flex-col gap-2 sm:flex-row border-t border-border px-6 py-4">
-          <div className="flex gap-2 flex-wrap">
-            <Can permission="SALES_QUOTES_PRINT">
-              <Button variant="outline" size="sm" onClick={handlePrint} disabled={isPrinting}>
-                {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                {t('actions.print') || 'Imprimir'}
-              </Button>
-            </Can>
-            <Can permission="SALES_QUOTES_SEND_EMAIL">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSendEmail}
-                disabled={actionLoading === 'email'}
-              >
-                {actionLoading === 'email' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                {t('actions.sendEmail') || 'Enviar Email'}
-              </Button>
-            </Can>
+        {/* Body */}
+        {isLoading ? (
+          <div className="space-y-3 p-6">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
           </div>
-
-          {canShowActions && (
-            <div className="flex gap-2 flex-wrap">
-              <Can permission="SALES_QUOTES_CONFIRM">
-                <Button
-                  size="sm"
-                  onClick={handleConfirm}
-                  disabled={actionLoading === 'confirm'}
-                >
-                  {actionLoading === 'confirm' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                  {t('actions.confirm') || 'Confirmar'}
-                </Button>
-              </Can>
-              <Can permission="SALES_QUOTES_REJECT">
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleReject}
-                  disabled={actionLoading === 'reject'}
-                >
-                  {actionLoading === 'reject' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
-                  {t('actions.reject') || 'Rechazar'}
-                </Button>
-              </Can>
+        ) : (
+          <div className="flex flex-1 overflow-hidden min-h-0">
+            <VerticalTabStrip
+              tabs={tabs}
+              activeTabId={activeTab}
+              onTabClick={(tab) => setActiveTab(tab.id)}
+            />
+            <div className="flex-1 overflow-auto p-3">
+              {activeTab === 'items' && (
+                <QuoteItemsTable
+                  items={items}
+                  canEdit={false}
+                  onCreate={() => {}}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                />
+              )}
+              {activeTab === 'orders' && (
+                <OrdersTable
+                  orders={orders}
+                  isSales={true}
+                  columnsToHide={['user_name', 'quote_doc_no']}
+                />
+              )}
+              {activeTab === 'invoices' && (
+                <InvoicesTable
+                  invoices={invoices}
+                  isSales={true}
+                  canCreate={false}
+                />
+              )}
+              {activeTab === 'payments' && <PaymentsTable payments={payments} />}
             </div>
-          )}
-        </SheetFooter>
+          </div>
+        )}
       </div>
 
     </ResizableSheet>

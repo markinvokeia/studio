@@ -42,7 +42,7 @@
 
   /* TEMA INVOKE (Violeta) - Configuración Base */
   :root {
-    --background: 260 30% 98%;
+    --background: 0 0% 99%;
     --foreground: 260 60% 5%;
     --card: 0 0% 100%;
     --card-foreground: 260 60% 5%;
@@ -67,18 +67,31 @@
     --radius: 0.75rem;
 
     /* Semantic Nav Tokens */
-    --nav-bg: #2e1065;
+    --nav-bg: #1e1b4b;
     --nav-foreground: #ffffff;
-    --header-bg: #2e1065;
+    --header-bg: #1e1b4b;
     --header-foreground: #ffffff;
 
-    /* Card Header for Invoke - Very light violet */
-    --card-header-bg: 263 40% 97%;
+    /* Card Header — seamless white, no violet tint */
+    --card-header-bg: 0 0% 100%;
     --card-header-foreground: 0 0% 0%;
 
     /* Header Widgets specifically for INVOKE */
-    --floating-header-bg: 263 40% 97%;
+    --floating-header-bg: 0 0% 100%;
     --exchange-rate-text: 0 0% 0%;
+
+    /* Semantic surface tokens */
+    --surface: 0 0% 100%;
+    --surface-raised: 0 0% 98%;
+    --border-subtle: 260 20% 94%;
+    --border-default: 260 20% 88%;
+    --text-primary: 260 60% 5%;
+    --text-secondary: 240 5% 45%;
+    --brand-light: 263 67% 95%;
+    --brand-mid: 263 67% 55%;
+
+    /* Panel animation */
+    --panel-transition: 220ms cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Dashboard Chart Colors */
     --chart-1: 0 84% 60%;
@@ -205,4 +218,47 @@ input::placeholder,
 textarea::placeholder {
   opacity: 0.5 !important;
   color: hsl(var(--muted-foreground)) !important;
+}
+
+/* ── Panel slide animations ──────────────────────────────────────────────── */
+@keyframes panel-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes panel-slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.panel-enter {
+  animation: panel-slide-in var(--panel-transition) forwards;
+}
+
+.panel-exit {
+  animation: panel-slide-out var(--panel-transition) forwards;
+}
+
+/* ── Responsive action bar (container query) ────────────────────────────── */
+.action-bar {
+  container-type: inline-size;
+  container-name: action-bar;
+}
+
+@container action-bar (max-width: 400px) {
+  .action-btn-label {
+    display: none;
+  }
 }

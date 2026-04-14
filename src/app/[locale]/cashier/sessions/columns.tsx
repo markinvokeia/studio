@@ -2,20 +2,13 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { CajaSesion } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { MoreHorizontal } from 'lucide-react';
+import { Eye, Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 interface CashSessionsColumnsProps {
     onView: (session: CajaSesion) => void;
@@ -51,6 +44,7 @@ export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColu
     const statusT = useTranslations('status');
 
     const columns: ColumnDef<CajaSesion>[] = [
+        createSelectColumn<CajaSesion>(),
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('user')} /> },
         { accessorKey: 'cash_point_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('cashPoint')} /> },
@@ -83,21 +77,18 @@ export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColu
             id: 'actions',
             cell: ({ row }) => {
                 const session = row.original;
-                return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">{t('openMenu')}</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => onView(session)}>{t('viewDetails')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onPrint(session)}>{t('print')}</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                );
+            return (
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onView(session)}>
+                <Eye className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-medium leading-tight">{t('viewDetails')}</span>
+              </button>
+              <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onPrint(session)}>
+                <Printer className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-medium leading-tight">{t('print')}</span>
+              </button>
+              </div>
+            );
             },
         },
     ];

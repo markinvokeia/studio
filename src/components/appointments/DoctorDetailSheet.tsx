@@ -1,13 +1,13 @@
 'use client';
 
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { UserServices } from '@/components/users/user-services';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserLogs } from '@/components/users/user-logs';
 import { DoctorAppointments } from '@/components/appointments/DoctorAppointments';
-import { SHEET_TAB_CLASS } from '@/components/appointments/sheet-utils';
-import { Mail, Phone, UserSquare } from 'lucide-react';
+import { Mail, Phone, UserSquare, CalendarDays, Wrench, MessageSquare, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -30,10 +30,16 @@ export function DoctorDetailSheet({
   doctorPhone,
   doctorColor,
 }: DoctorDetailSheetProps) {
-  const t = useTranslations('DoctorsPage');
   const tUsers = useTranslations('UsersPage');
   const tAppts = useTranslations('AppointmentsPage');
   const [activeTab, setActiveTab] = React.useState('appointments');
+
+  const tabs: VerticalTab[] = [
+    { id: 'appointments', icon: CalendarDays, label: tAppts('title') },
+    { id: 'services', icon: Wrench, label: tUsers('tabs.services') },
+    { id: 'messages', icon: MessageSquare, label: tUsers('tabs.messages') },
+    { id: 'logs', icon: History, label: tUsers('tabs.logs') },
+  ];
 
   return (
     <ResizableSheet
@@ -46,16 +52,16 @@ export function DoctorDetailSheet({
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex-none border-b border-border bg-card px-6 py-5 pr-14">
+        <div className="flex-none border-b border-border bg-card px-6 py-4 pr-14">
           <div className="flex items-center gap-3">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
-              style={doctorColor ? { backgroundColor: doctorColor + '33', color: doctorColor } : undefined}
+              className="flex h-9 w-9 items-center justify-center rounded-full shrink-0"
+              style={doctorColor ? { backgroundColor: doctorColor + '22', color: doctorColor } : { backgroundColor: 'hsl(var(--muted))' }}
             >
-              <UserSquare className={`h-5 w-5 ${doctorColor ? '' : 'text-muted-foreground'}`} style={doctorColor ? { color: doctorColor } : undefined} />
+              <UserSquare className="h-4 w-4" style={doctorColor ? { color: doctorColor } : { color: 'hsl(var(--muted-foreground))' }} />
             </div>
             <div className="min-w-0">
-              <SheetTitle className="text-lg font-semibold truncate">{doctorName}</SheetTitle>
+              <SheetTitle className="text-base font-semibold truncate leading-tight">{doctorName}</SheetTitle>
               <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                 {doctorEmail && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -75,31 +81,19 @@ export function DoctorDetailSheet({
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0 px-6 pb-6 pt-3">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start h-auto">
-              <TabsTrigger value="appointments" className={SHEET_TAB_CLASS}>{tAppts('title')}</TabsTrigger>
-              <TabsTrigger value="services" className={SHEET_TAB_CLASS}>{tUsers('tabs.services')}</TabsTrigger>
-              <TabsTrigger value="messages" className={SHEET_TAB_CLASS}>{tUsers('tabs.messages')}</TabsTrigger>
-              <TabsTrigger value="logs" className={SHEET_TAB_CLASS}>{tUsers('tabs.logs')}</TabsTrigger>
-            </TabsList>
-
-            <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-              <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <DoctorAppointments doctorId={doctorId} />
-              </TabsContent>
-              <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserServices userId={doctorId} isSalesUser={true} />
-              </TabsContent>
-              <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserMessages userId={doctorId} />
-              </TabsContent>
-              <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                <UserLogs userId={doctorId} />
-              </TabsContent>
-            </div>
-          </Tabs>
+        {/* Body: vertical tabs + content */}
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          <VerticalTabStrip
+            tabs={tabs}
+            activeTabId={activeTab}
+            onTabClick={(tab) => setActiveTab(tab.id)}
+          />
+          <div className="flex-1 overflow-hidden min-h-0 flex flex-col p-3">
+            {activeTab === 'appointments' && <DoctorAppointments doctorId={doctorId} />}
+            {activeTab === 'services' && <UserServices userId={doctorId} isSalesUser={true} />}
+            {activeTab === 'messages' && <UserMessages userId={doctorId} />}
+            {activeTab === 'logs' && <UserLogs userId={doctorId} />}
+          </div>
         </div>
       </div>
     </ResizableSheet>

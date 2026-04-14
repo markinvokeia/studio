@@ -92,14 +92,27 @@ interface ClinicHistoryViewerProps {
     createSessionTrigger?: number;
     createDocumentTrigger?: number;
     onClinicalDataChange?: () => void;
+    /** Deep-link: navigate to this view on mount (one-shot) */
+    deepLinkView?: string;
 }
 
 type ActiveView = 'anamnesis' | 'timeline' | 'odontogram' | 'documents';
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, onClinicalDataChange }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, onClinicalDataChange, deepLinkView }: ClinicHistoryViewerProps) {
     const t = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const [activeView, setActiveView] = React.useState<ActiveView>('anamnesis');
+
+    // Apply deep-link view once on mount
+    const deepLinkApplied = React.useRef(false);
+    React.useEffect(() => {
+        if (deepLinkApplied.current || !deepLinkView) return;
+        const valid: ActiveView[] = ['anamnesis', 'timeline', 'odontogram', 'documents'];
+        if (valid.includes(deepLinkView as ActiveView)) {
+            deepLinkApplied.current = true;
+            setActiveView(deepLinkView as ActiveView);
+        }
+    }, [deepLinkView]);
     const [isOdontogramFullscreen, setIsOdontogramFullscreen] = React.useState(false);
 
     const {
@@ -2003,7 +2016,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                                        <div className="border-l-2 border-red-400/50 pl-3 py-1 bg-red-50/50 dark:bg-red-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-red-400/50 pl-3 py-1 bg-red-50/60/50 dark:bg-red-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
                                                         </div>
@@ -2015,7 +2028,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {(session.plan_proxima_cita || session.fecha_proxima_cita) && (
-                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/60/50 dark:bg-blue-950/20 rounded-r-md">
                                                             <div className="flex items-center justify-between gap-4 flex-wrap">
                                                                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
                                                                 {session.fecha_proxima_cita && (
@@ -2032,7 +2045,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {session.tratamientos && session.tratamientos.length > 0 && (
-                                                        <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/50 dark:bg-green-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/60/50 dark:bg-green-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                                                 {session.tratamientos.map((tr: any, i: number) => (
@@ -2047,7 +2060,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1 bg-purple-50/50 dark:bg-purple-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1 bg-purple-50/60/50 dark:bg-purple-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {

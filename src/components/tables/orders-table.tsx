@@ -3,7 +3,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   DropdownMenu,
@@ -65,6 +67,7 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className, isCompact = false, title, description, standalone = false }: OrdersTableProps) {
+  const { isNarrow } = useNarrowMode();
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');
@@ -323,20 +326,17 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               status: tUserColumns('status'),
               createdAt: tOrderColumns('createdAt'),
             }}
-          />
-          {/* Action bar: shown when a row is selected and no external selection handler exists */}
-          {!onRowSelectionChange && internalSelectedOrder && (
-            <div className="flex gap-2 items-center pt-3 mt-3 border-t flex-none flex-wrap">
-              {!internalSelectedOrder.is_invoiced && (
-                <Button
-                  size="sm"
-                  onClick={() => handleInvoiceClick(internalSelectedOrder)}
-                >
-                  {t('Navigation.InvoiceAction')}
-                </Button>
-              )}
-            </div>
+          isNarrow={isNarrow}
+          renderCard={(row: Order) => (
+            <DataCard
+              title={row.doc_no || `ORD-${row.id}`}
+              subtitle={[row.user_name, row.status].filter(Boolean).join(' · ')}
+              isSelected={rowSelection ? !!rowSelection[row.id as any] : false}
+              showArrow
+              onClick={() => { if (onRowSelectionChange) onRowSelectionChange([row]); }}
+            />
           )}
+        />
         </CardContent>
       </Card>
 

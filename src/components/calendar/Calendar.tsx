@@ -66,6 +66,8 @@ export interface CalendarGroupingColumn {
   id: string;
   label: string;
   value: string;
+  /** Optional accent color rendered as a dot in the column header */
+  color?: string;
 }
 
 interface CalendarProps {
@@ -442,6 +444,12 @@ const Calendar: React.FC<CalendarProps> = ({
                   >
                     {columns.map((col) => (
                       <div key={`group-${format(day, 'yyyy-MM-dd')}-${col.id}`} className="day-view-group-cell">
+                        {col.color && (
+                          <span
+                            className="inline-block shrink-0 rounded-full mr-1.5"
+                            style={{ width: 8, height: 8, background: col.color, boxShadow: `0 0 4px ${col.color}80` }}
+                          />
+                        )}
                         {col.label}
                       </div>
                     ))}

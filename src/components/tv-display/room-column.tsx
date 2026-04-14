@@ -60,7 +60,7 @@ export function RoomColumn({ room, settings, totalRooms }: RoomColumnProps) {
         />
         <h2
           className="font-bold uppercase tracking-widest truncate"
-          style={{ fontSize: totalRooms <= 2 ? 'clamp(1rem, 1.8vw, 1.5rem)' : 'clamp(0.85rem, 1.4vw, 1.1rem)' }}
+          style={{ fontSize: totalRooms <= 2 ? 'clamp(1.5rem, 2.6vw, 2.2rem)' : 'clamp(1.1rem, 1.8vw, 1.5rem)' }}
         >
           {room.calendarName}
         </h2>

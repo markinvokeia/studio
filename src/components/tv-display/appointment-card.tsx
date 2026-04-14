@@ -70,7 +70,7 @@ export function AppointmentCard({
           {settings.showPatientName && (
             <p
               className="font-extrabold leading-tight tracking-tight mb-3"
-              style={{ fontSize: 'clamp(1.8rem, 3.5vw, 3.2rem)', lineHeight: 1.1 }}
+              style={{ fontSize: 'clamp(2.6rem, 5vw, 5rem)', lineHeight: 1.05 }}
             >
               {appointment.patientName}
             </p>
@@ -81,7 +81,7 @@ export function AppointmentCard({
             {settings.showDoctorName && appointment.doctorName && (
               <span
                 className="font-semibold"
-                style={{ fontSize: 'clamp(0.9rem, 1.6vw, 1.25rem)', opacity: 0.75 }}
+                style={{ fontSize: 'clamp(1.1rem, 2vw, 1.6rem)', opacity: 0.75 }}
               >
                 {t('dr')} {appointment.doctorName}
               </span>
@@ -89,7 +89,7 @@ export function AppointmentCard({
             {settings.showAppointmentTime && time && (
               <span
                 className="tabular-nums font-bold"
-                style={{ fontSize: 'clamp(0.9rem, 1.6vw, 1.25rem)', color: accentColor }}
+                style={{ fontSize: 'clamp(1.1rem, 2vw, 1.6rem)', color: accentColor }}
               >
                 {time}
               </span>
@@ -107,13 +107,13 @@ export function AppointmentCard({
           }}
         >
           <div className="flex items-center gap-3 min-w-0">
-            <span className="text-[10px] font-bold tracking-widest uppercase shrink-0 opacity-50">
+            <span className="text-[11px] font-bold tracking-widest uppercase shrink-0 opacity-50">
               {t('next')}
             </span>
             {settings.showPatientName && (
               <span
                 className="font-semibold truncate"
-                style={{ fontSize: nextPosition === 1 ? 'clamp(1rem, 1.8vw, 1.4rem)' : 'clamp(0.85rem, 1.4vw, 1.1rem)' }}
+                style={{ fontSize: nextPosition === 1 ? 'clamp(1.4rem, 2.4vw, 2rem)' : 'clamp(1.1rem, 1.8vw, 1.5rem)' }}
               >
                 {appointment.patientName}
               </span>
@@ -124,7 +124,7 @@ export function AppointmentCard({
             {settings.showDoctorName && appointment.doctorName && (
               <span
                 className="opacity-50 truncate hidden sm:block"
-                style={{ fontSize: 'clamp(0.75rem, 1.2vw, 0.9rem)' }}
+                style={{ fontSize: 'clamp(0.9rem, 1.4vw, 1.1rem)' }}
               >
                 {t('dr')} {appointment.doctorName}
               </span>
@@ -132,7 +132,7 @@ export function AppointmentCard({
             {settings.showAppointmentTime && time && (
               <span
                 className="tabular-nums font-bold"
-                style={{ fontSize: 'clamp(0.85rem, 1.4vw, 1.1rem)', color: accentColor }}
+                style={{ fontSize: 'clamp(1.1rem, 1.8vw, 1.4rem)', color: accentColor }}
               >
                 {time}
               </span>

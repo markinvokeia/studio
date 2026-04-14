@@ -2,18 +2,12 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { AlertScheduleRun } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { Eye, MoreHorizontal } from 'lucide-react';
+import { Eye } from 'lucide-react';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 interface ExecutionHistoryColumnsProps {
     onViewDetails?: (run: AlertScheduleRun) => void;
@@ -22,6 +16,7 @@ interface ExecutionHistoryColumnsProps {
 
 export const ExecutionHistoryColumns = ({ onViewDetails, t }: ExecutionHistoryColumnsProps): ColumnDef<AlertScheduleRun>[] => {
     const columns: ColumnDef<AlertScheduleRun>[] = [
+        createSelectColumn<AlertScheduleRun>(),
         {
             accessorKey: 'run_date',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('runDate')} />,
@@ -62,20 +57,12 @@ export const ExecutionHistoryColumns = ({ onViewDetails, t }: ExecutionHistoryCo
             cell: ({ row }) => {
                 const run = row.original;
                 return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">{t('openMenu')}</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            {onViewDetails && <DropdownMenuItem onClick={() => onViewDetails(run)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                {t('viewDetails')}
-                            </DropdownMenuItem>}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {onViewDetails && <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onViewDetails(run)}>
+                            <Eye className="h-3.5 w-3.5" />
+                            <span className="text-[9px] font-medium leading-tight">{t('viewDetails')}</span>
+                        </button>}
+                    </div>
                 );
             },
         },

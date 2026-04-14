@@ -33,6 +33,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { DataCard } from '@/components/ui/data-card';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -321,6 +323,7 @@ export function RecentQuotesTable({
   isSendingEmail = false,
   setIsSendingEmail,
 }: RecentQuotesTableProps) {
+  const { isNarrow } = useNarrowMode();
   const t = useTranslations();
   const { toast } = useToast();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
@@ -522,6 +525,27 @@ export function RecentQuotesTable({
           </CardHeader>
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
+          {isNarrow ? (
+            <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
+              {table.getRowModel().rows.length > 0
+                ? table.getRowModel().rows.map((row) => (
+                    <DataCard
+                      key={row.id}
+                      title={row.original.doc_no || String(row.original.id)}
+                      subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
+                      isSelected={row.getIsSelected()}
+                      showArrow
+                      onClick={() => {
+                        table.toggleAllPageRowsSelected(false);
+                        row.toggleSelected(true);
+                        onRowSelectionChange?.([row.original]);
+                      }}
+                    />
+                  ))
+                : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
+              }
+            </div>
+          ) : (
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
             {standalone ? (
               <DataTableAdvancedToolbar
@@ -615,6 +639,7 @@ export function RecentQuotesTable({
               <DataTablePagination table={table} />
             </div>
           </div>
+          )}
         </CardContent>
       </Card>
 

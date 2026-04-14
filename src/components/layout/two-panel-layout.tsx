@@ -7,6 +7,18 @@ import {
     Separator,
 } from 'react-resizable-panels';
 import { cn } from '@/lib/utils';
+import { usePanelWidth } from '@/hooks/use-panel-width';
+import { LEFT_PANEL_NARROW_THRESHOLD } from '@/lib/design-tokens';
+
+// Context so children of the left panel can react to narrow mode
+interface NarrowModeContextType {
+    isNarrow: boolean;
+}
+const NarrowModeContext = React.createContext<NarrowModeContextType>({ isNarrow: false });
+
+export function useNarrowMode() {
+    return React.useContext(NarrowModeContext);
+}
 
 interface TwoPanelLayoutProps {
     leftPanel: React.ReactNode;
@@ -31,6 +43,9 @@ export function TwoPanelLayout({
 }: TwoPanelLayoutProps) {
     const [mounted, setMounted] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(false);
+    const leftPanelRef = React.useRef<HTMLDivElement>(null);
+    const leftPanelWidth = usePanelWidth(leftPanelRef);
+    const isNarrow = isRightPanelOpen && leftPanelWidth > 0 && leftPanelWidth < LEFT_PANEL_NARROW_THRESHOLD;
 
     React.useEffect(() => {
         setMounted(true);
@@ -46,7 +61,9 @@ export function TwoPanelLayout({
         return (
             <div className={cn("grid grid-cols-1 lg:grid-cols-5 h-full", className)}>
                 <div className={cn("h-full min-h-0 overflow-hidden", isRightPanelOpen ? "hidden lg:block lg:col-span-2" : "lg:col-span-5")}>
-                    {leftPanel}
+                    <NarrowModeContext.Provider value={{ isNarrow: false }}>
+                        {leftPanel}
+                    </NarrowModeContext.Provider>
                 </div>
                 {isRightPanelOpen && (
                     <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
@@ -62,7 +79,9 @@ export function TwoPanelLayout({
             <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
                 {!isRightPanelOpen ? (
                     <div className="flex-1 min-h-0 overflow-hidden">
-                        {leftPanel}
+                        <NarrowModeContext.Provider value={{ isNarrow: false }}>
+                            {leftPanel}
+                        </NarrowModeContext.Provider>
                     </div>
                 ) : (
                     <div className="flex-1 min-h-0 overflow-hidden">
@@ -83,8 +102,10 @@ export function TwoPanelLayout({
                     className="h-full relative overflow-hidden"
                     id="left-panel-v4"
                 >
-                    <div className="absolute inset-0 overflow-hidden px-1">
-                        {leftPanel}
+                    <div ref={leftPanelRef} className="absolute inset-0 overflow-hidden px-1">
+                        <NarrowModeContext.Provider value={{ isNarrow }}>
+                            {leftPanel}
+                        </NarrowModeContext.Provider>
                     </div>
                 </Panel>
 
@@ -111,4 +132,3 @@ export function TwoPanelLayout({
         </div>
     );
 }
-

@@ -1,30 +1,19 @@
 
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Role } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface RolesColumnsProps {
-  onEdit: (role: Role) => void;
   onDelete: (role: Role) => void;
-  canEdit?: boolean;
   canDelete?: boolean;
 }
 
-export const RolesColumnsWrapper = ({ onEdit, onDelete, canEdit = true, canDelete = true }: RolesColumnsProps): ColumnDef<Role>[] => {
+export const RolesColumnsWrapper = ({ onDelete, canDelete = true }: RolesColumnsProps): ColumnDef<Role>[] => {
   const t = useTranslations('RolesColumns');
 
   const columns: ColumnDef<Role>[] = [
@@ -65,24 +54,12 @@ export const RolesColumnsWrapper = ({ onEdit, onDelete, canEdit = true, canDelet
       cell: ({ row }) => {
         const role = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-              {canEdit && <DropdownMenuItem onClick={() => onEdit(role)}>{t('edit')}</DropdownMenuItem>}
-              {canDelete && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onDelete(role)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {canDelete && <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(role)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="text-[9px] font-medium leading-tight">{t('delete')}</span>
+            </button>}
+          </div>
         );
       },
     },
@@ -90,4 +67,3 @@ export const RolesColumnsWrapper = ({ onEdit, onDelete, canEdit = true, canDelet
 
   return columns;
 };
-

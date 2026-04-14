@@ -2,29 +2,19 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { Permission } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface PermissionsColumnsProps {
-  onEdit: (permission: Permission) => void;
   onDelete: (permission: Permission) => void;
-  canEdit?: boolean;
   canDelete?: boolean;
 }
 
-export const PermissionsColumnsWrapper = ({ onEdit, onDelete, canEdit = true, canDelete = true }: PermissionsColumnsProps): ColumnDef<Permission>[] => {
+export const PermissionsColumnsWrapper = ({ onDelete, canDelete = true }: PermissionsColumnsProps): ColumnDef<Permission>[] => {
   const t = useTranslations('PermissionsPage.columns');
   const columns: ColumnDef<Permission>[] = [
     {
@@ -84,19 +74,12 @@ export const PermissionsColumnsWrapper = ({ onEdit, onDelete, canEdit = true, ca
       cell: ({ row }) => {
         const permission = row.original;
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => onEdit(permission)}>{t('edit')}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onDelete(permission)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            {canDelete && <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(permission)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="text-[9px] font-medium leading-tight">{t('delete')}</span>
+            </button>}
+          </div>
         );
       },
     },
