@@ -767,7 +767,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     const updateSession = useCallback(async (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[], existingAttachments?: any[]) => {
         setIsSubmittingSession(true);
         try {
-            const { archivos_adjuntos, deletedAttachmentIds: _deleted, ...sessionData } = data;
+            const { archivos_adjuntos, deletedAttachmentIds: _deleted, sesion_id: _sesion_id, ...sessionData } = data;
             const formData = buildSessionFormData(sessionData, { sesion_id: String(sessionId), paciente_id: userId }, files);
             formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds || []));
             if (existingAttachments && existingAttachments.length > 0) {
