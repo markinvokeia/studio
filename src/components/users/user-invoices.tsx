@@ -1,5 +1,6 @@
 'use client';
 
+import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -18,15 +19,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
-import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { Invoice, InvoiceItem, PaymentMethod, Service, UserDetailMode } from '@/lib/types';
+import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -64,15 +65,6 @@ const invoiceEditSchema = z.object({
   })).default([]),
 });
 type InvoiceEditFormValues = z.infer<typeof invoiceEditSchema>;
-
-const paymentSchema = z.object({
-  amount: z.coerce.number().min(0.01, 'Monto requerido'),
-  payment_method_id: z.string().min(1, 'Selecciona un método de pago'),
-  payment_date: z.date({ required_error: 'Fecha requerida' }),
-  notes: z.string().optional(),
-  is_historical: z.boolean().optional(),
-});
-type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 // ── Item total display ────────────────────────────────────────────────────────
 function ItemTotalField({ form }: { form: ReturnType<typeof useForm<ItemFormValues>> }) {
@@ -211,7 +203,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const tInvoices = useTranslations('InvoicesPage');
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
-  const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -254,8 +245,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const [isEditInvoiceOpen, setIsEditInvoiceOpen] = React.useState(false);
   const [isSubmittingInvoice, setIsSubmittingInvoice] = React.useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
-  const [isSubmittingPayment, setIsSubmittingPayment] = React.useState(false);
-  const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
 
   // Email dialog states
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
@@ -316,15 +305,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       setServices(data.items || []);
     } catch { /* silent */ }
   }, [isSales, services.length]);
-
-  const loadPaymentMethods = React.useCallback(async () => {
-    if (paymentMethods.length > 0) return;
-    try {
-      const data = await api.get(API_ROUTES.PAYMENT_METHODS);
-      const raw = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
-      setPaymentMethods(raw.map((m: any) => ({ id: String(m.id), name: m.name, code: m.code, is_cash_equivalent: m.is_cash_equivalent, is_active: m.is_active })));
-    } catch { /* silent */ }
-  }, [paymentMethods.length]);
 
   React.useEffect(() => { loadInvoices(); }, [loadInvoices]);
 
@@ -521,73 +501,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       toast({ title: e?.message || 'Error al actualizar', variant: 'destructive' });
     } finally {
       setIsSubmittingInvoice(false);
-    }
-  };
-
-  // ── Payment form ──────────────────────────────────────────────────────────────
-  const paymentForm = useForm<PaymentFormValues>({ resolver: zodResolver(paymentSchema) });
-
-  React.useEffect(() => {
-    if (!isPaymentDialogOpen || !selectedInvoice) return;
-    paymentForm.reset({
-      amount: selectedInvoice.total,
-      payment_method_id: '',
-      payment_date: new Date(),
-      notes: '',
-      is_historical: selectedInvoice.is_historical || false
-    });
-    loadPaymentMethods();
-  }, [isPaymentDialogOpen, loadPaymentMethods, paymentForm, selectedInvoice]);
-
-  const handleSubmitPayment = async (values: PaymentFormValues) => {
-    if (!selectedInvoice) return;
-
-    let cashSessionId: string | null = null;
-
-    // Validate cash session only for non-historical payments
-    if (!values.is_historical) {
-      const { isValid, sessionId, error } = await validateActiveSession();
-      if (!isValid) {
-        showCashSessionError(error);
-        return;
-      }
-      cashSessionId = sessionId || null;
-    }
-
-    setIsSubmittingPayment(true);
-    try {
-      const method = paymentMethods.find(m => m.id === values.payment_method_id);
-      const paymentDate = values.payment_date.toISOString();
-      await api.post(isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT, {
-        cash_session_id: cashSessionId,
-        credit_payment: [],
-        client_user: { id: userId, name: '', email: '' },
-        query: {
-          invoice_id: parseInt(selectedInvoice.id, 10),
-          payment_date: paymentDate,
-          amount: values.amount,
-          converted_amount: values.amount,
-          method: method?.name || '',
-          payment_method_id: values.payment_method_id,
-          status: 'completed',
-          user_id: userId,
-          invoice_currency: selectedInvoice.currency || 'USD',
-          payment_currency: selectedInvoice.currency || 'USD',
-          exchange_rate: 1,
-          is_sales: isSales,
-          total_paid: values.amount,
-          notes: values.notes || '',
-          is_historical: values.is_historical || false,
-        },
-      });
-      toast({ title: 'Pago registrado' });
-      setIsPaymentDialogOpen(false);
-      await loadInvoices(true);
-      onDataChange?.();
-    } catch (e: any) {
-      toast({ title: e?.message || 'Error al registrar el pago', variant: 'destructive' });
-    } finally {
-      setIsSubmittingPayment(false);
     }
   };
 
@@ -1062,102 +975,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       </Dialog>
 
       {/* ── Add payment dialog ── */}
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>Agregar pago</DialogTitle>
-            <DialogDescription>Registra un pago para la factura {selectedInvoice?.doc_no}.</DialogDescription>
-          </DialogHeader>
-          <Form {...paymentForm}>
-            <form onSubmit={paymentForm.handleSubmit(handleSubmitPayment)}>
-              <div className="px-6 py-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField control={paymentForm.control} name="amount" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Monto</FormLabel>
-                      <FormControl><Input type="number" min={0.01} step="0.01" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={paymentForm.control} name="payment_date" render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button variant="outline" className={cn('w-full pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}>
-                              {field.value ? format(field.value, 'PPP', { locale: es }) : <span>Seleccionar fecha</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date()} initialFocus />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-                <FormField control={paymentForm.control} name="payment_method_id" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Método de pago</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar método" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {paymentMethods.filter(m => m.is_active).map(m => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={paymentForm.control} name="notes" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField
-                  control={paymentForm.control}
-                  name="is_historical"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>{t('InvoicesPage.paymentDialog.isHistorical')}</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                {paymentForm.watch('is_historical') && (
-                  <Alert variant="warning" className="bg-amber-50 border-amber-200">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    <AlertTitle className="text-amber-800">{t('InvoicesPage.paymentDialog.isHistorical')}</AlertTitle>
-                    <AlertDescription className="text-amber-700">
-                      {t('InvoicesPage.paymentDialog.isHistoricalDescription')}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsPaymentDialogOpen(false)}>Cancelar</Button>
-                <Button type="submit" disabled={isSubmittingPayment}>
-                  {isSubmittingPayment && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Registrar pago
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <InvoicePaymentDialog
+        isOpen={isPaymentDialogOpen}
+        onClose={() => setIsPaymentDialogOpen(false)}
+        invoice={selectedInvoice}
+        isSales={isSales}
+        onSuccess={() => { loadInvoices(true); onDataChange?.(); }}
+      />
 
       {/* ── Item create/edit dialog ── */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>

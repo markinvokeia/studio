@@ -12,6 +12,7 @@ interface UserFinancialSummaryStatsProps {
   isOpen: boolean;
   onToggle: () => void;
   onPrint: () => void;
+  variant?: 'patient' | 'provider';
 }
 
 export function UserFinancialSummaryStats({
@@ -19,8 +20,11 @@ export function UserFinancialSummaryStats({
   isOpen,
   onToggle,
   onPrint,
+  variant = 'patient',
 }: UserFinancialSummaryStatsProps) {
-  const t = useTranslations('UsersPage');
+  const tPatient = useTranslations('UsersPage');
+  const tProvider = useTranslations('ProvidersPage');
+  const t = variant === 'provider' ? tProvider : tPatient;
 
   const formatCurrency = (value: unknown, currency: 'USD' | 'UYU') => {
     const symbol = currency === 'USD' ? 'U$S' : '$U';

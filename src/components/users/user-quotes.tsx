@@ -1274,8 +1274,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle>{t('UserQuotes.dialogs.deleteQuote.title')}</DialogTitle>
-            <DialogDescription>{t('UserQuotes.dialogs.deleteQuote.description', { docNo: selectedQuote?.doc_no })}</DialogDescription>
           </DialogHeader>
+          <DialogBody className="px-6 py-4">
+            <p className="text-sm text-muted-foreground">{t('UserQuotes.dialogs.deleteQuote.description', { docNo: selectedQuote?.doc_no })}</p>
+          </DialogBody>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeletingQuote(false)}>{t('UserQuotes.dialogs.deleteQuote.cancel')}</Button>
             <Button variant="destructive" onClick={handleDeleteQuote}>

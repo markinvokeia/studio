@@ -763,8 +763,8 @@
       "title": "Financial Summary",
       "totalInvoiced": "Total Invoiced",
       "totalPaid": "Total Paid",
-      "currentDebt": "Current Debt",
-      "availableBalance": "Available Balance",
+      "currentDebt": "Receivable",
+      "availableBalance": "Credit Balance",
       "printFinancialSummary": "Print Financial Summary",
       "showStats": "SHOW $",
       "hideStats": "HIDE $"
@@ -2332,6 +2332,16 @@
   },
   "ProvidersPage": {
     "title": "Providers",
+    "stats": {
+      "title": "Financial Summary",
+      "totalInvoiced": "Total Invoiced",
+      "totalPaid": "Total Paid",
+      "currentDebt": "Payable",
+      "availableBalance": "Advance Payments",
+      "printFinancialSummary": "Print Financial Summary",
+      "showStats": "SHOW $",
+      "hideStats": "HIDE $"
+    },
     "description": "A list of providers",
     "filterPlaceholder": "Filter by role...",
     "createDialog": {

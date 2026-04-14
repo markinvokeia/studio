@@ -763,8 +763,8 @@
             "title": "Resumen financiero",
             "totalInvoiced": "Total Facturado",
             "totalPaid": "Total Pagado",
-            "currentDebt": "Deuda Actual",
-            "availableBalance": "Saldo Disponible",
+            "currentDebt": "Por Cobrar",
+            "availableBalance": "Saldo a Favor",
             "printFinancialSummary": "Imprimir Resumen Financiero",
             "showStats": "VER $",
             "hideStats": "OCULTAR $"
@@ -2332,6 +2332,16 @@
     },
     "ProvidersPage": {
         "title": "Proveedores",
+        "stats": {
+            "title": "Resumen financiero",
+            "totalInvoiced": "Total Facturado",
+            "totalPaid": "Total Pagado",
+            "currentDebt": "Por Pagar",
+            "availableBalance": "Pagos Anticipados",
+            "printFinancialSummary": "Imprimir Resumen Financiero",
+            "showStats": "VER $",
+            "hideStats": "OCULTAR $"
+        },
         "description": "Una lista de proveedores",
         "filterPlaceholder": "Filtrar por rol...",
         "createDialog": {

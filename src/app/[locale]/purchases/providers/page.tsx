@@ -769,6 +769,7 @@ function ProvidersPageContent() {
                 <UserFinancialSummaryStats
                   financialData={providerFinancialData}
                   isOpen={isStatsOpen}
+                  variant="provider"
                   onToggle={() => setIsStatsOpen(v => !v)}
                   onPrint={handlePrintFinancialSummary}
                 />

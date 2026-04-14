@@ -30,13 +30,13 @@ const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
 const getPaymentType = (payment: Payment): { type: 'payment' | 'prepaid' | 'credit_note'; variant: 'default' | 'secondary' | 'outline' } => {
-  if (payment.invoice_id && payment.type === 'credit_note') {
+  if (payment.transaction_type === 'credit_note_allocation') {
     return { type: 'credit_note', variant: 'secondary' };
-  } else if (!payment.invoice_id) {
-    return { type: 'prepaid', variant: 'outline' };
-  } else {
-    return { type: 'payment', variant: 'default' };
   }
+  if (payment.transaction_type === 'direct_payment' && !payment.invoice_id) {
+    return { type: 'prepaid', variant: 'outline' };
+  }
+  return { type: 'payment', variant: 'default' };
 };
 
 // ── Columns ───────────────────────────────────────────────────────────────────
@@ -114,33 +114,34 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
     const data = await api.get(API_ROUTES.USER_PAYMENTS, { user_id: userId });
     const paymentsData = Array.isArray(data) ? data : (data.payments || []);
 
-    return paymentsData.map((apiPayment: any) => ({
-      id: apiPayment.id.toString(),
-      doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
-      order_id: apiPayment.order_id?.toString() ?? '',
-      order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
-      invoice_id: apiPayment.invoice_id?.toString() ?? null,
-      invoice_doc_no: apiPayment.invoice_doc_no || '',
-      quote_id: apiPayment.quote_id?.toString() ?? null,
-      user_name: apiPayment.user_name || '',
-      amount: parseFloat(apiPayment.amount),
-      method: apiPayment.method,
-      status: apiPayment.status,
-      createdAt: apiPayment.created_at,
-      updatedAt: apiPayment.updatedAt,
-      currency: apiPayment.currency,
-      payment_date: apiPayment.payment_date,
-      amount_applied: parseFloat(apiPayment.amount_applied),
-      source_amount: parseFloat(apiPayment.amount),
-      source_currency: apiPayment.currency,
-      exchange_rate: parseFloat(apiPayment.exchange_rate),
-      payment_method: apiPayment.payment_method,
-      transaction_type: apiPayment.transaction_type || 'direct_payment',
-      transaction_id: apiPayment.transaction_id,
-      reference_doc_id: apiPayment.reference_doc_id,
-      is_historical: apiPayment.is_historical || false,
-      notes: apiPayment.notes || '',
-      type: apiPayment.type || null,
+    return paymentsData.map((tx: any) => ({
+      id: String(tx.transaction_id),
+      transaction_id: String(tx.transaction_id),
+      doc_no: tx.transaction_doc_no || tx.doc_no || `PAY-${tx.transaction_id}`,
+      order_id: '',
+      order_doc_no: '',
+      invoice_id: tx.invoice_id ? String(tx.invoice_id) : null,
+      invoice_doc_no: tx.invoice_doc_no || '',
+      quote_id: null,
+      user_name: tx.user_name || '',
+      amount: parseFloat(tx.amount_applied) || 0,
+      amount_applied: parseFloat(tx.amount_applied) || 0,
+      source_amount: parseFloat(tx.source_amount) || 0,
+      source_currency: (tx.source_currency as 'UYU' | 'USD') || 'USD',
+      currency: (tx.source_currency as 'UYU' | 'USD') || 'USD',
+      exchange_rate: parseFloat(tx.exchange_rate) || 1,
+      method: tx.payment_method_name || '',
+      payment_method: tx.payment_method_name || '',
+      payment_method_code: tx.payment_method_code || '',
+      status: 'completed' as const,
+      transaction_type: (tx.transaction_type || 'direct_payment') as Payment['transaction_type'],
+      reference_doc_id: undefined,
+      is_historical: tx.is_historical || false,
+      notes: tx.notes || '',
+      createdAt: tx.created_at,
+      updatedAt: tx.created_at,
+      payment_date: tx.created_at,
+      type: null,
     }));
   } catch (error) {
     console.error("Failed to fetch user payments:", error);
