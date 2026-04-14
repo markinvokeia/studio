@@ -834,7 +834,7 @@ export default function UsersPage() {
       header: `${t('UserColumns.currentDebt')} (UYU)`,
       cell: ({ row }) => {
         const debt = row.original.current_debt?.UYU;
-        return debt ? `$${Number(debt).toFixed(2)}` : '-';
+        return debt ? `UYU ${Number(debt).toFixed(2)}` : '-';
       },
     },
     {
