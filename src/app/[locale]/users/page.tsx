@@ -6,11 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DatePicker, DatePickerInput } from '@/components/ui/date-picker';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogBody,
@@ -67,7 +66,7 @@ import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, 
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, SlidersHorizontal, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
@@ -415,6 +414,8 @@ export default function UsersPage() {
   const t = useTranslations();
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -443,7 +444,9 @@ export default function UsersPage() {
     pageIndex: 0,
     pageSize: 10,
   });
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    initialQ ? [{ id: 'email', value: initialQ }] : []
+  );
   const [date, setDate] = React.useState<DateRange | undefined>(undefined);
   const [datePreset, setDatePreset] = React.useState<string | null>('allTime');
   const [showDebtors, setShowDebtors] = React.useState(false);

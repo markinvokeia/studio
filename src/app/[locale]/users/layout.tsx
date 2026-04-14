@@ -38,5 +38,5 @@ export default function UsersLayout({
         );
     }
 
-    return <>{children}</>;
+    return <React.Suspense>{children}</React.Suspense>;
 }
