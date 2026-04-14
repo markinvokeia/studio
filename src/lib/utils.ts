@@ -98,6 +98,19 @@ export function getDocumentFileName(doc: DocumentWithDocNo, type: DocumentType):
 }
 
 /**
+ * Formats a date string or Date object as 'dd/MM/yyyy' without timezone conversion.
+ * Handles ISO strings with time components (e.g. '2026-04-19T00:00:00.000Z') correctly
+ * by extracting the date part before any Date object conversion.
+ */
+export function formatDisplayDate(date: string | Date | null | undefined): string {
+  const datePart = formatDate(date);
+  if (!datePart || datePart === 'N/A' || datePart === 'Invalid Date') return datePart || 'N/A';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+  const [year, month, day] = datePart.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+/**
  * Validates that a value is a non-empty string (excluding 'null' string)
  */
 export function isValidString(value: unknown): value is string {

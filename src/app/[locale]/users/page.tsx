@@ -59,7 +59,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Calendar as CalendarType, PatientDischarge, Quote, Service, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -425,13 +425,13 @@ export default function UsersPage() {
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isDischargeDialogOpen, setIsDischargeDialogOpen] = React.useState(false);
-  const [dischargeDate, setDischargeDate] = React.useState<Date | null>(null);
+  const [dischargeDate, setDischargeDate] = React.useState<string>('');
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
   const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
   const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
-  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
+  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: string; to: string }>({
+    from: '',
+    to: '',
   });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
   const [userFinancialData, setUserFinancialData] = React.useState<UserFinancial | null>(null);
@@ -630,7 +630,7 @@ export default function UsersPage() {
     try {
       const payload = {
         id: selectedUser.id,
-        appointment_date: format(dischargeDate, 'yyyy-MM-dd')
+        appointment_date: dischargeDate
       };
       await api.post(API_ROUTES.PATIENT_DISCHARGE, payload);
 
@@ -639,7 +639,7 @@ export default function UsersPage() {
       });
 
       setIsDischargeDialogOpen(false);
-      setDischargeDate(null);
+      setDischargeDate('');
       fetchPatientDischarge(selectedUser.id);
     } catch (error: any) {
       console.error("Error saving discharge:", error);
@@ -712,7 +712,7 @@ export default function UsersPage() {
 
   const handlePrintFinancialSummary = () => {
     if (!selectedUser) return;
-    setFinancialSummaryDateRange({ from: undefined, to: undefined });
+    setFinancialSummaryDateRange({ from: '', to: '' });
     setIsFinancialSummaryDialogOpen(true);
   };
 
@@ -723,13 +723,13 @@ export default function UsersPage() {
       const params: Record<string, string> = { user_id: selectedUser.id };
 
       if (financialSummaryDateRange.from) {
-        const dateFrom = new Date(financialSummaryDateRange.from);
+        const dateFrom = parseISO(financialSummaryDateRange.from);
         dateFrom.setHours(0, 0, 0, 0);
         params.from = dateFrom.toISOString();
       }
 
       if (financialSummaryDateRange.to) {
-        const dateTo = new Date(financialSummaryDateRange.to);
+        const dateTo = parseISO(financialSummaryDateRange.to);
         dateTo.setHours(23, 59, 59, 999);
         params.to = dateTo.toISOString();
       }
@@ -1292,7 +1292,7 @@ export default function UsersPage() {
                     {currentDischarge && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 text-xs font-normal">
                         <CheckCircle className="h-3 w-3" />
-                        {t('ClinicHistoryPage.discharge.dischargedBadge', { date: format(parseISO(currentDischarge.appointment_date), 'dd/MM/yyyy') })}
+                        {t('ClinicHistoryPage.discharge.dischargedBadge', { date: formatDisplayDate(currentDischarge.appointment_date) })}
                       </Badge>
                     )}
                   </div>
@@ -1610,7 +1610,7 @@ export default function UsersPage() {
                   variant="secondary"
                   size="sm"
                   className="rounded-full"
-                  onClick={() => setDischargeDate(addMonths(new Date(), 1))}
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}
                 >
                   {t('ClinicHistoryPage.discharge.option1Month')}
                 </Button>
@@ -1618,7 +1618,7 @@ export default function UsersPage() {
                   variant="secondary"
                   size="sm"
                   className="rounded-full"
-                  onClick={() => setDischargeDate(addMonths(new Date(), 3))}
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}
                 >
                   {t('ClinicHistoryPage.discharge.option3Months')}
                 </Button>
@@ -1626,7 +1626,7 @@ export default function UsersPage() {
                   variant="secondary"
                   size="sm"
                   className="rounded-full"
-                  onClick={() => setDischargeDate(addMonths(new Date(), 6))}
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}
                 >
                   {t('ClinicHistoryPage.discharge.option6Months')}
                 </Button>
@@ -1634,7 +1634,7 @@ export default function UsersPage() {
                   variant="secondary"
                   size="sm"
                   className="rounded-full"
-                  onClick={() => setDischargeDate(addMonths(new Date(), 12))}
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}
                 >
                   {t('ClinicHistoryPage.discharge.option1Year')}
                 </Button>
@@ -1645,31 +1645,12 @@ export default function UsersPage() {
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.dateLabel')}
               </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full h-12 justify-start text-left font-normal border-muted-foreground/20 hover:border-primary/50 transition-colors",
-                      !dischargeDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-3 h-5 w-5 text-primary" />
-                    <span className="text-base font-medium">
-                      {dischargeDate ? format(dischargeDate, 'dd/MM/yyyy') : t('ClinicHistoryPage.discharge.datePlaceholder')}
-                    </span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <DatePicker
-                    mode="single"
-                    selected={dischargeDate || undefined}
-                    onSelect={(date: Date | undefined) => setDischargeDate(date || null)}
-                    initialFocus
-                    disabled={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  />
-                </PopoverContent>
-              </Popover>
+              <DatePickerInput
+                value={dischargeDate}
+                onChange={(value) => setDischargeDate(value)}
+                placeholder={t('ClinicHistoryPage.discharge.datePlaceholder')}
+                disabledDays={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+              />
             </div>
           </DialogBody>
           <DialogFooter>
@@ -1685,7 +1666,7 @@ export default function UsersPage() {
               variant="outline"
               onClick={() => {
                 setIsDischargeDialogOpen(false);
-                setDischargeDate(null);
+                setDischargeDate('');
               }}
             >
               {t('ClinicHistoryPage.discharge.cancelButton')}
@@ -1706,53 +1687,19 @@ export default function UsersPage() {
             <div className="grid grid-cols-2 gap-4 px-4 pt-4">
               <div className="space-y-2">
                 <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !financialSummaryDateRange.from && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {financialSummaryDateRange.from ? format(financialSummaryDateRange.from, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <DatePicker
-                      mode="single"
-                      selected={financialSummaryDateRange.from}
-                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, from: date }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerInput
+                  value={financialSummaryDateRange.from}
+                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, from: value }))}
+                  placeholder="dd/mm/aaaa"
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('UsersPage.financialSummaryDialog.to')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !financialSummaryDateRange.to && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {financialSummaryDateRange.to ? format(financialSummaryDateRange.to, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <DatePicker
-                      mode="single"
-                      selected={financialSummaryDateRange.to}
-                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, to: date }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerInput
+                  value={financialSummaryDateRange.to}
+                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, to: value }))}
+                  placeholder="dd/mm/aaaa"
+                />
               </div>
             </div>
           </DialogBody>

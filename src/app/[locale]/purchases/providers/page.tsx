@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import {
   Dialog,
   DialogBody,
@@ -52,9 +52,9 @@ import { cn, isValidString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Briefcase, CalendarIcon, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, SlidersHorizontal, X } from 'lucide-react';
+import { AlertTriangle, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, SlidersHorizontal, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -321,9 +321,9 @@ function ProvidersPageContent() {
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
   const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
-  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
+  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: string; to: string }>({
+    from: '',
+    to: '',
   });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
 
@@ -471,7 +471,7 @@ function ProvidersPageContent() {
 
   const handlePrintFinancialSummary = () => {
     if (!selectedProvider) return;
-    setFinancialSummaryDateRange({ from: undefined, to: undefined });
+    setFinancialSummaryDateRange({ from: '', to: '' });
     setIsFinancialSummaryDialogOpen(true);
   };
 
@@ -482,13 +482,13 @@ function ProvidersPageContent() {
       const params: Record<string, string> = { user_id: selectedProvider.id };
 
       if (financialSummaryDateRange.from) {
-        const dateFrom = new Date(financialSummaryDateRange.from);
+        const dateFrom = parseISO(financialSummaryDateRange.from);
         dateFrom.setHours(0, 0, 0, 0);
         params.from = dateFrom.toISOString();
       }
 
       if (financialSummaryDateRange.to) {
-        const dateTo = new Date(financialSummaryDateRange.to);
+        const dateTo = parseISO(financialSummaryDateRange.to);
         dateTo.setHours(23, 59, 59, 999);
         params.to = dateTo.toISOString();
       }
@@ -912,53 +912,19 @@ function ProvidersPageContent() {
             <div className="grid grid-cols-2 gap-4 px-4 pt-4">
               <div className="space-y-2">
                 <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !financialSummaryDateRange.from && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {financialSummaryDateRange.from ? format(financialSummaryDateRange.from, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <DatePicker
-                      mode="single"
-                      selected={financialSummaryDateRange.from}
-                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, from: date }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerInput
+                  value={financialSummaryDateRange.from}
+                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, from: value }))}
+                  placeholder="dd/mm/aaaa"
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('UsersPage.financialSummaryDialog.to')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full justify-start text-left font-normal',
-                        !financialSummaryDateRange.to && 'text-muted-foreground'
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {financialSummaryDateRange.to ? format(financialSummaryDateRange.to, 'dd/MM/yyyy') : t('UsersPage.financialSummaryDialog.selectDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <DatePicker
-                      mode="single"
-                      selected={financialSummaryDateRange.to}
-                      onSelect={(date: Date | undefined) => setFinancialSummaryDateRange(prev => ({ ...prev, to: date }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <DatePickerInput
+                  value={financialSummaryDateRange.to}
+                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, to: value }))}
+                  placeholder="dd/mm/aaaa"
+                />
               </div>
             </div>
           </DialogBody>

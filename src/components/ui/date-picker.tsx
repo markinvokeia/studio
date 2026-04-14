@@ -6,10 +6,10 @@ import { CalendarIcon } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { useLocale, useTranslations } from "next-intl"
 import { enUS, es } from 'date-fns/locale'
-import { format, parse, parseISO, setMonth } from "date-fns"
+import { format, parse, setMonth } from "date-fns"
 import { Locale } from "date-fns"
 
-import { cn } from "@/lib/utils"
+import { cn, formatDate, formatDisplayDate } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -364,12 +364,8 @@ export function DatePickerInput({
 }: DatePickerInputProps) {
   const [inputValue, setInputValue] = React.useState<string>(() => {
     if (!value) return ''
-    try {
-      const date = parseISO(value)
-      return format(date, DATE_FORMAT)
-    } catch {
-      return ''
-    }
+    const displayed = formatDisplayDate(value)
+    return displayed === 'N/A' || displayed === 'Invalid Date' ? '' : displayed
   })
   
   const [isOpen, setIsOpen] = React.useState(false)
@@ -381,12 +377,10 @@ export function DatePickerInput({
       setInputValue('')
       return
     }
-    try {
-      const date = parseISO(value)
-      setInputValue(format(date, DATE_FORMAT))
+    const displayed = formatDisplayDate(value)
+    if (displayed !== 'N/A' && displayed !== 'Invalid Date') {
+      setInputValue(displayed)
       setError(false)
-    } catch {
-      // Keep current input value if parsing fails
     }
   }, [value])
   
@@ -447,11 +441,9 @@ export function DatePickerInput({
   }
   
   const selectedDate = value ? (() => {
-    try {
-      return parseISO(value)
-    } catch {
-      return undefined
-    }
+    const datePart = formatDate(value)
+    if (!datePart || datePart === 'N/A' || datePart === 'Invalid Date') return undefined
+    return parse(datePart, 'yyyy-MM-dd', new Date())
   })() : undefined
   
   return (
