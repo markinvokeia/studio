@@ -31,6 +31,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { SystemConfiguration } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Settings } from 'lucide-react';
@@ -101,6 +103,7 @@ export default function SystemConfigPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.SYS_CONFIG_DELETE);
+    const isNarrow = useViewportNarrow();
     const [configs, setConfigs] = React.useState<SystemConfiguration[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -217,6 +220,15 @@ export default function SystemConfigPage() {
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onRefresh={loadConfigs}
                                 isRefreshing={isRefreshing}
+                                isNarrow={isNarrow}
+                                renderCard={(row: SystemConfiguration) => (
+                                    <DataCard
+                                        title={row.key}
+                                        subtitle={row.description || row.value}
+                                        badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{row.data_type}</span>}
+                                        showArrow
+                                    />
+                                )}
                                 columnTranslations={{
                                     id: t('columns.id'),
                                     key: t('columns.key'),

@@ -2,6 +2,8 @@
 'use client';
 
 import * as React from 'react';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTable } from '@/components/ui/data-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ColumnDef } from '@tanstack/react-table';
@@ -120,6 +122,7 @@ const getColumns = (
 
 export default function CommunicationHistoryPage() {
     const t = useTranslations('CommunicationHistoryPage');
+    const isNarrow = useViewportNarrow();
     const [logs, setLogs] = React.useState<CommunicationLog[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 50 });
@@ -184,6 +187,15 @@ export default function CommunicationHistoryPage() {
                         filterPlaceholder={t('filterPlaceholder')}
                         onRefresh={onRefresh}
                         isRefreshing={isRefreshing}
+                        isNarrow={isNarrow}
+                        renderCard={(row: CommunicationLog) => (
+                            <DataCard
+                                title={row.title || row.recipient_address}
+                                subtitle={row.recipient_address}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.status === 'SENT' || row.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : row.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>{row.status}</span>}
+                                showArrow
+                            />
+                        )}
                         pagination={pagination}
                         onPaginationChange={onPaginationChange}
                         manualPagination

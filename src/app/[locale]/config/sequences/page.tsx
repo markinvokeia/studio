@@ -4,6 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -22,6 +23,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, Filter, List, PlusCircle, RefreshCw, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -164,6 +166,7 @@ export default function SequencesPage() {
   const t = useTranslations('SequencesPage');
   const tValidation = useTranslations('SequencesPage.validation');
   const { toast } = useToast();
+  const isNarrow = useViewportNarrow();
   const [sequences, setSequences] = React.useState<Sequence[]>([]);
   const [total, setTotal] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -440,6 +443,15 @@ export default function SequencesPage() {
               reset_period: t('columns.resetPeriod'),
               is_active: t('columns.isActive'),
             }}
+            isNarrow={isNarrow}
+            renderCard={(row: Sequence) => (
+              <DataCard
+                title={row.name}
+                subtitle={row.pattern}
+                badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.document_type}</span>}
+                showArrow
+              />
+            )}
           />
         </CardContent>
       </Card>

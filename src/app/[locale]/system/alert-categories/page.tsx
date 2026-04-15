@@ -26,6 +26,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, NotificationCategory } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState } from '@tanstack/react-table';
@@ -164,6 +166,7 @@ export default function AlertCategoriesPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_CATEGORIES_DELETE);
+    const isNarrow = useViewportNarrow();
 
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -396,6 +399,16 @@ export default function AlertCategoriesPage() {
                         onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={() => loadCategories(columnFilters, currentPage, pageSize)}
                         isRefreshing={isRefreshing}
+                        isNarrow={isNarrow}
+                        renderCard={(row: AlertCategory) => (
+                            <DataCard
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_active ? t('columns.yes') : t('columns.no')}</span>}
+                                accentColor={row.color || undefined}
+                                showArrow
+                            />
+                        )}
                         columnFilters={columnFilters}
                         onColumnFiltersChange={handleColumnFiltersChange}
                         pagination={pagination}

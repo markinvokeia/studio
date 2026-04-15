@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -25,6 +26,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Smile } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -77,6 +79,7 @@ export default function DentalConditionsPage() {
     const t = useTranslations('DentalConditionsPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const isNarrow = useViewportNarrow();
 
     const [conditions, setConditions] = React.useState<DentalCondition[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -191,6 +194,15 @@ export default function DentalConditionsPage() {
                         onCreate={hasPermission(CLINIC_CATALOG_PERMISSIONS.DENTAL_COND_CREATE) ? handleCreate : undefined}
                         onRefresh={loadConditions}
                         isRefreshing={isRefreshing}
+                        isNarrow={isNarrow}
+                        renderCard={(row: DentalCondition) => (
+                            <DataCard
+                                title={row.nombre}
+                                subtitle={row.codigo_visual}
+                                accentColor={row.color_hex || undefined}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

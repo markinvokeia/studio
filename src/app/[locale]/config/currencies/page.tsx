@@ -9,6 +9,8 @@ import { ExchangeRateColumnsWrapper } from './columns';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/services/api';
 import { ExchangeRateHistoryResponse, ExchangeRateHistoryItem } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { PaginationState } from '@tanstack/react-table';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -27,6 +29,7 @@ import { RefreshCw, DollarSign, History } from 'lucide-react';
 export default function CurrenciesPage() {
     const t = useTranslations('CurrenciesPage');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
 
     const [data, setData] = React.useState<ExchangeRateHistoryItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -170,6 +173,14 @@ export default function CurrenciesPage() {
                         pageCount={totalPages}
                         isRefreshing={isLoading}
                         onRefresh={handleRefresh}
+                        isNarrow={isNarrow}
+                        renderCard={(row: ExchangeRateHistoryItem) => (
+                            <DataCard
+                                title={row.fecha}
+                                subtitle={`USD ${row.datos_completos?.usd_compra ?? ''} / ${row.datos_completos?.usd_venta ?? ''}`}
+                                showArrow
+                            />
+                        )}
                         customToolbar={customToolbar}
                         columnTranslations={{
                             fecha: t('columns.date'),

@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -25,6 +26,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Calendar } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -80,6 +82,7 @@ export default function CalendarsPage() {
     const t = useTranslations('CalendarsPage');
     const tNav = useTranslations('Navigation');
     const tValidation = useTranslations('CalendarsPage.validation');
+    const isNarrow = useViewportNarrow();
     const { toast } = useToast();
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -198,6 +201,16 @@ export default function CalendarsPage() {
                         onRefresh={loadCalendars}
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
+                        isNarrow={isNarrow}
+                        renderCard={(row: CalendarType) => (
+                            <DataCard
+                                title={row.name}
+                                subtitle={row.google_calendar_id}
+                                accentColor={row.color || undefined}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

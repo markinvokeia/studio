@@ -423,6 +423,7 @@ export default function PaymentsPage() {
                         title={t('title')}
                         description={t('description')}
                         className="h-full"
+                        isCompact={!!selectedPayment}
                     />
                 }
                 rightPanel={

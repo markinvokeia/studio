@@ -4,6 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -18,6 +19,7 @@ import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from 
 import { format, parseISO } from 'date-fns';
 import { ChevronDown, Printer, RefreshCw, History } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { CashSessionsColumnsWrapper } from './columns';
 
@@ -293,6 +295,7 @@ const SessionDetails = ({ session, movements }: { session: CajaSesion, movements
 export default function CashSessionsPage() {
     const t = useTranslations('CashSessionsPage');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const [sessions, setSessions] = React.useState<CajaSesion[]>([]);
     const [movements, setMovements] = React.useState<CajaMovimiento[]>([]);
     const [sessionCount, setSessionCount] = React.useState(0);
@@ -413,6 +416,19 @@ export default function CashSessionsPage() {
                         columnVisibility={columnVisibility}
                         onColumnVisibilityChange={setColumnVisibility}
                         enableSingleRowSelection={false}
+                        isNarrow={isNarrow}
+                        renderCard={(row: CajaSesion) => (
+                            <DataCard
+                                title={row.cash_point_name || row.user_name || 'Sesión'}
+                                subtitle={row.fechaApertura ? new Date(row.fechaApertura).toLocaleString() : ''}
+                                badge={
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${(row.estado === 'OPEN' || row.estado === 'ABIERTA') ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
+                                        {row.estado}
+                                    </span>
+                                }
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

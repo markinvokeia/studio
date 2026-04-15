@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -26,6 +27,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, HeartPulse } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -83,6 +85,7 @@ export default function AilmentsPage() {
     const t = useTranslations('AilmentsPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const isNarrow = useViewportNarrow();
 
     const [ailments, setAilments] = React.useState<Ailment[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -205,6 +208,14 @@ export default function AilmentsPage() {
                             categoria: tColumns('category'),
                             nivel_alerta: tColumns('alertLevel'),
                         }}
+                        isNarrow={isNarrow}
+                        renderCard={(row: Ailment) => (
+                            <DataCard
+                                title={row.nombre}
+                                subtitle={row.categoria}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

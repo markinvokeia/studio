@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -31,6 +32,7 @@ import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, UserX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -111,6 +113,7 @@ export default function AvailabilityExceptionsPage() {
     const t = useTranslations('DoctorAvailabilityExceptionsPage');
     const tValidation = useTranslations('DoctorAvailabilityExceptionsPage.validation');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const [exceptions, setExceptions] = React.useState<AvailabilityException[]>([]);
     const [doctors, setDoctors] = React.useState<User[]>([]);
     const [exceptionCount, setExceptionCount] = React.useState(0);
@@ -261,6 +264,15 @@ export default function AvailabilityExceptionsPage() {
                         onRefresh={loadExceptions}
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
+                        isNarrow={isNarrow}
+                        renderCard={(row: AvailabilityException) => (
+                            <DataCard
+                                title={row.user_name || row.user_id}
+                                subtitle={row.exception_date}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

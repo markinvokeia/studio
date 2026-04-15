@@ -10,6 +10,8 @@ import { api } from '@/services/api';
 import { FileClock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { ExecutionHistoryColumns } from './columns';
 import { ExecutionDetailDialog } from './execution-detail-dialog';
 
@@ -18,6 +20,7 @@ export default function ExecutionHistoryPage() {
   const { hasPermission } = usePermissions();
   const canViewList = hasPermission(SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_LIST);
   const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.ALERT_EXECUTIONS_VIEW_DETAIL);
+  const isNarrow = useViewportNarrow();
   const [runs, setRuns] = React.useState<AlertScheduleRun[]>([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 });
@@ -85,6 +88,15 @@ export default function ExecutionHistoryPage() {
               filterPlaceholder={t('filterPlaceholder')}
               onRefresh={onRefresh}
               isRefreshing={isRefreshing}
+              isNarrow={isNarrow}
+              renderCard={(row: AlertScheduleRun) => (
+                <DataCard
+                  title={row.run_date}
+                  subtitle={`${row.rules_processed} reglas · ${row.alerts_created} alertas`}
+                  badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.status === 'SUCCESS' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.status}</span>}
+                  showArrow
+                />
+              )}
               pagination={pagination}
               onPaginationChange={onPaginationChange}
               manualPagination

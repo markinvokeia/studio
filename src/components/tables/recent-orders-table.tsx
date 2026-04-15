@@ -1,9 +1,11 @@
 'use client';
 
 import { ColumnDef } from '@tanstack/react-table';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Order } from '@/lib/types';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
@@ -74,6 +76,7 @@ interface RecentOrdersTableProps {
 export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }: RecentOrdersTableProps) {
   const t = useTranslations();
   const columns = React.useMemo(() => getColumns(t), [t]);
+  const isNarrow = useViewportNarrow();
 
   return (
     <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
@@ -96,6 +99,15 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }
           filterPlaceholder={t('RecentOrdersTable.filterPlaceholder')}
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
+          isNarrow={isNarrow}
+          renderCard={(row: Order) => (
+            <DataCard
+              title={row.doc_no || String(row.id)}
+              subtitle={row.user_name || ''}
+              badge={row.status ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{row.status}</span> : undefined}
+              showArrow
+            />
+          )}
         />
       </CardContent>
     </Card>

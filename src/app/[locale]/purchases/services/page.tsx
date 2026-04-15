@@ -173,7 +173,8 @@ function ServicesTableWithCards({
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   t: (key: string) => string;
 }) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = !!selectedService || panelNarrow;
   return (
     <DataTable
       columns={columns}

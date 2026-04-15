@@ -294,7 +294,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const tStatus = useTranslations('InvoicesPage.status');
   const tMethods = useTranslations('InvoicesPage.methods');
   const { user, checkActiveSession } = useAuth();
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = isCompact || panelNarrow;
   const locale = useLocale();
 
   const { toast } = useToast();

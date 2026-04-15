@@ -234,6 +234,7 @@ function PaymentsPageContent() {
                         title={t('title')}
                         description={t('description')}
                         className="h-full"
+                        isCompact={!!selectedPayment}
                     />
                 }
                 rightPanel={

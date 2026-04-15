@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -28,6 +29,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { AlertTriangle, Handshake } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -120,6 +122,7 @@ export default function MutualSocietiesPage() {
     const t = useTranslations('MutualSocietiesPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const isNarrow = useViewportNarrow();
 
     const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
     const [totalItems, setTotalItems] = React.useState(0);
@@ -266,6 +269,15 @@ export default function MutualSocietiesPage() {
                         manualPagination={true}
                         columnFilters={columnFilters}
                         onColumnFiltersChange={setColumnFilters}
+                        isNarrow={isNarrow}
+                        renderCard={(row: MutualSociety) => (
+                            <DataCard
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

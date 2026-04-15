@@ -17,6 +17,8 @@ import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-tab
 import { MoreHorizontal, UserCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -62,6 +64,7 @@ export default function AccessLogPage() {
     const t = useTranslations('AccessLogPage');
     const { hasPermission } = usePermissions();
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_LIST);
+    const isNarrow = useViewportNarrow();
     const [data, setData] = React.useState<AccessLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -148,6 +151,15 @@ export default function AccessLogPage() {
                             filterPlaceholder={t('filterPlaceholder')}
                             onRefresh={loadLogs}
                             isRefreshing={isRefreshing}
+                            isNarrow={isNarrow}
+                            renderCard={(row: AccessLog) => (
+                                <DataCard
+                                    title={row.action}
+                                    subtitle={`${row.user_id} · ${row.timestamp}`}
+                                    badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.success ? t('columns.yes') : t('columns.no')}</span>}
+                                    showArrow
+                                />
+                            )}
                             pageCount={Math.ceil(logCount / pagination.pageSize)}
                             pagination={pagination}
                             onPaginationChange={setPagination}

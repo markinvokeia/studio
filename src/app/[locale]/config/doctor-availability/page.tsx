@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -31,6 +32,7 @@ import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { AlertTriangle, CalendarPlus, Check, ChevronsUpDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -120,6 +122,7 @@ async function deleteAvailabilityRule(id: string) {
 export default function DoctorAvailabilityPage() {
     const t = useTranslations('DoctorAvailabilityPage');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const [rules, setRules] = React.useState<AvailabilityRule[]>([]);
     const [doctors, setDoctors] = React.useState<User[]>([]);
     const [ruleCount, setRuleCount] = React.useState(0);
@@ -281,6 +284,15 @@ export default function DoctorAvailabilityPage() {
                         onRefresh={loadRules}
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
+                        isNarrow={isNarrow}
+                        renderCard={(row: AvailabilityRule) => (
+                            <DataCard
+                                title={row.user_name || row.user_id}
+                                subtitle={`${row.start_time} – ${row.end_time}`}
+                                badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.recurrence}</span>}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

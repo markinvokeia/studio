@@ -28,6 +28,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, CommunicationTemplate } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
@@ -145,6 +147,7 @@ export default function CommunicationTemplatesPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_DELETE);
+    const isNarrow = useViewportNarrow();
     const [templates, setTemplates] = React.useState<CommunicationTemplate[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -398,6 +401,15 @@ export default function CommunicationTemplatesPage() {
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onRefresh={loadData}
                                 isRefreshing={isRefreshing}
+                                isNarrow={isNarrow}
+                                renderCard={(row: CommunicationTemplate) => (
+                                    <DataCard
+                                        title={row.name}
+                                        subtitle={row.code}
+                                        badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.type}</span>}
+                                        showArrow
+                                    />
+                                )}
                                 pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
                                 pagination={pagination}
                                 onPaginationChange={setPagination}

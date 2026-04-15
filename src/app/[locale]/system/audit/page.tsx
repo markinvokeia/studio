@@ -21,6 +21,8 @@ import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-tab
 import { BarChart, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 type GetAuditLogsResponse = {
     auditLogs: AuditLog[];
@@ -63,6 +65,7 @@ export default function AuditLogPage() {
     const { hasPermission } = usePermissions();
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
     const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_DETAIL);
+    const isNarrow = useViewportNarrow();
     const [data, setData] = React.useState<AuditLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -170,6 +173,14 @@ export default function AuditLogPage() {
                             filterPlaceholder={t('filterPlaceholder')}
                             onRefresh={loadLogs}
                             isRefreshing={isRefreshing}
+                            isNarrow={isNarrow}
+                            renderCard={(row: AuditLog) => (
+                                <DataCard
+                                    title={row.table_name}
+                                    subtitle={`${row.operation} · ${row.changed_at}`}
+                                    showArrow
+                                />
+                            )}
                             pageCount={Math.ceil(logCount / pagination.pageSize)}
                             pagination={pagination}
                             onPaginationChange={setPagination}

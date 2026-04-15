@@ -5,6 +5,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -33,6 +34,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CalendarClock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -86,6 +88,7 @@ export default function SchedulesPage() {
     const t = useTranslations('SchedulesPage');
     const tValidation = useTranslations('SchedulesPage.validation');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const { hasPermission } = usePermissions();
     const canCreate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_CREATE);
     const canUpdate = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SCHEDULES_UPDATE);
@@ -209,6 +212,14 @@ export default function SchedulesPage() {
                         onRefresh={loadSchedules}
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
+                        isNarrow={isNarrow}
+                        renderCard={(row: ClinicSchedule) => (
+                            <DataCard
+                                title={`${row.start_time} – ${row.end_time}`}
+                                subtitle={`Día ${row.day_of_week}`}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

@@ -21,6 +21,8 @@ import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-tab
 import { FileWarning, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 type GetErrorLogsResponse = {
     errorLogs: ErrorLog[];
@@ -59,6 +61,7 @@ export default function ErrorLogPage() {
     const t = useTranslations('ErrorLogPage');
     const { hasPermission } = usePermissions();
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_LIST);
+    const isNarrow = useViewportNarrow();
     const [data, setData] = React.useState<ErrorLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -138,6 +141,15 @@ export default function ErrorLogPage() {
                             filterPlaceholder={t('filterPlaceholder')}
                             onRefresh={loadLogs}
                             isRefreshing={isRefreshing}
+                            isNarrow={isNarrow}
+                            renderCard={(row: ErrorLog) => (
+                                <DataCard
+                                    title={row.message || ''}
+                                    subtitle={row.channel || ''}
+                                    badge={row.severity ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-red-100 text-red-700">{row.severity}</span> : undefined}
+                                    showArrow
+                                />
+                            )}
                             pageCount={Math.ceil(logCount / pagination.pageSize)}
                             pagination={pagination}
                             onPaginationChange={setPagination}

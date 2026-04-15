@@ -323,7 +323,8 @@ export function RecentQuotesTable({
   isSendingEmail = false,
   setIsSendingEmail,
 }: RecentQuotesTableProps) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = isCompact || panelNarrow;
   const t = useTranslations();
   const { toast } = useToast();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);

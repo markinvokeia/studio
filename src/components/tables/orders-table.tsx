@@ -67,7 +67,8 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, columnTranslations, columnsToHide = [], isSales = true, className, isCompact = false, title, description, standalone = false }: OrdersTableProps) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = isCompact || panelNarrow;
   const t = useTranslations();
   const tOrderColumns = useTranslations('OrderColumns');
   const tUserColumns = useTranslations('UserColumns');

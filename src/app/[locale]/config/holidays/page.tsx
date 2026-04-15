@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import {
@@ -31,6 +32,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, CalendarOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -97,6 +99,7 @@ export default function HolidaysPage() {
     const t = useTranslations('HolidaysPage');
     const tNav = useTranslations('Navigation');
     const tValidation = useTranslations('HolidaysPage.validation');
+    const isNarrow = useViewportNarrow();
 
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
@@ -245,6 +248,15 @@ export default function HolidaysPage() {
                             />
                         )}
                         columnTranslations={columnTranslations}
+                        isNarrow={isNarrow}
+                        renderCard={(row: ClinicException) => (
+                            <DataCard
+                                title={row.date}
+                                subtitle={row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : '')}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_open ? 'Abierto' : 'Cerrado'}</span>}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

@@ -74,7 +74,8 @@ function RolesTableNarrow({ columns, roles, selectedRole, onRowSelectionChange, 
   rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   filterPlaceholder: string;
 }) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = !!selectedRole || panelNarrow;
   return (
     <DataTable
       columns={columns}

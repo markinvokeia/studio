@@ -24,6 +24,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PaymentMethod } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
@@ -85,6 +87,7 @@ export default function PaymentMethodsPage() {
     const canUpdate = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_UPDATE);
     const canDelete = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_DELETE);
     const canToggleStatus = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_TOGGLE_STATUS);
+    const isNarrow = useViewportNarrow();
 
     const [methods, setMethods] = React.useState<PaymentMethod[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -220,6 +223,15 @@ export default function PaymentMethodsPage() {
                         onCreate={canCreate ? handleCreate : undefined}
                         onRefresh={loadMethods}
                         isRefreshing={isRefreshing}
+                        isNarrow={isNarrow}
+                        renderCard={(row: PaymentMethod) => (
+                            <DataCard
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_active ? t('columns.yes') : t('columns.no')}</span>}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

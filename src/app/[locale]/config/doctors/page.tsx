@@ -160,7 +160,8 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
   columnFilters: ColumnFiltersState; setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   filtersOptionList: any[]; handleClearFilters: () => void; t: (k: string) => string;
 }) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = !!selectedUser || panelNarrow;
   return (
     <DataTable
       columns={columns}

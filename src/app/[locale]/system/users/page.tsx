@@ -174,7 +174,8 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
   columnFilters: ColumnFiltersState; setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   filtersOptionList: any[]; handleClearFilters: () => void; canCreate: boolean; t: (k: string) => string;
 }) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = !!selectedUser || panelNarrow;
   return (
     <DataTable
       columns={columns}

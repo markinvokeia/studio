@@ -27,6 +27,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, AlertRule } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
@@ -140,6 +142,7 @@ export default function AlertRulesPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_DELETE);
+    const isNarrow = useViewportNarrow();
 
     const [rules, setRules] = React.useState<AlertRule[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
@@ -503,6 +506,15 @@ export default function AlertRulesPage() {
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onRefresh={loadData}
                                 isRefreshing={isRefreshing}
+                                isNarrow={isNarrow}
+                                renderCard={(row: AlertRule) => (
+                                    <DataCard
+                                        title={row.name}
+                                        subtitle={row.code}
+                                        badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}
+                                        showArrow
+                                    />
+                                )}
                             />
                         ) : (
                             <div className="flex items-center justify-center h-full">

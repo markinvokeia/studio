@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -26,6 +27,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { AlertTriangle, Pill } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -109,6 +111,7 @@ export default function MedicationsPage() {
     const t = useTranslations('MedicationsPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const isNarrow = useViewportNarrow();
 
     const [medications, setMedications] = React.useState<Medication[]>([]);
     const [totalItems, setTotalItems] = React.useState(0);
@@ -249,6 +252,14 @@ export default function MedicationsPage() {
                         manualPagination={true}
                         columnFilters={columnFilters}
                         onColumnFiltersChange={setColumnFilters}
+                        isNarrow={isNarrow}
+                        renderCard={(row: Medication) => (
+                            <DataCard
+                                title={row.nombre_generico}
+                                subtitle={row.nombre_comercial || ''}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

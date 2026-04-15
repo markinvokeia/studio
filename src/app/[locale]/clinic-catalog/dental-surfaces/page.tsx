@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -25,6 +26,7 @@ import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Layers } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -76,6 +78,7 @@ export default function DentalSurfacesPage() {
     const t = useTranslations('DentalSurfacesPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const isNarrow = useViewportNarrow();
 
     const [surfaces, setSurfaces] = React.useState<DentalSurface[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -189,6 +192,14 @@ export default function DentalSurfacesPage() {
                         onCreate={hasPermission(CLINIC_CATALOG_PERMISSIONS.DENTAL_SURF_CREATE) ? handleCreate : undefined}
                         onRefresh={loadSurfaces}
                         isRefreshing={isRefreshing}
+                        isNarrow={isNarrow}
+                        renderCard={(row: DentalSurface) => (
+                            <DataCard
+                                title={row.nombre}
+                                subtitle={row.codigo}
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

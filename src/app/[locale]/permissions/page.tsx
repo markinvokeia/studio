@@ -85,7 +85,8 @@ function PermissionsTableNarrow({ columns, permissions, selectedPermission, onRo
   rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   filterPlaceholder: string;
 }) {
-  const { isNarrow } = useNarrowMode();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isNarrow = !!selectedPermission || panelNarrow;
   return (
     <DataTable
       columns={columns}
