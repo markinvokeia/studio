@@ -558,6 +558,7 @@ function InvoicesPageContent() {
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <TwoPanelLayout
                     isRightPanelOpen={!!selectedInvoice}
+                    onBack={handleCloseDetails}
                     leftPanel={
                         <InvoicesTable
                             invoices={invoices}

@@ -35,6 +35,7 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { useToast } from '@/hooks/use-toast';
 import { DataCard } from '@/components/ui/data-card';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -324,7 +325,8 @@ export function RecentQuotesTable({
   setIsSendingEmail,
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
-  const isNarrow = isCompact || panelNarrow;
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = isCompact || panelNarrow || viewportNarrow;
   const t = useTranslations();
   const { toast } = useToast();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);

@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { usePanelWidth } from '@/hooks/use-panel-width';
 import { LEFT_PANEL_NARROW_THRESHOLD } from '@/lib/design-tokens';
+import { ChevronLeft } from 'lucide-react';
 
 // Context so children of the left panel can react to narrow mode
 interface NarrowModeContextType {
@@ -20,10 +21,21 @@ export function useNarrowMode() {
     return React.useContext(NarrowModeContext);
 }
 
+// Context for mobile back button
+interface MobileBackContextType {
+    onBack?: () => void;
+}
+const MobileBackContext = React.createContext<MobileBackContextType>({});
+
+export function useMobileBack() {
+    return React.useContext(MobileBackContext);
+}
+
 interface TwoPanelLayoutProps {
     leftPanel: React.ReactNode;
     rightPanel: React.ReactNode;
     isRightPanelOpen: boolean;
+    onBack?: () => void;
     leftPanelDefaultSize?: number;
     rightPanelDefaultSize?: number;
     minLeftSize?: number;
@@ -35,6 +47,7 @@ export function TwoPanelLayout({
     leftPanel,
     rightPanel,
     isRightPanelOpen,
+    onBack,
     leftPanelDefaultSize = 40,
     rightPanelDefaultSize = 60,
     minLeftSize = 20,
@@ -76,19 +89,33 @@ export function TwoPanelLayout({
 
     if (isMobile) {
         return (
-            <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
-                {!isRightPanelOpen ? (
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                        <NarrowModeContext.Provider value={{ isNarrow: false }}>
-                            {leftPanel}
-                        </NarrowModeContext.Provider>
-                    </div>
-                ) : (
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                        {rightPanel}
-                    </div>
-                )}
-            </div>
+            <MobileBackContext.Provider value={{ onBack }}>
+                <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
+                    {!isRightPanelOpen ? (
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                            <NarrowModeContext.Provider value={{ isNarrow: false }}>
+                                {leftPanel}
+                            </NarrowModeContext.Provider>
+                        </div>
+                    ) : (
+                        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                            {onBack && (
+                                <button
+                                    type="button"
+                                    onClick={onBack}
+                                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-background border-b border-border flex-none"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                    Atrás
+                                </button>
+                            )}
+                            <div className="flex-1 min-h-0 overflow-hidden">
+                                {rightPanel}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </MobileBackContext.Provider>
         );
     }
 

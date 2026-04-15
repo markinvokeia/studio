@@ -2,6 +2,7 @@
 'use client';
 
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -161,7 +162,8 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
   filtersOptionList: any[]; handleClearFilters: () => void; t: (k: string) => string;
 }) {
   const { isNarrow: panelNarrow } = useNarrowMode();
-  const isNarrow = !!selectedUser || panelNarrow;
+  const isViewportNarrow = useViewportNarrow();
+  const isNarrow = !!selectedUser || panelNarrow || isViewportNarrow;
   return (
     <DataTable
       columns={columns}
@@ -466,6 +468,7 @@ export default function DoctorsPage() {
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <TwoPanelLayout
         isRightPanelOpen={!!selectedUser}
+        onBack={handleCloseDetails}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">

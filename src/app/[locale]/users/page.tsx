@@ -67,7 +67,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, MessageSquare, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, MessageSquare, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -76,6 +76,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -414,6 +415,149 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
   );
 };
 
+const UserInfoTab = ({
+  user,
+  mutualSocieties,
+  onSaved,
+}: {
+  user: User;
+  mutualSocieties: MutualSociety[];
+  onSaved: (updated: User) => void;
+}) => {
+  const t = useTranslations();
+  const tV = useTranslations('UsersPage.createDialog.validation');
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  const infoForm = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema(tV)),
+    defaultValues: {
+      id: user.id,
+      name: user.name,
+      email: user.email || '',
+      phone: user.phone_number || '',
+      identity_document: user.identity_document || '',
+      birth_date: user.birth_date || '',
+      notes: user.notes || '',
+      is_active: user.is_active,
+      mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
+    },
+  });
+
+  React.useEffect(() => {
+    infoForm.reset({
+      id: user.id,
+      name: user.name,
+      email: user.email || '',
+      phone: user.phone_number || '',
+      identity_document: user.identity_document || '',
+      birth_date: user.birth_date || '',
+      notes: user.notes || '',
+      is_active: user.is_active,
+      mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
+    });
+    setSaveError(null);
+  }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSave = async (data: UserFormValues) => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await upsertUser(data);
+      toast({
+        title: t('UsersPage.createDialog.editSuccessTitle'),
+        description: t('UsersPage.createDialog.editSuccessDescription'),
+      });
+      onSaved({ ...user, name: data.name, email: data.email || '', phone_number: data.phone || user.phone_number, identity_document: data.identity_document, birth_date: data.birth_date, notes: data.notes, is_active: data.is_active, mutual_society_id: data.mutual_society_id });
+    } catch (e: any) {
+      setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="overflow-y-auto flex-1 min-h-0 pr-1">
+      <Form {...infoForm}>
+        <form onSubmit={infoForm.handleSubmit(handleSave)} className="space-y-4 p-2">
+          {saveError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{saveError}</AlertDescription>
+            </Alert>
+          )}
+          <FormField control={infoForm.control} name="name" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
+              <FormControl><Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="email" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="phone" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
+              <FormControl>
+                <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+              <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+              <FormControl>
+                <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ''}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                  {mutualSocieties.map((ms) => (
+                    <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="is_active" render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+              <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+            </FormItem>
+          )} />
+          <Button type="submit" disabled={isSaving} className="w-full">
+            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : 'Guardar'}
+          </Button>
+        </form>
+      </Form>
+    </div>
+  );
+};
+
 // Inner component that reads NarrowModeContext from TwoPanelLayout
 function UsersTableWithCards({
   columns, users, selectedUser, handleRowSelectionChange, handleCreate,
@@ -439,6 +583,7 @@ function UsersTableWithCards({
   handleClearFilters: () => void;
   t: (key: string, values?: any) => string;
 }) {
+  const isViewportNarrow = useViewportNarrow();
   return (
     <DataTable
       columns={columns}
@@ -458,7 +603,7 @@ function UsersTableWithCards({
       manualPagination={true}
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
-      isNarrow={!!selectedUser}
+      isNarrow={!!selectedUser || isViewportNarrow}
       renderCard={(user: User) => (
         <DataCard
           title={user.name}
@@ -898,7 +1043,7 @@ export default function UsersPage() {
     setIsDialogOpen(true);
   };
 
-  const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+  const userColumns = UserColumnsWrapper();
 
   const debtorColumns: ColumnDef<User>[] = [
     {
@@ -1218,6 +1363,7 @@ export default function UsersPage() {
         <TwoPanelLayout
           minLeftSize={15}
           isRightPanelOpen={!!selectedUser}
+          onBack={handleCloseDetails}
           leftPanel={
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
               <CardHeader className="flex-none p-4">
@@ -1398,6 +1544,27 @@ export default function UsersPage() {
                           </PopoverContent>
                         </Popover>
 
+                        {/* Toggle activate / deactivate */}
+                        {canToggleStatus && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
+                                  selectedUser.is_active
+                                    ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    : "text-green-600 hover:bg-green-50"
+                                )}
+                                onClick={() => handleToggleActivate(selectedUser)}
+                              >
+                                <ToggleLeft className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
+                          </Tooltip>
+                        )}
+
                         {/* Close */}
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1478,6 +1645,7 @@ export default function UsersPage() {
                         {(() => {
                           const isMedico = selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
                           const userTabs: VerticalTab[] = [
+                            { id: 'info', icon: Users, label: 'Información' },
                             ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
@@ -1499,6 +1667,16 @@ export default function UsersPage() {
                         })()}
                         {/* Tab content */}
                         <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-3">
+                          {activeTab === 'info' && (
+                            <UserInfoTab
+                              user={selectedUser}
+                              mutualSocieties={mutualSocieties}
+                              onSaved={(updated) => {
+                                setSelectedUser(updated);
+                                loadUsers();
+                              }}
+                            />
+                          )}
                           {activeTab === 'clinical-history' && (
                             <ClinicHistoryViewer
                               userId={selectedUser.id}

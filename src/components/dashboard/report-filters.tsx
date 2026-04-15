@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -79,7 +79,10 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
           <SelectItem value="status">{t('byStatus')}</SelectItem>
         </SelectContent>
       </Select>
-      <Button>{t('apply')}</Button>
+      <Button>
+        <Filter className="h-4 w-4 sm:mr-2" />
+        <span className="hidden sm:inline">{t('apply')}</span>
+      </Button>
     </div>
   );
 }

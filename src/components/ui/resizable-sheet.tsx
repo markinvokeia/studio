@@ -126,14 +126,14 @@ export function ResizableSheet({
           </div>
         )}
 
-        {/* Fullscreen toggle button */}
+        {/* Fullscreen toggle button — positioned just before the X close button */}
         <button
           type="button"
           onClick={() => setIsFullscreen((v) => !v)}
           className={cn(
-            'absolute z-50 top-3 flex items-center justify-center w-7 h-7 rounded-lg',
+            'absolute z-50 top-4 flex items-center justify-center w-7 h-7 rounded-lg',
             'text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
-            side === 'right' ? 'left-8' : 'right-8'
+            side === 'right' ? 'right-12' : 'left-12'
           )}
           title={isFullscreen ? 'Restore' : 'Fullscreen'}
         >

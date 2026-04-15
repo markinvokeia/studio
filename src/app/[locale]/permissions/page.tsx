@@ -1,6 +1,7 @@
 'use client';
 
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { PermissionUsers } from '@/components/permissions/permission-users';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -86,7 +87,8 @@ function PermissionsTableNarrow({ columns, permissions, selectedPermission, onRo
   filterPlaceholder: string;
 }) {
   const { isNarrow: panelNarrow } = useNarrowMode();
-  const isNarrow = !!selectedPermission || panelNarrow;
+  const isViewportNarrow = useViewportNarrow();
+  const isNarrow = !!selectedPermission || panelNarrow || isViewportNarrow;
   return (
     <DataTable
       columns={columns}
@@ -282,6 +284,7 @@ export default function PermissionsPage() {
     <>
       <TwoPanelLayout
         isRightPanelOpen={!!selectedPermission}
+        onBack={handleCloseDetails}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">

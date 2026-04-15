@@ -9,6 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
@@ -295,7 +296,8 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const tMethods = useTranslations('InvoicesPage.methods');
   const { user, checkActiveSession } = useAuth();
   const { isNarrow: panelNarrow } = useNarrowMode();
-  const isNarrow = isCompact || panelNarrow;
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = isCompact || panelNarrow || viewportNarrow;
   const locale = useLocale();
 
   const { toast } = useToast();

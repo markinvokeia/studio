@@ -51,9 +51,9 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center space-x-2">
-        <div className="relative flex items-center">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="relative flex items-center flex-1 sm:flex-none">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={filterPlaceholder}
@@ -64,7 +64,7 @@ export function DataTableToolbar<TData>({
                 column.setFilterValue(event.target.value);
               }
             }}
-            className="h-9 w-[180px] sm:w-[200px] lg:w-[300px] pl-9 pr-9"
+            className="h-9 w-full sm:w-[200px] lg:w-[300px] pl-9 pr-9"
           />
           {((table.getColumn(filterColumnId)?.getFilterValue() as string) ?? '').length > 0 && (
             <Button
@@ -84,7 +84,7 @@ export function DataTableToolbar<TData>({
         </div>
         {filterOptions && onFilterChange && (
           <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
-            <SelectTrigger className="h-9 w-[150px]">
+            <SelectTrigger className="h-9 w-full sm:w-[150px]">
               <div className="flex items-center">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder={t('filter')} />
@@ -101,7 +101,7 @@ export function DataTableToolbar<TData>({
           </Select>
         )}
       </div>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center flex-wrap gap-2">
         {onCreate && (
           <div className="shrink-0">
             <TooltipProvider>

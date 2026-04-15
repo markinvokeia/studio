@@ -1019,6 +1019,7 @@ function QuotesPageContent() {
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <TwoPanelLayout
                     isRightPanelOpen={!!selectedQuote}
+                    onBack={handleCloseDetails}
                     leftPanel={
                         <RecentQuotesTable
                             quotes={quotes}

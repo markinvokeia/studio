@@ -31,7 +31,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
@@ -55,13 +56,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, SlidersHorizontal, X } from 'lucide-react';
+import { AlertTriangle, BarChart2, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, StickyNote, ToggleLeft, UserCircle, Wrench, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ProviderColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -333,6 +335,7 @@ function ProvidersPageContent() {
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const isViewportNarrow = useViewportNarrow();
 
   // Permission checks for UI elements
   const canViewList = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_LIST);
@@ -366,7 +369,7 @@ function ProvidersPageContent() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [activeTab, setActiveTab] = React.useState('details');
+  const [activeTab, setActiveTab] = React.useState('info');
   const [providerFinancialData, setProviderFinancialData] = React.useState<UserFinancial | null>(null);
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
@@ -491,7 +494,7 @@ function ProvidersPageContent() {
     setIsDialogOpen(true);
   };
 
-  const providerColumns = ProviderColumnsWrapper({ onToggleActivate: canToggleStatus ? handleToggleActivate : undefined });
+  const providerColumns = ProviderColumnsWrapper();
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -517,13 +520,13 @@ function ProvidersPageContent() {
     } else {
       setProviderFinancialData(null);
       setIsPreferencesOpen(false);
-      setActiveTab('details');
+      setActiveTab('info');
     }
   }, [fetchProviderFinancialData, selectedProvider, detailForm]);
 
   const handleCloseDetails = () => {
     setSelectedProvider(null);
-    setActiveTab('details');
+    setActiveTab('info');
     setRowSelection({});
   };
 
@@ -715,6 +718,7 @@ function ProvidersPageContent() {
       <TwoPanelLayout
         minLeftSize={20}
         isRightPanelOpen={!!selectedProvider && canViewDetail}
+        onBack={handleCloseDetails}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
@@ -745,7 +749,7 @@ function ProvidersPageContent() {
                 columnFilters={columnFilters}
                 setColumnFilters={setColumnFilters}
                 filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
-                isNarrow={!!selectedProvider}
+                isNarrow={!!selectedProvider || isViewportNarrow}
               />
             </CardContent>
           </Card>
@@ -764,8 +768,8 @@ function ProvidersPageContent() {
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-1 ml-2 flex-none">
-                    {/* + Quick create dropdown */}
                     <TooltipProvider>
+                    {/* + Quick create dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
@@ -796,7 +800,6 @@ function ProvidersPageContent() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TooltipProvider>
 
                     <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
                       <PopoverTrigger asChild>
@@ -816,6 +819,28 @@ function ProvidersPageContent() {
                         <UserCommunicationPreferences user={selectedProvider} autoSave compact />
                       </PopoverContent>
                     </Popover>
+                    {canToggleStatus && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 transition-colors",
+                              selectedProvider.is_active
+                                ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                : "text-green-600 hover:bg-green-50"
+                            )}
+                            onClick={() => handleToggleActivate(selectedProvider)}
+                          >
+                            <ToggleLeft className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {selectedProvider.is_active ? t('ProviderColumns.deactivate') : t('ProviderColumns.activate')}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -825,6 +850,7 @@ function ProvidersPageContent() {
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('ProvidersPage.close')}</span>
                     </Button>
+                    </TooltipProvider>
                   </div>
                 </div>
 
@@ -887,19 +913,29 @@ function ProvidersPageContent() {
                   onToggle={() => setIsStatsOpen(v => !v)}
                   onPrint={handlePrintFinancialSummary}
                 />
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-                  <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start">
-                    <TabsTrigger value="details" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.details')}</TabsTrigger>
-                    <TabsTrigger value="summary" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.summary')}</TabsTrigger>
-                    {canViewServices && <TabsTrigger value="services" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.services')}</TabsTrigger>}
-                    {canViewQuotes && <TabsTrigger value="quotes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.quotes')}</TabsTrigger>}
-                    {canViewOrders && <TabsTrigger value="orders" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.orders')}</TabsTrigger>}
-                    {canViewInvoices && <TabsTrigger value="invoices" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.invoices')}</TabsTrigger>}
-                    {canViewPayments && <TabsTrigger value="payments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.payments')}</TabsTrigger>}
-                    <TabsTrigger value="notes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.notes')}</TabsTrigger>
-                  </TabsList>
-                  <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                    <TabsContent value="details" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                <div className="flex flex-1 min-h-0 overflow-hidden border-t border-border">
+                  {(() => {
+                    const providerTabs: VerticalTab[] = [
+                      { id: 'info', icon: UserCircle, label: 'Información' },
+                      { id: 'summary', icon: BarChart2, label: t('ProvidersPage.tabs.summary') },
+                      ...(canViewServices ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
+                      ...(canViewQuotes ? [{ id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') }] : []),
+                      ...(canViewOrders ? [{ id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') }] : []),
+                      ...(canViewInvoices ? [{ id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') }] : []),
+                      ...(canViewPayments ? [{ id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') }] : []),
+                      { id: 'notes', icon: StickyNote, label: t('ProvidersPage.tabs.notes') },
+                    ];
+                    return (
+                      <VerticalTabStrip
+                        tabs={providerTabs}
+                        activeTabId={activeTab}
+                        onTabClick={(tab) => setActiveTab(tab.id)}
+                      />
+                    );
+                  })()}
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-3">
+                    {activeTab === 'info' && (
+                      <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-lg bg-muted/30 p-3">
                       <Card className="h-full flex flex-col shadow-none border-0">
                         <CardContent className="flex-1 overflow-auto p-4 bg-card">
                           <Form {...detailForm}>
@@ -953,8 +989,10 @@ function ProvidersPageContent() {
                           </Form>
                         </CardContent>
                       </Card>
-                    </TabsContent>
-                    <TabsContent value="summary" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                      </div>
+                    )}
+                    {activeTab === 'summary' && (
+                      <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-lg bg-muted/30 p-3">
                       <Card className="h-full flex flex-col shadow-none border-0">
                         <CardHeader className="flex-none p-4 pb-2">
                           <CardTitle className="text-lg text-foreground font-bold">{t('ProvidersPage.summary.title')}</CardTitle>
@@ -1005,66 +1043,57 @@ function ProvidersPageContent() {
                           </div>
                         </CardContent>
                       </Card>
-                    </TabsContent>
-                    {canViewServices && (
-                      <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserServices userId={selectedProvider.id} isSalesUser={false} />
-                      </TabsContent>
+                      </div>
                     )}
-                    {canViewQuotes && (
-                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserQuotes
-                          userId={selectedProvider.id}
-                          mode="purchases"
-                          refreshTrigger={refreshQuotesTrigger}
-                          onDataChange={() => {
-                            fetchProviderFinancialData(selectedProvider.id);
-                            loadProviders();
-                          }}
-                        />
-                      </TabsContent>
+                    {canViewServices && activeTab === 'services' && (
+                      <UserServices userId={selectedProvider.id} isSalesUser={false} />
                     )}
-                    {canViewOrders && (
-                      <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserOrders
-                          userId={selectedProvider.id}
-                          patient={selectedProvider}
-                          mode="purchases"
-                          refreshTrigger={refreshOrdersTrigger}
-                          onDataChange={() => {
-                            fetchProviderFinancialData(selectedProvider.id);
-                            loadProviders();
-                          }}
-                        />
-                      </TabsContent>
+                    {canViewQuotes && activeTab === 'quotes' && (
+                      <UserQuotes
+                        userId={selectedProvider.id}
+                        mode="purchases"
+                        refreshTrigger={refreshQuotesTrigger}
+                        onDataChange={() => {
+                          fetchProviderFinancialData(selectedProvider.id);
+                          loadProviders();
+                        }}
+                      />
                     )}
-                    {canViewInvoices && (
-                      <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserInvoices
-                          userId={selectedProvider.id}
-                          mode="purchases"
-                          refreshTrigger={refreshInvoicesTrigger}
-                          onDataChange={() => {
-                            fetchProviderFinancialData(selectedProvider.id);
-                            loadProviders();
-                          }}
-                        />
-                      </TabsContent>
+                    {canViewOrders && activeTab === 'orders' && (
+                      <UserOrders
+                        userId={selectedProvider.id}
+                        patient={selectedProvider}
+                        mode="purchases"
+                        refreshTrigger={refreshOrdersTrigger}
+                        onDataChange={() => {
+                          fetchProviderFinancialData(selectedProvider.id);
+                          loadProviders();
+                        }}
+                      />
                     )}
-                    {canViewPayments && (
-                      <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserPayments
-                          userId={selectedProvider.id}
-                          mode="purchases"
-                          refreshTrigger={refreshPaymentsTrigger}
-                        />
-                      </TabsContent>
+                    {canViewInvoices && activeTab === 'invoices' && (
+                      <UserInvoices
+                        userId={selectedProvider.id}
+                        mode="purchases"
+                        refreshTrigger={refreshInvoicesTrigger}
+                        onDataChange={() => {
+                          fetchProviderFinancialData(selectedProvider.id);
+                          loadProviders();
+                        }}
+                      />
                     )}
-                    <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                    {canViewPayments && activeTab === 'payments' && (
+                      <UserPayments
+                        userId={selectedProvider.id}
+                        mode="purchases"
+                        refreshTrigger={refreshPaymentsTrigger}
+                      />
+                    )}
+                    {activeTab === 'notes' && (
                       <NotesTab user={selectedProvider} onUpdate={handleUpdateNotes} />
-                    </TabsContent>
+                    )}
                   </div>
-                </Tabs>
+                </div>
               </CardContent>
             </Card>
           ) : null

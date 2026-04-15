@@ -1,6 +1,7 @@
 'use client';
 
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { RolePermissions } from '@/components/roles/role-permissions';
 import { RoleUsers } from '@/components/roles/role-users';
@@ -75,7 +76,8 @@ function RolesTableNarrow({ columns, roles, selectedRole, onRowSelectionChange, 
   filterPlaceholder: string;
 }) {
   const { isNarrow: panelNarrow } = useNarrowMode();
-  const isNarrow = !!selectedRole || panelNarrow;
+  const isViewportNarrow = useViewportNarrow();
+  const isNarrow = !!selectedRole || panelNarrow || isViewportNarrow;
   return (
     <DataTable
       columns={columns}
@@ -269,6 +271,7 @@ export default function RolesPage() {
     <>
       <TwoPanelLayout
         isRightPanelOpen={!!selectedRole}
+        onBack={handleCloseDetails}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
