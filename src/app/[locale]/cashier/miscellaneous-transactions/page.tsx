@@ -35,11 +35,11 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, Coins, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -281,7 +281,7 @@ export default function MiscellaneousTransactionsPage() {
                 form.reset({
                     id: editingTransaction.id,
                     category_id: cleanValue(editingTransaction.category_id),
-                    transaction_date: format(parseISO(editingTransaction.transaction_date), 'yyyy-MM-dd'),
+                    transaction_date: formatDate(editingTransaction.transaction_date),
                     amount: editingTransaction.amount,
                     description: editingTransaction.description,
                     beneficiary_name: editingTransaction.beneficiary_name || '',
@@ -344,7 +344,7 @@ export default function MiscellaneousTransactionsPage() {
     const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransaction>[] => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
         { accessorKey: 'doc_no', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.docNo')} /> },
-        { accessorKey: 'transaction_date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => format(parseISO(row.original.transaction_date), 'yyyy-MM-dd') },
+        { accessorKey: 'transaction_date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => formatDate(row.original.transaction_date) },
         {
             accessorKey: 'category_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.category')} />,
             cell: ({ row }) => {
