@@ -765,7 +765,7 @@
             "totalPaid": "Total Pagado",
             "currentDebt": "Por Cobrar",
             "availableBalance": "Saldo a Favor",
-            "printFinancialSummary": "Imprimir Resumen Financiero",
+            "printFinancialSummary": "Resumen financiero",
             "showStats": "VER $",
             "hideStats": "OCULTAR $"
         },
@@ -2338,7 +2338,7 @@
             "totalPaid": "Total Pagado",
             "currentDebt": "Por Pagar",
             "availableBalance": "Pagos Anticipados",
-            "printFinancialSummary": "Imprimir Resumen Financiero",
+            "printFinancialSummary": "Resumen financiero",
             "showStats": "VER $",
             "hideStats": "OCULTAR $"
         },

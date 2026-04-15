@@ -765,7 +765,7 @@
       "totalPaid": "Total Paid",
       "currentDebt": "Receivable",
       "availableBalance": "Credit Balance",
-      "printFinancialSummary": "Print Financial Summary",
+      "printFinancialSummary": "Financial Summary",
       "showStats": "SHOW $",
       "hideStats": "HIDE $"
     },
@@ -2338,7 +2338,7 @@
       "totalPaid": "Total Paid",
       "currentDebt": "Payable",
       "availableBalance": "Advance Payments",
-      "printFinancialSummary": "Print Financial Summary",
+      "printFinancialSummary": "Financial Summary",
       "showStats": "SHOW $",
       "hideStats": "HIDE $"
     },
