@@ -28,7 +28,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { api } from '@/services/api';
@@ -335,9 +335,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.API_INVOICE_PRINT : API_ROUTES.PURCHASES.API_INVOICE_PRINT,
         { id: selectedInvoice.id }
       );
+      const fileName = getDocumentFileName(selectedInvoice, 'invoice');
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
       URL.revokeObjectURL(url);
+      a.remove();
     } catch {
       toast({ title: 'Error al imprimir', variant: 'destructive' });
     }

@@ -17,7 +17,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -316,9 +316,15 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
           transaction_type: selectedPayment.transaction_type 
         }
       );
+      const fileName = getDocumentFileName(selectedPayment, 'payment');
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${fileName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
       URL.revokeObjectURL(url);
+      a.remove();
     } catch {
       toast({ title: 'Error al imprimir', variant: 'destructive' });
     }

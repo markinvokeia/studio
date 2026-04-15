@@ -339,8 +339,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canRejectQuote = isSales
     ? hasPermission(SALES_PERMISSIONS.QUOTES_REJECT)
     : canConfirmQuote;
-  const canPrintQuote = isSales ? hasPermission(SALES_PERMISSIONS.QUOTES_PRINT) : false;
-  const canSendQuote = isSales ? hasPermission(SALES_PERMISSIONS.QUOTES_SEND_EMAIL) : false;
+  const canPrintQuote = isSales ? hasPermission(SALES_PERMISSIONS.QUOTES_PRINT) : true;
+  const canSendQuote = isSales ? hasPermission(SALES_PERMISSIONS.QUOTES_SEND_EMAIL) : true;
   const canAddItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_ADD_ITEM : PURCHASES_PERMISSIONS.QUOTES_CREATE);
   const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE_ITEM : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
   const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_DELETE_ITEM : PURCHASES_PERMISSIONS.QUOTES_DELETE);
