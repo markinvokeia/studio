@@ -1262,10 +1262,11 @@ export default function AppointmentsPage() {
                     quoteDocNo={selectedAppointment.quote_doc_no}
                     patientName={selectedAppointment.patientName}
                     onDataChange={() => {
-                        // Recargar datos del appointment
+                        // Recargar datos del appointment y la lista de citas
                         if (selectedAppointment?.quote_id) {
                             loadQuoteInfo(selectedAppointment.quote_id);
                         }
+                        loadAppointments();
                     }}
                 />
             )}
@@ -1277,10 +1278,11 @@ export default function AppointmentsPage() {
                     onOpenChange={(open) => { if (!open) setSelectedInvoiceForSheet(null); }}
                     invoice={selectedInvoiceForSheet}
                     onDataChange={() => {
-                        // Recargar datos de facturas
+                        // Recargar datos de facturas y la lista de citas
                         if (selectedAppointment?.quote_id) {
                             loadQuoteInfo(selectedAppointment.quote_id);
                         }
+                        loadAppointments();
                     }}
                 />
             )}
