@@ -37,6 +37,8 @@ import { CommunicationWarningDialog } from '@/components/communication-warning-d
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2 } from 'lucide-react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -212,6 +214,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const isViewportNarrow = useViewportNarrow();
   const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -731,6 +734,30 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             onRefresh={() => loadInvoices(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
+            isNarrow={isViewportNarrow}
+            renderCard={(invoice: Invoice) => (
+              <DataCard
+                title={invoice.doc_no || `INV-${invoice.id}`}
+                subtitle={formatDateTime(invoice.createdAt)}
+                badge={
+                  <div className="flex gap-1 flex-wrap justify-end">
+                    <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
+                      {tStatus(invoice.status?.toLowerCase() || '')}
+                    </Badge>
+                    {invoice.payment_status && (
+                      <Badge variant={(PAYMENT_BADGE[invoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize text-[10px]">
+                        {tStatus(invoice.payment_status?.toLowerCase() || '')}
+                      </Badge>
+                    )}
+                  </div>
+                }
+                fields={[
+                  { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
+                  { label: t('InvoicesPage.columns.orderDocNo'), value: invoice.order_doc_no || '-' },
+                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDateTime(invoice.due_date) : '-' },
+                ]}
+              />
+            )}
             columnTranslations={{
               doc_no: t('InvoicesPage.columns.docNo'),
               order_doc_no: t('InvoicesPage.columns.orderDocNo'),

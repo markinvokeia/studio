@@ -78,16 +78,16 @@ const DialogContent = React.forwardRef<
   const [isMaximized, setIsMaximized] = React.useState(false)
 
   const maxWidthClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
-    "2xl": "max-w-2xl",
-    "3xl": "max-w-3xl",
-    "4xl": "max-w-4xl",
-    "5xl": "max-w-5xl",
-    "6xl": "max-w-6xl",
-    "7xl": "max-w-7xl",
+    sm: "sm:max-w-sm",
+    md: "sm:max-w-md",
+    lg: "sm:max-w-lg",
+    xl: "sm:max-w-xl",
+    "2xl": "sm:max-w-2xl",
+    "3xl": "sm:max-w-3xl",
+    "4xl": "sm:max-w-4xl",
+    "5xl": "sm:max-w-5xl",
+    "6xl": "sm:max-w-6xl",
+    "7xl": "sm:max-w-7xl",
     full: "max-w-full",
   };
 
@@ -105,7 +105,7 @@ const DialogContent = React.forwardRef<
           className,
           isMaximized
             ? "h-[calc(100vh-2rem)] max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] max-w-[calc(100vw-2rem)] rounded-xl"
-            : cn("w-full max-h-[92vh] sm:rounded-md", maxWidthClasses[maxWidth] || "max-w-lg")
+            : cn("w-full max-h-[92vh] sm:rounded-md", maxWidthClasses[maxWidth] || "sm:max-w-lg")
         )}
         onPointerDownOutside={(event) => {
           event.preventDefault();

@@ -90,7 +90,7 @@ export function UserFinancialSummaryStats({
             onClick={onPrint}
           >
             <Printer className="h-3.5 w-3.5" />
-            <span className="text-[9px] font-medium leading-tight">{t('stats.printFinancialSummary')}</span>
+            <span className="hidden sm:block text-[9px] font-medium leading-tight">{t('stats.print')}</span>
           </button>
         </div>
       </div>

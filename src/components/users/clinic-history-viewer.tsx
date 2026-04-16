@@ -1958,8 +1958,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                         <CardHeader className="pb-2">
                                             <div className="flex justify-between items-start">
                                                 <div className="flex-1 min-w-0 pr-2">
-                                                    <CardTitle className="text-base font-semibold line-clamp-2">
-                                                        {session.procedimiento_realizado ? (session.procedimiento_realizado.length > 50 ? session.procedimiento_realizado.slice(0, 50) + '...' : session.procedimiento_realizado) : t('noTitle')}
+                                                    <CardTitle className="text-base font-semibold break-words whitespace-normal">
+                                                        {session.procedimiento_realizado || t('noTitle')}
                                                     </CardTitle>
                                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                                                         <p className="text-sm text-muted-foreground flex items-center gap-1.5">
@@ -2733,12 +2733,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
 
     return (
         <>
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
-                <div className="flex items-center justify-between mb-4">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-3 sm:p-6 border-0 w-full min-w-0">
+                <div className="flex items-center justify-between mb-4 gap-2">
                     <h3 className="text-xl font-bold text-card-foreground">{t('tabs.documents')}</h3>
-                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
-                        <Upload className="h-4 w-4 mr-2" />
-                        {t('documents.add')}
+                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
+                        <Upload className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('documents.add')}</span>
                     </Button>
                 </div>
 

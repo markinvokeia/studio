@@ -17,6 +17,8 @@ import { FileText, Stethoscope, Calendar as CalendarIcon, Clock, UserCircle, Ref
 import { addMonths, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 
 const isWhite = (color: string | null | undefined) => {
   if (!color) return true;
@@ -245,6 +247,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   const tAppointmentsPage = useTranslations('AppointmentsPage');
   const tUserAppointments = useTranslations('UserAppointments');
   const { hasPermission } = usePermissions();
+  const isViewportNarrow = useViewportNarrow();
   
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
@@ -378,6 +381,34 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
             enableSingleRowSelection
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
+            isNarrow={isViewportNarrow}
+            renderCard={(appointment: Appointment) => {
+              const statusLower = appointment.status?.toLowerCase() || '';
+              const statusVariant = ({
+                completed: 'success',
+                confirmed: 'default',
+                pending: 'info',
+                cancelled: 'destructive',
+                scheduled: 'info',
+              }[statusLower] ?? 'default') as any;
+              return (
+                <DataCard
+                  title={appointment.summary || '-'}
+                  subtitle={`${appointment.date || ''} ${appointment.time || ''}`.trim()}
+                  badge={
+                    statusLower ? (
+                      <Badge variant={statusVariant} className="capitalize text-[10px]">
+                        {tStatus(statusLower)}
+                      </Badge>
+                    ) : undefined
+                  }
+                  fields={[
+                    { label: t('doctor'), value: appointment.doctorName || '-' },
+                    { label: t('quoteDocNo'), value: appointment.quote_doc_no || '-' },
+                  ]}
+                />
+              );
+            }}
             columnTranslations={{
               service_name: t('service'),
               doctorName: t('doctor'),

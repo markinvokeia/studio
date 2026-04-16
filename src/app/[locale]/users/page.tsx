@@ -67,7 +67,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, MessageSquare, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
+import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -738,6 +740,8 @@ export default function UsersPage() {
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
+  const [isRightExpanded, setIsRightExpanded] = React.useState(false);
   const [apptCalendars, setApptCalendars] = React.useState<CalendarType[]>([]);
   const [apptDoctors, setApptDoctors] = React.useState<User[]>([]);
   const [apptDoctorServiceMap, setApptDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
@@ -1364,6 +1368,7 @@ export default function UsersPage() {
           minLeftSize={15}
           isRightPanelOpen={!!selectedUser}
           onBack={handleCloseDetails}
+          forceRightOnly={isRightExpanded}
           leftPanel={
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
               <CardHeader className="flex-none p-4">
@@ -1486,9 +1491,9 @@ export default function UsersPage() {
                         {selectedUser.email && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <a href={`mailto:${selectedUser.email}`} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                              <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                                 <Mail className="h-4 w-4" />
-                              </a>
+                              </button>
                             </TooltipTrigger>
                             <TooltipContent>{selectedUser.email}</TooltipContent>
                           </Tooltip>
@@ -1499,7 +1504,7 @@ export default function UsersPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <a href={`https://wa.me/${selectedUser.phone_number.replace(/^\+/, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                <MessageSquare className="h-4 w-4" />
+                                <WhatsAppIcon className="h-4 w-4" />
                               </a>
                             </TooltipTrigger>
                             <TooltipContent>{selectedUser.phone_number}</TooltipContent>
@@ -1564,6 +1569,16 @@ export default function UsersPage() {
                             <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
                           </Tooltip>
                         )}
+
+                        {/* Expand / Restore */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setIsRightExpanded(v => !v)}>
+                              {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                        </Tooltip>
 
                         {/* Close */}
                         <Tooltip>
@@ -2100,6 +2115,15 @@ export default function UsersPage() {
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
+        />
+      )}
+
+      {selectedUser && (
+        <EmailComposerDialog
+          open={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          to={selectedUser.email || ''}
+          recipientName={selectedUser.name}
         />
       )}
     </>

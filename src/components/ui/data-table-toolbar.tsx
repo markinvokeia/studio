@@ -82,6 +82,24 @@ export function DataTableToolbar<TData>({
             </Button>
           )}
         </div>
+        {/* Column visibility — always visible on mobile, right of search */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="sm:hidden h-9 w-9 shrink-0">
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="sr-only">{t('view')}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{t('toggleColumns')}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {table.getAllColumns().filter(col => typeof col.accessorFn !== 'undefined' && col.getCanHide()).map(col => (
+              <DropdownMenuCheckboxItem key={col.id} className="capitalize" checked={col.getIsVisible()} onCheckedChange={(value) => col.toggleVisibility(!!value)}>
+                {columnTranslations[col.id] || col.id}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {filterOptions && onFilterChange && (
           <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
             <SelectTrigger className="h-9 w-full sm:w-[150px]">
@@ -139,7 +157,7 @@ export function DataTableToolbar<TData>({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-9 w-9 lg:flex shrink-0">
+            <Button variant="outline" size="icon" className="hidden sm:flex h-9 w-9 shrink-0">
               <SlidersHorizontal className="h-4 w-4" />
               <span className="sr-only">{t('view')}</span>
             </Button>

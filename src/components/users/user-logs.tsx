@@ -12,6 +12,8 @@ import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 
 const getColumns = (t: (key: string) => string): ColumnDef<UserLog>[] => [
   {
@@ -53,6 +55,7 @@ interface UserLogsProps {
 
 export function UserLogs({ userId }: UserLogsProps) {
   const t = useTranslations('UserLogsPage');
+  const isViewportNarrow = useViewportNarrow();
   const [logs, setLogs] = React.useState<UserLog[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
 
@@ -85,6 +88,16 @@ export function UserLogs({ userId }: UserLogsProps) {
       data={logs}
       filterColumnId="action"
       filterPlaceholder={t('filterPlaceholder')}
+      isNarrow={isViewportNarrow}
+      renderCard={(log: UserLog) => (
+        <DataCard
+          title={log.action || '-'}
+          subtitle={formatDateTime(log.timestamp)}
+          fields={[
+            { label: t('columns.details'), value: log.details || '-' },
+          ]}
+        />
+      )}
       columnTranslations={{
         timestamp: t('columns.timestamp'),
         action: t('columns.action'),

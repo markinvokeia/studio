@@ -24,6 +24,8 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -159,6 +161,7 @@ interface UserPaymentsProps {
 export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTrigger }: UserPaymentsProps) {
   const t = useTranslations();
   const tPayments = useTranslations('PaymentsPage');
+  const isViewportNarrow = useViewportNarrow();
   const { toast } = useToast();
   const isSales = mode === 'sales';
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -393,6 +396,34 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
             onRefresh={() => loadPayments(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
+            isNarrow={isViewportNarrow}
+            renderCard={(payment: Payment) => {
+              const { type, variant } = getPaymentType(payment);
+              const statusLower = payment.status?.toLowerCase();
+              return (
+                <DataCard
+                  title={payment.doc_no || `PAY-${payment.id}`}
+                  subtitle={formatDateTime(payment.createdAt)}
+                  badge={
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      <Badge variant={variant} className="capitalize text-[10px]">
+                        {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                      </Badge>
+                      {statusLower && (
+                        <Badge variant={(STATUS_BADGE[statusLower] ?? 'default') as any} className="capitalize text-[10px]">
+                          {statusLower}
+                        </Badge>
+                      )}
+                    </div>
+                  }
+                  fields={[
+                    { label: t('PaymentsPage.columns.amount'), value: `${payment.currency || ''} ${Math.abs(parseFloat(String(payment.amount || 0))).toFixed(2)}`, primary: true },
+                    { label: t('PaymentsPage.columns.method'), value: payment.method || '-' },
+                    { label: t('InvoicesPage.columns.docNo'), value: payment.invoice_doc_no || '-' },
+                  ]}
+                />
+              );
+            }}
             columnTranslations={{
               doc_no: t('PaymentsPage.columns.doc_no'),
               user_name: isSales ? t('PaymentsPage.columns.user') : t('InvoicesPage.columns.provider'),

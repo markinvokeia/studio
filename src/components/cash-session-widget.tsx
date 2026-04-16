@@ -90,17 +90,18 @@ export const OpenCashSessionWidget = () => {
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Link href={`/${locale}/cashier`} passHref>
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                        <Button
+                            variant="outline"
                             className={cn(
-                                "h-9 border-none bg-orange-500 text-[var(--nav-foreground)]",
+                                "h-auto py-1 px-2 border-none bg-orange-500 text-[var(--nav-foreground)]",
                                 "hover:bg-orange-600 shadow-sm rounded-lg",
-                                "transition-all"
+                                "transition-all max-w-[72px] w-[72px]"
                             )}
                         >
-                            <Box className="mr-2 h-4 w-4" />
-                            {t('button')}
+                            <div className="flex flex-col items-center gap-0.5 w-full">
+                                <Box className="h-4 w-4 flex-none" />
+                                <span className="text-[9px] font-semibold leading-tight text-center whitespace-normal break-words w-full">{t('button')}</span>
+                            </div>
                         </Button>
                     </Link>
                 </TooltipTrigger>

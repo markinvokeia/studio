@@ -776,6 +776,7 @@
       "currentDebt": "Current Debt",
       "availableBalance": "Available Balance",
       "printFinancialSummary": "Print Financial Summary",
+      "print": "Print",
       "showStats": "SHOW $",
       "hideStats": "HIDE $"
     },

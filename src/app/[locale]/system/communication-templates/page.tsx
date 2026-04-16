@@ -32,8 +32,10 @@ import { DataCard } from '@/components/ui/data-card';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, Bold, BookCopy, Code2, Italic, List, MoreHorizontal } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { AlertTriangle, Bold, BookCopy, Code2, Copy, Eye, Italic, List, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -155,6 +157,9 @@ export default function CommunicationTemplatesPage() {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [templatesPagination, setTemplatesPagination] = React.useState({ total: 0, page: 1, limit: 10 });
 
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedTemplate, setSelectedTemplate] = React.useState<CommunicationTemplate | null>(null);
+
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingTemplate, setEditingTemplate] = React.useState<CommunicationTemplate | null>(null);
 
@@ -242,6 +247,10 @@ export default function CommunicationTemplatesPage() {
         }, 500);
         return () => clearTimeout(debounce);
     }, [loadData]);
+
+    const handleRowSelection = (rows: CommunicationTemplate[]) => {
+        setSelectedTemplate(rows[0] ?? null);
+    };
 
     const handleCreate = () => {
         setEditingTemplate(null);

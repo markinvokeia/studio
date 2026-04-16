@@ -116,13 +116,26 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-background overflow-hidden text-foreground">
       <Sidebar />
-      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-20 min-w-0 h-full overflow-hidden")}>
+      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 min-w-0 h-full overflow-hidden")}>
         <Header />
-        <main className="flex-1 flex flex-col min-h-0 bg-background px-4 lg:px-6 pb-4 lg:pb-6 pt-0 overflow-hidden relative">
-          <div className="flex-1 flex flex-col min-h-0 pt-4 lg:pt-6 overflow-hidden relative">
+        <main className="flex-1 flex flex-col min-h-0 bg-background px-4 lg:px-6 pb-8 lg:pb-6 pt-0 overflow-hidden relative">
+          <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 overflow-hidden relative">
             {children}
           </div>
         </main>
+        <footer className="sm:hidden flex-none h-6 flex items-center justify-center border-t border-border/40 bg-background/80 backdrop-blur-sm px-4">
+          <p className="text-[10px] text-muted-foreground/60 select-none">
+            © Invoke IA 2025 ·{' '}
+            <a
+              href="https://www.invokeia.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-muted-foreground transition-colors"
+            >
+              www.invokeia.com
+            </a>
+          </p>
+        </footer>
       </div>
     </div>
   );

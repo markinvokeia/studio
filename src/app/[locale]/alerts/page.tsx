@@ -179,15 +179,14 @@ const getCategoryFromRule = (ruleName: string) => {
     return 'DEFAULT';
 };
 
-const SummaryCard = ({ title, count, color }: { title: string, count: number, color: string }) => (
-    <Card className={`bg-opacity-10 border-l-4 ${color} shadow-sm`}>
-        <CardHeader className="p-4 bg-primary text-primary-foreground">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider">{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 pt-6">
-            <p className="text-3xl font-black text-foreground">{count}</p>
-        </CardContent>
-    </Card>
+const SummaryCard = ({ title, count, accentColor }: { title: string, count: number, accentColor: string }) => (
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="h-[3px] w-full" style={{ background: accentColor }} />
+        <div className="px-3 py-3 flex flex-col gap-1">
+            <span className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium truncate">{title}</span>
+            <span className="text-3xl font-bold tracking-tight text-foreground">{count}</span>
+        </div>
+    </div>
 );
 
 function AlertsCenterPageContent() {
@@ -485,12 +484,12 @@ function AlertsCenterPageContent() {
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-6 bg-card">
+                <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-card">
                     <Can permission={ALERT_CENTER_PERMISSIONS.VIEW_KPIS}>
-                        <SummaryCard title={t('summary.total')} count={summaryCounts.total} color="border-primary" />
-                        <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} color="border-red-500" />
-                        <SummaryCard title={t('summary.high')} count={summaryCounts.high} color="border-orange-500" />
-                        <SummaryCard title={t('summary.medium')} count={summaryCounts.medium} color="border-yellow-500" />
+                        <SummaryCard title={t('summary.total')} count={summaryCounts.total} accentColor="#6366f1" />
+                        <SummaryCard title={t('summary.critical')} count={summaryCounts.critical} accentColor="#EF4444" />
+                        <SummaryCard title={t('summary.high')} count={summaryCounts.high} accentColor="#F97316" />
+                        <SummaryCard title={t('summary.medium')} count={summaryCounts.medium} accentColor="#EAB308" />
                     </Can>
                 </CardContent>
             </Card>
@@ -507,14 +506,13 @@ function AlertsCenterPageContent() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="h-9" onClick={() => loadAlerts()} disabled={loading}>
-                                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                                {t('reload')}
+                            <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => loadAlerts()} disabled={loading} title={t('reload')}>
+                                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                             </Button>
                             <Can permission={ALERT_CENTER_PERMISSIONS.FILTER}>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="h-9"><Filter className="mr-2 h-4 w-4" /> {t('filters.title')}</Button>
+                                        <Button variant="outline" size="icon" className="h-9 w-9" title={t('filters.title')}><Filter className="h-4 w-4" /></Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent className="w-80">
                                         <div className="space-y-4 p-4">
@@ -584,45 +582,51 @@ function AlertsCenterPageContent() {
                                 <CollapsibleContent>
                                     <div className="divide-y divide-border">
                                         {categoryAlerts.map(alert => (
-                                            <div key={alert.id} className="flex items-center gap-4 p-4 hover:bg-muted/50">
+                                            <div key={alert.id} className="flex items-start gap-3 p-4 hover:bg-muted/50">
                                                 <Checkbox
+                                                    className="mt-1 shrink-0"
                                                     checked={selectedAlerts.includes(alert.id)}
                                                     onCheckedChange={(checked) => handleSelectAlert(alert.id, !!checked)}
                                                 />
-                                                <div className={`w-1.5 h-10 rounded-full ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`}></div>
-                                                <div className="flex-1">
-                                                    <p className="font-semibold">{alert.title}</p>
-                                                    {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
-                                                    {(() => {
-                                                        const actions = alert.actions || [];
-                                                        return actions.length > 0 ? (
-                                                            <div className="mt-1 flex items-center gap-1 flex-wrap">
-                                                                <span className="text-xs text-muted-foreground">{t('actionHistory.title')}:</span>
-                                                                {actions.map(action => (
-                                                                    <span key={action.id} className="text-xs px-2 py-1 bg-muted rounded-full">
-                                                                        {action.action_type === 'SEND_EMAIL' && t('actionHistory.sendEmail')}
-                                                                        {action.action_type === 'SEND_SMS' && t('actionHistory.sendSms')}
-                                                                        {action.action_type === 'SEND_WHATSAPP' && t('actionHistory.sendWhatsApp')}
-                                                                        {action.action_type !== 'SEND_EMAIL' && action.action_type !== 'SEND_SMS' && action.action_type !== 'SEND_WHATSAPP' && action.action_type}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        ) : null;
-                                                    })()}
-                                                </div>
-                                                <div className="flex items-center gap-4 text-muted-foreground">
-                                                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${alert.status === 'COMPLETED'
-                                                        ? 'bg-primary text-primary-foreground'
-                                                        : 'border border-input bg-background text-foreground'
-                                                        }`}>
-                                                        {t(`status.${alert.status.toLowerCase()}` as any)}
+                                                <div className={`w-1.5 self-stretch rounded-full shrink-0 ${priorityConfig[alert.priority as keyof typeof priorityConfig].color}`} />
+                                                <div className="flex-1 min-w-0 flex flex-col gap-2">
+                                                    {/* Row 1: title + details */}
+                                                    <div>
+                                                        <p className="font-semibold leading-snug">{alert.title}</p>
+                                                        {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
+                                                        {(() => {
+                                                            const actions = alert.actions || [];
+                                                            return actions.length > 0 ? (
+                                                                <div className="mt-1 flex items-center gap-1 flex-wrap">
+                                                                    <span className="text-xs text-muted-foreground">{t('actionHistory.title')}:</span>
+                                                                    {actions.map(action => (
+                                                                        <span key={action.id} className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                                                                            {action.action_type === 'SEND_EMAIL' && t('actionHistory.sendEmail')}
+                                                                            {action.action_type === 'SEND_SMS' && t('actionHistory.sendSms')}
+                                                                            {action.action_type === 'SEND_WHATSAPP' && t('actionHistory.sendWhatsApp')}
+                                                                            {action.action_type !== 'SEND_EMAIL' && action.action_type !== 'SEND_SMS' && action.action_type !== 'SEND_WHATSAPP' && action.action_type}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            ) : null;
+                                                        })()}
                                                     </div>
-                                                    <div className="flex items-center gap-1">
+                                                    {/* Row 2: status badge */}
+                                                    <div>
+                                                        <div className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${alert.status === 'COMPLETED'
+                                                            ? 'bg-primary text-primary-foreground'
+                                                            : 'border border-input bg-background text-foreground'
+                                                            }`}>
+                                                            {t(`status.${alert.status.toLowerCase()}` as any)}
+                                                        </div>
+                                                    </div>
+                                                    {/* Row 3: action buttons — icon-only, same row */}
+                                                    <div className="flex items-center gap-1 border-t border-border/50 pt-2">
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.SEND_EMAIL}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.sendEmail')} onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
                                                         </Can>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
                                                         </Can>
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>

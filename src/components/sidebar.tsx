@@ -49,10 +49,13 @@ import {
     AlertTriangle,
     Bell,
     Check,
+    ChevronDown,
     KeyRound,
     LogOut,
+    Menu,
     Moon,
-    Sun
+    Sun,
+    X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
@@ -157,7 +160,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     };
 
     return (
-        <aside className="fixed inset-y-0 left-0 z-[20] flex h-screen w-20 flex-col bg-[var(--nav-bg)] shadow-[2px_0_12px_rgba(0,0,0,0.15)] transition-all">
+        <aside className="fixed inset-y-0 left-0 z-[20] hidden sm:flex h-screen w-20 flex-col bg-[var(--nav-bg)] shadow-[2px_0_12px_rgba(0,0,0,0.15)] transition-all">
             <div className="flex h-14 items-center justify-center mb-2 mt-2 shrink-0">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
                     <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={44} height={44} alt="InvokeIA Logo" priority />
@@ -441,6 +444,187 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
     );
 };
 
+function MobileNav() {
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [expandedItem, setExpandedItem] = React.useState<string | null>(null);
+    const pathname = usePathname();
+    const locale = useLocale();
+    const t = useTranslations('Navigation');
+    const { permissions, roles } = usePermissions();
+    const { pendingCount } = useAlertNotifications();
+
+    const filteredNavItems = React.useMemo(() => {
+        return filterNavByPermissions(navItems, permissions, roles);
+    }, [permissions, roles]);
+
+    const getEffectivePathname = (p: string, l: string) => {
+        const localePrefix = `/${l}`;
+        if (p.startsWith(localePrefix)) return p.substring(localePrefix.length) || '/';
+        return p;
+    };
+    const effectivePathname = getEffectivePathname(pathname, locale);
+
+    // Close on navigation
+    React.useEffect(() => { setIsOpen(false); }, [pathname]);
+
+    // Expand the active parent on open
+    React.useEffect(() => {
+        if (isOpen) {
+            const active = filteredNavItems.find(item =>
+                item.items?.some(sub => sub.href !== '' && (effectivePathname === sub.href || effectivePathname.startsWith(sub.href + '/')))
+            );
+            if (active) setExpandedItem(active.title);
+        }
+    }, [isOpen]);
+
+    return (
+        <>
+            {/* Mobile top bar: hamburger (left) | logo (center) | widget space (right) */}
+            <div className="sm:hidden fixed top-0 left-0 right-0 h-12 z-[45] bg-[var(--nav-bg)] flex items-center">
+                {/* Hamburger — always accessible, left */}
+                <button
+                    type="button"
+                    onClick={() => setIsOpen(true)}
+                    className="relative flex items-center justify-center h-12 w-12 text-white flex-none"
+                    aria-label="Abrir menú"
+                >
+                    <Menu className="h-5 w-5" />
+                    {pendingCount > 0 && (
+                        <span className="absolute top-2 right-2 h-4 w-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white bg-red-500 border border-[var(--nav-bg)]">
+                            {pendingCount > 99 ? '99+' : pendingCount}
+                        </span>
+                    )}
+                </button>
+                {/* Logo — centered */}
+                <Link href={`/${locale}`} className="flex-1 flex items-center justify-center gap-2">
+                    <Image
+                        src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                        width={28}
+                        height={28}
+                        alt=""
+                        className="h-7 w-7 rounded-lg flex-none"
+                        priority
+                    />
+                    <span className="text-white font-bold text-base tracking-tight select-none">Invoke IA</span>
+                </Link>
+                {/* Right spacer — widget (header.tsx) overlays this slot */}
+                <div className="h-12 w-12 flex-none" />
+            </div>
+
+            {/* Full-screen overlay */}
+            {isOpen && (
+                <div className="sm:hidden fixed inset-0 z-[60] flex">
+                    {/* Backdrop */}
+                    <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
+                    {/* Panel */}
+                    <div className="relative w-full max-w-xs bg-[var(--nav-bg)] h-full flex flex-col animate-in slide-in-from-left-4 duration-200 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                            <Link href={`/${locale}`} onClick={() => setIsOpen(false)}>
+                                <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={36} height={36} alt="InvokeIA Logo" />
+                            </Link>
+                            <button
+                                type="button"
+                                onClick={() => setIsOpen(false)}
+                                className="flex items-center justify-center h-8 w-8 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        {/* Nav items */}
+                        <div className="flex-1 overflow-y-auto py-2">
+                            {filteredNavItems.map(item => {
+                                const isActive = item.items
+                                    ? item.items.some(sub => sub.href !== '' && (effectivePathname === sub.href || effectivePathname.startsWith(sub.href + '/')))
+                                    : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
+
+                                const hasChildren = !!(item.items && item.items.length > 0);
+                                const isExpanded = expandedItem === item.title;
+
+                                let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+                                if (item.href.includes('/clinic-history')) {
+                                    const parts = effectivePathname.split('/');
+                                    const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2]) ? parts[2] : '1';
+                                    linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
+                                }
+
+                                return (
+                                    <div key={String(item.title)}>
+                                        {hasChildren ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpandedItem(isExpanded ? null : item.title)}
+                                                className={cn(
+                                                    "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                                                    isActive ? 'text-white bg-white/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+                                                )}
+                                            >
+                                                <item.icon className="h-5 w-5 shrink-0" />
+                                                <span className="flex-1 text-left">{t(item.title as any)}</span>
+                                                {item.title === 'AlertsCenter' && pendingCount > 0 && (
+                                                    <span className="flex items-center justify-center h-5 w-5 rounded-full text-[9px] font-bold text-white bg-red-500">
+                                                        {pendingCount > 99 ? '99+' : pendingCount}
+                                                    </span>
+                                                )}
+                                                <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", isExpanded && "rotate-180")} />
+                                            </button>
+                                        ) : (
+                                            <Link
+                                                href={linkHref}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                                                    isActive ? 'text-white bg-white/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+                                                )}
+                                            >
+                                                <item.icon className="h-5 w-5 shrink-0" />
+                                                <span>{t(item.title as any)}</span>
+                                            </Link>
+                                        )}
+                                        {/* Sub-items */}
+                                        {hasChildren && isExpanded && (
+                                            <div className="bg-black/20 py-1">
+                                                {item.items!.map((sub: any, idx: number) => {
+                                                    if (sub.isSeparator) return <div key={idx} className="my-1 mx-4 border-t border-white/10" />;
+
+                                                    const isSubActive = sub.href === '/'
+                                                        ? effectivePathname === '/'
+                                                        : (effectivePathname === sub.href || effectivePathname.startsWith(sub.href + '/'));
+
+                                                    let subHref = `/${locale}${sub.href === '/' ? '' : sub.href}`;
+                                                    if (sub.href.includes('/clinic-history')) {
+                                                        const parts = effectivePathname.split('/');
+                                                        const userId = (effectivePathname.startsWith('/clinic-history') && parts[2]) ? parts[2] : '1';
+                                                        subHref = `/${locale}/clinic-history/${userId}`;
+                                                    }
+
+                                                    return (
+                                                        <Link
+                                                            key={idx}
+                                                            href={subHref}
+                                                            className={cn(
+                                                                "flex items-center gap-3 px-8 py-2.5 text-sm transition-colors relative",
+                                                                isSubActive ? 'text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+                                                            )}
+                                                        >
+                                                            {isSubActive && <span className="absolute left-6 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full bg-white" />}
+                                                            <sub.icon className={cn("h-4 w-4 shrink-0", isSubActive ? "text-white" : "text-white/50")} />
+                                                            <span>{t(sub.title as any)}</span>
+                                                        </Link>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
 export function Sidebar() {
     const [hoveredItem, setHoveredItem] = React.useState<any>(null);
     let leaveTimeout = React.useRef<NodeJS.Timeout>();
@@ -465,13 +649,16 @@ export function Sidebar() {
     }
 
     return (
-        <div onMouseLeave={handleLeave}>
-            <MainSidebar onHover={handleHover} activeItem={hoveredItem} />
-            {hoveredItem && (
-                <div onMouseEnter={handleSecondaryEnter}>
-                    <SecondarySidebar item={hoveredItem} onLeave={handleLeave} />
-                </div>
-            )}
-        </div>
+        <>
+            <MobileNav />
+            <div className="hidden sm:block" onMouseLeave={handleLeave}>
+                <MainSidebar onHover={handleHover} activeItem={hoveredItem} />
+                {hoveredItem && (
+                    <div onMouseEnter={handleSecondaryEnter}>
+                        <SecondarySidebar item={hoveredItem} onLeave={handleLeave} />
+                    </div>
+                )}
+            </div>
+        </>
     );
 }

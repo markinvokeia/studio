@@ -41,6 +41,8 @@ interface TwoPanelLayoutProps {
     minLeftSize?: number;
     minRightSize?: number;
     className?: string;
+    /** When true, renders only the right panel at full width (desktop expand mode) */
+    forceRightOnly?: boolean;
 }
 
 export function TwoPanelLayout({
@@ -53,6 +55,7 @@ export function TwoPanelLayout({
     minLeftSize = 20,
     minRightSize = 20,
     className,
+    forceRightOnly = false,
 }: TwoPanelLayoutProps) {
     const [mounted, setMounted] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(false);
@@ -84,6 +87,16 @@ export function TwoPanelLayout({
                     </div>
                 )}
             </div>
+        );
+    }
+
+    if (forceRightOnly && isRightPanelOpen) {
+        return (
+            <NarrowModeContext.Provider value={{ isNarrow: false }}>
+                <div className={cn("flex-1 w-full overflow-hidden min-h-0", className)}>
+                    {rightPanel}
+                </div>
+            </NarrowModeContext.Provider>
         );
     }
 

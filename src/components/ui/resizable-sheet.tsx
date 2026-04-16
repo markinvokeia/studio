@@ -29,7 +29,15 @@ export function ResizableSheet({
   const [width, setWidth] = React.useState(defaultWidth);
   const [isResizing, setIsResizing] = React.useState(false);
   const [isFullscreen, setIsFullscreen] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
   const resizeRef = React.useRef<{ startX: number; startWidth: number } | null>(null);
+
+  React.useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Load saved width from localStorage on mount
   React.useEffect(() => {
@@ -107,10 +115,10 @@ export function ResizableSheet({
           'flex flex-col p-0 gap-0 overflow-hidden transition-[width] duration-150',
           side === 'right' ? 'border-l' : 'border-r'
         )}
-        style={isFullscreen ? { width: '100vw', maxWidth: 'none' } : { width: `${width}px`, maxWidth: 'none' }}
+        style={(isFullscreen || isMobile) ? { width: '100vw', maxWidth: 'none' } : { width: `${width}px`, maxWidth: 'none' }}
       >
-        {/* Resize Handle — hidden in fullscreen */}
-        {!isFullscreen && (
+        {/* Resize Handle — hidden in fullscreen or mobile */}
+        {!isFullscreen && !isMobile && (
           <div
             className={cn(
               'absolute top-0 bottom-0 w-4 cursor-col-resize z-50 flex items-center justify-center group',

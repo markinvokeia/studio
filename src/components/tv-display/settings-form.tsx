@@ -181,7 +181,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             max={60}
             value={settings.refreshIntervalMinutes}
             onChange={(e) => updateSettings({ refreshIntervalMinutes: Number(e.target.value) || 5 })}
-            className="w-24"
+            className="w-full sm:w-24"
           />
         </div>
         <div className="space-y-1.5">
@@ -193,7 +193,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             max={120}
             value={settings.promoIntervalMinutes}
             onChange={(e) => updateSettings({ promoIntervalMinutes: Number(e.target.value) || 15 })}
-            className="w-24"
+            className="w-full sm:w-24"
           />
         </div>
       </div>

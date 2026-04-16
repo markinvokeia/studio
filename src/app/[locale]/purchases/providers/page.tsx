@@ -56,7 +56,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, BarChart2, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, StickyNote, ToggleLeft, UserCircle, Wrench, X } from 'lucide-react';
+import { AlertTriangle, BarChart2, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Maximize2, Minimize2, Phone, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, StickyNote, ToggleLeft, UserCircle, Wrench, X } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
+import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -384,6 +386,8 @@ function ProvidersPageContent() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
+  const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
   // Refresh triggers for tabs
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
@@ -719,6 +723,7 @@ function ProvidersPageContent() {
         minLeftSize={20}
         isRightPanelOpen={!!selectedProvider && canViewDetail}
         onBack={handleCloseDetails}
+        forceRightOnly={isRightExpanded}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
@@ -774,8 +779,8 @@ function ProvidersPageContent() {
                         <DropdownMenuTrigger asChild>
                           <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
                             <Plus className="h-4 w-4" />
-                            {t('ProvidersPage.quickCreate.title')}
-                            <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                            <span className="hidden sm:inline">{t('ProvidersPage.quickCreate.title')}</span>
+                            <ChevronDown className="h-3.5 w-3.5 opacity-70 hidden sm:block" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -809,7 +814,7 @@ function ProvidersPageContent() {
                           className="h-8 gap-1.5 px-3 hover:bg-primary hover:text-primary-foreground hover:border-primary"
                         >
                           <SlidersHorizontal className="h-4 w-4" />
-                          {t('UsersPage.preferencesButton')}
+                          <span className="hidden sm:inline">{t('UsersPage.preferencesButton')}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent align="end" className="w-auto p-3 space-y-2">
@@ -841,6 +846,19 @@ function ProvidersPageContent() {
                         </TooltipContent>
                       </Tooltip>
                     )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => setIsRightExpanded(v => !v)}
+                        >
+                          {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                    </Tooltip>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -856,13 +874,14 @@ function ProvidersPageContent() {
 
                 <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
                   {isValidString(selectedProvider.email) && (
-                    <a
-                      href={`mailto:${encodeURIComponent(selectedProvider.email)}`}
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailDialogOpen(true)}
                       className="flex items-center gap-1 max-w-[220px] truncate hover:text-foreground hover:underline"
                     >
                       <Mail className="h-3 w-3 flex-none" />
                       {selectedProvider.email}
-                    </a>
+                    </button>
                   )}
                   {isValidString(selectedProvider.phone_number) && (
                     <a
@@ -871,7 +890,7 @@ function ProvidersPageContent() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-foreground hover:underline"
                     >
-                      <Phone className="h-3 w-3" />
+                      <WhatsAppIcon className="h-3 w-3" />
                       {selectedProvider.phone_number}
                     </a>
                   )}
@@ -917,7 +936,6 @@ function ProvidersPageContent() {
                   {(() => {
                     const providerTabs: VerticalTab[] = [
                       { id: 'info', icon: UserCircle, label: 'Información' },
-                      { id: 'summary', icon: BarChart2, label: t('ProvidersPage.tabs.summary') },
                       ...(canViewServices ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                       ...(canViewQuotes ? [{ id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') }] : []),
                       ...(canViewOrders ? [{ id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') }] : []),
@@ -987,60 +1005,6 @@ function ProvidersPageContent() {
                               )}
                             </form>
                           </Form>
-                        </CardContent>
-                      </Card>
-                      </div>
-                    )}
-                    {activeTab === 'summary' && (
-                      <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-lg bg-muted/30 p-3">
-                      <Card className="h-full flex flex-col shadow-none border-0">
-                        <CardHeader className="flex-none p-4 pb-2">
-                          <CardTitle className="text-lg text-foreground font-bold">{t('ProvidersPage.summary.title')}</CardTitle>
-                          <CardDescription className="text-sm text-muted-foreground">
-                            {t('ProvidersPage.summary.description')}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-auto p-4 pt-0 bg-card">
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.name')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.name}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.identity_document')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.identity_document || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.email')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.email || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.phone')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.phone_number || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.alternative_phone')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.alternative_phone || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.address')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.address || '-'}</p>
-                              </div>
-                              <div className="space-y-1 md:col-span-2">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.bank_account')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.bank_account || '-'}</p>
-                              </div>
-                            </div>
-                            <div className="space-y-1 pt-2 border-t">
-                              <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.status')}</span>
-                              <p className="text-sm font-medium">
-                                <span className={selectedProvider.is_active ? 'text-green-600' : 'text-red-600'}>
-                                  {selectedProvider.is_active ? t('ProvidersPage.summary.active') : t('ProvidersPage.summary.inactive')}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
                         </CardContent>
                       </Card>
                       </div>
@@ -1341,6 +1305,15 @@ function ProvidersPageContent() {
             fetchProviderFinancialData(selectedProvider.id);
             loadProviders();
           }}
+        />
+      )}
+
+      {selectedProvider && (
+        <EmailComposerDialog
+          open={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          to={selectedProvider.email || ''}
+          recipientName={selectedProvider.name}
         />
       )}
     </div>

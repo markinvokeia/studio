@@ -776,6 +776,7 @@
       "currentDebt": "Deuda Actual",
       "availableBalance": "Saldo Disponible",
       "printFinancialSummary": "Imprimir Resumen Financiero",
+      "print": "Imprimir",
       "showStats": "VER $",
       "hideStats": "OCULTAR $"
     },
