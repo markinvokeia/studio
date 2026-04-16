@@ -427,13 +427,12 @@ const UserInfoTab = ({
   onSaved: (updated: User) => void;
 }) => {
   const t = useTranslations();
-  const tV = useTranslations('UsersPage.createDialog.validation');
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
   const infoForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(tV)),
+    resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
       id: user.id,
       name: user.name,

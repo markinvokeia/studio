@@ -2131,16 +2131,16 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                     showMaximize
                     maximizeLabel={tPage('viewer.maximize')}
                     restoreLabel={tPage('viewer.restore')}
-                    className="h-[88vh] max-w-[95vw] p-0"
+                    className="h-full max-h-[90vh] max-w-[95vw] p-0"
                 >
                     <DialogHeader className="border-b px-6 py-4">
                         <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSaveSession} className="flex h-full flex-col overflow-hidden">
-                        <DialogBody className="flex-1 overflow-y-auto px-6 py-4">
-                            <div className="grid h-full min-h-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+                    <form onSubmit={handleSaveSession} className="flex min-h-0 flex-1 flex-col">
+                        <div className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain px-6 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                            <div className="space-y-6 xl:flex xl:flex-row xl:gap-6 xl:space-y-0">
                                 {/* Left Column: General Info */}
-                                <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
+                                <div className="grid content-start gap-4 md:grid-cols-2 xl:flex-1">
                                     <div className="space-y-2">
                                             <Label>{tDialog('date')}</Label>
                                             <DatePickerInput
@@ -2265,7 +2265,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                             value={sessionForm.procedimiento_realizado}
                                             onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
                                             placeholder={tDialog('procedurePlaceholder')}
-                                            className="min-h-[180px] resize-y xl:min-h-[260px]"
+                                            className="min-h-[80px] resize-y xl:min-h-[260px]"
                                         />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
@@ -2274,7 +2274,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                             value={sessionForm.plan_proxima_cita}
                                             onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
                                             placeholder={tDialog('nextSessionPlanPlaceholder')}
-                                            className="min-h-[110px] resize-y xl:min-h-[160px]"
+                                            className="min-h-[60px] resize-y xl:min-h-[160px]"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -2287,8 +2287,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                 </div>
 
                                 {/* Right Column: Treatments & Attachments */}
-                                <div className="flex min-h-0 flex-col gap-4">
-                                    <Card className="flex min-h-0 flex-1 flex-col shadow-none border bg-muted/5">
+                                <div className="flex flex-col gap-4 xl:w-[340px] xl:flex-shrink-0">
+                                    <Card className="flex flex-col shadow-none border bg-muted/5">
                                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
                                             <CardTitle className="text-sm font-bold">{tDialog('treatments') || 'Trabajos'}</CardTitle>
                                             <Button type="button" variant="ghost" size="sm" onClick={() => setSessionTreatments([...sessionTreatments, { numero_diente: '', descripcion: '' }])} className="h-7 px-2 text-xs">
@@ -2296,10 +2296,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                 {tDialog('addTreatment') || 'Añadir'}
                                             </Button>
                                         </CardHeader>
-                                        <CardContent className="flex-1 min-h-0 p-2 pt-0">
-                                            <div className="h-full min-h-[180px] overflow-y-auto pr-2 space-y-2">
+                                        <CardContent className="flex-1 p-2 pt-0">
+                                            <div className="min-h-[120px] max-h-[300px] overflow-y-auto pr-2 space-y-2 xl:min-h-[180px] xl:max-h-[400px]">
                                                 {sessionTreatments.length === 0 ? (
-                                                    <div className="flex h-full min-h-[160px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                    <div className="flex min-h-[100px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md xl:min-h-[160px]">
                                                         No treatments added yet.
                                                     </div>
                                                 ) : sessionTreatments.map((treatment, index) => (
@@ -2341,11 +2341,11 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                     </Card>
 
                                     {/* Attachments Section */}
-                                    <Card className="flex min-h-0 flex-[1.15] flex-col shadow-none border bg-muted/5">
+                                    <Card className="flex flex-col shadow-none border bg-muted/5 xl:flex-[1.15]">
                                         <CardHeader className="py-2 px-3">
                                             <CardTitle className="text-sm font-bold">{tDialog('attachments')}</CardTitle>
                                         </CardHeader>
-                                        <CardContent className="flex min-h-0 flex-1 flex-col p-3">
+                                        <CardContent className="flex flex-1 flex-col p-3">
                                             {/* Drag and Drop Area */}
                                             <div
                                                 className={cn(
@@ -2438,7 +2438,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                     </Card>
                                 </div>
                             </div>
-                        </DialogBody>
+                        </div>
                         <DialogFooter className="mt-auto border-t bg-background px-6 py-3 shadow-[0_-1px_0_hsl(var(--border))] gap-2 sm:justify-end">
                             <Button type="button" variant="outline" onClick={() => setIsSessionDialogOpen(false)}>
                                 {tDialog('cancel')}

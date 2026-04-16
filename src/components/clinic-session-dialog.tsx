@@ -5,7 +5,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Dialog,
-    DialogBody,
     DialogContent,
     DialogFooter,
     DialogHeader,
@@ -344,18 +343,18 @@ export function ClinicSessionDialog({
                 showMaximize
                 maximizeLabel={tCommon('viewer.maximize')}
                 restoreLabel={tCommon('viewer.restore')}
-                className="h-[88vh] max-w-[95vw] p-0"
+                className="h-full max-h-[90vh] max-w-[95vw] p-0"
             >
                 <DialogHeader className="border-b px-6 py-4">
                     <DialogTitle>
                         {existingSession ? t('editTitle') : t('createTitle')}
                     </DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
-                    <DialogBody className="flex-1 overflow-y-auto px-6 py-4">
-                        <div className="grid h-full min-h-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+                    <div className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain px-6 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <div className="space-y-6 xl:flex xl:flex-row xl:gap-6 xl:space-y-0">
                             {/* LEFT column — form fields */}
-                            <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
+                            <div className="grid content-start gap-4 md:grid-cols-2 xl:flex-1">
                                 {/* Date */}
                                 <div className="space-y-2">
                                     <Label>{t('date')}</Label>
@@ -425,7 +424,7 @@ export function ClinicSessionDialog({
                                         value={form.procedimiento_realizado}
                                         onChange={(e) => setForm({ ...form, procedimiento_realizado: e.target.value })}
                                         placeholder={t('procedurePlaceholder')}
-                                        className="min-h-[100px] resize-y"
+                                        className="min-h-[80px] xl:min-h-[100px] resize-y"
                                     />
                                 </div>
 
@@ -436,7 +435,7 @@ export function ClinicSessionDialog({
                                         value={form.plan_proxima_cita || ''}
                                         onChange={(e) => setForm({ ...form, plan_proxima_cita: e.target.value })}
                                         placeholder={t('nextSessionPlanPlaceholder')}
-                                        className="min-h-[80px] resize-y"
+                                        className="min-h-[60px] xl:min-h-[80px] resize-y"
                                     />
                                 </div>
 
@@ -473,10 +472,10 @@ export function ClinicSessionDialog({
 
                             {/* RIGHT column — treatments + attachments (only rendered when enabled) */}
                             {(showTreatments || showAttachments) && (
-                                <div className="flex min-h-0 flex-col gap-4">
+                                <div className="flex flex-col gap-4 xl:w-[340px] xl:flex-shrink-0">
                                     {/* Treatments */}
                                     {showTreatments && (
-                                        <Card className="flex min-h-0 flex-1 flex-col shadow-none border bg-muted/5">
+                                        <Card className="flex flex-col shadow-none border bg-muted/5">
                                             <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
                                                 <CardTitle className="text-sm font-bold">{t('treatments.title')}</CardTitle>
                                                 <Button type="button" variant="ghost" size="sm" onClick={handleAddTreatment} className="h-7 px-2 text-xs">
@@ -484,10 +483,10 @@ export function ClinicSessionDialog({
                                                     {t('treatments.add') || 'Añadir'}
                                                 </Button>
                                             </CardHeader>
-                                            <CardContent className="flex-1 min-h-0 p-2 pt-0">
-                                                <div className="h-full min-h-[180px] overflow-y-auto pr-2 space-y-2">
+                                            <CardContent className="flex-1 p-2 pt-0">
+                                                <div className="min-h-[120px] max-h-[300px] overflow-y-auto pr-2 space-y-2 xl:min-h-[180px] xl:max-h-[400px]">
                                                     {treatments.length === 0 ? (
-                                                        <div className="flex h-full min-h-[160px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                        <div className="flex min-h-[100px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md xl:min-h-[160px]">
                                                             {t('treatments.noTreatments')}
                                                         </div>
                                                     ) : treatments.map((treatment, index) => (
@@ -531,11 +530,11 @@ export function ClinicSessionDialog({
 
                                     {/* Attachments */}
                                     {showAttachments && (
-                                        <Card className="flex min-h-0 flex-[1.15] flex-col shadow-none border bg-muted/5">
+                                        <Card className="flex flex-col shadow-none border bg-muted/5 xl:flex-[1.15]">
                                             <CardHeader className="py-2 px-3">
                                                 <CardTitle className="text-sm font-bold">{t('attachments.title')}</CardTitle>
                                             </CardHeader>
-                                            <CardContent className="flex min-h-0 flex-1 flex-col p-3">
+                                            <CardContent className="flex flex-1 flex-col p-3">
                                                 {/* Drag and Drop Area */}
                                                 <div
                                                     className={cn(
@@ -637,7 +636,7 @@ export function ClinicSessionDialog({
                                 </div>
                             )}
                         </div>
-                    </DialogBody>
+                    </div>
                     <DialogFooter className="px-6 py-4 border-t shrink-0">
                         <Button
                             type="button"
