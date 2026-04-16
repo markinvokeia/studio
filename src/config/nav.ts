@@ -101,7 +101,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'Pacientes',
-    href: '/users',
+    href: '/patients',
     icon: Users,
     requiredAnyPermission: [
       PATIENTS_PERMISSIONS.VIEW_MENU,
@@ -110,7 +110,7 @@ export const navItems: NavItem[] = [
       DICOM_PERMISSIONS.VIEW_MENU,
     ],
     items: [
-      { title: 'Pacientes', href: '/users', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
+      { title: 'Pacientes', href: '/patients', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
       { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
       { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
     ],
