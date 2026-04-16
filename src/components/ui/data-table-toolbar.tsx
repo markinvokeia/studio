@@ -15,6 +15,7 @@ import {
 import { PlusCircle, RefreshCw, SlidersHorizontal, Filter, Search, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -51,8 +52,9 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
+    <div className="flex items-center gap-2">
+      {/* Search + filter — 60% on mobile, flex-1 on sm+ */}
+      <div className="flex items-center gap-2 w-[60%] sm:flex-1 sm:min-w-0">
         <div className="relative flex items-center flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -64,7 +66,7 @@ export function DataTableToolbar<TData>({
                 column.setFilterValue(event.target.value);
               }
             }}
-            className="h-9 w-full sm:w-[200px] lg:w-[300px] pl-9 pr-9"
+            className="h-9 w-full pl-9 pr-9"
           />
           {((table.getColumn(filterColumnId)?.getFilterValue() as string) ?? '').length > 0 && (
             <Button
@@ -82,34 +84,52 @@ export function DataTableToolbar<TData>({
             </Button>
           )}
         </div>
+        {/* Filter select — hidden on mobile */}
         {filterOptions && onFilterChange && (
-          <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
-            <SelectTrigger className="h-9 w-full sm:w-[150px]">
-              <div className="flex items-center">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder={t('filter')} />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t('all')}</SelectItem>
-              {filterOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="hidden sm:flex">
+            <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
+              <SelectTrigger className="h-9 w-[150px]">
+                <div className="flex items-center">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <SelectValue placeholder={t('filter')} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t('all')}</SelectItem>
+                {filterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         )}
       </div>
+
+      {/* Action buttons */}
       <div className="flex items-center gap-2 flex-none">
         {onCreate && (
           <div className="shrink-0">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="default" size={createButtonIconOnly ? "icon" : "sm"} className={createButtonIconOnly ? "h-9 w-9" : "h-9"} onClick={onCreate}>
+                  {/* Mobile: icon-only. Desktop: icon-only if createButtonIconOnly, else with text */}
+                  <Button
+                    variant="default"
+                    size="icon"
+                    className={cn(
+                      "h-9 w-9 shrink-0",
+                      !createButtonIconOnly && "sm:w-auto sm:px-3 sm:gap-1.5"
+                    )}
+                    onClick={onCreate}
+                  >
                     <PlusCircle className="h-4 w-4" />
-                    {createButtonIconOnly ? <span className="sr-only">{createButtonLabel || t('create')}</span> : (createButtonLabel || t('create'))}
+                    {createButtonIconOnly ? (
+                      <span className="sr-only">{createButtonLabel || t('create')}</span>
+                    ) : (
+                      <span className="hidden sm:inline">{createButtonLabel || t('create')}</span>
+                    )}
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -137,6 +157,7 @@ export function DataTableToolbar<TData>({
             <span className="sr-only">{t('refresh')}</span>
           </Button>
         )}
+        {/* Column toggle — desktop only */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="icon" className="hidden sm:flex h-9 w-9 shrink-0">

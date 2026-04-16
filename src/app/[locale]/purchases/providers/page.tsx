@@ -932,7 +932,7 @@ function ProvidersPageContent() {
                   onToggle={() => setIsStatsOpen(v => !v)}
                   onPrint={handlePrintFinancialSummary}
                 />
-                <div className="flex flex-1 min-h-0 overflow-hidden border-t border-border">
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden border-t border-border">
                   {(() => {
                     const providerTabs: VerticalTab[] = [
                       { id: 'info', icon: UserCircle, label: 'Información' },

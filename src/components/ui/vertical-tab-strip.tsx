@@ -20,14 +20,17 @@ interface VerticalTabStripProps {
 }
 
 /**
- * Vertical tab column that sits on the left edge of a DetailPanel.
- * Shows icon above label — mirrors the main sidebar nav style.
- * Active tab gets a left accent bar + brand background tint.
+ * Horizontal tab strip that sits at the top of a detail panel.
+ * Mobile: icon only. Desktop (sm+): icon + label.
+ * Active tab gets a bottom accent bar.
  */
 export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: VerticalTabStripProps) {
   return (
     <TooltipProvider delayDuration={600}>
-      <div className={cn('flex flex-col w-14 border-r border-border bg-muted/20 py-1 shrink-0', className)}>
+      <div className={cn(
+        'flex flex-row border-b border-border bg-muted/20 shrink-0 overflow-x-auto',
+        className
+      )}>
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           const Icon = tab.icon;
@@ -38,24 +41,22 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
                   type="button"
                   onClick={() => onTabClick(tab)}
                   className={cn(
-                    'relative flex flex-col items-center justify-center gap-0.5 h-14 w-full px-1 transition-all duration-150',
+                    'relative flex items-center justify-center gap-1.5 h-10 px-3 sm:px-4 transition-all duration-150 whitespace-nowrap shrink-0',
                     isActive
-                      ? 'text-primary bg-primary/8'
+                      ? 'text-primary'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
                   )}
                   aria-label={tab.label}
                   aria-selected={isActive}
                 >
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-7 rounded-r-full bg-primary" />
+                    <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full bg-primary" />
                   )}
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="text-[8px] font-medium leading-tight text-center line-clamp-2 w-full px-0.5">
-                    {tab.label}
-                  </span>
+                  <span className="hidden sm:inline text-xs font-medium">{tab.label}</span>
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs font-medium">
+              <TooltipContent side="bottom" className="text-xs font-medium">
                 {tab.label}
               </TooltipContent>
             </Tooltip>

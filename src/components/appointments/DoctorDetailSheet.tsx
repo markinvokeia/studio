@@ -81,8 +81,8 @@ export function DoctorDetailSheet({
           </div>
         </div>
 
-        {/* Body: vertical tabs + content */}
-        <div className="flex flex-1 overflow-hidden min-h-0">
+        {/* Body: horizontal tabs + content */}
+        <div className="flex flex-col flex-1 overflow-hidden min-h-0">
           <VerticalTabStrip
             tabs={tabs}
             activeTabId={activeTab}

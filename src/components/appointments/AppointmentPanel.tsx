@@ -111,7 +111,7 @@ export function AppointmentPanel({
           </div>
 
           {/* Body */}
-          <div className="flex flex-1 overflow-hidden min-h-0">
+          <div className="flex flex-col flex-1 overflow-hidden min-h-0">
             <VerticalTabStrip
               tabs={tabs}
               activeTabId={activeTab}

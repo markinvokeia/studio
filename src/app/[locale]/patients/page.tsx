@@ -1655,8 +1655,8 @@ export default function UsersPage() {
                         onToggle={() => setIsStatsOpen(v => !v)}
                         onPrint={handlePrintFinancialSummary}
                       />
-                      <div className="flex flex-1 min-h-0 overflow-hidden border-t border-border">
-                        {/* Vertical tab strip */}
+                      <div className="flex flex-col flex-1 min-h-0 overflow-hidden border-t border-border">
+                        {/* Horizontal tab strip */}
                         {(() => {
                           const isMedico = selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
                           const userTabs: VerticalTab[] = [
