@@ -3,12 +3,14 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
     Dialog,
     DialogBody,
@@ -21,22 +23,23 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, UserX } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Pencil, Trash2, UserX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { ExceptionsColumnsWrapper } from './columns';
 
 const exceptionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -62,10 +65,8 @@ async function getAvailabilityExceptions(pagination: PaginationState, searchQuer
             search: searchQuery,
         });
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-
         const exceptionsData = data.data || [];
         const total = Number(data.total) || 0;
-
         return {
             exceptions: exceptionsData.map((ex: any) => ({
                 ...ex,
@@ -112,6 +113,7 @@ async function deleteAvailabilityException(id: string) {
 export default function AvailabilityExceptionsPage() {
     const t = useTranslations('DoctorAvailabilityExceptionsPage');
     const tValidation = useTranslations('DoctorAvailabilityExceptionsPage.validation');
+    const tColumns = useTranslations('DoctorAvailabilityExceptionsPage.columns');
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
     const [exceptions, setExceptions] = React.useState<AvailabilityException[]>([]);
@@ -128,13 +130,13 @@ export default function AvailabilityExceptionsPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedException, setSelectedException] = React.useState<AvailabilityException | null>(null);
 
     const form = useForm<ExceptionFormValues>({
         resolver: zodResolver(exceptionFormSchema(tValidation)),
     });
-
     const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
-
 
     const loadExceptions = React.useCallback(async () => {
         setIsRefreshing(true);
@@ -150,16 +152,12 @@ export default function AvailabilityExceptionsPage() {
     }, [columnFilters]);
 
     React.useEffect(() => {
-        const debounce = setTimeout(() => {
-            loadExceptions();
-        }, 500);
+        const debounce = setTimeout(() => { loadExceptions(); }, 500);
         return () => clearTimeout(debounce);
     }, [loadExceptions]);
 
     React.useEffect(() => {
-        if (isDialogOpen) {
-            getDoctors().then(setDoctors);
-        }
+        if (isDialogOpen) getDoctors().then(setDoctors);
     }, [isDialogOpen]);
 
     const handleCreate = () => {
@@ -201,6 +199,10 @@ export default function AvailabilityExceptionsPage() {
             toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
             setIsDeleteDialogOpen(false);
             setDeletingException(null);
+            if (selectedException?.id === deletingException.id) {
+                setSelectedException(null);
+                setRowSelection({});
+            }
             loadExceptions();
         } catch (error) {
             toast({
@@ -223,59 +225,138 @@ export default function AvailabilityExceptionsPage() {
         }
     };
 
-    const exceptionsColumns = ExceptionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
-
-    const tColumns = useTranslations('DoctorAvailabilityExceptionsPage.columns');
-    const columnTranslations = {
-        user_name: tColumns('doctor'),
-        exception_date: tColumns('date'),
-        is_available: tColumns('available'),
-        start_time: tColumns('startTime'),
-        end_time: tColumns('endTime'),
+    const handleRowSelection = (rows: AvailabilityException[]) => {
+        setSelectedException(rows[0] ?? null);
     };
+
+    const handleBack = () => {
+        setSelectedException(null);
+        setRowSelection({});
+    };
+
+    const columns: ColumnDef<AvailabilityException>[] = React.useMemo(() => [
+        { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
+        { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
+        { accessorKey: 'exception_date', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('date')} /> },
+        {
+            accessorKey: 'is_available',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('available')} />,
+            cell: ({ row }) => (
+                <Badge variant={row.original.is_available ? 'success' : 'destructive'}>
+                    {row.original.is_available ? 'Disponible' : 'No disponible'}
+                </Badge>
+            ),
+        },
+        { accessorKey: 'start_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startTime')} /> },
+        { accessorKey: 'end_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endTime')} /> },
+    ], [tColumns]);
+
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><UserX className="h-5 w-5" /></div>
+                    <div>
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                <DataTable
+                    columns={columns}
+                    data={exceptions}
+                    pageCount={Math.ceil(exceptionCount / pagination.pageSize)}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                    columnFilters={columnFilters}
+                    onColumnFiltersChange={setColumnFilters}
+                    manualPagination={true}
+                    filterColumnId="user_name"
+                    filterPlaceholder={t('filterPlaceholder')}
+                    onCreate={handleCreate}
+                    onRefresh={loadExceptions}
+                    isRefreshing={isRefreshing}
+                    isNarrow={isNarrow || !!selectedException}
+                    renderCard={(row: AvailabilityException) => (
+                        <DataCard
+                            title={row.user_name || row.user_id}
+                            subtitle={row.exception_date}
+                            badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}
+                            showArrow
+                        />
+                    )}
+                    enableSingleRowSelection
+                    rowSelection={rowSelection}
+                    setRowSelection={setRowSelection}
+                    onRowSelectionChange={handleRowSelection}
+                    columnVisibility={{ id: false }}
+                />
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = selectedException ? (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><UserX className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base lg:text-lg truncate">{selectedException.user_name || selectedException.user_id}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{selectedException.exception_date}</p>
+                    </div>
+                    <div className="flex gap-1 flex-none">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(selectedException)}>
+                            <Pencil className="h-4 w-4 mr-1" />Editar
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedException)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex-1 overflow-auto p-4">
+                <dl className="space-y-3 text-sm">
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('doctor')}</dt>
+                        <dd className="text-foreground">{selectedException.user_name || selectedException.user_id || '-'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('date')}</dt>
+                        <dd className="text-foreground">{selectedException.exception_date || '-'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('available')}</dt>
+                        <dd><Badge variant={selectedException.is_available ? 'success' : 'destructive'}>{selectedException.is_available ? 'Disponible' : 'No disponible'}</Badge></dd>
+                    </div>
+                    {(selectedException.start_time || selectedException.end_time) && (
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('startTime')}</dt>
+                                <dd className="text-foreground">{selectedException.start_time || '-'}</dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('endTime')}</dt>
+                                <dd className="text-foreground">{selectedException.end_time || '-'}</dd>
+                            </div>
+                        </div>
+                    )}
+                </dl>
+            </CardContent>
+        </Card>
+    ) : <div />;
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
-                <CardHeader className="flex-none p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="header-icon-circle mt-0.5">
-                            <UserX className="h-5 w-5" />
-                        </div>
-                        <div className="flex flex-col text-left">
-                            <CardTitle className="text-lg">{t('title')}</CardTitle>
-                            <CardDescription className="text-xs">{t('description')}</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                    <DataTable
-                        columns={exceptionsColumns}
-                        data={exceptions}
-                        pageCount={Math.ceil(exceptionCount / pagination.pageSize)}
-                        pagination={pagination}
-                        onPaginationChange={setPagination}
-                        columnFilters={columnFilters}
-                        onColumnFiltersChange={setColumnFilters}
-                        manualPagination={true}
-                        filterColumnId="user_name"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
-                        onRefresh={loadExceptions}
-                        isRefreshing={isRefreshing}
-                        columnTranslations={columnTranslations}
-                        isNarrow={isNarrow}
-                        renderCard={(row: AvailabilityException) => (
-                            <DataCard
-                                title={row.user_name || row.user_id}
-                                subtitle={row.exception_date}
-                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}
-                                showArrow
-                            />
-                        )}
-                    />
-                </CardContent>
-            </Card>
+            <TwoPanelLayout
+                leftPanel={leftPanel}
+                rightPanel={rightPanel}
+                isRightPanelOpen={!!selectedException}
+                onBack={handleBack}
+                leftPanelDefaultSize={50}
+                rightPanelDefaultSize={50}
+            />
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

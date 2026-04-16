@@ -123,14 +123,14 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
-        <footer className="sm:hidden flex-none h-6 flex items-center justify-center border-t border-border/40 bg-background/80 backdrop-blur-sm px-4">
-          <p className="text-[10px] text-muted-foreground/60 select-none">
+        <footer className="sm:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">
+          <p className="text-[10px] text-white/70 select-none">
             © Invoke IA 2025 ·{' '}
             <a
               href="https://www.invokeia.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-muted-foreground transition-colors"
+              className="text-white/60 hover:text-white transition-colors"
             >
               www.invokeia.com
             </a>

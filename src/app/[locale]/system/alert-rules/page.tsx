@@ -32,11 +32,14 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
-import { AlertTriangle, BotMessageSquare, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { AlertTriangle, BotMessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { RowSelectionState } from '@tanstack/react-table';
 
 const ruleFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
@@ -161,6 +164,8 @@ export default function AlertRulesPage() {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
     const [isTesting, setIsTesting] = React.useState(false);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedRule, setSelectedRule] = React.useState<AlertRule | null>(null);
 
     const form = useForm<RuleFormValues>({
         resolver: zodResolver(ruleFormSchema(tValidation)),
@@ -431,6 +436,15 @@ export default function AlertRulesPage() {
         }
     };
 
+    const handleRowSelection = (rows: AlertRule[]) => {
+        setSelectedRule(rows[0] ?? null);
+    };
+
+    const handleBack = () => {
+        setSelectedRule(null);
+        setRowSelection({});
+    };
+
     const columns: ColumnDef<AlertRule>[] = [
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
         {
@@ -481,48 +495,134 @@ export default function AlertRulesPage() {
         },
     ];
 
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><BotMessageSquare className="h-5 w-5" /></div>
+                    <div className="flex flex-col text-left">
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                {canViewList ? (
+                    <DataTable
+                        columns={columns}
+                        data={rules}
+                        filterColumnId="name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onCreate={canCreate ? handleCreate : undefined}
+                        onRefresh={loadData}
+                        isRefreshing={isRefreshing}
+                        isNarrow={isNarrow || !!selectedRule}
+                        renderCard={(row: AlertRule) => (
+                            <DataCard
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}
+                                showArrow
+                            />
+                        )}
+                        enableSingleRowSelection
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        onRowSelectionChange={handleRowSelection}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">{t('noAccess')}</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = selectedRule ? (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><BotMessageSquare className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base lg:text-lg truncate">{selectedRule.name}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{selectedRule.code}</p>
+                    </div>
+                    <div className="flex gap-1 flex-none">
+                        {canUpdate && (
+                            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
+                                <Pencil className="h-4 w-4 mr-1" />Editar
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex-1 overflow-auto p-4">
+                <dl className="space-y-3 text-sm">
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.name')}</dt>
+                        <dd className="text-foreground">{selectedRule.name}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Código</dt>
+                        <dd className="text-foreground font-mono text-xs">{selectedRule.code}</dd>
+                    </div>
+                    {selectedRule.description && (
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Descripción</dt>
+                            <dd className="text-foreground text-xs">{selectedRule.description}</dd>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.priority')}</dt>
+                            <dd><Badge variant={selectedRule.priority === 'CRITICAL' ? 'destructive' : 'secondary'}>{selectedRule.priority}</Badge></dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.isActive')}</dt>
+                            <dd><Badge variant={selectedRule.is_active ? 'success' : 'outline'}>{selectedRule.is_active ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                        </div>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.category')}</dt>
+                        <dd className="text-foreground">{categories.find(c => String(c.id) === String(selectedRule.category_id))?.name || selectedRule.category_id}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Tabla fuente</dt>
+                        <dd className="text-foreground font-mono text-xs">{selectedRule.source_table || '-'}</dd>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoEmail')}</dt>
+                            <dd><Badge variant={selectedRule.auto_send_email ? 'success' : 'outline'}>{selectedRule.auto_send_email ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoSms')}</dt>
+                            <dd><Badge variant={selectedRule.auto_send_sms ? 'success' : 'outline'}>{selectedRule.auto_send_sms ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                        </div>
+                    </div>
+                </dl>
+            </CardContent>
+        </Card>
+    ) : <div />;
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                    <CardHeader className="p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <BotMessageSquare className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                                <CardTitle className="text-lg">{t('title')}</CardTitle>
-                                <CardDescription className="text-xs">{t('description')}</CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                        {canViewList ? (
-                            <DataTable
-                                columns={columns}
-                                data={rules}
-                                filterColumnId="name"
-                                filterPlaceholder={t('filterPlaceholder')}
-                                onCreate={canCreate ? handleCreate : undefined}
-                                onRefresh={loadData}
-                                isRefreshing={isRefreshing}
-                                isNarrow={isNarrow}
-                                renderCard={(row: AlertRule) => (
-                                    <DataCard
-                                        title={row.name}
-                                        subtitle={row.code}
-                                        badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}
-                                        showArrow
-                                    />
-                                )}
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">{t('noAccess')}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <TwoPanelLayout
+                    leftPanel={leftPanel}
+                    rightPanel={rightPanel}
+                    isRightPanelOpen={!!selectedRule}
+                    onBack={handleBack}
+                    leftPanelDefaultSize={50}
+                    rightPanelDefaultSize={50}
+                />
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
