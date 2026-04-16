@@ -71,7 +71,10 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
       </Popover>
       <Select>
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder={t('filterBy')} />
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder={t('filterBy')} />
+          </div>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="service">{t('byService')}</SelectItem>
@@ -79,10 +82,6 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
           <SelectItem value="status">{t('byStatus')}</SelectItem>
         </SelectContent>
       </Select>
-      <Button>
-        <Filter className="h-4 w-4 sm:mr-2" />
-        <span className="hidden sm:inline">{t('apply')}</span>
-      </Button>
     </div>
   );
 }

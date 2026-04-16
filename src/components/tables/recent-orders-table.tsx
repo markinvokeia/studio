@@ -71,9 +71,10 @@ interface RecentOrdersTableProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   className?: string;
+  onRowClick?: (order: Order) => void;
 }
 
-export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }: RecentOrdersTableProps) {
+export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className, onRowClick }: RecentOrdersTableProps) {
   const t = useTranslations();
   const columns = React.useMemo(() => getColumns(t), [t]);
   const isNarrow = useViewportNarrow();
@@ -100,12 +101,13 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className }
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           isNarrow={isNarrow}
+          onRowClick={onRowClick}
           renderCard={(row: Order) => (
             <DataCard
               title={row.doc_no || String(row.id)}
               subtitle={row.user_name || ''}
               badge={row.status ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{row.status}</span> : undefined}
-              showArrow
+              showArrow={!!onRowClick}
             />
           )}
         />

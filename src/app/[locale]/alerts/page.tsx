@@ -672,7 +672,8 @@ function AlertsCenterPageContent() {
                 <div className={cn(
                     "fixed bottom-6 left-1/2 -translate-x-1/2 z-40",
                     "bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-lg",
-                    "p-2 flex items-center gap-4",
+                    "p-2 flex flex-wrap items-center justify-center gap-2",
+                    "w-[calc(100vw-2rem)] sm:w-auto",
                     selectedAlerts.length > 0 ? "mb-20" : "",
                     "animate-in slide-in-from-bottom-4 fade-in-0 duration-300 ease-out"
                 )}>
@@ -692,7 +693,7 @@ function AlertsCenterPageContent() {
                             {t('pagination.showing')} {alerts.length} {t('pagination.of')} {alertsTotalRecords}
                         </span>
                     </div>
-                    <div className="h-6 w-px bg-border" />
+                    <div className="hidden sm:block h-6 w-px bg-border" />
                     <div className="flex items-center gap-1">
                         <Button
                             variant="outline"

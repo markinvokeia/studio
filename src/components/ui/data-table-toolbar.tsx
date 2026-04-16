@@ -51,9 +51,9 @@ export function DataTableToolbar<TData>({
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex items-center gap-2 w-full sm:w-auto">
-        <div className="relative flex items-center flex-1 sm:flex-none">
+    <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="relative flex items-center flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={filterPlaceholder}
@@ -82,24 +82,6 @@ export function DataTableToolbar<TData>({
             </Button>
           )}
         </div>
-        {/* Column visibility — always visible on mobile, right of search */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="sm:hidden h-9 w-9 shrink-0">
-              <SlidersHorizontal className="h-4 w-4" />
-              <span className="sr-only">{t('view')}</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{t('toggleColumns')}</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {table.getAllColumns().filter(col => typeof col.accessorFn !== 'undefined' && col.getCanHide()).map(col => (
-              <DropdownMenuCheckboxItem key={col.id} className="capitalize" checked={col.getIsVisible()} onCheckedChange={(value) => col.toggleVisibility(!!value)}>
-                {columnTranslations[col.id] || col.id}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
         {filterOptions && onFilterChange && (
           <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
             <SelectTrigger className="h-9 w-full sm:w-[150px]">
@@ -119,7 +101,7 @@ export function DataTableToolbar<TData>({
           </Select>
         )}
       </div>
-      <div className="flex items-center flex-wrap gap-2">
+      <div className="flex items-center gap-2 flex-none">
         {onCreate && (
           <div className="shrink-0">
             <TooltipProvider>

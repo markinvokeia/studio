@@ -288,6 +288,7 @@ const getColumns = (
 interface RecentQuotesTableProps {
   quotes: Quote[];
   onRowSelectionChange?: (selectedRows: Quote[]) => void;
+  onRowClick?: (quote: Quote) => void;
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
@@ -308,6 +309,7 @@ interface RecentQuotesTableProps {
 export function RecentQuotesTable({
   quotes,
   onRowSelectionChange,
+  onRowClick,
   onCreate,
   onRefresh,
   isRefreshing,
@@ -537,11 +539,12 @@ export function RecentQuotesTable({
                       title={row.original.doc_no || String(row.original.id)}
                       subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
                       isSelected={row.getIsSelected()}
-                      showArrow
+                      showArrow={!!(onRowClick || onRowSelectionChange)}
                       onClick={() => {
                         table.toggleAllPageRowsSelected(false);
                         row.toggleSelected(true);
                         onRowSelectionChange?.([row.original]);
+                        onRowClick?.(row.original);
                       }}
                     />
                   ))
@@ -612,8 +615,9 @@ export function RecentQuotesTable({
                             table.toggleAllPageRowsSelected(false);
                             row.toggleSelected(true);
                           }
+                          onRowClick?.(row.original);
                         }}
-                        className={onRowSelectionChange ? 'cursor-pointer' : ''}
+                        className={onRowSelectionChange || onRowClick ? 'cursor-pointer' : ''}
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>

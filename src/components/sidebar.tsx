@@ -485,7 +485,7 @@ function MobileNav() {
                 <button
                     type="button"
                     onClick={() => setIsOpen(true)}
-                    className="relative flex items-center justify-center h-12 w-12 text-white flex-none"
+                    className="relative flex items-center justify-center h-12 w-12 text-white flex-none bg-white/15 hover:bg-white/25 transition-colors border-r border-white/20"
                     aria-label="Abrir menú"
                 >
                     <Menu className="h-5 w-5" />

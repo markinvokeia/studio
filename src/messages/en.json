@@ -3964,7 +3964,8 @@
       "billing": "Billing",
       "followup": "Follow-up",
       "default": "Default",
-      "patients": "Patients"
+      "patients": "Patients",
+      "dates": "Dates"
     },
     "status": {
       "pending": "Pending",
@@ -3975,6 +3976,8 @@
       "suppressed": "Suppressed"
     },
     "actions": {
+      "sendEmail": "Send Email",
+      "markCompleted": "Mark as Completed",
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
       "registerCall": "Register Call",

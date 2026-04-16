@@ -67,6 +67,8 @@ interface DataTableProps<TData, TValue> {
   isNarrow?: boolean;
   /** Card renderer for narrow mode — receives the row's original data */
   renderCard?: (row: TData) => React.ReactNode;
+  /** Called when a card is clicked in narrow mode */
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -102,6 +104,7 @@ export function DataTable<TData, TValue>({
   getRowClassName,
   isNarrow,
   renderCard,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -188,6 +191,7 @@ export function DataTable<TData, TValue>({
                   table.toggleAllPageRowsSelected(false);
                   row.toggleSelected(true);
                 }
+                onRowClick?.(row.original);
               }}>
                 {renderCard(row.original)}
               </div>

@@ -20,6 +20,9 @@ import { API_ROUTES } from '@/constants/routes';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Can } from '@/components/auth/Can';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
+import { formatDateTime } from '@/lib/utils';
 
 type DashboardSummary = {
     stats: Stat[],
@@ -349,6 +352,10 @@ export default function DashboardPage() {
         to: new Date(),
     });
 
+    const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
+    const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
+    const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
+
     React.useEffect(() => {
         setIsKpiLoading(true);
         getDashboardData(date, tStats).then(({ stats, salesTrend, averageBilling, appointmentAttendance }) => {
@@ -440,10 +447,14 @@ export default function DashboardPage() {
                     quotes={quotes}
                     title={t('RecentQuotesTable.title')}
                     description={t('RecentQuotesTable.description')}
+                    onRowClick={setSelectedQuote}
                 />
             </Can>
             <Can permission={DASHBOARD_PERMISSIONS.VIEW_RECENT_ORDERS}>
-                <RecentOrdersTable orders={orders} />
+                <RecentOrdersTable
+                    orders={orders}
+                    onRowClick={setSelectedOrder}
+                />
             </Can>
             <Can permission={DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS}>
                 <NewPatientsTable
@@ -456,8 +467,59 @@ export default function DashboardPage() {
                     columnFilters={patientColumnFilters}
                     onColumnFiltersChange={setPatientColumnFilters}
                     className="lg:h-[500px]"
+                    onRowClick={setSelectedPatient}
                 />
             </Can>
+
+            {/* Detail Sheets */}
+            <Sheet open={!!selectedQuote} onOpenChange={(open) => { if (!open) setSelectedQuote(null); }}>
+                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] overflow-y-auto">
+                    <SheetHeader className="mb-4">
+                        <SheetTitle>{t('RecentQuotesTable.title')} — {selectedQuote?.doc_no}</SheetTitle>
+                    </SheetHeader>
+                    {selectedQuote && (
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.name')}</dt><dd className="font-medium mt-0.5">{selectedQuote.user_name}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.createdAt')}</dt><dd className="font-medium mt-0.5">{formatDateTime(selectedQuote.createdAt)}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.total')}</dt><dd className="font-medium mt-0.5">{selectedQuote.total?.toFixed(2)} {selectedQuote.currency}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.status}</Badge></dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.billingStatus')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.billing_status}</Badge></dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('Navigation.Payments')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.payment_status}</Badge></dd></div>
+                        </dl>
+                    )}
+                </SheetContent>
+            </Sheet>
+
+            <Sheet open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
+                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] overflow-y-auto">
+                    <SheetHeader className="mb-4">
+                        <SheetTitle>{t('RecentOrdersTable.title')} — {selectedOrder?.doc_no}</SheetTitle>
+                    </SheetHeader>
+                    {selectedOrder && (
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.name')}</dt><dd className="font-medium mt-0.5">{selectedOrder.user_name}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('OrderColumns.createdAt')}</dt><dd className="font-medium mt-0.5">{formatDateTime(selectedOrder.createdAt)}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.currency')}</dt><dd className="font-medium mt-0.5">{selectedOrder.currency}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedOrder.status}</Badge></dd></div>
+                        </dl>
+                    )}
+                </SheetContent>
+            </Sheet>
+
+            <Sheet open={!!selectedPatient} onOpenChange={(open) => { if (!open) setSelectedPatient(null); }}>
+                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] overflow-y-auto">
+                    <SheetHeader className="mb-4">
+                        <SheetTitle>{t('NewPatientsTable.title')} — {selectedPatient?.name}</SheetTitle>
+                    </SheetHeader>
+                    {selectedPatient && (
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.email')}</dt><dd className="font-medium mt-0.5 break-all">{selectedPatient.email}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.phone')}</dt><dd className="font-medium mt-0.5">{selectedPatient.phone_number || '—'}</dd></div>
+                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant={selectedPatient.is_active ? 'default' : 'outline'}>{selectedPatient.is_active ? t('UserColumns.active') : t('UserColumns.inactive')}</Badge></dd></div>
+                        </dl>
+                    )}
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

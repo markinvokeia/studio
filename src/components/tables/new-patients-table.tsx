@@ -61,6 +61,7 @@ interface NewPatientsTableProps {
   columnFilters?: ColumnFiltersState;
   onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   className?: string;
+  onRowClick?: (patient: User) => void;
 }
 
 export function NewPatientsTable({
@@ -73,6 +74,7 @@ export function NewPatientsTable({
   columnFilters,
   onColumnFiltersChange,
   className,
+  onRowClick,
 }: NewPatientsTableProps) {
   const t = useTranslations();
   const columns = React.useMemo(() => getColumns(t), [t]);
@@ -106,11 +108,13 @@ export function NewPatientsTable({
           onColumnFiltersChange={onColumnFiltersChange}
           manualPagination={true}
           isNarrow={isNarrow}
+          onRowClick={onRowClick}
           renderCard={(patient: User) => (
             <DataCard
               title={patient.name}
               subtitle={patient.email || patient.phone_number || patient.identity_document || ''}
               badge={<Badge variant={patient.is_active ? 'default' : 'outline'}>{patient.is_active ? t('UserColumns.active') : t('UserColumns.inactive')}</Badge>}
+              showArrow={!!onRowClick}
             />
           )}
         />

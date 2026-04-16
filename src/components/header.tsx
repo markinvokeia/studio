@@ -326,12 +326,12 @@ export function Header() {
                         className={cn(
                             "flex items-center justify-center bg-[hsl(var(--floating-header-bg)/0.85)] backdrop-blur-md border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]",
                             isMobile
-                                ? "h-12 w-12 rounded-none border-t-0 border-r-0 border-l border-b border-white/10 bg-transparent hover:bg-white/10"
+                                ? "h-12 w-12 rounded-none border-t-0 border-r-0 border-l border-b border-white/20 bg-white/15 hover:bg-white/25"
                                 : "h-8 w-8 rounded-full"
                         )}
                         aria-label={tFloating('openMenu')}
                     >
-                        <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                        <ChevronLeft className={cn("h-4 w-4", isMobile ? "text-foreground" : "text-muted-foreground")} />
                     </button>
                 ) : isMobile ? (
                     /* ── Mobile expanded: full-width bar (leaves space for hamburger) ── */

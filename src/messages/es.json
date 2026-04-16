@@ -3929,7 +3929,8 @@
       "billing": "Facturación",
       "followup": "Seguimiento",
       "default": "Predeterminado",
-      "patients": "Pacientes"
+      "patients": "Pacientes",
+      "dates": "Fechas"
     },
     "status": {
       "pending": "Pendiente",
@@ -3940,6 +3941,8 @@
       "suppressed": "Suprimida"
     },
     "actions": {
+      "sendEmail": "Enviar Correo",
+      "markCompleted": "Marcar como Completada",
       "sendSms": "Enviar SMS",
       "sendWhatsApp": "Enviar WhatsApp",
       "registerCall": "Registrar Llamada",
