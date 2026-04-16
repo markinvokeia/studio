@@ -313,7 +313,9 @@ export function Header() {
             <div className={cn(
                 "fixed z-[50]",
                 isMobile
-                    ? "top-0 right-0 flex items-start"
+                    ? isExpanded
+                        ? "top-0 left-0 right-0 flex items-start"
+                        : "top-0 right-0 flex items-start"
                     : "top-3 right-4 flex flex-col items-end gap-2"
             )}>
                 {!isExpanded ? (
@@ -334,8 +336,8 @@ export function Header() {
                 ) : isMobile ? (
                     /* ── Mobile expanded: full-width bar (leaves space for hamburger) ── */
                     <div className={cn(
-                        'flex flex-row-reverse items-center gap-0.5 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md py-1.5 px-1.5 rounded-l-2xl border border-r-0 border-border shadow-2xl ml-12 w-screen justify-end overflow-x-auto',
-                        'animate-in fade-in slide-in-from-right-4 duration-200',
+                        'flex flex-row-reverse items-center gap-0.5 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md py-1.5 px-1.5 border-b border-border shadow-md w-full justify-start overflow-x-auto',
+                        'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
                         {/* Close button */}
                         <Button

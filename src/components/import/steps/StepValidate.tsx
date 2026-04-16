@@ -33,7 +33,6 @@ export function validateData(
   const errors: ValidationError[] = [];
   const reverseMapping: Record<string, string> = {};
 
-  // Build reverse map: fieldKey → csvHeader
   Object.entries(mapping).forEach(([csvHeader, fieldKey]) => {
     if (fieldKey) reverseMapping[fieldKey] = csvHeader;
   });
@@ -44,26 +43,16 @@ export function validateData(
     requiredFields.forEach((field: ImportField) => {
       const csvHeader = reverseMapping[field.key];
       if (!csvHeader) {
-        // Required field not mapped at all
-        errors.push({
-          row: rowIndex + 1,
-          field: field.label,
-          error: `Campo requerido no mapeado`,
-        });
+        errors.push({ row: rowIndex + 1, field: field.label, error: `Campo requerido no mapeado` });
         return;
       }
       const colIndex = headers.indexOf(csvHeader);
       const value = colIndex >= 0 ? (row[colIndex] ?? '').trim() : '';
       if (!value) {
-        errors.push({
-          row: rowIndex + 1,
-          field: field.label,
-          error: `Valor requerido vacío`,
-        });
+        errors.push({ row: rowIndex + 1, field: field.label, error: `Valor requerido vacío` });
       }
     });
 
-    // Validate email format if email field is mapped
     const emailHeader = reverseMapping['email'];
     if (emailHeader) {
       const colIndex = headers.indexOf(emailHeader);
@@ -73,7 +62,6 @@ export function validateData(
       }
     }
 
-    // Validate date fields
     schema.fields
       .filter((f) => f.type === 'date')
       .forEach((field) => {
@@ -82,15 +70,10 @@ export function validateData(
         const colIndex = headers.indexOf(csvHeader);
         const value = colIndex >= 0 ? (row[colIndex] ?? '').trim() : '';
         if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-          errors.push({
-            row: rowIndex + 1,
-            field: field.label,
-            error: `Formato de fecha inválido (esperado YYYY-MM-DD)`,
-          });
+          errors.push({ row: rowIndex + 1, field: field.label, error: `Formato de fecha inválido (esperado YYYY-MM-DD)` });
         }
       });
 
-    // Validate number fields
     schema.fields
       .filter((f) => f.type === 'number')
       .forEach((field) => {
@@ -99,16 +82,11 @@ export function validateData(
         const colIndex = headers.indexOf(csvHeader);
         const value = colIndex >= 0 ? (row[colIndex] ?? '').trim() : '';
         if (value && isNaN(Number(value))) {
-          errors.push({
-            row: rowIndex + 1,
-            field: field.label,
-            error: `Valor numérico inválido`,
-          });
+          errors.push({ row: rowIndex + 1, field: field.label, error: `Valor numérico inválido` });
         }
       });
   });
 
-  // Group errors by row to count invalid rows
   const invalidRows = new Set(errors.map((e) => e.row));
   const invalid = invalidRows.size;
   const valid = rows.length - invalid;
@@ -121,7 +99,6 @@ export function StepValidate({ result, onImportValid, onFixCsv, isImporting }: S
   const totalRecords = result.valid + result.invalid;
   const allValid = result.invalid === 0;
 
-  // Group errors by row for display
   const errorsByRow = result.errors.reduce<Record<number, ValidationError[]>>((acc, err) => {
     if (!acc[err.row]) acc[err.row] = [];
     acc[err.row].push(err);
@@ -130,42 +107,60 @@ export function StepValidate({ result, onImportValid, onFixCsv, isImporting }: S
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Summary cards */}
+      {/* Summary stat cards */}
       <div className="grid grid-cols-3 gap-3">
         <div className="flex flex-col items-center gap-1 rounded-lg border bg-card p-4">
           <span className="text-2xl font-bold">{totalRecords}</span>
-          <span className="text-xs text-muted-foreground">{t('totalRecords')}</span>
+          <span className="text-xs text-muted-foreground text-center">{t('totalRecords')}</span>
         </div>
         <div className="flex flex-col items-center gap-1 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/30 dark:bg-green-900/10">
           <span className="text-2xl font-bold text-green-600 dark:text-green-400">{result.valid}</span>
-          <span className="text-xs text-green-600 dark:text-green-400">{t('validRecords')}</span>
+          <span className="text-xs text-green-600 dark:text-green-400 text-center">{t('validRecords')}</span>
         </div>
         <div className="flex flex-col items-center gap-1 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
           <span className="text-2xl font-bold text-red-600 dark:text-red-400">{result.invalid}</span>
-          <span className="text-xs text-red-600 dark:text-red-400">{t('invalidRecords')}</span>
+          <span className="text-xs text-red-600 dark:text-red-400 text-center">{t('invalidRecords')}</span>
         </div>
       </div>
 
       {allValid ? (
         <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900/30 dark:bg-green-900/10">
-          <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600 dark:text-green-400" />
           <p className="text-sm font-medium text-green-700 dark:text-green-400">{t('noErrors')}</p>
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/30 dark:bg-amber-900/10">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/30 dark:bg-amber-900/10">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
             <p className="text-sm text-amber-700 dark:text-amber-400">
               Se encontraron errores en {result.invalid} fila(s). Podés importar solo los registros válidos o corregir el CSV.
             </p>
           </div>
 
-          {/* Error table */}
-          <div className="overflow-hidden rounded-lg border">
-            <div className="border-b bg-muted/50 px-4 py-2">
-              <p className="text-xs font-medium text-muted-foreground">{t('errorDetails')}</p>
+          {/* Error list — cards on mobile, table on desktop */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">{t('errorDetails')}</p>
+
+            {/* Mobile: error cards */}
+            <div className="flex flex-col gap-2 sm:hidden">
+              {Object.entries(errorsByRow).map(([rowNum, errs]) =>
+                errs.map((err, i) => (
+                  <div key={`${rowNum}-${i}`} className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">Fila {rowNum}</span>
+                      <span className="text-xs font-medium text-foreground">{err.field}</span>
+                    </div>
+                    <p className="text-xs text-destructive">{err.error}</p>
+                  </div>
+                ))
+              )}
             </div>
-            <div>
+
+            {/* Desktop: table */}
+            <div className="hidden sm:block overflow-hidden rounded-lg border">
+              <div className="border-b bg-muted/50 px-4 py-2">
+                <p className="text-xs font-medium text-muted-foreground">{t('errorDetails')}</p>
+              </div>
               <table className="w-full text-xs">
                 <thead className="sticky top-0 bg-background">
                   <tr className="border-b">
@@ -192,13 +187,13 @@ export function StepValidate({ result, onImportValid, onFixCsv, isImporting }: S
       )}
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         {result.valid > 0 && (
           <button
             type="button"
             onClick={onImportValid}
             disabled={isImporting}
-            className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <CheckCircle2 className="h-4 w-4" />
             {isImporting ? 'Importando...' : `${t('importValid')} (${result.valid})`}
@@ -208,7 +203,7 @@ export function StepValidate({ result, onImportValid, onFixCsv, isImporting }: S
           type="button"
           onClick={onFixCsv}
           disabled={isImporting}
-          className="flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+          className="flex items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
         >
           <XCircle className="h-4 w-4 text-muted-foreground" />
           {t('fixCsv')}

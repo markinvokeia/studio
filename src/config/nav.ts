@@ -201,7 +201,7 @@ export const navItems: NavItem[] = [
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_EXCEPTIONS_VIEW },
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST },
       { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
-      { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
+      { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
     ],
   },
   {

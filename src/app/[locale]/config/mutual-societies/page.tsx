@@ -273,39 +273,41 @@ export default function MutualSocietiesPage() {
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4 pb-2 space-y-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <div className="header-icon-circle flex-none"><Handshake className="h-5 w-5" /></div>
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><Handshake className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">
                             {isEditing && !selectedMutualSociety ? t('createDialog.title') : (selectedMutualSociety?.name ?? '')}
                         </CardTitle>
-                    </div>
-                    <div className="flex items-center gap-1 ml-2 flex-none">
-                        {selectedMutualSociety && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
-                                <Pencil className="h-3.5 w-3.5" />
-                                <span className="hidden sm:inline">{tColumns('edit')}</span>
-                            </Button>
-                        )}
-                        {selectedMutualSociety && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMutualSociety(selectedMutualSociety); setIsDeleteDialogOpen(true); }}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                        {selectedMutualSociety && !isEditing && (
+                            <div className="mt-0.5">
+                                <Badge variant={selectedMutualSociety.is_active ? 'success' : 'outline'} className="text-[10px]">
+                                    {selectedMutualSociety.is_active ? 'Activo' : 'Inactivo'}
+                                </Badge>
+                            </div>
                         )}
                     </div>
+                    {selectedMutualSociety && !isEditing && (
+                        <div className="flex gap-1 flex-none">
+                            {canUpdate && (
+                                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                    <Pencil className="h-4 w-4 mr-1" />
+                                    <span className="hidden sm:inline">{tColumns('edit')}</span>
+                                </Button>
+                            )}
+                            {canDelete && (
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMutualSociety(selectedMutualSociety); setIsDeleteDialogOpen(true); }}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    )}
                 </div>
-                {selectedMutualSociety && !isEditing && (
-                    <div className="ml-10 mt-1">
-                        <Badge variant={selectedMutualSociety.is_active ? 'success' : 'outline'} className="text-[10px]">
-                            {selectedMutualSociety.is_active ? 'Activo' : 'Inactivo'}
-                        </Badge>
-                    </div>
-                )}
             </CardHeader>
             <Separator />
-            <CardContent className="flex-1 overflow-auto p-4">
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                    <CardContent className="flex-1 overflow-auto p-4 space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -340,20 +342,28 @@ export default function MutualSocietiesPage() {
                                 <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
                             </FormItem>
                         )} />
-                        {isEditing && (
-                            <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedMutualSociety) form.reset({ id: selectedMutualSociety.id, name: selectedMutualSociety.name, description: selectedMutualSociety.description || '', code: selectedMutualSociety.code, is_active: selectedMutualSociety.is_active }); else handleClose(); }} disabled={isSaving}>
-                                    {t('createDialog.cancel')}
-                                </Button>
-                                <Button type="submit" disabled={isSaving}>
-                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {selectedMutualSociety ? t('createDialog.editSave') : t('createDialog.save')}
-                                </Button>
-                            </div>
-                        )}
-                    </form>
-                </Form>
-            </CardContent>
+                    </CardContent>
+                    {isEditing && (
+                        <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
+                            <Button type="submit" disabled={isSaving}>
+                                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {selectedMutualSociety ? t('createDialog.editSave') : t('createDialog.save')}
+                            </Button>
+                            <Button type="button" variant="outline" disabled={isSaving} onClick={() => {
+                                setIsEditing(false);
+                                setSubmissionError(null);
+                                if (selectedMutualSociety) {
+                                    form.reset({ id: selectedMutualSociety.id, name: selectedMutualSociety.name, description: selectedMutualSociety.description || '', code: selectedMutualSociety.code, is_active: selectedMutualSociety.is_active });
+                                } else {
+                                    handleClose();
+                                }
+                            }}>
+                                {t('createDialog.cancel')}
+                            </Button>
+                        </div>
+                    )}
+                </form>
+            </Form>
         </Card>
     );
 

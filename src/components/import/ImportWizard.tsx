@@ -131,8 +131,8 @@ export function ImportWizard() {
     if (currentStep === 0) return selectedType !== null;
     if (currentStep === 1) return uploadedFile !== null && parsedData !== null;
     if (currentStep === 2) return parsedData !== null && parsedData.headers.length > 0;
-    if (currentStep === 3) return true; // mapping is optional
-    if (currentStep === 4) return false; // handled by validate actions
+    if (currentStep === 3) return true;
+    if (currentStep === 4) return false;
     return false;
   }, [currentStep, selectedType, uploadedFile, parsedData]);
 
@@ -157,7 +157,6 @@ export function ImportWizard() {
 
   const handleNext = useCallback(() => {
     if (currentStep === 3 && parsedData && schema) {
-      // Moving from mapping to validate: run validation
       const result = validateData(parsedData.rows, parsedData.headers, columnMapping, schema);
       setValidationResult(result);
     }
@@ -172,17 +171,14 @@ export function ImportWizard() {
     if (!parsedData || !schema || !validationResult) return;
     setIsImporting(true);
     try {
-      // Build reverse mapping: field key → CSV header
       const reverseMapping: Record<string, string> = {};
       Object.entries(columnMapping).forEach(([csvHeader, fieldKey]) => {
         if (fieldKey) reverseMapping[fieldKey] = csvHeader;
       });
 
-      // Filter out invalid rows
       const errorRows = new Set(validationResult.errors.map((e) => e.row - 1));
       const validRows = parsedData.rows.filter((_, i) => !errorRows.has(i));
 
-      // Map each row to a record object using the column mapping
       const records = validRows.map((row) => {
         const record: Record<string, string> = {};
         schema.fields.forEach((field) => {
@@ -242,7 +238,6 @@ export function ImportWizard() {
       ? uploadedFile.name.slice(0, 27) + '...'
       : uploadedFile?.name ?? null;
 
-  // Mapping stats
   const mappedCount = Object.values(columnMapping).filter(Boolean).length;
   const ignoredCount = Object.values(columnMapping).filter((v) => !v).length;
   const notUpdatedCount = schema
@@ -252,60 +247,59 @@ export function ImportWizard() {
   const showPills = currentStep > 0 && selectedLabel;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Stepper */}
-      <WizardStepper currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+      <div className="flex-none px-4 pt-4">
+        <WizardStepper currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+      </div>
 
       {/* Context pills */}
       {showPills && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
-          <Pill label="Tipo" value={selectedLabel} color="primary" />
-
-          {truncatedFileName && currentStep > 1 && (
-            <Pill label="Archivo" value={truncatedFileName} title={uploadedFile?.name} />
-          )}
-
-          {parsedData && currentStep > 2 && (
-            <>
-              <Pill label="Registros" value={String(parsedData.totalRows)} />
-              <Pill label="Columnas" value={String(parsedData.headers.length)} />
-            </>
-          )}
-
-          {parsedData && currentStep > 3 && (
-            <>
-              <Pill label="Mapeadas" value={String(mappedCount)} color="success" />
-              <Pill label="Ignoradas" value={String(ignoredCount)} color="muted" />
-              <Pill label="Columnas sin mapear en BD" value={String(notUpdatedCount)} color="warning" />
-            </>
-          )}
-
-          {validationResult && currentStep > 4 && (
-            <>
-              <Pill label="Válidos" value={String(validationResult.valid)} color="success" />
-              <Pill label="Con errores" value={String(validationResult.invalid)} color="danger" />
-            </>
-          )}
-
-          {importResult && currentStep === 5 && (
-            <>
-              <Pill label="Insertados" value={String(importResult.inserted)} color="success" />
-              <Pill label="Actualizados" value={String(importResult.updated)} color="primary" />
-              <Pill label="Omitidos" value={String(importResult.skipped)} color="muted" />
-              <Pill label="Errores" value={String(importResult.errors)} color="danger" />
-            </>
-          )}
+        <div className="flex-none px-4 pt-3">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-lg border bg-muted/30 px-3 py-2">
+            <Pill label="Tipo" value={selectedLabel!} color="primary" />
+            {truncatedFileName && currentStep > 1 && (
+              <Pill label="Archivo" value={truncatedFileName} title={uploadedFile?.name} />
+            )}
+            {parsedData && currentStep > 2 && (
+              <>
+                <Pill label="Registros" value={String(parsedData.totalRows)} />
+                <Pill label="Columnas" value={String(parsedData.headers.length)} />
+              </>
+            )}
+            {parsedData && currentStep > 3 && (
+              <>
+                <Pill label="Mapeadas" value={String(mappedCount)} color="success" />
+                <Pill label="Ignoradas" value={String(ignoredCount)} color="muted" />
+                <Pill label="Sin mapear" value={String(notUpdatedCount)} color="warning" />
+              </>
+            )}
+            {validationResult && currentStep > 4 && (
+              <>
+                <Pill label="Válidos" value={String(validationResult.valid)} color="success" />
+                <Pill label="Con errores" value={String(validationResult.invalid)} color="danger" />
+              </>
+            )}
+            {importResult && currentStep === 5 && (
+              <>
+                <Pill label="Insertados" value={String(importResult.inserted)} color="success" />
+                <Pill label="Actualizados" value={String(importResult.updated)} color="primary" />
+                <Pill label="Omitidos" value={String(importResult.skipped)} color="muted" />
+                <Pill label="Errores" value={String(importResult.errors)} color="danger" />
+              </>
+            )}
+          </div>
         </div>
       )}
 
       {/* Step header */}
-      <div className="border-b pb-3">
-        <h2 className="text-lg font-semibold">{stepTitles[currentStep]}</h2>
-        <p className="mt-0.5 text-sm text-muted-foreground">{stepDescriptions[currentStep]}</p>
+      <div className="flex-none px-4 py-3 mt-3 border-b">
+        <h2 className="text-base font-semibold">{stepTitles[currentStep]}</h2>
+        <p className="mt-0.5 text-xs text-muted-foreground">{stepDescriptions[currentStep]}</p>
       </div>
 
-      {/* Step content — scrollable area */}
-      <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 440px)', minHeight: '220px' }}>
+      {/* Step content — scrollable */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {currentStep === 0 && (
           <StepSelectType
             selected={selectedType}
@@ -359,35 +353,36 @@ export function ImportWizard() {
         )}
       </div>
 
-      {/* Navigation buttons — always visible, hidden only on result step */}
+      {/* Navigation — always visible, hidden on result step */}
       {currentStep !== 5 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={currentStep === 0}
-            className="flex items-center gap-1.5 rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            {t('nav.back')}
-          </button>
-
-          {/* On validate step show hint instead of next */}
-          {currentStep === 4 ? (
-            <span className="text-xs text-muted-foreground">
-              Usá los botones de arriba para importar o corregir
-            </span>
-          ) : (
+        <div className="flex-none px-4 py-3 border-t bg-card">
+          <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={handleNext}
-              disabled={!canGoNext()}
-              className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+              onClick={handleBack}
+              disabled={currentStep === 0}
+              className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
             >
-              {t('nav.next')}
-              <ChevronRight className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" />
+              {t('nav.back')}
             </button>
-          )}
+
+            {currentStep === 4 ? (
+              <p className="hidden sm:block flex-1 text-center text-xs text-muted-foreground">
+                Usá los botones de arriba para importar o corregir
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={!canGoNext()}
+                className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+              >
+                {t('nav.next')}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
