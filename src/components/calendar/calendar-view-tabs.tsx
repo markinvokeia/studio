@@ -13,7 +13,7 @@ interface CalendarViewTabsProps {
 
 const MOBILE_VIEWS: { view: CalendarView; icon: React.ElementType; labelKey: string }[] = [
   { view: 'day', icon: CalendarDays, labelKey: 'views.day' },
-  { view: '3-day', icon: CalendarRange, labelKey: 'weekShort' },
+  { view: 'week', icon: CalendarRange, labelKey: 'weekShort' },
   { view: 'month', icon: LayoutGrid, labelKey: 'views.month' },
   { view: 'schedule', icon: List, labelKey: 'views.schedule' },
 ];
@@ -21,8 +21,8 @@ const MOBILE_VIEWS: { view: CalendarView; icon: React.ElementType; labelKey: str
 export function CalendarViewTabs({ view, onViewChange }: CalendarViewTabsProps) {
   const t = useTranslations('Calendar');
 
-  // Normalize view for active state: week maps to 3-day on mobile
-  const activeView = view === 'week' || view === '2-day' ? '3-day' : view;
+  // Normalize view for active state
+  const activeView = view === '3-day' || view === '2-day' ? 'week' : view;
 
   return (
     <div className="calendar-view-tabs">

@@ -78,23 +78,23 @@ export function CalendarHeader({
 
   // Desktop / Tablet: full header
   return (
-    <div className="calendar-header">
-      <div className="flex items-center gap-4">
-        <h2 className="text-xl font-bold">{t('title')}</h2>
+    <div className="calendar-header flex-wrap gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
         <Button variant="outline" size="sm" onClick={onToday}>
           {t('today')}
         </Button>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={onPrev}>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onNext}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h3 className="font-semibold">{headerTitle}</h3>
+        <h3 className="font-semibold text-sm whitespace-nowrap">{headerTitle}</h3>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         {children}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

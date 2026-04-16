@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay, isToday, set, startOfWeek } from 'date-fns';
 
 import {
   Carousel,
@@ -111,29 +111,52 @@ export function CalendarDayViewMobile({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Resource/day indicator dots */}
+      {/* Day/resource indicator strip */}
       {slides.length > 1 && (
-        <div className="flex items-center justify-center gap-2 py-2 border-b border-border bg-card shrink-0">
-          {slides.map((slide, i) => (
-            <button
-              key={slide.key}
-              className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors',
-                i === activeIndex
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
-              )}
-              onClick={() => api?.scrollTo(i)}
-            >
-              {slide.color && (
-                <span
-                  className="inline-block w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: slide.color }}
-                />
-              )}
-              <span className="truncate max-w-[80px]">{slide.label}</span>
-            </button>
-          ))}
+        <div className="flex items-center justify-center gap-1 py-2 border-b border-border bg-card shrink-0 px-2">
+          {slides.map((slide, i) => {
+            const isActive = i === activeIndex;
+            const isDayToday = isToday(slide.day);
+            // Compact mode for many slides (week view with 7 days)
+            const compact = slides.length > 4;
+
+            return (
+              <button
+                key={slide.key}
+                className={cn(
+                  'flex flex-col items-center transition-colors rounded-lg',
+                  compact ? 'px-2 py-1 gap-0 flex-1 min-w-0' : 'px-2.5 py-1 gap-0.5',
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : isDayToday
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground',
+                )}
+                onClick={() => api?.scrollTo(i)}
+              >
+                {compact ? (
+                  <>
+                    <span className="text-[10px] font-medium uppercase leading-tight">
+                      {format(slide.day, 'EEEEE', { locale: dateLocale })}
+                    </span>
+                    <span className={cn('text-sm font-bold leading-tight', isActive && 'text-primary-foreground')}>
+                      {format(slide.day, 'd')}
+                    </span>
+                  </>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs font-medium">
+                    {slide.color && (
+                      <span
+                        className="inline-block w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: slide.color }}
+                      />
+                    )}
+                    <span className="truncate max-w-[80px]">{slide.label}</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 

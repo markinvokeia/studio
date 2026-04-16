@@ -1199,9 +1199,9 @@ export function AppointmentFormDialog({
                         </div>
                     )}
                 </DialogBody>
-                <DialogFooter>
-                    <Button onClick={handleSave} disabled={isSessionDialogOpen}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
+                <DialogFooter className="flex-row justify-end gap-2 space-x-0">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
+                    <Button onClick={handleSave} disabled={isSessionDialogOpen}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
                 </DialogFooter>
             </DialogContent>
 

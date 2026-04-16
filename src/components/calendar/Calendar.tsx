@@ -28,8 +28,8 @@ export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn } from './c
 /** Resolve view to an effective variant based on breakpoint */
 function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): CalendarView {
   if (!isMobile) return view;
-  // On mobile: week becomes 3-day, 2-day becomes day
-  if (view === 'week') return '3-day';
+  // On mobile: 2-day becomes day, year becomes month
+  // Week stays as week — the mobile carousel handles all 7 days via swipe
   if (view === '2-day') return 'day';
   if (view === 'year') return 'month';
   return view;
@@ -151,6 +151,7 @@ const Calendar: React.FC<CalendarProps> = ({
           <CalendarScheduleView
             events={events}
             dateLocale={dateLocale}
+            breakpoint={breakpoint}
             onEventClick={onEventClick}
           />
         );
