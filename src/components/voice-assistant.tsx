@@ -71,6 +71,12 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
     const animFrameRef = React.useRef<number | null>(null);
     const streamRef = React.useRef<MediaStream | null>(null);
     const silenceStartRef = React.useRef<number | null>(null);
+    const rescheduleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+    const retryCountRef = React.useRef(0);
+    const MAX_WAKE_RETRIES = 10;
+    const BASE_RETRY_DELAY_MS = 300;
+    const lastAudioLevelUpdateRef = React.useRef(0);
+    const AUDIO_LEVEL_THROTTLE_MS = 100; // ~10 Hz
 
     const getSpeechRecognitionCtor = (): ISpeechRecognitionConstructor | undefined =>
         (typeof SpeechRecognition !== 'undefined' ? SpeechRecognition : undefined) ??
@@ -212,13 +218,17 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
                     dataArray.reduce((s, v) => s + v * v, 0) / dataArray.length,
                 );
 
-                const bars = Array.from({ length: BAR_COUNT }, (_, i) => {
-                    const offset = Math.floor((i / BAR_COUNT) * dataArray.length);
-                    const slice = dataArray.slice(offset, offset + 4);
-                    const avg = slice.reduce((s, v) => s + v, 0) / slice.length;
-                    return Math.max(2, (avg / 255) * 28);
-                });
-                setAudioLevel(bars);
+                const now = performance.now();
+                if (now - lastAudioLevelUpdateRef.current >= AUDIO_LEVEL_THROTTLE_MS) {
+                    lastAudioLevelUpdateRef.current = now;
+                    const bars = Array.from({ length: BAR_COUNT }, (_, i) => {
+                        const offset = Math.floor((i / BAR_COUNT) * dataArray.length);
+                        const slice = dataArray.slice(offset, offset + 4);
+                        const avg = slice.reduce((s, v) => s + v, 0) / slice.length;
+                        return Math.max(2, (avg / 255) * 28);
+                    });
+                    setAudioLevel(bars);
+                }
 
                 if (rms < SILENCE_THRESHOLD_RMS) {
                     if (silenceStartRef.current === null) {
@@ -246,11 +256,18 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
     const startWakeWordListening = React.useCallback(() => {
         if (typeof window === 'undefined') return;
 
+        retryCountRef.current = 0;
+
         const SR = getSpeechRecognitionCtor();
         if (!SR) return;
 
         if (wakeRecognitionRef.current) {
             try { wakeRecognitionRef.current.abort(); } catch { /* ignore */ }
+        }
+
+        if (rescheduleTimerRef.current !== null) {
+            clearTimeout(rescheduleTimerRef.current);
+            rescheduleTimerRef.current = null;
         }
 
         const recognition = new SR();
@@ -273,14 +290,28 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
             }
         };
 
-        const reschedule = (delay: number) => {
-            setTimeout(() => {
+        const reschedule = (baseDelay: number) => {
+            // Guard: only one pending reschedule at a time
+            if (rescheduleTimerRef.current !== null) return;
+            if (voiceStateRef.current !== 'listening') return;
+
+            retryCountRef.current += 1;
+            if (retryCountRef.current > MAX_WAKE_RETRIES) {
+                // Give up — user can click the mic to restart manually
+                setState('idle');
+                return;
+            }
+
+            // Exponential backoff: 300, 600, 1200, 2400, …  capped at 10s
+            const delay = Math.min(baseDelay * Math.pow(2, retryCountRef.current - 1), 10000);
+            rescheduleTimerRef.current = setTimeout(() => {
+                rescheduleTimerRef.current = null;
                 if (voiceStateRef.current === 'listening') startWakeWordListening();
             }, delay);
         };
 
-        recognition.onerror = () => reschedule(1500);
-        recognition.onend = () => reschedule(300);
+        recognition.onerror = () => reschedule(BASE_RETRY_DELAY_MS);
+        recognition.onend = () => reschedule(BASE_RETRY_DELAY_MS);
 
         setState('listening');
         try { recognition.start(); } catch { /* ignore duplicate start */ }
@@ -328,8 +359,16 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
 
     React.useEffect(() => {
         startWakeWordListening();
+        if (rescheduleTimerRef.current !== null) {
+            clearTimeout(rescheduleTimerRef.current);
+            rescheduleTimerRef.current = null;
+        }
         return () => {
             voiceStateRef.current = 'idle';
+            if (rescheduleTimerRef.current !== null) {
+                clearTimeout(rescheduleTimerRef.current);
+                rescheduleTimerRef.current = null;
+            }
             try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
             try { stopRecognitionRef.current?.abort(); } catch { /* ignore */ }
             stopAnimFrame();
