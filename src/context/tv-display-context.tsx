@@ -126,6 +126,15 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
   const channelRef = React.useRef<BroadcastChannel | null>(null);
   const tvWindowRef = React.useRef<Window | null>(null);
   const refreshTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const roomsRef = React.useRef<TVRoomState[]>(rooms);
+  const statusRef = React.useRef<TVDisplayStatus>(status);
+  const settingsRef = React.useRef<TVDisplaySettings>(settings);
+  const clinicInfoRef = React.useRef<TVClinicInfo | null>(clinicInfo);
+
+  React.useEffect(() => { roomsRef.current = rooms; }, [rooms]);
+  React.useEffect(() => { statusRef.current = status; }, [status]);
+  React.useEffect(() => { settingsRef.current = settings; }, [settings]);
+  React.useEffect(() => { clinicInfoRef.current = clinicInfo; }, [clinicInfo]);
 
   // Load settings from localStorage on mount
   React.useEffect(() => {
@@ -147,25 +156,13 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     channelRef.current = ch;
     ch.onmessage = (event: MessageEvent<TVBroadcastMessage>) => {
       if (event.data.type === 'REQUEST_STATE') {
-        setRooms((currentRooms) => {
-          setStatusState((currentStatus) => {
-            setSettings((currentSettings) => {
-              setClinicInfo((currentClinic) => {
-                ch.postMessage({
-                  type: 'STATE_SYNC',
-                  rooms: currentRooms,
-                  status: currentStatus,
-                  settings: currentSettings,
-                  clinicInfo: currentClinic,
-                } satisfies TVBroadcastMessage);
-                return currentClinic;
-              });
-              return currentSettings;
-            });
-            return currentStatus;
-          });
-          return currentRooms;
-        });
+        ch.postMessage({
+          type: 'STATE_SYNC',
+          rooms: roomsRef.current,
+          status: statusRef.current,
+          settings: settingsRef.current,
+          clinicInfo: clinicInfoRef.current,
+        } satisfies TVBroadcastMessage);
       }
     };
     return () => ch.close();
@@ -236,7 +233,12 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
           const existing = prevRooms.find((r) => r.calendarId === room.calendarId);
           return { ...room, currentIndex: existing?.currentIndex ?? 0 };
         });
-        broadcast({ type: 'REFRESH_DATA', rooms: merged });
+        // Only broadcast if appointment data actually changed
+        const prevKey = JSON.stringify(prevRooms.map(r => r.appointments.map(a => a.id)));
+        const nextKey = JSON.stringify(merged.map(r => r.appointments.map(a => a.id)));
+        if (prevKey !== nextKey) {
+          broadcast({ type: 'REFRESH_DATA', rooms: merged });
+        }
         return merged;
       });
     } catch (err) {
@@ -347,7 +349,7 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const url = `/${locale}/tv-display/screen`;
-    const win = window.open(url, 'tv-display-screen', 'noopener,noreferrer');
+    const win = window.open(url, 'tv-display-screen');
     tvWindowRef.current = win;
     setStatus('on');
     // The screen will send REQUEST_STATE once its BroadcastChannel is ready;

@@ -229,7 +229,6 @@ async function getAppointments(
                 quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined
             };
 
-            console.log("Mapped appointment:", appointment);
             return appointment;
         }).filter((apt): apt is Appointment => apt !== null);
     } catch (error) {
@@ -335,6 +334,7 @@ export default function AppointmentsPage() {
     const [isLoadingQuoteInfo, setIsLoadingQuoteInfo] = React.useState(false);
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const { hasPermission } = usePermissions();
+    const eventClickAbortRef = React.useRef<AbortController | null>(null);
 
     // Detail sheets
     const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
@@ -381,12 +381,13 @@ export default function AppointmentsPage() {
         }
     }, [groupBy, selectedCalendarIds]);
 
-    const loadLinkedSession = React.useCallback(async (appointment: Appointment) => {
+    const loadLinkedSession = React.useCallback(async (appointment: Appointment, signal?: AbortSignal) => {
         const patientId = appointment.patientId;
         if (!patientId) { setLinkedSession(null); return; }
         setIsLoadingLinkedSession(true);
         try {
             const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: patientId });
+            if (signal?.aborted) return;
             const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
             const match = sessions.find((s: any) => s?.appointment_id?.toString() === appointment.id);
             if (match) {
@@ -414,19 +415,21 @@ export default function AppointmentsPage() {
                 setLinkedSession(null);
             }
         } catch {
+            if (signal?.aborted) return;
             setLinkedSession(null);
         } finally {
-            setIsLoadingLinkedSession(false);
+            if (!signal?.aborted) setIsLoadingLinkedSession(false);
         }
     }, []);
 
-    const loadQuoteInfo = React.useCallback(async (quoteId: string) => {
+    const loadQuoteInfo = React.useCallback(async (quoteId: string, signal?: AbortSignal) => {
         setIsLoadingQuoteInfo(true);
         try {
             const [ordersData, invoicesData] = await Promise.all([
                 api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId }).catch(() => []),
                 api.get(API_ROUTES.SALES.QUOTES_INVOICES, { quote_id: quoteId }).catch(() => []),
             ]);
+            if (signal?.aborted) return;
             const orders: any[] = Array.isArray(ordersData) ? ordersData : (ordersData.orders || ordersData.data || []);
             const invoices: any[] = Array.isArray(invoicesData) ? invoicesData : (invoicesData.invoices || invoicesData.data || []);
             const firstOrder = orders.length > 0 ? orders[0] : null;
@@ -464,22 +467,28 @@ export default function AppointmentsPage() {
                 updatedAt: inv.updated_at || inv.updatedAt || '',
             })));
         } catch {
+            if (signal?.aborted) return;
             setQuoteOrder(null);
             setQuoteInvoices([]);
         } finally {
-            setIsLoadingQuoteInfo(false);
+            if (!signal?.aborted) setIsLoadingQuoteInfo(false);
         }
     }, []);
 
     const handleEventClick = (appointment: Appointment) => {
+        eventClickAbortRef.current?.abort();
+        const controller = new AbortController();
+        eventClickAbortRef.current = controller;
+
         setSelectedAppointment(appointment);
         setLinkedSession(null);
         setQuoteOrder(null);
         setQuoteInvoices([]);
         setIsLoadingQuoteInfo(false);
         setIsDetailViewOpen(true);
-        const tasks: Promise<void>[] = [loadLinkedSession(appointment)];
-        if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id));
+
+        const tasks: Promise<void>[] = [loadLinkedSession(appointment, controller.signal)];
+        if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
     };
 
@@ -769,7 +778,6 @@ export default function AppointmentsPage() {
             }
         }).filter((event): event is NonNullable<typeof event> => event !== null);
 
-        console.log("Calendar events generated:", events);
         return events;
     }, [appointments, calendars]);
 
