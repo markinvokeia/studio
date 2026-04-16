@@ -405,3 +405,80 @@
   height: 2px;
   background-color: #F44336;
 }
+
+/* ========================================================================
+   Mobile header
+   ======================================================================== */
+
+.calendar-header-mobile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ========================================================================
+   Mobile: bottom view tabs
+   ======================================================================== */
+
+.calendar-view-tabs {
+  position: sticky;
+  bottom: 0;
+  border-top: 1px solid var(--border);
+  background: hsl(var(--card));
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+/* ========================================================================
+   Mobile responsive adjustments
+   ======================================================================== */
+
+@media (max-width: 767px) {
+  .calendar-container {
+    border: none;
+    border-radius: 0;
+  }
+
+  .calendar-header {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .calendar-day {
+    padding: 0.25rem;
+    min-height: 48px;
+  }
+
+  .calendar-day-name-grid {
+    padding: 0.25rem 0;
+    font-size: 0.75rem;
+  }
+}
+
+/* ========================================================================
+   Tablet responsive adjustments (768px - 1024px)
+   ======================================================================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .calendar-header {
+    padding: 0.5rem 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .day-view-group-cell {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.3rem;
+  }
+
+  .day-block {
+    scroll-snap-type: x mandatory;
+  }
+
+  .day-block > .day-column {
+    scroll-snap-align: start;
+  }
+}

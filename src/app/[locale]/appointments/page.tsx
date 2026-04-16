@@ -874,6 +874,73 @@ export default function AppointmentsPage() {
                     groupingColumns={groupingColumns}
                     onViewChange={setCurrentView}
                     onSlotClick={handleSlotClick}
+                    filterSheet={
+                        <div className="space-y-4">
+                            {/* Calendars section */}
+                            <div>
+                                <h4 className="text-sm font-semibold mb-2">{t('calendars')}</h4>
+                                <div className="flex gap-2 mb-2">
+                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</Button>
+                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds([])}>{t('deselectAll')}</Button>
+                                </div>
+                                <div className="space-y-1">
+                                    {calendars.map((calendar) => (
+                                        <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                <span className="text-sm">{calendar.name}</span>
+                                            </div>
+                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Doctors section */}
+                            {showGroupControls && (
+                                <>
+                                    <Separator />
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-2">{t('doctors')}</h4>
+                                        <div className="flex gap-2 mb-2">
+                                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</Button>
+                                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds([])}>{t('deselectAll')}</Button>
+                                        </div>
+                                        <div className="space-y-1">
+                                            {doctors.map((doctor) => (
+                                                <label key={doctor.id} className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                    <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
+                                                    <span className="text-sm">{doctor.name}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <Separator />
+                                    <div>
+                                        <h4 className="text-sm font-semibold mb-2">{t('grouping.label')}</h4>
+                                        <div className="space-y-1">
+                                            {(['none', 'doctor', 'calendar'] as const).map((option) => (
+                                                <button
+                                                    key={option}
+                                                    className="flex items-center justify-between w-full py-2 px-1 rounded-md hover:bg-muted/50 text-sm"
+                                                    disabled={option === 'calendar' && calendarGroupingColumns.length === 0}
+                                                    onClick={() => {
+                                                        if (option === 'doctor' && selectedDoctorIds.length === 0 && doctors.length > 0) {
+                                                            setSelectedDoctorIds(doctors.map(d => d.id));
+                                                        }
+                                                        if (option === 'calendar' && calendarGroupingColumns.length === 0) return;
+                                                        setGroupBy(option);
+                                                    }}
+                                                >
+                                                    <span>{t(`grouping.options.${option}`)}</span>
+                                                    {groupBy === option && <Check className="h-4 w-4 text-primary" />}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    }
                 >
                     <div className="flex items-center gap-2">
                         <TooltipProvider>

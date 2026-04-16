@@ -3841,7 +3841,9 @@
       "week": "Week",
       "year": "Year"
     },
-    "weekShort": "Wk"
+    "weekShort": "Wk",
+    "filterTitle": "Filter Schedule",
+    "noAppointments": "No appointments"
   },
   "AlertCategoriesPage": {
     "title": "Alert Categories",

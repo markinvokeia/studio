@@ -9,3 +9,9 @@ export const PANEL_ANIMATION_DURATION = 220;
 
 /** Left panel pixel width below which narrow (card) mode is activated */
 export const LEFT_PANEL_NARROW_THRESHOLD = 380;
+
+/** Calendar breakpoint: viewport below this width is considered mobile */
+export const BREAKPOINT_MOBILE = 768;
+
+/** Calendar breakpoint: viewport below this width is considered tablet (above is desktop) */
+export const BREAKPOINT_TABLET = 1024;

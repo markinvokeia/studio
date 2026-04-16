@@ -3806,7 +3806,9 @@
       "week": "Semana",
       "year": "Año"
     },
-    "weekShort": "Sem"
+    "weekShort": "Sem",
+    "filterTitle": "Filtrar Agenda",
+    "noAppointments": "Sin citas"
   },
   "AlertCategoriesPage": {
     "title": "Categorías de Alerta",
