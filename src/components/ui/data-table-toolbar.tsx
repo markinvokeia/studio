@@ -1,8 +1,6 @@
 
 'use client';
 
-import { Table } from '@tanstack/react-table';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,12 +10,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { PlusCircle, RefreshCw, SlidersHorizontal, Filter, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+import { Table } from '@tanstack/react-table';
+import { Filter, PlusCircle, RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -53,8 +53,8 @@ export function DataTableToolbar<TData>({
   const t = useTranslations('DataTableToolbar');
   return (
     <div className="flex items-center gap-2">
-      {/* Search + filter — 60% on mobile, flex-1 on sm+ */}
-      <div className="flex items-center gap-2 w-[60%] sm:flex-1 sm:min-w-0">
+      {/* Search + filter — full width on mobile, flex-grow on sm+ */}
+      <div className="flex items-center gap-2 w-full sm:flex-grow sm:min-w-0">
         <div className="relative flex items-center flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -108,7 +108,7 @@ export function DataTableToolbar<TData>({
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-2 flex-none">
+      <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0 flex-row-reverse sm:flex-row">
         {onCreate && (
           <div className="shrink-0">
             <TooltipProvider>
