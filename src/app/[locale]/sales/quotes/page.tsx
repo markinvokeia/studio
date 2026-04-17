@@ -1156,6 +1156,7 @@ export default function QuotesPage() {
                             className="h-full"
                             isSendingEmail={isSendingEmail}
                             setIsSendingEmail={setIsSendingEmail}
+                            isSales={true}
                         />
                     }
                     rightPanel={

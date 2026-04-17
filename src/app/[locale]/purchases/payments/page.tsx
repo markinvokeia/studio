@@ -183,7 +183,11 @@ function PaymentsPageContent() {
 
         setIsSendingEmail(true);
         try {
-            await api.post(API_ROUTES.PURCHASES.API_PAYMENT_SEND, { paymentId: selectedPaymentForEmail.id, emails });
+            await api.post(API_ROUTES.PURCHASES.API_PAYMENT_SEND, {
+                transaction_id: selectedPaymentForEmail.transaction_id || selectedPaymentForEmail.id,
+                transaction_type: selectedPaymentForEmail.transaction_type,
+                emails,
+            });
 
             toast({
                 title: 'Email Sent',

@@ -1039,6 +1039,7 @@ function QuotesPageContent() {
                             className="h-full"
                             isSendingEmail={isSendingEmail}
                             setIsSendingEmail={setIsSendingEmail}
+                            isSales={false}
                         />
                     }
                     rightPanel={

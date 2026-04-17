@@ -304,6 +304,7 @@ interface RecentQuotesTableProps {
   standalone?: boolean;
   isSendingEmail?: boolean;
   setIsSendingEmail?: (sending: boolean) => void;
+  isSales?: boolean;
 }
 
 export function RecentQuotesTable({
@@ -325,6 +326,7 @@ export function RecentQuotesTable({
   standalone = false,
   isSendingEmail = false,
   setIsSendingEmail,
+  isSales = false,
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
@@ -422,7 +424,11 @@ export function RecentQuotesTable({
 
     handleSetSending(true);
     try {
-      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quoteId: selectedQuoteForEmail.id, emails });
+      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, {
+        quote_id: selectedQuoteForEmail.id,
+        is_sales: isSales,
+        emails,
+      });
 
       toast({
         title: t('QuotesPage.emailSent'),
