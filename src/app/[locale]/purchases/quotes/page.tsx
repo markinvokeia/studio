@@ -1490,7 +1490,8 @@ function QuotesPageContent() {
                                                                                 field.onChange(e);
                                                                                 const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
                                                                                 const newQty = rounded === '' ? 0 : rounded;
-                                                                                updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), quantity: newQty, total: price * newQty });
+                                                                                quoteForm.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
+                                                                                quoteForm.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
                                                                             }} />
                                                                         </FormControl>
                                                                         <FormMessage />
@@ -1505,7 +1506,7 @@ function QuotesPageContent() {
                                                                                 field.onChange(e);
                                                                                 const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                                 const newPrice = Number(e.target.value);
-                                                                                updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), unit_price: newPrice, total: Math.round((newPrice * quantity) * 100) / 100 });
+                                                                                quoteForm.setValue(`items.${index}.total`, Math.round((newPrice * quantity) * 100) / 100, { shouldDirty: true });
                                                                             }} />
                                                                         </FormControl>
                                                                         <FormMessage />

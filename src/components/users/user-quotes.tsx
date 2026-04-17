@@ -1159,7 +1159,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                             field.onChange(e);
                                             const qty = parseInt(e.target.value) || 0;
                                             const price = quoteEditForm.getValues(`items.${index}.unit_price`) || 0;
-                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), quantity: qty, total: qty * price });
+                                            quoteEditForm.setValue(`items.${index}.total`, qty * price, { shouldValidate: true, shouldDirty: true });
                                           }}
                                         />
                                       </FormControl>
@@ -1176,7 +1176,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                             field.onChange(e);
                                             const price = parseFloat(e.target.value) || 0;
                                             const qty = quoteEditForm.getValues(`items.${index}.quantity`) || 0;
-                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), unit_price: price, total: qty * price });
+                                            quoteEditForm.setValue(`items.${index}.total`, qty * price, { shouldValidate: true, shouldDirty: true });
                                           }}
                                         />
                                       </FormControl>

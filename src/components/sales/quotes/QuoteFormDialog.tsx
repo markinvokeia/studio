@@ -404,7 +404,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                                 field.onChange(e);
                                                                                 const price = form.getValues(`items.${index}.unit_price`) || 0;
                                                                                 const newQty = rounded === '' ? 0 : rounded;
-                                                                                update(index, { ...form.getValues(`items.${index}`), quantity: newQty as number, total: price * (newQty as number) });
+                                                                                form.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
+                                                                                form.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
                                                                             }}
                                                                         />
                                                                     </FormControl>
@@ -421,7 +422,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                                 field.onChange(e);
                                                                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                                 const newPrice = Number(e.target.value);
-                                                                                update(index, { ...form.getValues(`items.${index}`), unit_price: newPrice, total: Math.round(newPrice * quantity * 100) / 100 });
+                                                                                form.setValue(`items.${index}.total`, Math.round(newPrice * quantity * 100) / 100, { shouldDirty: true });
                                                                             }}
                                                                         />
                                                                     </FormControl>
