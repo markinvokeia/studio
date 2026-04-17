@@ -2105,6 +2105,7 @@ export default function UsersPage() {
             setIsAppointmentDialogOpen(open);
           }}
           initialData={{ user: selectedUser }}
+          readOnlyFields={{ user: true }}
           calendars={apptCalendars}
           doctors={apptDoctors}
           doctorServiceMap={apptDoctorServiceMap}

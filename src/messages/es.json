@@ -3335,6 +3335,8 @@
     },
     "sessionDialog": {
       "createTitle": "Crear Sesión",
+      "patient": "Paciente",
+      "unknownPatient": "Paciente no seleccionado",
       "date": "Fecha",
       "doctor": "Doctor",
       "selectDoctor": "Seleccionar un doctor",

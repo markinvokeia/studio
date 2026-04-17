@@ -498,6 +498,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const [isSearchingUsers, setIsSearchingUsers] = React.useState(false);
   const [userSearchOpen, setUserSearchOpen] = React.useState(false);
   const [userSearchQuery, setUserSearchQuery] = React.useState('');
+  const isUserLocked = Boolean(initialUser);
   const [serviceSearchOpen, setServiceSearchOpen] = React.useState<Record<number, boolean>>({});
   const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
   const [isSearchingServices, setIsSearchingServices] = React.useState(false);
@@ -906,10 +907,21 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     <FormLabel>
                       {isSales ? t('client') : t('provider')}
                     </FormLabel>
-                    <Popover open={userSearchOpen} onOpenChange={setUserSearchOpen}>
+                    <Popover
+                      open={userSearchOpen}
+                      onOpenChange={(open) => {
+                        if (isUserLocked) return;
+                        setUserSearchOpen(open);
+                      }}
+                    >
                       <PopoverTrigger asChild>
                         <FormControl>
-                          <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                            disabled={isUserLocked}
+                          >
                             <span className="truncate mr-2 text-left">
                               {field.value
                                 ? (users.find(user => user.id === field.value)?.name || (isEditing && invoice?.user_name) || (isSales ? t('selectPatient') : t('selectProvider')))

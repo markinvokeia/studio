@@ -2144,6 +2144,15 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                             <div className="space-y-6 xl:flex xl:flex-row xl:gap-6 xl:space-y-0">
                                 {/* Left Column: General Info */}
                                 <div className="grid content-start gap-4 md:grid-cols-2 xl:flex-1">
+                                    <div className="space-y-2 md:col-span-2">
+                                        <Label>{tDialog('patient')}</Label>
+                                        <Input
+                                            value={userName || tDialog('unknownPatient')}
+                                            readOnly
+                                            disabled
+                                            className="bg-muted text-muted-foreground cursor-not-allowed"
+                                        />
+                                    </div>
                                     <div className="space-y-2">
                                             <Label>{tDialog('date')}</Label>
                                             <DatePickerInput
