@@ -51,14 +51,25 @@ async function getHolidays(): Promise<ClinicException[]> {
             id: apiHoliday.id ? String(apiHoliday.id) : `ex_${Math.random().toString(36).substr(2, 9)}`,
             date: formatHolidayDate(apiHoliday.date),
             is_open: apiHoliday.is_open,
-            start_time: apiHoliday.start_time,
-            end_time: apiHoliday.end_time,
+            start_time: apiHoliday.start_time ?? '',
+            end_time: apiHoliday.end_time ?? '',
             notes: apiHoliday.notes || '',
         }));
     } catch (error) {
         console.error("Failed to fetch holidays:", error);
         return [];
     }
+}
+
+function mapHolidayToFormValues(holiday: ClinicException): HolidayFormValues {
+    return {
+        id: holiday.id,
+        date: formatHolidayDate(holiday.date),
+        is_open: holiday.is_open,
+        start_time: holiday.start_time ?? '',
+        end_time: holiday.end_time ?? '',
+        notes: holiday.notes ?? '',
+    };
 }
 
 async function upsertHoliday(holidayData: HolidayFormValues) {
@@ -131,7 +142,7 @@ export default function HolidaysPage() {
         setSubmissionError(null);
         if (holiday) {
             setIsEditing(false);
-            form.reset({ ...holiday, date: formatHolidayDate(holiday.date) });
+            form.reset(mapHolidayToFormValues(holiday));
         }
     };
 
@@ -153,7 +164,7 @@ export default function HolidaysPage() {
     const handleBack = () => {
         if (isEditing && selectedHoliday) {
             setIsEditing(false);
-            form.reset({ ...selectedHoliday, date: formatHolidayDate(selectedHoliday.date) });
+            form.reset(mapHolidayToFormValues(selectedHoliday));
         } else {
             handleClose();
         }
@@ -306,7 +317,7 @@ export default function HolidaysPage() {
                             <FormItem>
                                 <FormLabel>{t('createDialog.date')}</FormLabel>
                                 <FormControl>
-                                    {isEditing ? <DatePickerInput value={field.value} onChange={field.onChange} /> : <Input {...field} disabled />}
+                                    {isEditing ? <DatePickerInput value={field.value ?? ''} onChange={field.onChange} /> : <Input {...field} value={field.value ?? ''} disabled />}
                                 </FormControl>
                                 <FormMessage />
                             </FormItem>
@@ -320,27 +331,27 @@ export default function HolidaysPage() {
                         <FormField control={form.control} name="start_time" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.startTime')}</FormLabel>
-                                <FormControl><Input type="time" {...field} disabled={!isEditing} /></FormControl>
+                                <FormControl><Input type="time" {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="end_time" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.endTime')}</FormLabel>
-                                <FormControl><Input type="time" {...field} disabled={!isEditing} /></FormControl>
+                                <FormControl><Input type="time" {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         <FormField control={form.control} name="notes" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>{t('createDialog.notes')}</FormLabel>
-                                <FormControl><Textarea {...field} disabled={!isEditing} placeholder={isEditing ? t('createDialog.notesPlaceholder') : ''} /></FormControl>
+                                <FormControl><Textarea {...field} value={field.value ?? ''} disabled={!isEditing} placeholder={isEditing ? t('createDialog.notesPlaceholder') : ''} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                         )} />
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedHoliday) form.reset({ ...selectedHoliday, date: formatHolidayDate(selectedHoliday.date) }); else handleClose(); }} disabled={isSaving}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedHoliday) form.reset(mapHolidayToFormValues(selectedHoliday)); else handleClose(); }} disabled={isSaving}>
                                     {t('createDialog.cancel')}
                                 </Button>
                                 <Button type="submit" disabled={isSaving}>
