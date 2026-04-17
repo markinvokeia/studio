@@ -198,12 +198,11 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
       isNarrow={isNarrow}
-      renderCard={(row: any) => (
-        <DataCard
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
           title={row.name || ''}
           subtitle={row.email || row.phone_number || ''}
           avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
-          isSelected={selectedUser?.id === row.id}
           showArrow
           onClick={() => onRowSelectionChange([row])}
         />

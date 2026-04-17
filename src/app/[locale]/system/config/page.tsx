@@ -213,8 +213,8 @@ export default function SystemConfigPage() {
                         onRefresh={loadConfigs}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow || !!selectedConfig}
-                        renderCard={(row: SystemConfiguration) => (
-                            <DataCard
+                        renderCard={(row: SystemConfiguration, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.key}
                                 subtitle={row.description || row.value}
                                 badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{row.data_type}</span>}

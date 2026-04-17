@@ -108,8 +108,8 @@ export default function ExecutionHistoryPage() {
             onRefresh={onRefresh}
             isRefreshing={isRefreshing}
             isNarrow={isNarrow || !!selectedRun}
-            renderCard={(row: AlertScheduleRun) => (
-              <DataCard
+            renderCard={(row: AlertScheduleRun, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
                 title={row.run_date ? format(new Date(row.run_date), 'yyyy-MM-dd HH:mm') : ''}
                 subtitle={`${row.rules_processed ?? 0} reglas · ${row.alerts_created} alertas`}
                 badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.status === 'SUCCESS' || row.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.status}</span>}

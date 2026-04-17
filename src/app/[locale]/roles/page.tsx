@@ -92,11 +92,10 @@ function RolesTableNarrow({ columns, roles, selectedRole, onRowSelectionChange, 
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       isNarrow={isNarrow}
-      renderCard={(row: any) => (
-        <DataCard
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
           title={row.name || ''}
           subtitle={row.description || ''}
-          isSelected={selectedRole?.id === row.id}
           showArrow
           onClick={() => onRowSelectionChange([row])}
         />

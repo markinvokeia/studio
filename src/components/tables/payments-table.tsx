@@ -331,11 +331,10 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           onRowSelectionChange={onRowSelectionChange}
           getRowClassName={(row: Payment) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
           isNarrow={isNarrow}
-          renderCard={(row: Payment) => (
-            <DataCard
+          renderCard={(row: Payment, _isSelected: boolean) => (
+            <DataCard isSelected={_isSelected}
               title={row.doc_no || String(row.id)}
               subtitle={[row.user_name, row.payment_method_code, row.transaction_type].filter(Boolean).join(' · ')}
-              isSelected={rowSelection ? !!rowSelection[row.id as any] : false}
               showArrow
               onClick={() => onRowSelectionChange?.([row])}
             />

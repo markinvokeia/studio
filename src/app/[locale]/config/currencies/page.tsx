@@ -158,8 +158,8 @@ export default function CurrenciesPage() {
                         isRefreshing={isLoading}
                         onRefresh={fetchExchangeRates}
                         isNarrow={isNarrow || !!selectedItem}
-                        renderCard={(row: ExchangeRateHistoryItem) => (
-                            <DataCard
+                        renderCard={(row: ExchangeRateHistoryItem, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.fecha}
                                 subtitle={`USD ${row.datos_completos?.usd_compra ?? ''} / ${row.datos_completos?.usd_venta ?? ''}`}
                                 showArrow

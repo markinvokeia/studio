@@ -397,11 +397,11 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
             isNarrow={isViewportNarrow}
-            renderCard={(payment: Payment) => {
+            renderCard={(payment: Payment, _isSelected: boolean) => {
               const { type, variant } = getPaymentType(payment);
               const statusLower = payment.status?.toLowerCase();
               return (
-                <DataCard
+                <DataCard isSelected={_isSelected}
                   title={payment.doc_no || `PAY-${payment.id}`}
                   subtitle={formatDateTime(payment.createdAt)}
                   badge={

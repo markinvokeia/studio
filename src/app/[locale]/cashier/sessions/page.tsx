@@ -417,8 +417,8 @@ export default function CashSessionsPage() {
                         onColumnVisibilityChange={setColumnVisibility}
                         enableSingleRowSelection={false}
                         isNarrow={isNarrow}
-                        renderCard={(row: CajaSesion) => (
-                            <DataCard
+                        renderCard={(row: CajaSesion, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.cash_point_name || row.user_name || 'Sesión'}
                                 subtitle={row.fechaApertura ? new Date(row.fechaApertura).toLocaleString() : ''}
                                 badge={

@@ -300,8 +300,8 @@ export default function AlertCategoriesPage() {
                     onRefresh={() => loadCategories(columnFilters, currentPage, pageSize)}
                     isRefreshing={isRefreshing}
                     isNarrow={isNarrow || !!selectedCategory}
-                    renderCard={(row: AlertCategory) => (
-                        <DataCard
+                    renderCard={(row: AlertCategory, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.name}
                             subtitle={row.code}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_active ? t('columns.yes') : t('columns.no')}</span>}

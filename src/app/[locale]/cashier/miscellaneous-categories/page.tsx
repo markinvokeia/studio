@@ -261,8 +261,8 @@ export default function MiscellaneousCategoriesPage() {
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
                         isNarrow={isNarrow}
-                        renderCard={(row: MiscellaneousCategory) => (
-                            <DataCard
+                        renderCard={(row: MiscellaneousCategory, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.name}
                                 subtitle={row.code}
                                 badge={

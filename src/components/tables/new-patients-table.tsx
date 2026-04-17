@@ -109,8 +109,8 @@ export function NewPatientsTable({
           manualPagination={true}
           isNarrow={isNarrow}
           onRowClick={onRowClick}
-          renderCard={(patient: User) => (
-            <DataCard
+          renderCard={(patient: User, _isSelected: boolean) => (
+            <DataCard isSelected={_isSelected}
               title={patient.name}
               subtitle={patient.email || patient.phone_number || patient.identity_document || ''}
               badge={<Badge variant={patient.is_active ? 'default' : 'outline'}>{patient.is_active ? t('UserColumns.active') : t('UserColumns.inactive')}</Badge>}

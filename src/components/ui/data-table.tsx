@@ -65,8 +65,8 @@ interface DataTableProps<TData, TValue> {
   getRowClassName?: (row: TData) => string;
   /** When true, renders `renderCard` list instead of the standard table */
   isNarrow?: boolean;
-  /** Card renderer for narrow mode — receives the row's original data */
-  renderCard?: (row: TData) => React.ReactNode;
+  /** Card renderer for narrow mode — receives the row's original data and selection state */
+  renderCard?: (row: TData, isSelected: boolean) => React.ReactNode;
   /** Called when a card is clicked in narrow mode */
   onRowClick?: (row: TData) => void;
 }
@@ -193,7 +193,7 @@ export function DataTable<TData, TValue>({
                 }
                 onRowClick?.(row.original);
               }}>
-                {renderCard(row.original)}
+                {renderCard(row.original, row.getIsSelected())}
               </div>
             ))
           ) : (

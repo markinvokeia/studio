@@ -122,8 +122,8 @@ export default function AccessLogPage() {
                         onRefresh={loadLogs}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow || !!selectedLog}
-                        renderCard={(row: AccessLog) => (
-                            <DataCard
+                        renderCard={(row: AccessLog, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.action}
                                 subtitle={`${row.user_id} · ${row.timestamp}`}
                                 badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.success ? t('columns.yes') : t('columns.no')}</span>}

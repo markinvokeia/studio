@@ -103,11 +103,10 @@ function PermissionsTableNarrow({ columns, permissions, selectedPermission, onRo
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       isNarrow={isNarrow}
-      renderCard={(row: any) => (
-        <DataCard
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
           title={row.name || ''}
           subtitle={row.code || row.description || ''}
-          isSelected={selectedPermission?.id === row.id}
           showArrow
           onClick={() => onRowSelectionChange([row])}
         />

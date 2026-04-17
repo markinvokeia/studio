@@ -579,7 +579,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             columns={movementColumns}
                             data={allMovements}
                             isNarrow={isViewportNarrow}
-                            renderCard={(mov: CajaMovimiento) => {
+                            renderCard={(mov: CajaMovimiento, _isSelected: boolean) => {
                                 const isExpense = mov.tipo === 'EGRESO';
                                 const dateStr = mov.fecha;
                                 const parsed = typeof dateStr === 'string' ? parseISO(dateStr.replace('Z', '')) : new Date(dateStr);
@@ -588,7 +588,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                     : format(parsed, 'dd/MM/yyyy HH:mm');
                                 const methodCode = normalizePaymentMethodCode(mov.metodoPago);
                                 return (
-                                    <DataCard
+                                    <DataCard isSelected={_isSelected}
                                         accentColor={isExpense ? '#F43F5E' : '#10B981'}
                                         fields={[
                                             { label: tColumns('documentNumber'), value: mov.documentNumber || '-' },

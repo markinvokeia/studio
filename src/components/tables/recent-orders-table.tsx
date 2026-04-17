@@ -102,8 +102,8 @@ export function RecentOrdersTable({ orders, onRefresh, isRefreshing, className, 
           isRefreshing={isRefreshing}
           isNarrow={isNarrow}
           onRowClick={onRowClick}
-          renderCard={(row: Order) => (
-            <DataCard
+          renderCard={(row: Order, _isSelected: boolean) => (
+            <DataCard isSelected={_isSelected}
               title={row.doc_no || String(row.id)}
               subtitle={row.user_name || ''}
               badge={row.status ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">{row.status}</span> : undefined}

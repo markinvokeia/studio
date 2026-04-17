@@ -257,8 +257,8 @@ export default function MutualSocietiesPage() {
                     manualPagination={true}
                     columnFilters={columnFilters}
                     onColumnFiltersChange={setColumnFilters}
-                    renderCard={(row: MutualSociety) => (
-                        <DataCard
+                    renderCard={(row: MutualSociety, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.name}
                             subtitle={row.code}
                             badge={<Badge variant={row.is_active ? 'success' : 'outline'} className="text-[10px]">{row.is_active ? 'Activo' : 'Inactivo'}</Badge>}

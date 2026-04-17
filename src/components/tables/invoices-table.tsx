@@ -787,11 +787,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             onFilterChange={onFilterChange}
             filterValue={filterValue}
             isNarrow={isNarrow}
-            renderCard={(row: Invoice) => (
-              <DataCard
+            renderCard={(row: Invoice, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
                 title={row.doc_no || String(row.id)}
                 subtitle={[row.user_name, row.currency, row.status].filter(Boolean).join(' · ')}
-                isSelected={rowSelection ? !!rowSelection[row.id as any] : false}
                 showArrow
                 onClick={() => onRowSelectionChange?.([row])}
               />

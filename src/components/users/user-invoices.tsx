@@ -735,8 +735,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
             isNarrow={isViewportNarrow}
-            renderCard={(invoice: Invoice) => (
-              <DataCard
+            renderCard={(invoice: Invoice, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
                 title={invoice.doc_no || `INV-${invoice.id}`}
                 subtitle={formatDateTime(invoice.createdAt)}
                 badge={

@@ -407,8 +407,8 @@ export default function CommunicationTemplatesPage() {
                         onRefresh={loadData}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow || !!selectedTemplate}
-                        renderCard={(row: CommunicationTemplate) => (
-                            <DataCard
+                        renderCard={(row: CommunicationTemplate, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.name}
                                 subtitle={row.code}
                                 badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.type}</span>}

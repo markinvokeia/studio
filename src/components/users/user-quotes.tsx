@@ -850,8 +850,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               exchange_rate: t('QuoteColumns.exchangeRate'),
             }}
             isNarrow={isViewportNarrow}
-            renderCard={(quote: Quote) => (
-              <DataCard
+            renderCard={(quote: Quote, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
                 title={quote.doc_no}
                 subtitle={formatDateTime(quote.createdAt)}
                 badge={<Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>}

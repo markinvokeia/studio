@@ -89,8 +89,8 @@ export function UserLogs({ userId }: UserLogsProps) {
       filterColumnId="action"
       filterPlaceholder={t('filterPlaceholder')}
       isNarrow={isViewportNarrow}
-      renderCard={(log: UserLog) => (
-        <DataCard
+      renderCard={(log: UserLog, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
           title={log.action || '-'}
           subtitle={formatDateTime(log.timestamp)}
           fields={[

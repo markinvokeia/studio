@@ -238,8 +238,8 @@ export default function HolidaysPage() {
                             columnTranslations={columnTranslations}
                         />
                     )}
-                    renderCard={(row: ClinicException) => (
-                        <DataCard
+                    renderCard={(row: ClinicException, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.date}
                             subtitle={row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : '')}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_open ? 'Abierto' : 'Cerrado'}</span>}

@@ -193,8 +193,8 @@ export default function DentalSurfacesPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedSurface}
-                    renderCard={(row: DentalSurface) => (
-                        <DataCard
+                    renderCard={(row: DentalSurface, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.nombre}
                             subtitle={row.codigo}
                             showArrow

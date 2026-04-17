@@ -540,8 +540,8 @@ export default function AlertRulesPage() {
                         onRefresh={loadData}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow || !!selectedRule}
-                        renderCard={(row: AlertRule) => (
-                            <DataCard
+                        renderCard={(row: AlertRule, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.name}
                                 subtitle={row.code}
                                 badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}

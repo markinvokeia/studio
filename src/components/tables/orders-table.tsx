@@ -330,11 +330,10 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               createdAt: tOrderColumns('createdAt'),
             }}
           isNarrow={isNarrow}
-          renderCard={(row: Order) => (
-            <DataCard
+          renderCard={(row: Order, _isSelected: boolean) => (
+            <DataCard isSelected={_isSelected}
               title={row.doc_no || `ORD-${row.id}`}
               subtitle={[row.user_name, row.status].filter(Boolean).join(' · ')}
-              isSelected={rowSelection ? !!rowSelection[row.id as any] : false}
               showArrow
               onClick={() => { if (onRowSelectionChange) onRowSelectionChange([row]); }}
             />

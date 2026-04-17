@@ -205,8 +205,8 @@ export default function DentalConditionsPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedCondition}
-                    renderCard={(row: DentalCondition) => (
-                        <DataCard
+                    renderCard={(row: DentalCondition, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.nombre}
                             subtitle={row.codigo_visual}
                             accentColor={row.color_hex || undefined}

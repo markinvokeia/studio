@@ -125,8 +125,8 @@ export default function CommunicationHistoryPage() {
                     onRefresh={onRefresh}
                     isRefreshing={isRefreshing}
                     isNarrow={isNarrow || !!selectedLog}
-                    renderCard={(row: CommunicationLog) => (
-                        <DataCard
+                    renderCard={(row: CommunicationLog, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.title || row.recipient_address}
                             subtitle={row.recipient_address}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.status === 'SENT' || row.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : row.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>{row.status}</span>}

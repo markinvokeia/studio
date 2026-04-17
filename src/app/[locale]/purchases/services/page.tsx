@@ -191,12 +191,11 @@ function ServicesTableWithCards({
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       isNarrow={isNarrow}
-      renderCard={(service: Service) => (
-        <DataCard
+      renderCard={(service: Service, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
           title={service.name}
           subtitle={`${service.category} · ${service.currency} ${service.price}`}
           accentColor={service.color || undefined}
-          isSelected={selectedService?.id === service.id}
           showArrow
           onClick={() => onRowSelect([service])}
           badge={service.is_active

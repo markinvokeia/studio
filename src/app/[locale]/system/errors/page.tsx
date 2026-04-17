@@ -125,8 +125,8 @@ export default function ErrorLogPage() {
                         onRefresh={loadLogs}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow || !!selectedLog}
-                        renderCard={(row: ErrorLog) => (
-                            <DataCard
+                        renderCard={(row: ErrorLog, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.message || ''}
                                 subtitle={row.channel || ''}
                                 badge={row.severity ? <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-red-100 text-red-700">{row.severity}</span> : undefined}

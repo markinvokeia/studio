@@ -175,16 +175,13 @@ export function DataTableAdvancedToolbar<TData>({
     );
 
     return (
-        <div className="flex flex-col gap-y-2 w-full">
-            <div className="flex items-center gap-x-2 w-full">
-                {/* Search — full width on mobile, flex-grow on sm+ */}
-                <div className="flex items-center gap-2 w-full sm:flex-grow sm:min-w-0">
-                    <div className={isCompact ? "flex-1 min-w-0" : "flex-1 min-w-0 sm:max-w-[724px]"}>
-                        {SearchBar}
-                    </div>
+        <div className="flex flex-col gap-2 w-full">
+            {/* Row 1: Search + Create + Refresh */}
+            <div className="flex items-center gap-2 w-full">
+                <div className={isCompact ? "flex-1 min-w-0" : "flex-1 min-w-0 sm:max-w-[724px]"}>
+                    {SearchBar}
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0 flex-row-reverse sm:flex-row">
+                <div className="flex items-center gap-2 shrink-0">
                     {onCreate && (
                         <Button
                             variant="default"
@@ -249,9 +246,16 @@ export function DataTableAdvancedToolbar<TData>({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
-                    {extraButtons}
+                    {/* Extra buttons — desktop only (inline) */}
+                    {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
                 </div>
             </div>
+            {/* Row 2 — mobile only: extra action buttons */}
+            {extraButtons && (
+                <div className="flex sm:hidden items-center gap-2 overflow-x-auto">
+                    {extraButtons}
+                </div>
+            )}
         </div>
     );
 }

@@ -243,8 +243,8 @@ export default function MedicationsPage() {
                     manualPagination={true}
                     columnFilters={columnFilters}
                     onColumnFiltersChange={setColumnFilters}
-                    renderCard={(row: Medication) => (
-                        <DataCard
+                    renderCard={(row: Medication, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.nombre_generico}
                             subtitle={row.nombre_comercial || ''}
                             showArrow

@@ -605,12 +605,11 @@ function UsersTableWithCards({
       columnFilters={columnFilters}
       onColumnFiltersChange={setColumnFilters}
       isNarrow={!!selectedUser || isViewportNarrow}
-      renderCard={(user: User) => (
-        <DataCard
+      renderCard={(user: User, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
           title={user.name}
           subtitle={user.email || user.phone_number || user.identity_document || ''}
           avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
-          isSelected={selectedUser?.id === user.id}
           showArrow
           onClick={() => handleRowSelectionChange([user])}
           badge={user.is_active

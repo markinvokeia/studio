@@ -218,8 +218,8 @@ export default function CashPointsPage() {
                         onRefresh={loadCashPoints}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow}
-                        renderCard={(row: CashPoint) => (
-                            <DataCard
+                        renderCard={(row: CashPoint, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.name}
                                 subtitle={row.id}
                                 badge={

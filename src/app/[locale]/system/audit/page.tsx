@@ -119,8 +119,8 @@ export default function AuditLogPage() {
                         onRefresh={loadLogs}
                         isRefreshing={isRefreshing}
                         isNarrow={isNarrow || !!selectedLog}
-                        renderCard={(row: AuditLog) => (
-                            <DataCard
+                        renderCard={(row: AuditLog, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.table_name}
                                 subtitle={`${row.operation} · ${row.changed_at}`}
                                 showArrow

@@ -357,8 +357,8 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
             isNarrow={isViewportNarrow}
-            renderCard={(order: Order) => (
-              <DataCard
+            renderCard={(order: Order, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
                 title={order.doc_no || `ORD-${order.id}`}
                 subtitle={formatDateTime(order.createdAt)}
                 badge={

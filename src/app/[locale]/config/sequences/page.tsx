@@ -475,8 +475,8 @@ export default function SequencesPage() {
               is_active: t('columns.isActive'),
             }}
             isNarrow={isNarrow || !!selectedSequence}
-            renderCard={(row: Sequence) => (
-              <DataCard
+            renderCard={(row: Sequence, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
                 title={row.name}
                 subtitle={row.pattern}
                 badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.document_type}</span>}

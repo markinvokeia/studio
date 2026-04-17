@@ -209,8 +209,8 @@ export default function SchedulesPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedSchedule}
-                    renderCard={(row: ClinicSchedule) => (
-                        <DataCard
+                    renderCard={(row: ClinicSchedule, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={`${row.start_time} – ${row.end_time}`}
                             subtitle={getDayLabel(row.day_of_week)}
                             showArrow

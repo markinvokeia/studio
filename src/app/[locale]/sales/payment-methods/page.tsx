@@ -201,8 +201,8 @@ export default function PaymentMethodsPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedMethod}
-                    renderCard={(row: PaymentMethod) => (
-                        <DataCard
+                    renderCard={(row: PaymentMethod, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.name}
                             subtitle={row.code}
                             badge={<Badge variant={row.is_active ? 'success' : 'outline'} className="text-[10px]">{row.is_active ? t('columns.yes') : t('columns.no')}</Badge>}

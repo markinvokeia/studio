@@ -205,8 +205,8 @@ export default function AilmentsPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedAilment}
-                    renderCard={(row: Ailment) => (
-                        <DataCard
+                    renderCard={(row: Ailment, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.nombre}
                             subtitle={row.categoria}
                             badge={<Badge variant="outline" className="text-[10px]">{row.nivel_alerta}</Badge>}

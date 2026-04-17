@@ -382,7 +382,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             isNarrow={isViewportNarrow}
-            renderCard={(appointment: Appointment) => {
+            renderCard={(appointment: Appointment, _isSelected: boolean) => {
               const statusLower = appointment.status?.toLowerCase() || '';
               const statusVariant = ({
                 completed: 'success',
@@ -392,7 +392,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
                 scheduled: 'info',
               }[statusLower] ?? 'default') as any;
               return (
-                <DataCard
+                <DataCard isSelected={_isSelected}
                   title={appointment.summary || '-'}
                   subtitle={`${appointment.date || ''} ${appointment.time || ''}`.trim()}
                   badge={

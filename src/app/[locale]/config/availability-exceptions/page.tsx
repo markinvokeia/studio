@@ -278,8 +278,8 @@ export default function AvailabilityExceptionsPage() {
                     onRefresh={loadExceptions}
                     isRefreshing={isRefreshing}
                     isNarrow={isNarrow || !!selectedException}
-                    renderCard={(row: AvailabilityException) => (
-                        <DataCard
+                    renderCard={(row: AvailabilityException, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.user_name || row.user_id}
                             subtitle={row.exception_date}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}

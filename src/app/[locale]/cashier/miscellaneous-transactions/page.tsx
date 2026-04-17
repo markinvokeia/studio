@@ -489,8 +489,8 @@ export default function MiscellaneousTransactionsPage() {
                             status: t('columns.status'),
                         }}
                         isNarrow={isNarrow}
-                        renderCard={(row: MiscellaneousTransaction) => (
-                            <DataCard
+                        renderCard={(row: MiscellaneousTransaction, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
                                 title={row.doc_no}
                                 subtitle={[row.category_name, row.beneficiary_name].filter(Boolean).join(' · ')}
                                 badge={

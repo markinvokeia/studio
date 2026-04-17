@@ -206,8 +206,8 @@ export default function CalendarsPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedCalendar}
-                    renderCard={(row: CalendarType) => (
-                        <DataCard
+                    renderCard={(row: CalendarType, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
                             title={row.name}
                             subtitle={row.google_calendar_id}
                             accentColor={row.color || undefined}
