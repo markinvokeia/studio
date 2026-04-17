@@ -2115,7 +2115,8 @@
       "title": "Acciones",
       "print": "Imprimir",
       "sendEmail": "Enviar Correo",
-      "openMenu": "Abrir Menú"
+      "openMenu": "Abrir Menú",
+      "edit": "Editar"
     },
     "createPrepaid": "Crear Prepago",
     "detailsFor": "Detalles del Pago - {name}",
@@ -2185,6 +2186,30 @@
       "cancel": "Cancelar",
       "success": "Pago enviado exitosamente",
       "error": "Error al enviar el pago"
+    },
+    "editDialog": {
+      "title": "Editar pago",
+      "description": "Actualice el método de pago. El monto queda bloqueado para evitar descuadres.",
+      "payment": "Pago",
+      "amount": "Monto",
+      "amountLocked": "El monto no se puede editar para evitar descuadres de caja.",
+      "paymentMethod": "Método de pago",
+      "selectMethod": "Seleccionar método",
+      "loadingMethods": "Cargando métodos...",
+      "cancel": "Cancelar",
+      "save": "Guardar cambios",
+      "errors": {
+        "title": "Error",
+        "loadMethods": "No se pudieron cargar los métodos de pago.",
+        "closedCashSession": "No se puede editar este pago porque pertenece a una caja antigua o cerrada.",
+        "notFound": "No se encontró el pago o el método de pago seleccionado.",
+        "generic": "No se pudo actualizar el pago."
+      },
+      "toasts": {
+        "successTitle": "Pago actualizado",
+        "successDescription": "El método de pago fue actualizado correctamente.",
+        "errorTitle": "No se pudo actualizar el pago"
+      }
     }
   },
   "PaymentMethodsPage": {

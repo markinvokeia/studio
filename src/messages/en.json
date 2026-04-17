@@ -2151,7 +2151,8 @@
       "title": "Actions",
       "print": "Print",
       "sendEmail": "Send Email",
-      "openMenu": "Open Menu"
+      "openMenu": "Open Menu",
+      "edit": "Edit"
     },
     "createPrepaid": "Create Prepaid",
     "detailsFor": "Payment Details - {name}",
@@ -2221,6 +2222,30 @@
       "cancel": "Cancel",
       "success": "Payment sent successfully",
       "error": "Failed to send payment"
+    },
+    "editDialog": {
+      "title": "Edit payment",
+      "description": "Update the payment method. The amount is locked to prevent cash discrepancies.",
+      "payment": "Payment",
+      "amount": "Amount",
+      "amountLocked": "The amount cannot be edited to prevent cash register discrepancies.",
+      "paymentMethod": "Payment method",
+      "selectMethod": "Select method",
+      "loadingMethods": "Loading methods...",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "errors": {
+        "title": "Error",
+        "loadMethods": "Could not load payment methods.",
+        "closedCashSession": "This payment cannot be edited because it belongs to an old or closed cash session.",
+        "notFound": "The payment or selected payment method was not found.",
+        "generic": "Could not update the payment."
+      },
+      "toasts": {
+        "successTitle": "Payment updated",
+        "successDescription": "The payment method was updated successfully.",
+        "errorTitle": "Could not update payment"
+      }
     }
   },
   "PaymentMethodsPage": {

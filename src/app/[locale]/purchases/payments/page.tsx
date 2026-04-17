@@ -2,6 +2,7 @@
 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { PaymentEditDialog } from '@/components/payments/payment-edit-dialog';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Button } from '@/components/ui/button';
@@ -65,6 +66,8 @@ function PaymentsPageContent() {
     const [paymentAllocations, setPaymentAllocations] = React.useState<PaymentAllocation[]>([]);
     const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
     const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+    const [selectedPaymentForEdit, setSelectedPaymentForEdit] = React.useState<Payment | null>(null);
+    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
     const handleCreatePrepaid = React.useCallback(() => {
         setIsPrepaidDialogOpen(true);
@@ -143,6 +146,11 @@ function PaymentsPageContent() {
         setSelectedPaymentForEmail(payment);
         setEmailRecipients(payment.userEmail || '');
         setIsSendEmailDialogOpen(true);
+    }, []);
+
+    const handleEditPaymentClick = React.useCallback((payment: Payment) => {
+        setSelectedPaymentForEdit(payment);
+        setIsEditDialogOpen(true);
     }, []);
 
     const handleConfirmSendEmail = async () => {
@@ -227,6 +235,7 @@ function PaymentsPageContent() {
                         isRefreshing={isLoading}
                         onPrint={handlePrintPayment}
                         onSendEmail={handleSendEmailClick}
+                        onEdit={canCreatePayment ? handleEditPaymentClick : undefined}
                         onCreate={handleCreatePrepaid}
                         canCreate={canPrepaidCreate}
                         pagination={pagination}
@@ -333,6 +342,19 @@ function PaymentsPageContent() {
                 onOpenChange={setIsWarningDialogOpen}
                 disabledItems={disabledEmails}
                 onConfirm={handleWarningConfirm}
+            />
+
+            <PaymentEditDialog
+                open={isEditDialogOpen}
+                onOpenChange={setIsEditDialogOpen}
+                payment={selectedPaymentForEdit}
+                onSuccess={async (updatedPayment) => {
+                    await refreshPayments();
+                    if (updatedPayment && selectedPayment?.id === updatedPayment.id) {
+                        setSelectedPayment(updatedPayment);
+                    }
+                    setSelectedPaymentForEdit(null);
+                }}
             />
 
             <PurchasePrepaidFormDialog

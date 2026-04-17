@@ -100,6 +100,7 @@ export function mapApiPaymentToPayment(apiPayment: any): Payment {
     source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : parseFloat(apiPayment.amount),
     source_currency: apiPayment.source_currency || apiPayment.currency || 'USD',
     exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : parseFloat(apiPayment.exchange_rate || '1'),
+    payment_method_id: apiPayment.payment_method_id ? String(apiPayment.payment_method_id) : undefined,
     payment_method: apiPayment.payment_method_name || apiPayment.payment_method || apiPayment.method || 'N/A',
     payment_method_code: apiPayment.payment_method_code,
     transaction_type: apiPayment.transaction_type || 'direct_payment',

@@ -12,7 +12,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { CreditCard, MoreHorizontal, Printer, Send } from 'lucide-react';
+import { CreditCard, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
@@ -25,7 +25,8 @@ const getColumns = (
   tActions: (key: string) => string,
   tPaymentMethods: (key: string) => string,
   onPrint?: (payment: Payment) => void,
-  onSendEmail?: (payment: Payment) => void
+  onSendEmail?: (payment: Payment) => void,
+  onEdit?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
 
 
@@ -199,7 +200,7 @@ const getColumns = (
 
   ];
 
-  if (onPrint || onSendEmail) {
+  if (onPrint || onSendEmail || onEdit) {
     columns.push({
       id: 'actions',
       cell: ({ row }) => {
@@ -218,6 +219,12 @@ const getColumns = (
                 <DropdownMenuItem onClick={() => onPrint(payment)}>
                   <Printer className="mr-2 h-4 w-4" />
                   {tActions('print')}
+                </DropdownMenuItem>
+              )}
+              {onEdit && (
+                <DropdownMenuItem onClick={() => onEdit(payment)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  <span>{tActions('edit')}</span>
                 </DropdownMenuItem>
               )}
               {onSendEmail && (
@@ -244,6 +251,7 @@ interface PaymentsTableProps {
   columnsToHide?: string[];
   onPrint?: (payment: Payment) => void;
   onSendEmail?: (payment: Payment) => void;
+  onEdit?: (payment: Payment) => void;
   onCreate?: () => void;
   className?: string;
   pagination?: PaginationState;
@@ -259,7 +267,7 @@ interface PaymentsTableProps {
   isCompact?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onEdit, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
@@ -268,7 +276,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
   const isNarrow = isCompact || panelNarrow || viewportNarrow;
-  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail]);
+  const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit]);
 
   if (isLoading) {
     return (

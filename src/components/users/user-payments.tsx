@@ -1,32 +1,35 @@
 'use client';
 
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { PaymentEditDialog } from '@/components/payments/payment-edit-dialog';
+import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
 import { formatDateTime, getDocumentFileName } from '@/lib/utils';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { api } from '@/services/api';
 import { mapApiPaymentToPayment } from '@/services/payments-service';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { ChevronDown, Eye, Printer, Send } from 'lucide-react';
+import { ChevronDown, Eye, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { DataCard } from '@/components/ui/data-card';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -139,7 +142,9 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   const tPayments = useTranslations('PaymentsPage');
   const isViewportNarrow = useViewportNarrow();
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const isSales = mode === 'sales';
+  const canEditPayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -158,6 +163,8 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   const [isSendingEmail, setIsSendingEmail] = React.useState(false);
   const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
   const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+  const [selectedPaymentForEdit, setSelectedPaymentForEdit] = React.useState<Payment | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
   const columns = React.useMemo(() => getColumns(t), [t]);
 
@@ -223,6 +230,11 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     setEmailRecipients(payment.userEmail || '');
     setIsSendEmailDialogOpen(true);
   };
+
+  const handleEditPaymentClick = React.useCallback((payment: Payment) => {
+    setSelectedPaymentForEdit(payment);
+    setIsEditDialogOpen(true);
+  }, []);
 
   const handleConfirmSendEmail = async () => {
     if (!selectedPaymentForEmail) return;
@@ -335,6 +347,12 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               <Send className="h-4 w-4 mr-2" />
               Enviar
             </DropdownMenuItem>
+            {canEditPayment && (
+              <DropdownMenuItem onClick={() => handleEditPaymentClick(selectedPayment)}>
+                <Pencil className="h-4 w-4 mr-2" />
+                {tPayments('actions.edit')}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -509,6 +527,12 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                 <Send className="h-3.5 w-3.5" />
                 Enviar
               </Button>
+              {canEditPayment && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditPaymentClick(selectedPayment)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  {tPayments('actions.edit')}
+                </Button>
+              )}
             </div>
 
             {/* Allocations (only for pre-payments) */}
@@ -565,6 +589,21 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
         onOpenChange={setIsWarningDialogOpen}
         disabledItems={disabledEmails}
         onConfirm={handleWarningConfirm}
+      />
+
+      <PaymentEditDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        payment={selectedPaymentForEdit}
+        onSuccess={async (updatedPayment) => {
+          await loadPayments(true);
+          if (updatedPayment && selectedPayment?.id === updatedPayment.id) {
+            setSelectedPayment(updatedPayment);
+            setSelectedPaymentForEdit(updatedPayment);
+          } else {
+            setSelectedPaymentForEdit(null);
+          }
+        }}
       />
     </>
   );

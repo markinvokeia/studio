@@ -29,6 +29,7 @@ export const API_ROUTES = {
     ALERTS: '/alerts',
     APPOINTMENTS: '/appointments',
     PAYMENT_METHODS: '/metodospago/all',
+    PAYMENTS_EDIT: '/payments/edit',
     CASHIER: {
         CASH_POINTS: '/cashier/cash-points',
         CASH_POINTS_SEARCH: '/cash_points/search',

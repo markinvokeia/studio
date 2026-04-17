@@ -2,6 +2,7 @@
 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { PaymentEditDialog } from '@/components/payments/payment-edit-dialog';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -118,6 +119,8 @@ export default function PaymentsPage() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [paymentAllocations, setPaymentAllocations] = React.useState<PaymentAllocation[]>([]);
     const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
+    const [selectedPaymentForEdit, setSelectedPaymentForEdit] = React.useState<Payment | null>(null);
+    const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
@@ -259,12 +262,17 @@ export default function PaymentsPage() {
                 description: error instanceof Error ? error.message : 'Could not print the payment.',
             });
         }
-    }, [toast]);
+    }, [t, toast]);
 
     const handleSendEmailClick = React.useCallback((payment: Payment) => {
         setSelectedPaymentForEmail(payment);
         setEmailRecipients(payment.userEmail || '');
         setIsSendEmailDialogOpen(true);
+    }, []);
+
+    const handleEditPaymentClick = React.useCallback((payment: Payment) => {
+        setSelectedPaymentForEdit(payment);
+        setIsEditDialogOpen(true);
     }, []);
 
     const handleConfirmSendEmail = async () => {
@@ -416,6 +424,7 @@ export default function PaymentsPage() {
                         isRefreshing={isLoading}
                         onPrint={handlePrintPayment}
                         onSendEmail={handleSendEmailClick}
+                        onEdit={canCreate ? handleEditPaymentClick : undefined}
                         onCreate={handleCreatePrepaid}
                         canCreate={canPrepaidCreate}
                         pagination={pagination}
@@ -522,6 +531,19 @@ export default function PaymentsPage() {
                 onOpenChange={setIsWarningDialogOpen}
                 disabledItems={disabledEmails}
                 onConfirm={handleWarningConfirm}
+            />
+
+            <PaymentEditDialog
+                open={isEditDialogOpen}
+                onOpenChange={setIsEditDialogOpen}
+                payment={selectedPaymentForEdit}
+                onSuccess={async (updatedPayment) => {
+                    await refreshPayments();
+                    if (updatedPayment && selectedPayment?.id === updatedPayment.id) {
+                        setSelectedPayment(updatedPayment);
+                    }
+                    setSelectedPaymentForEdit(null);
+                }}
             />
 
             <Dialog open={isPrepaidDialogOpen} onOpenChange={setIsPrepaidDialogOpen}>
