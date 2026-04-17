@@ -1914,8 +1914,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
 
     return (
         <div className="space-y-4">
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
-                <div className="flex items-center justify-between mb-6">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm px-2 py-4 sm:p-6 border-0">
+                <div className="flex items-center justify-between mb-4 sm:mb-6 px-1 sm:px-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Clock className="h-5 w-5 text-primary" />
@@ -1944,50 +1944,50 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                     </div>
                 ) : (
                     <div className="relative">
-                        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
+                        <div className="absolute left-[9px] sm:left-[11px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
                         {sessions.map((session, index) => {
                             const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
                             const isOpen = openItems.includes(String(session.sesion_id));
 
                             return (
-                                <div key={index} className="relative flex items-start mb-6 last:mb-0 pl-8">
-                                    <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                                        <Icon className="h-3.5 w-3.5 text-primary" />
+                                <div key={index} className="relative flex items-start mb-4 sm:mb-6 last:mb-0 pl-7 sm:pl-10">
+                                    <div className="absolute left-0 top-0 z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
+                                        <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
                                     </div>
-                                    <Card className="flex-1 hover:shadow-md transition-shadow duration-200 border-muted/60">
-                                        <CardHeader className="pb-2">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1 min-w-0 pr-2">
-                                                    <CardTitle className="text-base font-semibold break-words whitespace-normal">
+                                    <Card className="flex-1 min-w-0 hover:shadow-md transition-shadow duration-200 border-muted/60">
+                                        <CardHeader className="p-3 sm:p-4 pb-2">
+                                            <div className="flex items-start gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <CardTitle className="text-sm sm:text-base font-semibold break-words whitespace-normal leading-tight">
                                                         {session.procedimiento_realizado || t('noTitle')}
                                                     </CardTitle>
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
-                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                            <CalendarIcon className="h-3.5 w-3.5" />
+                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                                        <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                                            <CalendarIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                                                             {formatDate(session.fecha_sesion)}
                                                         </p>
                                                         {(session.nombre_doctor || session.doctor_name) && (
-                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                                <User className="h-3.5 w-3.5" />
-                                                                {session.nombre_doctor || session.doctor_name}
+                                                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                                                <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                                                                <span className="truncate">{session.nombre_doctor || session.doctor_name}</span>
                                                             </p>
                                                         )}
                                                         {session.quote_id && (
-                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                                <Link2 className="h-3.5 w-3.5" />
+                                                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                                                <Link2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                                                                 {t('quote')}: {session.quote_doc_no || session.quote_id}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <span className="hidden sm:inline text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
                                                         {session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : session.tipo_sesion}
                                                     </span>
                                                     {session.tipo_sesion !== 'odontograma' && (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
                                                                     <MoreHorizontal className="h-4 w-4" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
@@ -2002,13 +2002,13 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                         </CardHeader>
                                         <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
                                             <CollapsibleTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="w-full justify-start px-4 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+                                                <Button variant="ghost" size="sm" className="w-full justify-start px-3 sm:px-4 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
                                                     {isOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
                                                     {isOpen ? t('hideDetails') || 'Ocultar detalles' : t('showDetails') || 'Ver detalles'}
                                                 </Button>
                                             </CollapsibleTrigger>
                                             <CollapsibleContent>
-                                                <CardContent className="pt-0 pb-3 space-y-3">
+                                                <CardContent className="pt-0 pb-3 px-3 sm:px-6 space-y-3">
                                                     {session.procedimiento_realizado && session.tipo_sesion !== 'odontograma' && (
                                                         <div className="border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
@@ -2053,7 +2053,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                                         {tr.numero_diente && (
                                                                             <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
                                                                         )}
-                                                                        <p className="text-sm leading-relaxed text-muted-foreground truncate" title={tr.descripcion}>{tr.descripcion}</p>
+                                                                        <p className="text-sm leading-relaxed text-muted-foreground break-words sm:truncate" title={tr.descripcion}>{tr.descripcion}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>
