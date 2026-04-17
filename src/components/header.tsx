@@ -326,7 +326,7 @@ export function Header() {
                         className={cn(
                             "flex items-center justify-center bg-[hsl(var(--floating-header-bg)/0.85)] backdrop-blur-md border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]",
                             isMobile
-                                ? "h-12 w-12 rounded-none border-t-0 border-r-0 border-l border-b border-white/20 bg-white/15 hover:bg-white/25"
+                                ? "h-12 w-12 rounded-none border-t-0 border-r-0 border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)]"
                                 : "h-8 w-8 rounded-full"
                         )}
                         aria-label={tFloating('openMenu')}

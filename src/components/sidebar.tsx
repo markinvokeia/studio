@@ -197,17 +197,17 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 className={cn(
                                                     "flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 relative group",
                                                     (isActive || isHovered)
-                                                        ? 'bg-white/15 text-white shadow-sm'
-                                                        : 'text-white/60 hover:bg-white/10 hover:text-white/90',
+                                                        ? 'bg-[var(--nav-active-bg)] text-[var(--nav-foreground)] shadow-sm'
+                                                        : 'text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)]',
                                                     isExpanded && "rounded-r-none z-[31]"
                                                 )}
                                                 onMouseEnter={() => onHover(item)}
                                             >
                                                 <div className="flex flex-col items-center justify-center gap-0.5 w-full">
                                                     <div className="relative">
-                                                        <item.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-white" : "")} />
+                                                        <item.icon className={cn("h-5 w-5 transition-transform group-hover:scale-110", (isActive || isHovered) ? "text-[var(--nav-foreground)]" : "")} />
                                                         {item.title === 'AlertsCenter' && pendingCount > 0 && (
-                                                            <span className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white bg-red-500 border border-white/20 animate-pulse">
+                                                            <span className="absolute -top-2 -right-2 h-4 w-4 flex items-center justify-center rounded-full text-[9px] font-bold text-white bg-red-500 border border-[var(--nav-border)] animate-pulse">
                                                                 {pendingCount > 99 ? '99+' : pendingCount}
                                                             </span>
                                                         )}
@@ -216,11 +216,11 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                 </div>
                                             </Link>
                                             {(isActive) && (
-                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r-full bg-white/80" />
+                                                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r-full bg-[var(--nav-active-indicator)]" />
                                             )}
                                         </div>
                                     </TooltipTrigger>
-                                    <TooltipContent side="right" className="bg-[var(--nav-bg)] text-white border-none font-semibold text-xs">
+                                    <TooltipContent side="right" className="bg-[var(--nav-bg)] text-[var(--nav-foreground)] border-none font-semibold text-xs">
                                         {t(item.title as any)}
                                     </TooltipContent>
                                 </Tooltip>
@@ -229,13 +229,13 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                     </nav>
                 </div>
 
-                <div className="mt-auto flex flex-col items-center gap-2 pb-4 shrink-0 border-t border-white/10 pt-3">
+                <div className="mt-auto flex flex-col items-center gap-2 pb-4 shrink-0 border-t border-[var(--nav-border)] pt-3">
                     {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_THEME) && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-white/70 hover:bg-white/10 hover:text-white transition-all">
+                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)] transition-all">
                                             <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                                             <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                                             <span className="sr-only">{tHeader('toggleTheme')}</span>
@@ -447,11 +447,57 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
 function MobileNav() {
     const [isOpen, setIsOpen] = React.useState(false);
     const [expandedItem, setExpandedItem] = React.useState<string | null>(null);
+    const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
+    const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+    const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
+    const [mobileFooterPanel, setMobileFooterPanel] = React.useState<'theme' | 'user' | null>(null);
     const pathname = usePathname();
+    const router = useRouter();
     const locale = useLocale();
     const t = useTranslations('Navigation');
-    const { permissions, roles } = usePermissions();
+    const tHeader = useTranslations('Header');
+    const { theme, setTheme } = useTheme();
+    const { logout, user } = useAuth();
+    const { hasPermission, permissions, roles } = usePermissions();
+    const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
+
+    const form = useForm<PasswordFormValues>({
+        resolver: zodResolver(passwordFormSchema(tHeader)),
+    });
+
+    const userInitial = React.useMemo(() => {
+        const source = user?.name?.trim() || user?.email?.trim() || '';
+        return source ? source.charAt(0).toUpperCase() : 'U';
+    }, [user?.email, user?.name]);
+
+    const handleLogout = () => {
+        logout();
+        router.push(`/${locale}/login`);
+    };
+
+    const handleLogoutClick = async () => {
+        if (!user) { handleLogout(); return; }
+        try {
+            const data = await api.get(API_ROUTES.CASHIER.SESSIONS_ACTIVE, { user_id: user.id });
+            if (data.code === 200) { setIsLogoutAlertOpen(true); } else { handleLogout(); }
+        } catch { handleLogout(); }
+    };
+
+    const handleChangePasswordSubmit: SubmitHandler<PasswordFormValues> = async (data: PasswordFormValues) => {
+        setPasswordChangeError(null);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const responseData = await api.post(API_ROUTES.SYSTEM.API_AUTH_PASSWORD_CHANGE, {
+                old_password: data.old_password, new_password: data.new_password,
+            }, undefined, { token });
+            toast({ title: tHeader('success.title'), description: responseData.message || tHeader('success.description') });
+            setIsChangePasswordOpen(false);
+        } catch (error: any) {
+            setPasswordChangeError(error.message || tHeader('errors.generic'));
+        }
+    };
 
     const filteredNavItems = React.useMemo(() => {
         return filterNavByPermissions(navItems, permissions, roles);
@@ -465,7 +511,7 @@ function MobileNav() {
     const effectivePathname = getEffectivePathname(pathname, locale);
 
     // Close on navigation
-    React.useEffect(() => { setIsOpen(false); }, [pathname]);
+    React.useEffect(() => { setIsOpen(false); setMobileFooterPanel(null); }, [pathname]);
 
     // Expand the active parent on open
     React.useEffect(() => {
@@ -485,7 +531,7 @@ function MobileNav() {
                 <button
                     type="button"
                     onClick={() => setIsOpen(true)}
-                    className="relative flex items-center justify-center h-12 w-12 text-white flex-none bg-white/15 hover:bg-white/25 transition-colors border-r border-white/20"
+                    className="relative flex items-center justify-center h-12 w-12 text-[var(--nav-foreground)] flex-none bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)] transition-colors border-r border-[var(--nav-border)]"
                     aria-label="Abrir menú"
                 >
                     <Menu className="h-5 w-5" />
@@ -505,7 +551,7 @@ function MobileNav() {
                         className="h-7 w-7 rounded-lg flex-none"
                         priority
                     />
-                    <span className="text-white font-bold text-base tracking-tight select-none">Invoke IA</span>
+                    <span className="text-[var(--nav-foreground)] font-bold text-base tracking-tight select-none">Invoke IA</span>
                 </Link>
                 {/* Right spacer — widget (header.tsx) overlays this slot */}
                 <div className="h-12 w-12 flex-none" />
@@ -519,14 +565,14 @@ function MobileNav() {
                     {/* Panel */}
                     <div className="relative w-full max-w-xs bg-[var(--nav-bg)] h-full flex flex-col animate-in slide-in-from-left-4 duration-200 overflow-hidden">
                         {/* Header */}
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--nav-border)] shrink-0">
                             <Link href={`/${locale}`} onClick={() => setIsOpen(false)}>
                                 <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={36} height={36} alt="InvokeIA Logo" />
                             </Link>
                             <button
                                 type="button"
                                 onClick={() => setIsOpen(false)}
-                                className="flex items-center justify-center h-8 w-8 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                                className="flex items-center justify-center h-8 w-8 rounded-lg text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
                             >
                                 <X className="h-5 w-5" />
                             </button>
@@ -556,7 +602,7 @@ function MobileNav() {
                                                 onClick={() => setExpandedItem(isExpanded ? null : item.title)}
                                                 className={cn(
                                                     "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
-                                                    isActive ? 'text-white bg-white/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+                                                    isActive ? 'text-[var(--nav-foreground)] bg-[var(--nav-active-bg)]' : 'text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)]'
                                                 )}
                                             >
                                                 <item.icon className="h-5 w-5 shrink-0" />
@@ -573,7 +619,7 @@ function MobileNav() {
                                                 href={linkHref}
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
-                                                    isActive ? 'text-white bg-white/15' : 'text-white/70 hover:text-white hover:bg-white/10'
+                                                    isActive ? 'text-[var(--nav-foreground)] bg-[var(--nav-active-bg)]' : 'text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)]'
                                                 )}
                                             >
                                                 <item.icon className="h-5 w-5 shrink-0" />
@@ -582,9 +628,9 @@ function MobileNav() {
                                         )}
                                         {/* Sub-items */}
                                         {hasChildren && isExpanded && (
-                                            <div className="bg-black/20 py-1">
+                                            <div className="bg-[var(--nav-hover-bg)] py-1">
                                                 {item.items!.map((sub: any, idx: number) => {
-                                                    if (sub.isSeparator) return <div key={idx} className="my-1 mx-4 border-t border-white/10" />;
+                                                    if (sub.isSeparator) return <div key={idx} className="my-1 mx-4 border-t border-[var(--nav-border)]" />;
 
                                                     const isSubActive = sub.href === '/'
                                                         ? effectivePathname === '/'
@@ -603,11 +649,11 @@ function MobileNav() {
                                                             href={subHref}
                                                             className={cn(
                                                                 "flex items-center gap-3 px-8 py-2.5 text-sm transition-colors relative",
-                                                                isSubActive ? 'text-white font-semibold' : 'text-white/60 hover:text-white hover:bg-white/5'
+                                                                isSubActive ? 'text-[var(--nav-foreground)] font-semibold' : 'text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)]'
                                                             )}
                                                         >
-                                                            {isSubActive && <span className="absolute left-6 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full bg-white" />}
-                                                            <sub.icon className={cn("h-4 w-4 shrink-0", isSubActive ? "text-white" : "text-white/50")} />
+                                                            {isSubActive && <span className="absolute left-6 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full bg-[var(--nav-active-indicator)]" />}
+                                                            <sub.icon className={cn("h-4 w-4 shrink-0", isSubActive ? "text-[var(--nav-foreground)]" : "text-[var(--nav-text-muted)]")} />
                                                             <span>{t(sub.title as any)}</span>
                                                         </Link>
                                                     );
@@ -618,9 +664,170 @@ function MobileNav() {
                                 );
                             })}
                         </div>
+                        {/* Footer: theme + user toggle buttons */}
+                        <div className="shrink-0 border-t border-[var(--nav-border)]">
+                            {/* Expanded panel */}
+                            {mobileFooterPanel === 'theme' && hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_THEME) && (
+                                <div className="px-4 py-3 border-b border-[var(--nav-border)] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                                    <div className="flex items-center gap-2">
+                                        {(['light', 'claro', 'dark'] as const).map((themeOption) => (
+                                            <button
+                                                key={themeOption}
+                                                type="button"
+                                                onClick={() => { setTheme(themeOption); setMobileFooterPanel(null); }}
+                                                className={cn(
+                                                    "flex-1 py-2 rounded-lg text-xs font-medium transition-colors",
+                                                    theme === themeOption
+                                                        ? "bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
+                                                        : "text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)]"
+                                                )}
+                                            >
+                                                {themeOption === 'light' ? 'Invoke' : themeOption === 'claro' ? 'Claro' : 'Oscuro'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {mobileFooterPanel === 'user' && (
+                                <div className="px-4 py-3 border-b border-[var(--nav-border)] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="relative h-9 w-9 rounded-full ring-2 ring-[var(--nav-border)] shrink-0 bg-[var(--nav-active-bg)] flex items-center justify-center">
+                                            <span className="text-[var(--nav-foreground)] font-bold text-sm">{userInitial}</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-[var(--nav-foreground)] truncate">{user?.name || tHeader('myAccount')}</p>
+                                            <p className="text-xs text-[var(--nav-text-muted)] truncate">{user?.email}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5">
+                                        {hasPermission(GLOBAL_PERMISSIONS.PROFILE_CHANGE_PASSWORD) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => { setIsChangePasswordOpen(true); setIsOpen(false); setMobileFooterPanel(null); }}
+                                                className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
+                                            >
+                                                <KeyRound className="h-4 w-4 shrink-0" />
+                                                <span>{tHeader('changePassword')}</span>
+                                            </button>
+                                        )}
+                                        <Link
+                                            href={`/${locale}/preferences`}
+                                            className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
+                                        >
+                                            <Bell className="h-4 w-4 shrink-0" />
+                                            <span>{tHeader('communicationPreferences')}</span>
+                                        </Link>
+                                        <button
+                                            type="button"
+                                            onClick={() => { handleLogoutClick(); setIsOpen(false); setMobileFooterPanel(null); }}
+                                            className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-red-500 hover:text-red-600 hover:bg-[var(--nav-hover-bg)] transition-colors"
+                                        >
+                                            <LogOut className="h-4 w-4 shrink-0" />
+                                            <span>{tHeader('logout')}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Trigger buttons */}
+                            <div className="px-4 py-3 flex items-center gap-3">
+                                {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_THEME) && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setMobileFooterPanel(mobileFooterPanel === 'theme' ? null : 'theme')}
+                                        className={cn(
+                                            "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                                            mobileFooterPanel === 'theme'
+                                                ? "bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
+                                                : "text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)]"
+                                        )}
+                                    >
+                                        <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                                        <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileFooterPanel(mobileFooterPanel === 'user' ? null : 'user')}
+                                    className={cn(
+                                        "relative h-9 w-9 rounded-full ring-2 shrink-0 font-bold text-sm flex items-center justify-center transition-all",
+                                        mobileFooterPanel === 'user'
+                                            ? "ring-[var(--nav-active-indicator)] bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
+                                            : "ring-[var(--nav-border)] bg-[var(--nav-active-bg)] text-[var(--nav-foreground)] hover:ring-[var(--nav-active-indicator)]"
+                                    )}
+                                >
+                                    <span aria-hidden="true">{userInitial}</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
+
+            <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
+                <AlertDialogContent className="max-w-xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-foreground">
+                            <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                            {tHeader('logoutConfirmation.title')}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {tHeader('logoutConfirmation.description')}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {tHeader('logoutConfirmation.logoutAnyway')}
+                        </AlertDialogAction>
+                        <Link href={`/${locale}/cashier`} passHref>
+                            <Button variant="outline">{tHeader('logoutConfirmation.goToCashier')}</Button>
+                        </Link>
+                        <AlertDialogCancel>{tHeader('logoutConfirmation.cancel')}</AlertDialogCancel>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{tHeader('changePasswordDialog.title')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(handleChangePasswordSubmit)} className="space-y-4 py-4 px-6">
+                            {passwordChangeError && (
+                                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive text-destructive text-sm flex items-center gap-2">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    {passwordChangeError}
+                                </div>
+                            )}
+                            <FormField control={form.control} name="old_password" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{tHeader('changePasswordDialog.oldPassword')}</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="new_password" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{tHeader('changePasswordDialog.newPassword')}</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="confirm_password" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{tHeader('changePasswordDialog.confirmPassword')}</FormLabel>
+                                    <FormControl><Input type="password" {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <DialogFooter>
+                                <Button type="submit">{tHeader('changePasswordDialog.save')}</Button>
+                                <Button variant="outline" type="button" onClick={() => setIsChangePasswordOpen(false)}>{tHeader('changePasswordDialog.cancel')}</Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

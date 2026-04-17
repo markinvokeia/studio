@@ -69,6 +69,11 @@
     /* Semantic Nav Tokens */
     --nav-bg: #1e1b4b;
     --nav-foreground: #ffffff;
+    --nav-text-muted: rgba(255, 255, 255, 0.6);
+    --nav-hover-bg: rgba(255, 255, 255, 0.1);
+    --nav-active-bg: rgba(255, 255, 255, 0.15);
+    --nav-border: rgba(255, 255, 255, 0.1);
+    --nav-active-indicator: rgba(255, 255, 255, 0.8);
     --header-bg: #1e1b4b;
     --header-foreground: #ffffff;
 
@@ -133,6 +138,11 @@
     /* Semantic Nav Tokens */
     --nav-bg: #efeff1;
     --nav-foreground: #111827;
+    --nav-text-muted: rgba(17, 24, 39, 0.5);
+    --nav-hover-bg: rgba(0, 0, 0, 0.06);
+    --nav-active-bg: rgba(0, 0, 0, 0.1);
+    --nav-border: rgba(0, 0, 0, 0.08);
+    --nav-active-indicator: rgba(17, 24, 39, 0.8);
     --header-bg: #efeff1;
     --header-foreground: #111827;
 
@@ -175,6 +185,11 @@
     /* Semantic Nav Tokens */
     --nav-bg: #1a1a1a;
     --nav-foreground: #ffffff;
+    --nav-text-muted: rgba(255, 255, 255, 0.6);
+    --nav-hover-bg: rgba(255, 255, 255, 0.1);
+    --nav-active-bg: rgba(255, 255, 255, 0.15);
+    --nav-border: rgba(255, 255, 255, 0.1);
+    --nav-active-indicator: rgba(255, 255, 255, 0.8);
     --header-bg: #1a1a1a;
     --header-foreground: #ffffff;
 
