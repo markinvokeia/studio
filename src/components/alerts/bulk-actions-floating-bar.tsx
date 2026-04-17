@@ -59,9 +59,9 @@ export function BulkActionsFloatingBar({
         <div className={cn(
             "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50",
             "bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl",
-            "p-3 flex items-center gap-3",
+            "p-3 flex flex-wrap items-center justify-center gap-2",
+            "w-[calc(100vw-2rem)] sm:w-auto",
             "animate-in slide-in-from-bottom-4 fade-in-0 duration-300 ease-out",
-            "max-w-[calc(100vw-2rem)] overflow-x-auto",
             "transition-all duration-200 hover:shadow-3xl",
             className
         )}>

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -33,6 +34,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
 import { cn, formatDate } from '@/lib/utils';
@@ -223,6 +225,7 @@ export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
     // const tValidation = useTranslations('MiscellaneousTransactionsPage.validation'); // No longer needed as separate namespace if accessing via full path or if t covers it
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const { user, activeCashSession, checkActiveSession } = useAuth();
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
     const [transactions, setTransactions] = React.useState<MiscellaneousTransaction[]>([]);
@@ -485,6 +488,19 @@ export default function MiscellaneousTransactionsPage() {
                             amount: t('columns.amount'),
                             status: t('columns.status'),
                         }}
+                        isNarrow={isNarrow}
+                        renderCard={(row: MiscellaneousTransaction, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
+                                title={row.doc_no}
+                                subtitle={[row.category_name, row.beneficiary_name].filter(Boolean).join(' · ')}
+                                badge={
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.status === 'completed' ? 'bg-green-100 text-green-700' : row.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                        {row.status}
+                                    </span>
+                                }
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

@@ -4,7 +4,10 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -253,14 +256,18 @@ interface PaymentsTableProps {
   title?: string;
   description?: string;
   canCreate?: boolean;
+  isCompact?: boolean;
 }
 
-export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefreshing, columnsToHide = [], onPrint, onSendEmail, onCreate, className, pagination, onPaginationChange, pageCount, manualPagination = false, onRowSelectionChange, rowSelection, setRowSelection, title, description, canCreate, isCompact = false }: PaymentsTableProps) {
   const t = useTranslations('PaymentsPage.columns');
   const tPage = useTranslations('PaymentsPage');
   const tTransactionType = useTranslations('PaymentsPage.transactionType');
   const tActions = useTranslations('PaymentsPage.actions');
   const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = isCompact || panelNarrow || viewportNarrow;
   const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail]);
 
   if (isLoading) {
@@ -323,6 +330,15 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           setRowSelection={setRowSelection}
           onRowSelectionChange={onRowSelectionChange}
           getRowClassName={(row: Payment) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
+          isNarrow={isNarrow}
+          renderCard={(row: Payment, _isSelected: boolean) => (
+            <DataCard isSelected={_isSelected}
+              title={row.doc_no || String(row.id)}
+              subtitle={[row.user_name, row.payment_method_code, row.transaction_type].filter(Boolean).join(' · ')}
+              showArrow
+              onClick={() => onRowSelectionChange?.([row])}
+            />
+          )}
         />
       </CardContent>
     </Card>

@@ -63,6 +63,12 @@ interface DataTableProps<TData, TValue> {
   createButtonIconOnly?: boolean;
   customToolbar?: React.ReactNode | ((table: any) => React.ReactNode);
   getRowClassName?: (row: TData) => string;
+  /** When true, renders `renderCard` list instead of the standard table */
+  isNarrow?: boolean;
+  /** Card renderer for narrow mode — receives the row's original data and selection state */
+  renderCard?: (row: TData, isSelected: boolean) => React.ReactNode;
+  /** Called when a card is clicked in narrow mode */
+  onRowClick?: (row: TData) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -96,6 +102,9 @@ export function DataTable<TData, TValue>({
   createButtonIconOnly,
   customToolbar,
   getRowClassName,
+  isNarrow,
+  renderCard,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
@@ -141,12 +150,17 @@ export function DataTable<TData, TValue>({
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
 
+  // Use a ref so the callback never appears in deps — prevents firing on every render.
+  const onRowSelectionChangeRef = React.useRef(onRowSelectionChange);
+  React.useLayoutEffect(() => { onRowSelectionChangeRef.current = onRowSelectionChange; });
+
   React.useEffect(() => {
-    if (onRowSelectionChange) {
+    if (onRowSelectionChangeRef.current) {
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
-      onRowSelectionChange(selectedRows);
+      onRowSelectionChangeRef.current(selectedRows);
     }
-  }, [finalRowSelection, table, onRowSelectionChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalRowSelection]);
 
 
   return (
@@ -168,7 +182,26 @@ export function DataTable<TData, TValue>({
           createButtonIconOnly={createButtonIconOnly}
         />
       )}
-      <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
+      {isNarrow && renderCard ? (
+        <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
+          {table.getRowModel().rows?.length ? (
+            table.getRowModel().rows.map((row) => (
+              <div key={row.id} onClick={() => {
+                if (enableSingleRowSelection) {
+                  table.toggleAllPageRowsSelected(false);
+                  row.toggleSelected(true);
+                }
+                onRowClick?.(row.original);
+              }}>
+                {renderCard(row.original, row.getIsSelected())}
+              </div>
+            ))
+          ) : (
+            <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
+          )}
+        </div>
+      ) : null}
+      <div className={cn("rounded-md border overflow-auto flex-1 min-h-0 relative", isNarrow && renderCard ? 'hidden' : '')}>
         <table className={cn("w-full caption-bottom text-sm")}>
           <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (

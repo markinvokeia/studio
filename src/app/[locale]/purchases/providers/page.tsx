@@ -1,6 +1,7 @@
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
@@ -54,12 +56,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Phone, Plus, Printer, Receipt, SlidersHorizontal, X } from 'lucide-react';
+import { AlertTriangle, BarChart2, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Maximize2, Minimize2, Phone, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, StickyNote, ToggleLeft, UserCircle, Wrench, X } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
+import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ProviderColumnsWrapper } from './columns';
+import { useDeepLink } from '@/hooks/use-deep-link';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -276,6 +282,52 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
   );
 };
 
+function ProvidersTableNarrow({
+  columns, providers, selectedProvider, onRowSelectionChange, onCreate, onRefresh, isRefreshing,
+  rowSelection, setRowSelection, providerCount, pagination, setPagination, columnFilters, setColumnFilters, filterPlaceholder,
+  isNarrow,
+}: {
+  columns: any[]; providers: any[]; selectedProvider: any;
+  onRowSelectionChange: (rows: any[]) => void; onCreate?: () => void; onRefresh: () => void; isRefreshing: boolean;
+  rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  providerCount: number; pagination: PaginationState; setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
+  columnFilters: ColumnFiltersState; setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  filterPlaceholder: string;
+  isNarrow: boolean;
+}) {
+  return (
+    <DataTable
+      columns={columns}
+      data={providers}
+      filterColumnId="email"
+      filterPlaceholder={filterPlaceholder}
+      onRowSelectionChange={onRowSelectionChange}
+      enableSingleRowSelection={true}
+      onCreate={onCreate}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      pageCount={Math.ceil(providerCount / pagination.pageSize)}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      manualPagination={true}
+      columnFilters={columnFilters}
+      onColumnFiltersChange={setColumnFilters}
+      isNarrow={isNarrow}
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
+          title={row.name || ''}
+          subtitle={row.email || row.phone_number || ''}
+          avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
+          showArrow
+          onClick={() => onRowSelectionChange([row])}
+        />
+      )}
+    />
+  );
+}
+
 export default function ProvidersPage() {
   return <ProvidersPageContent />;
 }
@@ -284,6 +336,7 @@ function ProvidersPageContent() {
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const isViewportNarrow = useViewportNarrow();
 
   // Permission checks for UI elements
   const canViewList = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_LIST);
@@ -304,9 +357,10 @@ function ProvidersPageContent() {
   const [providers, setProviders] = React.useState<User[]>([]);
   const [providerCount, setProviderCount] = React.useState(0);
   const [selectedProvider, setSelectedProvider] = React.useState<User | null>(null);
-  const [editingProvider, setEditingProvider] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [detailError, setDetailError] = React.useState<string | null>(null);
+  const [isSavingDetail, setIsSavingDetail] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -316,7 +370,7 @@ function ProvidersPageContent() {
     pageSize: 10,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [activeTab, setActiveTab] = React.useState('summary');
+  const [activeTab, setActiveTab] = React.useState('info');
   const [providerFinancialData, setProviderFinancialData] = React.useState<UserFinancial | null>(null);
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
@@ -331,6 +385,8 @@ function ProvidersPageContent() {
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
+  const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
   // Refresh triggers for tabs
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
@@ -339,6 +395,21 @@ function ProvidersPageContent() {
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
 
   const form = useForm<ProviderFormValues>({
+    resolver: zodResolver(providerFormSchema(t)),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      alternative_phone: '',
+      identity_document: '',
+      address: '',
+      notes: '',
+      bank_account: '',
+      is_active: true,
+    },
+  });
+
+  const detailForm = useForm<ProviderFormValues>({
     resolver: zodResolver(providerFormSchema(t)),
     defaultValues: {
       name: '',
@@ -411,7 +482,6 @@ function ProvidersPageContent() {
   };
 
   const handleCreate = () => {
-    setEditingProvider(null);
     form.reset({
       name: '',
       email: '',
@@ -427,25 +497,7 @@ function ProvidersPageContent() {
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (provider: User) => {
-    setEditingProvider(provider);
-    form.reset({
-      id: provider.id,
-      name: provider.name,
-      email: provider.email,
-      phone: provider.phone_number,
-      alternative_phone: provider.alternative_phone || '',
-      identity_document: provider.identity_document || '',
-      address: provider.address || '',
-      notes: provider.notes || '',
-      bank_account: provider.bank_account || '',
-      is_active: provider.is_active,
-    });
-    setSubmissionError(null);
-    setIsDialogOpen(true);
-  };
-
-  const providerColumns = ProviderColumnsWrapper({ onToggleActivate: canToggleStatus ? handleToggleActivate : undefined, onEdit: canUpdateSupplier ? handleEdit : undefined });
+  const providerColumns = ProviderColumnsWrapper();
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
@@ -455,17 +507,29 @@ function ProvidersPageContent() {
   React.useEffect(() => {
     if (selectedProvider) {
       fetchProviderFinancialData(selectedProvider.id);
-      // No cambiar setActiveTab aquí - mantener la pestaña actual
+      detailForm.reset({
+        id: selectedProvider.id,
+        name: selectedProvider.name,
+        email: selectedProvider.email || '',
+        phone: selectedProvider.phone_number || '',
+        alternative_phone: selectedProvider.alternative_phone || '',
+        identity_document: selectedProvider.identity_document || '',
+        address: selectedProvider.address || '',
+        notes: selectedProvider.notes || '',
+        bank_account: selectedProvider.bank_account || '',
+        is_active: selectedProvider.is_active,
+      });
+      setDetailError(null);
     } else {
       setProviderFinancialData(null);
       setIsPreferencesOpen(false);
-      setActiveTab('summary'); // Solo cambiar a summary cuando se cierra/deselecciona
+      setActiveTab('info');
     }
-  }, [fetchProviderFinancialData, selectedProvider]);
+  }, [fetchProviderFinancialData, selectedProvider, detailForm]);
 
   const handleCloseDetails = () => {
     setSelectedProvider(null);
-    setActiveTab('summary');
+    setActiveTab('info');
     setRowSelection({});
   };
 
@@ -551,17 +615,47 @@ function ProvidersPageContent() {
     }
   };
 
+  const onDetailSubmit = async (data: ProviderFormValues) => {
+    setDetailError(null);
+    detailForm.clearErrors();
+    setIsSavingDetail(true);
+    try {
+      await upsertProvider(data);
+      toast({
+        title: t('ProvidersPage.createDialog.editSuccessTitle'),
+        description: t('ProvidersPage.createDialog.editSuccessDescription'),
+      });
+      const updated: User = {
+        ...selectedProvider!,
+        name: data.name,
+        email: data.email || '',
+        phone_number: data.phone || '',
+        alternative_phone: data.alternative_phone || '',
+        identity_document: data.identity_document || '',
+        address: data.address || '',
+        notes: data.notes || '',
+        bank_account: data.bank_account || '',
+        is_active: data.is_active,
+      };
+      setSelectedProvider(updated);
+      setProviders(prev => prev.map(p => p.id === updated.id ? updated : p));
+    } catch (error: any) {
+      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+      setDetailError(errorData?.message || (error instanceof Error ? error.message : t('ProvidersPage.createDialog.validation.genericError')));
+    } finally {
+      setIsSavingDetail(false);
+    }
+  };
+
   const onSubmit = async (data: ProviderFormValues) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
       await upsertProvider(data);
-      const isEditing = !!editingProvider;
-
       toast({
-        title: isEditing ? t('ProvidersPage.createDialog.editSuccessTitle') : t('ProvidersPage.createDialog.createSuccessTitle'),
-        description: isEditing ? t('ProvidersPage.createDialog.editSuccessDescription') : t('ProvidersPage.createDialog.createSuccessDescription'),
+        title: t('ProvidersPage.createDialog.createSuccessTitle'),
+        description: t('ProvidersPage.createDialog.createSuccessDescription'),
       });
       setIsDialogOpen(false);
       loadProviders();
@@ -594,11 +688,41 @@ function ProvidersPageContent() {
     }
   };
 
+  useDeepLink<User>({
+    tabMap: {
+      'Detalles': 'details',
+      'Resumen': 'summary',
+      'Servicios': 'services',
+      'Presupuestos': 'quotes',
+      'Ordenes': 'orders',
+      'Facturas': 'invoices',
+      'Pagos': 'payments',
+      'Notas': 'notes',
+    },
+    onFilter: (v) => {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      setColumnFilters([{ id: 'email', value: v }]);
+    },
+    items: providers,
+    isLoading: isRefreshing,
+    onAutoSelect: (provider) => handleRowSelectionChange([provider]),
+    setRowSelection,
+    onTabChange: (id) => setActiveTab(id),
+    actionMap: {
+      'Crear': () => handleCreate(),
+      'Presupuesto': () => setIsQuoteDialogOpen(true),
+      'Factura': () => setIsInvoiceDialogOpen(true),
+      'Prepago': () => setIsPrepaidDialogOpen(true),
+    },
+  });
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <TwoPanelLayout
         minLeftSize={20}
         isRightPanelOpen={!!selectedProvider && canViewDetail}
+        onBack={handleCloseDetails}
+        forceRightOnly={isRightExpanded}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
@@ -612,25 +736,24 @@ function ProvidersPageContent() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-              <DataTable
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+              <ProvidersTableNarrow
                 columns={providerColumns}
-                data={providers}
-                filterColumnId="email"
-                filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
+                providers={providers}
+                selectedProvider={selectedProvider}
                 onRowSelectionChange={handleRowSelectionChange}
-                enableSingleRowSelection={true}
                 onCreate={canCreateSupplier ? handleCreate : undefined}
                 onRefresh={loadProviders}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
-                pageCount={Math.ceil(providerCount / pagination.pageSize)}
+                providerCount={providerCount}
                 pagination={pagination}
-                onPaginationChange={setPagination}
-                manualPagination={true}
+                setPagination={setPagination}
                 columnFilters={columnFilters}
-                onColumnFiltersChange={setColumnFilters}
+                setColumnFilters={setColumnFilters}
+                filterPlaceholder={t('ProvidersPage.filterPlaceholder')}
+                isNarrow={!!selectedProvider || isViewportNarrow}
               />
             </CardContent>
           </Card>
@@ -649,14 +772,14 @@ function ProvidersPageContent() {
                     </CardTitle>
                   </div>
                   <div className="flex items-center gap-1 ml-2 flex-none">
-                    {/* + Quick create dropdown */}
                     <TooltipProvider>
+                    {/* + Quick create dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
                             <Plus className="h-4 w-4" />
-                            {t('ProvidersPage.quickCreate.title')}
-                            <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                            <span className="hidden sm:inline">{t('ProvidersPage.quickCreate.title')}</span>
+                            <ChevronDown className="h-3.5 w-3.5 opacity-70 hidden sm:block" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-48">
@@ -681,7 +804,6 @@ function ProvidersPageContent() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </TooltipProvider>
 
                     <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
                       <PopoverTrigger asChild>
@@ -691,7 +813,7 @@ function ProvidersPageContent() {
                           className="h-8 gap-1.5 px-3 hover:bg-primary hover:text-primary-foreground hover:border-primary"
                         >
                           <SlidersHorizontal className="h-4 w-4" />
-                          {t('UsersPage.preferencesButton')}
+                          <span className="hidden sm:inline">{t('UsersPage.preferencesButton')}</span>
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent align="end" className="w-auto p-3 space-y-2">
@@ -701,6 +823,41 @@ function ProvidersPageContent() {
                         <UserCommunicationPreferences user={selectedProvider} autoSave compact />
                       </PopoverContent>
                     </Popover>
+                    {canToggleStatus && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-8 w-8 transition-colors",
+                              selectedProvider.is_active
+                                ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                : "text-green-600 hover:bg-green-50"
+                            )}
+                            onClick={() => handleToggleActivate(selectedProvider)}
+                          >
+                            <ToggleLeft className="h-5 w-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {selectedProvider.is_active ? t('ProviderColumns.deactivate') : t('ProviderColumns.activate')}
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => setIsRightExpanded(v => !v)}
+                        >
+                          {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                    </Tooltip>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -710,18 +867,20 @@ function ProvidersPageContent() {
                       <X className="h-5 w-5" />
                       <span className="sr-only">{t('ProvidersPage.close')}</span>
                     </Button>
+                    </TooltipProvider>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
                   {isValidString(selectedProvider.email) && (
-                    <a
-                      href={`mailto:${encodeURIComponent(selectedProvider.email)}`}
+                    <button
+                      type="button"
+                      onClick={() => setIsEmailDialogOpen(true)}
                       className="flex items-center gap-1 max-w-[220px] truncate hover:text-foreground hover:underline"
                     >
                       <Mail className="h-3 w-3 flex-none" />
                       {selectedProvider.email}
-                    </a>
+                    </button>
                   )}
                   {isValidString(selectedProvider.phone_number) && (
                     <a
@@ -730,7 +889,7 @@ function ProvidersPageContent() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 hover:text-foreground hover:underline"
                     >
-                      <Phone className="h-3 w-3" />
+                      <WhatsAppIcon className="h-3 w-3" />
                       {selectedProvider.phone_number}
                     </a>
                   )}
@@ -773,128 +932,132 @@ function ProvidersPageContent() {
                   onToggle={() => setIsStatsOpen(v => !v)}
                   onPrint={handlePrintFinancialSummary}
                 />
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-                  <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start">
-                    <TabsTrigger value="summary" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.summary')}</TabsTrigger>
-                    {canViewServices && <TabsTrigger value="services" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.services')}</TabsTrigger>}
-                    {canViewQuotes && <TabsTrigger value="quotes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.quotes')}</TabsTrigger>}
-                    {canViewOrders && <TabsTrigger value="orders" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.orders')}</TabsTrigger>}
-                    {canViewInvoices && <TabsTrigger value="invoices" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.invoices')}</TabsTrigger>}
-                    {canViewPayments && <TabsTrigger value="payments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.payments')}</TabsTrigger>}
-                    <TabsTrigger value="notes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('ProvidersPage.tabs.notes')}</TabsTrigger>
-                  </TabsList>
-                  <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                    <TabsContent value="summary" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden border-t border-border">
+                  {(() => {
+                    const providerTabs: VerticalTab[] = [
+                      { id: 'info', icon: UserCircle, label: 'Información' },
+                      ...(canViewServices ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
+                      ...(canViewQuotes ? [{ id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') }] : []),
+                      ...(canViewOrders ? [{ id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') }] : []),
+                      ...(canViewInvoices ? [{ id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') }] : []),
+                      ...(canViewPayments ? [{ id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') }] : []),
+                      { id: 'notes', icon: StickyNote, label: t('ProvidersPage.tabs.notes') },
+                    ];
+                    return (
+                      <VerticalTabStrip
+                        tabs={providerTabs}
+                        activeTabId={activeTab}
+                        onTabClick={(tab) => setActiveTab(tab.id)}
+                      />
+                    );
+                  })()}
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0 p-3">
+                    {activeTab === 'info' && (
+                      <div className="flex-1 overflow-hidden flex flex-col min-h-0 rounded-lg bg-muted/30 p-3">
                       <Card className="h-full flex flex-col shadow-none border-0">
-                        <CardHeader className="flex-none p-4 pb-2">
-                          <CardTitle className="text-lg text-foreground font-bold">{t('ProvidersPage.summary.title')}</CardTitle>
-                          <CardDescription className="text-sm text-muted-foreground">
-                            {t('ProvidersPage.summary.description')}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 overflow-auto p-4 pt-0 bg-card">
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.name')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.name}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.identity_document')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.identity_document || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.email')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.email || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.phone')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.phone_number || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.alternative_phone')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.alternative_phone || '-'}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.address')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.address || '-'}</p>
-                              </div>
-                              <div className="space-y-1 md:col-span-2">
-                                <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.bank_account')}</span>
-                                <p className="text-sm font-medium">{selectedProvider.bank_account || '-'}</p>
-                              </div>
-                            </div>
-                            <div className="space-y-1 pt-2 border-t">
-                              <span className="text-xs uppercase font-bold text-muted-foreground">{t('ProvidersPage.summary.status')}</span>
-                              <p className="text-sm font-medium">
-                                <span className={selectedProvider.is_active ? 'text-green-600' : 'text-red-600'}>
-                                  {selectedProvider.is_active ? t('ProvidersPage.summary.active') : t('ProvidersPage.summary.inactive')}
-                                </span>
-                              </p>
-                            </div>
-                          </div>
+                        <CardContent className="flex-1 overflow-auto p-4 bg-card">
+                          <Form {...detailForm}>
+                            <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                              {detailError && (
+                                <Alert variant="destructive">
+                                  <AlertTriangle className="h-4 w-4" />
+                                  <AlertTitle>{t('ProvidersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                                  <AlertDescription>{detailError}</AlertDescription>
+                                </Alert>
+                              )}
+                              <FormField control={detailForm.control} name="name" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.name')}</FormLabel><FormControl><Input placeholder={t('ProvidersPage.createDialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="email" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.email')}</FormLabel><FormControl><Input type="email" placeholder={t('ProvidersPage.createDialog.emailPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="phone" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.phone')}</FormLabel><FormControl>
+                                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('ProvidersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                </FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('ProvidersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="address" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.address')}</FormLabel><FormControl><Input placeholder={t('ProvidersPage.createDialog.addressPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="alternative_phone" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.alternative_phone')}</FormLabel><FormControl>
+                                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('ProvidersPage.createDialog.alternative_phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                                </FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="bank_account" render={({ field }) => (
+                                <FormItem><FormLabel>{t('ProvidersPage.createDialog.bank_account')}</FormLabel><FormControl><Input placeholder={t('ProvidersPage.createDialog.bank_accountPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                              )} />
+                              <FormField control={detailForm.control} name="is_active" render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                  <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
+                                </FormItem>
+                              )} />
+                              {canUpdateSupplier && (
+                                <div className="flex gap-2 pt-2">
+                                  <Button type="submit" disabled={isSavingDetail}>
+                                    {isSavingDetail ? t('ProvidersPage.createDialog.editSave') + '...' : t('ProvidersPage.createDialog.editSave')}
+                                  </Button>
+                                </div>
+                              )}
+                            </form>
+                          </Form>
                         </CardContent>
                       </Card>
-                    </TabsContent>
-                    {canViewServices && (
-                      <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserServices userId={selectedProvider.id} isSalesUser={false} />
-                      </TabsContent>
+                      </div>
                     )}
-                    {canViewQuotes && (
-                      <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserQuotes
-                          userId={selectedProvider.id}
-                          mode="purchases"
-                          refreshTrigger={refreshQuotesTrigger}
-                          onDataChange={() => {
-                            fetchProviderFinancialData(selectedProvider.id);
-                            loadProviders();
-                          }}
-                        />
-                      </TabsContent>
+                    {canViewServices && activeTab === 'services' && (
+                      <UserServices userId={selectedProvider.id} isSalesUser={false} />
                     )}
-                    {canViewOrders && (
-                      <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserOrders
-                          userId={selectedProvider.id}
-                          patient={selectedProvider}
-                          mode="purchases"
-                          refreshTrigger={refreshOrdersTrigger}
-                          onDataChange={() => {
-                            fetchProviderFinancialData(selectedProvider.id);
-                            loadProviders();
-                          }}
-                        />
-                      </TabsContent>
+                    {canViewQuotes && activeTab === 'quotes' && (
+                      <UserQuotes
+                        userId={selectedProvider.id}
+                        mode="purchases"
+                        refreshTrigger={refreshQuotesTrigger}
+                        onDataChange={() => {
+                          fetchProviderFinancialData(selectedProvider.id);
+                          loadProviders();
+                        }}
+                      />
                     )}
-                    {canViewInvoices && (
-                      <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserInvoices
-                          userId={selectedProvider.id}
-                          mode="purchases"
-                          refreshTrigger={refreshInvoicesTrigger}
-                          onDataChange={() => {
-                            fetchProviderFinancialData(selectedProvider.id);
-                            loadProviders();
-                          }}
-                        />
-                      </TabsContent>
+                    {canViewOrders && activeTab === 'orders' && (
+                      <UserOrders
+                        userId={selectedProvider.id}
+                        patient={selectedProvider}
+                        mode="purchases"
+                        refreshTrigger={refreshOrdersTrigger}
+                        onDataChange={() => {
+                          fetchProviderFinancialData(selectedProvider.id);
+                          loadProviders();
+                        }}
+                      />
                     )}
-                    {canViewPayments && (
-                      <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                        <UserPayments
-                          userId={selectedProvider.id}
-                          mode="purchases"
-                          refreshTrigger={refreshPaymentsTrigger}
-                        />
-                      </TabsContent>
+                    {canViewInvoices && activeTab === 'invoices' && (
+                      <UserInvoices
+                        userId={selectedProvider.id}
+                        mode="purchases"
+                        refreshTrigger={refreshInvoicesTrigger}
+                        onDataChange={() => {
+                          fetchProviderFinancialData(selectedProvider.id);
+                          loadProviders();
+                        }}
+                      />
                     )}
-                    <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                    {canViewPayments && activeTab === 'payments' && (
+                      <UserPayments
+                        userId={selectedProvider.id}
+                        mode="purchases"
+                        refreshTrigger={refreshPaymentsTrigger}
+                      />
+                    )}
+                    {activeTab === 'notes' && (
                       <NotesTab user={selectedProvider} onUpdate={handleUpdateNotes} />
-                    </TabsContent>
+                    )}
                   </div>
-                </Tabs>
+                </div>
               </CardContent>
             </Card>
           ) : null
@@ -947,8 +1110,8 @@ function ProvidersPageContent() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingProvider ? t('ProvidersPage.createDialog.editTitle') : t('ProvidersPage.createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingProvider ? t('ProvidersPage.createDialog.editDescription') : t('ProvidersPage.createDialog.description')}</DialogDescription>
+            <DialogTitle>{t('ProvidersPage.createDialog.title')}</DialogTitle>
+            <DialogDescription>{t('ProvidersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
@@ -1091,7 +1254,7 @@ function ProvidersPageContent() {
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>
-                <Button type="submit">{editingProvider ? t('ProvidersPage.createDialog.editSave') : t('ProvidersPage.createDialog.save')}</Button>
+                <Button type="submit">{t('ProvidersPage.createDialog.save')}</Button>
               </DialogFooter>
             </form>
           </Form>
@@ -1142,6 +1305,15 @@ function ProvidersPageContent() {
             fetchProviderFinancialData(selectedProvider.id);
             loadProviders();
           }}
+        />
+      )}
+
+      {selectedProvider && (
+        <EmailComposerDialog
+          open={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          to={selectedProvider.email || ''}
+          recipientName={selectedProvider.name}
         />
       )}
     </div>

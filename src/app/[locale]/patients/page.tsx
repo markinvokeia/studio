@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CollapsibleTrigger } from '@/components/ui/collapsible';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -34,8 +36,9 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
+import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
@@ -64,7 +67,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, Loader2, Mail, Phone, Plus, Printer, Receipt, SlidersHorizontal, Stethoscope, Upload, Users, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
+import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -72,6 +77,8 @@ import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
+import { useDeepLink } from '@/hooks/use-deep-link';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -410,6 +417,251 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
   );
 };
 
+const UserInfoTab = ({
+  user,
+  mutualSocieties,
+  onSaved,
+}: {
+  user: User;
+  mutualSocieties: MutualSociety[];
+  onSaved: (updated: User) => void;
+}) => {
+  const t = useTranslations();
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
+
+  const infoForm = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema(t)),
+    defaultValues: {
+      id: user.id,
+      name: user.name,
+      email: user.email || '',
+      phone: user.phone_number || '',
+      identity_document: user.identity_document || '',
+      birth_date: user.birth_date || '',
+      notes: user.notes || '',
+      is_active: user.is_active,
+      mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
+    },
+  });
+
+  React.useEffect(() => {
+    infoForm.reset({
+      id: user.id,
+      name: user.name,
+      email: user.email || '',
+      phone: user.phone_number || '',
+      identity_document: user.identity_document || '',
+      birth_date: user.birth_date || '',
+      notes: user.notes || '',
+      is_active: user.is_active,
+      mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
+    });
+    setSaveError(null);
+  }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSave = async (data: UserFormValues) => {
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await upsertUser(data);
+      toast({
+        title: t('UsersPage.createDialog.editSuccessTitle'),
+        description: t('UsersPage.createDialog.editSuccessDescription'),
+      });
+      onSaved({ ...user, name: data.name, email: data.email || '', phone_number: data.phone || user.phone_number, identity_document: data.identity_document, birth_date: data.birth_date, notes: data.notes, is_active: data.is_active, mutual_society_id: data.mutual_society_id });
+    } catch (e: any) {
+      setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="overflow-y-auto flex-1 min-h-0 pr-1">
+      <Form {...infoForm}>
+        <form onSubmit={infoForm.handleSubmit(handleSave)} className="space-y-4 p-2">
+          {saveError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{saveError}</AlertDescription>
+            </Alert>
+          )}
+          <FormField control={infoForm.control} name="name" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
+              <FormControl><Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="email" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="phone" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
+              <FormControl>
+                <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+              <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+              <FormControl>
+                <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || ''}>
+                <FormControl>
+                  <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                  {mutualSocieties.map((ms) => (
+                    <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={infoForm.control} name="is_active" render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+              <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+            </FormItem>
+          )} />
+          <Button type="submit" disabled={isSaving} className="w-full">
+            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</> : 'Guardar'}
+          </Button>
+        </form>
+      </Form>
+    </div>
+  );
+};
+
+// Inner component that reads NarrowModeContext from TwoPanelLayout
+function UsersTableWithCards({
+  columns, users, selectedUser, handleRowSelectionChange, handleCreate,
+  loadUsers, isRefreshing, rowSelection, setRowSelection,
+  userCount, pagination, setPagination, columnFilters, setColumnFilters,
+  filtersOptionList, handleClearFilters, t,
+}: {
+  columns: any[];
+  users: User[];
+  selectedUser: User | null;
+  handleRowSelectionChange: (rows: User[]) => void;
+  handleCreate?: () => void;
+  loadUsers: () => void;
+  isRefreshing: boolean;
+  rowSelection: RowSelectionState;
+  setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  userCount: number;
+  pagination: PaginationState;
+  setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
+  columnFilters: ColumnFiltersState;
+  setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  filtersOptionList: any[];
+  handleClearFilters: () => void;
+  t: (key: string, values?: any) => string;
+}) {
+  const isViewportNarrow = useViewportNarrow();
+  return (
+    <DataTable
+      columns={columns}
+      data={users}
+      filterColumnId="email"
+      filterPlaceholder={t('UsersPage.filterPlaceholder')}
+      onRowSelectionChange={handleRowSelectionChange}
+      enableSingleRowSelection={true}
+      onCreate={handleCreate}
+      onRefresh={loadUsers}
+      isRefreshing={isRefreshing}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      pageCount={Math.ceil(userCount / pagination.pageSize)}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      manualPagination={true}
+      columnFilters={columnFilters}
+      onColumnFiltersChange={setColumnFilters}
+      isNarrow={!!selectedUser || isViewportNarrow}
+      renderCard={(user: User, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
+          title={user.name}
+          subtitle={user.email || user.phone_number || user.identity_document || ''}
+          avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
+          showArrow
+          onClick={() => handleRowSelectionChange([user])}
+          badge={user.is_active
+            ? undefined
+            : <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium bg-muted text-muted-foreground">Inactivo</span>
+          }
+        />
+      )}
+      customToolbar={(table: any) => (
+        <DataTableAdvancedToolbar
+          table={table}
+          isCompact={!!selectedUser}
+          filterPlaceholder={t('UsersPage.filterPlaceholder')}
+          searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
+          onSearchChange={(value: string) => {
+            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            setColumnFilters((prev) => {
+              const newFilters = prev.filter((f) => f.id !== 'email');
+              if (value) newFilters.push({ id: 'email', value });
+              return newFilters;
+            });
+          }}
+          filters={filtersOptionList}
+          onClearFilters={handleClearFilters}
+          onCreate={handleCreate}
+          onRefresh={loadUsers}
+          isRefreshing={isRefreshing}
+          extraButtons={null}
+          columnTranslations={{
+            name: t('UserColumns.name'),
+            email: t('UserColumns.email'),
+            identity_document: t('UserColumns.identity_document'),
+            phone_number: t('UserColumns.phone'),
+            is_active: t('UserColumns.status'),
+            debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
+            debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
+          }}
+        />
+      )}
+      columnTranslations={{
+        name: t('UserColumns.name'),
+        email: t('UserColumns.email'),
+        identity_document: t('UserColumns.identity_document'),
+        phone_number: t('UserColumns.phone'),
+        is_active: t('UserColumns.status'),
+        debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
+        debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
+      }}
+    />
+  );
+}
+
 export default function UsersPage() {
   const t = useTranslations();
   const { hasPermission } = usePermissions();
@@ -474,6 +726,7 @@ export default function UsersPage() {
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('clinical-history');
+  const [deepLinkView, setDeepLinkView] = React.useState<string | undefined>(undefined);
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
@@ -489,6 +742,8 @@ export default function UsersPage() {
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
   const [isStatsOpen, setIsStatsOpen] = React.useState(true);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
+  const [isRightExpanded, setIsRightExpanded] = React.useState(false);
   const [apptCalendars, setApptCalendars] = React.useState<CalendarType[]>([]);
   const [apptDoctors, setApptDoctors] = React.useState<User[]>([]);
   const [apptDoctorServiceMap, setApptDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
@@ -794,7 +1049,7 @@ export default function UsersPage() {
     setIsDialogOpen(true);
   };
 
-  const userColumns = UserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit });
+  const userColumns = UserColumnsWrapper();
 
   const debtorColumns: ColumnDef<User>[] = [
     {
@@ -994,6 +1249,75 @@ export default function UsersPage() {
     setColumnFilters((prev) => prev.filter(f => f.id !== 'email'));
   };
 
+  // ── Deep-link URL navigation (?f=&t=&st=&act=) ──────────────────────────────
+  useDeepLink<User>({
+    tabMap: {
+      'Historia-Clinica': 'clinical-history',
+      'Historia_Clinica': 'clinical-history',
+      'Servicios': 'services',
+      'Presupuestos': 'quotes',
+      'Ordenes': 'orders',
+      'Facturas': 'invoices',
+      'Pagos': 'payments',
+      'Citas': 'appointments',
+      'Mensajes': 'messages',
+      'Historial': 'logs',
+      'Notas': 'notes',
+    },
+    subtabMap: {
+      'Anamnesis': 'anamnesis',
+      'Timeline': 'timeline',
+      'Linea-de-Tiempo': 'timeline',
+      'Odontograma': 'odontogram',
+      'Documentos': 'documents',
+    },
+    onFilter: (value) => {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      setColumnFilters([{ id: 'email', value }]);
+    },
+    items: users,
+    isLoading: isRefreshing,
+    onAutoSelect: (user) => handleRowSelectionChange([user]),
+    setRowSelection,
+    onTabChange: (tabId) => setActiveTab(tabId),
+    onSubtabChange: (subtabId) => setDeepLinkView(subtabId),
+    actionMap: {
+      'Cita': () => { loadApptData(); setIsAppointmentDialogOpen(true); },
+      'Presupuesto': () => setIsQuoteDialogOpen(true),
+      'Factura': () => setIsInvoiceDialogOpen(true),
+      'Prepago': () => setIsPrepaidDialogOpen(true),
+      'Sesion': () => setCreateSessionTrigger((n) => n + 1),
+      'Documento': () => setCreateDocumentTrigger((n) => n + 1),
+      // "Crear" is context-sensitive — resolved via current t/st in URL
+      'Crear': () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('t');
+        const urlSubtab = urlParams.get('st');
+        if (urlTab === 'Historia-Clinica') {
+          if (!urlSubtab || urlSubtab === 'Timeline' || urlSubtab === 'Linea-de-Tiempo') {
+            setCreateSessionTrigger((n) => n + 1);
+          } else if (urlSubtab === 'Documentos') {
+            setCreateDocumentTrigger((n) => n + 1);
+          } else {
+            setCreateSessionTrigger((n) => n + 1);
+          }
+        } else if (urlTab === 'Citas') {
+          loadApptData();
+          setIsAppointmentDialogOpen(true);
+        } else if (urlTab === 'Presupuestos') {
+          setIsQuoteDialogOpen(true);
+        } else if (urlTab === 'Facturas') {
+          setIsInvoiceDialogOpen(true);
+        } else if (urlTab === 'Pagos') {
+          setIsPrepaidDialogOpen(true);
+        } else {
+          // Default: create patient
+          handleCreate();
+        }
+      },
+    },
+  });
+
   const filtersOptionList = [
     {
       value: 'allTime',
@@ -1043,8 +1367,10 @@ export default function UsersPage() {
     <>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
-          minLeftSize={20}
+          minLeftSize={15}
           isRightPanelOpen={!!selectedUser}
+          onBack={handleCloseDetails}
+          forceRightOnly={isRightExpanded}
           leftPanel={
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
               <CardHeader className="flex-none p-4">
@@ -1058,67 +1384,25 @@ export default function UsersPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
-                <DataTable
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 bg-card">
+                <UsersTableWithCards
                   columns={showDebtors ? debtorColumns : userColumns}
-                  data={users}
-                  filterColumnId="email"
-                  filterPlaceholder={t('UsersPage.filterPlaceholder')}
-                  onRowSelectionChange={handleRowSelectionChange}
-                  enableSingleRowSelection={true}
-                  onCreate={handleCreate}
-                  onRefresh={loadUsers}
+                  users={users}
+                  selectedUser={selectedUser}
+                  handleRowSelectionChange={handleRowSelectionChange}
+                  handleCreate={canCreate ? handleCreate : undefined}
+                  loadUsers={loadUsers}
                   isRefreshing={isRefreshing}
                   rowSelection={rowSelection}
                   setRowSelection={setRowSelection}
-                  pageCount={Math.ceil(userCount / pagination.pageSize)}
+                  userCount={userCount}
                   pagination={pagination}
-                  onPaginationChange={setPagination}
-                  manualPagination={true}
+                  setPagination={setPagination}
                   columnFilters={columnFilters}
-                  onColumnFiltersChange={setColumnFilters}
-                  customToolbar={(table) => (
-                    <DataTableAdvancedToolbar
-                      table={table}
-                      isCompact={!!selectedUser}
-                      filterPlaceholder={t('UsersPage.filterPlaceholder')}
-                      searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
-                      onSearchChange={(value) => {
-                        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-                        setColumnFilters((prev) => {
-                          const newFilters = prev.filter((f) => f.id !== 'email');
-                          if (value) {
-                            newFilters.push({ id: 'email', value });
-                          }
-                          return newFilters;
-                        });
-                      }}
-                      filters={filtersOptionList}
-                      onClearFilters={handleClearFilters}
-                      onCreate={canCreate ? handleCreate : undefined}
-                      onRefresh={loadUsers}
-                      isRefreshing={isRefreshing}
-                      extraButtons={null}
-                      columnTranslations={{
-                        name: t('UserColumns.name'),
-                        email: t('UserColumns.email'),
-                        identity_document: t('UserColumns.identity_document'),
-                        phone_number: t('UserColumns.phone'),
-                        is_active: t('UserColumns.status'),
-                        debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
-                        debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
-                      }}
-                    />
-                  )}
-                  columnTranslations={{
-                    name: t('UserColumns.name'),
-                    email: t('UserColumns.email'),
-                    identity_document: t('UserColumns.identity_document'),
-                    phone_number: t('UserColumns.phone'),
-                    is_active: t('UserColumns.status'),
-                    debt_uyu: `${t('UserColumns.currentDebt')} (UYU)`,
-                    debt_usd: `${t('UserColumns.currentDebt')} (USD)`,
-                  }}
+                  setColumnFilters={setColumnFilters}
+                  filtersOptionList={filtersOptionList}
+                  handleClearFilters={handleClearFilters}
+                  t={t}
                 />
               </CardContent>
             </Card>
@@ -1163,128 +1447,161 @@ export default function UsersPage() {
                         {selectedUser.name}
                       </CardTitle>
                     </div>
-                    <div className="flex items-center gap-1 ml-2 flex-none">
-                      {/* + Quick create dropdown */}
+                    {/* Icon action buttons — reference style */}
+                    <div className="flex items-center gap-0.5 ml-2 flex-none">
                       <TooltipProvider>
+                        {/* + Crear (quick create) — first position */}
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="default" size="sm" className="h-8 gap-1.5 px-3">
-                              <Plus className="h-4 w-4" />
-                              Crear
-                              <ChevronDown className="h-3.5 w-3.5 opacity-70" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                                  <Plus className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>Crear</TooltipContent>
+                          </Tooltip>
                           <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateSessionTrigger(t => t + 1); }}>
-                              <Stethoscope className="h-4 w-4 mr-2 text-primary" />
-                              Sesión clínica
+                              <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateDocumentTrigger(t => t + 1); }}>
-                              <Upload className="h-4 w-4 mr-2 text-primary" />
-                              Documento
+                              <Upload className="h-4 w-4 mr-2 text-primary" />Documento
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs text-muted-foreground">Financiero</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
-                              <FileText className="h-4 w-4 mr-2 text-emerald-600" />
-                              Presupuesto
+                              <FileText className="h-4 w-4 mr-2 text-emerald-600" />Presupuesto
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setIsInvoiceDialogOpen(true)}>
-                              <Receipt className="h-4 w-4 mr-2 text-emerald-600" />
-                              Factura
+                              <Receipt className="h-4 w-4 mr-2 text-emerald-600" />Factura
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setIsPrepaidDialogOpen(true)}>
-                              <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />
-                              Prepago
+                              <CreditCard className="h-4 w-4 mr-2 text-emerald-600" />Prepago
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs text-muted-foreground">Agenda</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}>
-                              <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />
-                              Cita
+                              <CalendarIcon className="h-4 w-4 mr-2 text-blue-600" />Cita
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TooltipProvider>
 
-                      {/* Discharge button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className={cn(
-                          "h-8 gap-1.5 px-3",
-                          currentDischarge
-                            ? "text-green-600 border-green-300 hover:bg-green-600 hover:text-white hover:border-green-600"
-                            : "hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                        {/* Email */}
+                        {selectedUser.email && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                                <Mail className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{selectedUser.email}</TooltipContent>
+                          </Tooltip>
                         )}
-                        onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
-                        disabled={isSubmittingDischarge}
-                      >
-                        {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                        {currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}
-                      </Button>
 
-                      {/* Preferences dropdown */}
-                      <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant={isPreferencesOpen ? 'secondary' : 'outline'}
-                            size="sm"
-                            className="h-8 gap-1.5 px-3 hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                          >
-                            <SlidersHorizontal className="h-4 w-4" />
-                            {t('UsersPage.preferencesButton')}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent align="end" className="w-auto p-3 space-y-2">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">
-                            {t('UsersPage.preferencesButton')}
-                          </p>
-                          <UserCommunicationPreferences user={selectedUser} autoSave compact />
-                        </PopoverContent>
-                      </Popover>
+                        {/* WhatsApp */}
+                        {selectedUser.phone_number && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <a href={`https://wa.me/${selectedUser.phone_number.replace(/^\+/, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                                <WhatsAppIcon className="h-4 w-4" />
+                              </a>
+                            </TooltipTrigger>
+                            <TooltipContent>{selectedUser.phone_number}</TooltipContent>
+                          </Tooltip>
+                        )}
 
-                      {/* Close */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        onClick={handleCloseDetails}
-                      >
-                        <X className="h-5 w-5" />
-                        <span className="sr-only">{t('UsersPage.close')}</span>
-                      </Button>
+                        {/* Discharge */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className={cn(
+                                "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
+                                currentDischarge
+                                  ? "text-green-600 hover:bg-green-50"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              )}
+                              onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                              disabled={isSubmittingDischarge}
+                            >
+                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}</TooltipContent>
+                        </Tooltip>
+
+                        {/* Preferences */}
+                        <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <PopoverTrigger asChild>
+                                <button type="button" className={cn("flex items-center justify-center h-8 w-8 rounded-lg transition-colors", isPreferencesOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+                                  <SlidersHorizontal className="h-4 w-4" />
+                                </button>
+                              </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('UsersPage.preferencesButton')}</TooltipContent>
+                          </Tooltip>
+                          <PopoverContent align="end" className="w-auto p-3 space-y-2">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">{t('UsersPage.preferencesButton')}</p>
+                            <UserCommunicationPreferences user={selectedUser} autoSave compact />
+                          </PopoverContent>
+                        </Popover>
+
+                        {/* Toggle activate / deactivate */}
+                        {canToggleStatus && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
+                                  selectedUser.is_active
+                                    ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    : "text-green-600 hover:bg-green-50"
+                                )}
+                                onClick={() => handleToggleActivate(selectedUser)}
+                              >
+                                <ToggleLeft className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        {/* Expand / Restore */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setIsRightExpanded(v => !v)}>
+                              {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                        </Tooltip>
+
+                        {/* Close */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={handleCloseDetails}>
+                              <X className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{t('UsersPage.close')}</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
 
-                  {/* Row 2: Contact info + discharge */}
-                  <div className="flex items-center gap-x-3 gap-y-1 mt-1.5 ml-10 flex-wrap text-xs text-muted-foreground">
+                  {/* Row 2: Demographics + discharge badge */}
+                  <div className="flex items-center gap-x-3 gap-y-1 mt-1 ml-10 flex-wrap text-xs text-muted-foreground">
                     {selectedUser.birth_date && (
                       <span className="flex items-center gap-1">
                         <Cake className="h-3 w-3" />
                         {differenceInYears(new Date(), parseISO(selectedUser.birth_date))} años
                       </span>
-                    )}
-                    {selectedUser.email && (
-                      <a
-                        href={`mailto:${selectedUser.email}`}
-                        className="flex items-center gap-1 max-w-[200px] truncate hover:text-foreground hover:underline"
-                      >
-                        <Mail className="h-3 w-3 flex-none" />
-                        {selectedUser.email}
-                      </a>
-                    )}
-                    {selectedUser.phone_number && (
-                      <a
-                        href={`https://wa.me/${selectedUser.phone_number.replace(/^\+/, '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 hover:text-foreground hover:underline"
-                      >
-                        <Phone className="h-3 w-3" />
-                        {selectedUser.phone_number}
-                      </a>
                     )}
                     {selectedUser.identity_document && (
                       <span className="flex items-center gap-1">
@@ -1340,40 +1657,60 @@ export default function UsersPage() {
                         onToggle={() => setIsStatsOpen(v => !v)}
                         onPrint={handlePrintFinancialSummary}
                       />
-                      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
-                        <TabsList className="bg-transparent p-0 border-b border-border rounded-none gap-0 overflow-x-auto overflow-y-hidden flex-nowrap shrink-0 justify-start">
-                          {canViewHistory && <TabsTrigger value="clinical-history" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.clinicalHistory')}</TabsTrigger>}
-                          {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                            <TabsTrigger value="services" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.services')}</TabsTrigger>
+                      <div className="flex flex-col flex-1 min-h-0 overflow-hidden border-t border-border">
+                        {/* Horizontal tab strip */}
+                        {(() => {
+                          const isMedico = selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
+                          const userTabs: VerticalTab[] = [
+                            { id: 'info', icon: Users, label: 'Información' },
+                            ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
+                            ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
+                            { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
+                            { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
+                            { id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') },
+                            { id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') },
+                            { id: 'appointments', icon: CalendarIcon, label: t('UsersPage.tabs.appointments') },
+                            { id: 'messages', icon: MessageSquare, label: t('UsersPage.tabs.messages') },
+                            { id: 'logs', icon: History, label: t('UsersPage.tabs.logs') },
+                            { id: 'notes', icon: StickyNote, label: t('UsersPage.tabs.notes') },
+                          ];
+                          return (
+                            <VerticalTabStrip
+                              tabs={userTabs}
+                              activeTabId={activeTab}
+                              onTabClick={(tab) => setActiveTab(tab.id)}
+                            />
+                          );
+                        })()}
+                        {/* Tab content */}
+                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 p-3">
+                          {activeTab === 'info' && (
+                            <UserInfoTab
+                              user={selectedUser}
+                              mutualSocieties={mutualSocieties}
+                              onSaved={(updated) => {
+                                setSelectedUser(updated);
+                                loadUsers();
+                              }}
+                            />
                           )}
-                          <TabsTrigger value="quotes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.quotes')}</TabsTrigger>
-                          <TabsTrigger value="orders" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.orders')}</TabsTrigger>
-                          <TabsTrigger value="invoices" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.invoices')}</TabsTrigger>
-                          <TabsTrigger value="payments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.payments')}</TabsTrigger>
-                          <TabsTrigger value="appointments" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.appointments')}</TabsTrigger>
-                          <TabsTrigger value="messages" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.messages')}</TabsTrigger>
-                          <TabsTrigger value="logs" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.logs')}</TabsTrigger>
-                          <TabsTrigger value="notes" className="text-xs px-3 py-2 rounded-none border-b-2 border-transparent -mb-px whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none hover:text-foreground">{t('UsersPage.tabs.notes')}</TabsTrigger>
-                        </TabsList>
-                        <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-3">
-                          <TabsContent value="clinical-history" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          {activeTab === 'clinical-history' && (
                             <ClinicHistoryViewer
                               userId={selectedUser.id}
                               userName={selectedUser.name}
                               createSessionTrigger={createSessionTrigger}
                               createDocumentTrigger={createDocumentTrigger}
+                              deepLinkView={deepLinkView}
                               onClinicalDataChange={() => {
                                 fetchPatientAllergies(selectedUser.id);
                                 fetchPatientConditions(selectedUser.id);
                               }}
                             />
-                          </TabsContent>
-                          {selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
-                            <TabsContent value="services" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                              <UserServices userId={selectedUser.id} isSalesUser={true} />
-                            </TabsContent>
                           )}
-                          <TabsContent value="quotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          {activeTab === 'services' && selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
+                            <UserServices userId={selectedUser.id} isSalesUser={true} />
+                          )}
+                          {activeTab === 'quotes' && (
                             <UserQuotes
                               userId={selectedUser.id}
                               onQuoteSelect={setSelectedQuote}
@@ -1383,8 +1720,8 @@ export default function UsersPage() {
                                 loadUsers();
                               }}
                             />
-                          </TabsContent>
-                          <TabsContent value="orders" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          )}
+                          {activeTab === 'orders' && (
                             <UserOrders
                               userId={selectedUser.id}
                               patient={selectedUser}
@@ -1395,8 +1732,8 @@ export default function UsersPage() {
                                 setRefreshQuotesTrigger(prev => prev + 1);
                               }}
                             />
-                          </TabsContent>
-                          <TabsContent value="invoices" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          )}
+                          {activeTab === 'invoices' && (
                             <UserInvoices
                               userId={selectedUser.id}
                               refreshTrigger={refreshInvoicesTrigger}
@@ -1405,30 +1742,24 @@ export default function UsersPage() {
                                 loadUsers();
                               }}
                             />
-                          </TabsContent>
-                          <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          )}
+                          {activeTab === 'payments' && (
                             <UserPayments
                               userId={selectedUser.id}
                               refreshTrigger={refreshPaymentsTrigger}
                             />
-                          </TabsContent>
-                          <TabsContent value="appointments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
+                          )}
+                          {activeTab === 'appointments' && (
                             <UserAppointments
                               user={selectedUser}
                               refreshTrigger={refreshAppointmentsTrigger}
                             />
-                          </TabsContent>
-                          <TabsContent value="messages" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserMessages userId={selectedUser.id} />
-                          </TabsContent>
-                          <TabsContent value="logs" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <UserLogs userId={selectedUser.id} />
-                          </TabsContent>
-                          <TabsContent value="notes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col rounded-lg bg-muted/30 p-3">
-                            <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />
-                          </TabsContent>
+                          )}
+                          {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}
+                          {activeTab === 'logs' && <UserLogs userId={selectedUser.id} />}
+                          {activeTab === 'notes' && <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />}
                         </div>
-                      </Tabs>
+                      </div>
                     </>
                   ) : (<></>)}
                 </CardContent>
@@ -1786,6 +2117,15 @@ export default function UsersPage() {
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
+        />
+      )}
+
+      {selectedUser && (
+        <EmailComposerDialog
+          open={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          to={selectedUser.email || ''}
+          recipientName={selectedUser.name}
         />
       )}
     </>

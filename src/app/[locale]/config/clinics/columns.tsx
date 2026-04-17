@@ -3,18 +3,11 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Clinic } from '@/lib/types';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 export const clinicsColumns: ColumnDef<Clinic>[] = [
+    createSelectColumn<Clinic>(),
     { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title="ID" /> },
     { accessorKey: 'name', header: ({column}) => <DataTableColumnHeader column={column} title="Name" /> },
     { accessorKey: 'location', header: ({column}) => <DataTableColumnHeader column={column} title="Address" /> },
@@ -23,21 +16,18 @@ export const clinicsColumns: ColumnDef<Clinic>[] = [
     {
         id: 'actions',
         cell: ({ row }) => {
-        const clinic = row.original;
+        void row.original;
         return (
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>Edit</DropdownMenuItem>
-                <DropdownMenuItem>Delete</DropdownMenuItem>
-            </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span className="text-[9px] font-medium leading-tight">Edit</span>
+                </button>
+                <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="text-[9px] font-medium leading-tight">Delete</span>
+                </button>
+            </div>
         );
         },
     },

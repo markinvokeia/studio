@@ -24,6 +24,8 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -114,34 +116,33 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
     const data = await api.get(API_ROUTES.USER_PAYMENTS, { user_id: userId });
     const paymentsData = Array.isArray(data) ? data : (data.payments || []);
 
-    return paymentsData.map((tx: any) => ({
-      id: String(tx.transaction_id),
-      transaction_id: String(tx.transaction_id),
-      doc_no: tx.transaction_doc_no || tx.doc_no || `PAY-${tx.transaction_id}`,
-      order_id: '',
-      order_doc_no: '',
-      invoice_id: tx.invoice_id ? String(tx.invoice_id) : null,
-      invoice_doc_no: tx.invoice_doc_no || '',
-      quote_id: null,
-      user_name: tx.user_name || '',
-      amount: parseFloat(tx.amount_applied) || 0,
-      amount_applied: parseFloat(tx.amount_applied) || 0,
-      source_amount: parseFloat(tx.source_amount) || 0,
-      source_currency: (tx.source_currency as 'UYU' | 'USD') || 'USD',
-      currency: (tx.source_currency as 'UYU' | 'USD') || 'USD',
-      exchange_rate: parseFloat(tx.exchange_rate) || 1,
-      method: tx.payment_method_name || '',
-      payment_method: tx.payment_method_name || '',
-      payment_method_code: tx.payment_method_code || '',
-      status: 'completed' as const,
-      transaction_type: (tx.transaction_type || 'direct_payment') as Payment['transaction_type'],
-      reference_doc_id: undefined,
-      is_historical: tx.is_historical || false,
-      notes: tx.notes || '',
-      createdAt: tx.created_at,
-      updatedAt: tx.created_at,
-      payment_date: tx.created_at,
-      type: null,
+    return paymentsData.filter((p: any) => p && p.id != null).map((apiPayment: any) => ({
+      id: apiPayment.id.toString(),
+      doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
+      order_id: apiPayment.order_id?.toString() ?? '',
+      order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
+      invoice_id: apiPayment.invoice_id?.toString() ?? null,
+      invoice_doc_no: apiPayment.invoice_doc_no || '',
+      quote_id: apiPayment.quote_id?.toString() ?? null,
+      user_name: apiPayment.user_name || '',
+      amount: parseFloat(apiPayment.amount),
+      method: apiPayment.method,
+      status: apiPayment.status,
+      createdAt: apiPayment.created_at,
+      updatedAt: apiPayment.updatedAt,
+      currency: apiPayment.currency,
+      payment_date: apiPayment.payment_date,
+      amount_applied: parseFloat(apiPayment.amount_applied),
+      source_amount: parseFloat(apiPayment.amount),
+      source_currency: apiPayment.currency,
+      exchange_rate: parseFloat(apiPayment.exchange_rate),
+      payment_method: apiPayment.payment_method,
+      transaction_type: apiPayment.transaction_type || 'direct_payment',
+      transaction_id: apiPayment.transaction_id,
+      reference_doc_id: apiPayment.reference_doc_id,
+      is_historical: apiPayment.is_historical || false,
+      notes: apiPayment.notes || '',
+      type: apiPayment.type || null,
     }));
   } catch (error) {
     console.error("Failed to fetch user payments:", error);
@@ -160,6 +161,7 @@ interface UserPaymentsProps {
 export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTrigger }: UserPaymentsProps) {
   const t = useTranslations();
   const tPayments = useTranslations('PaymentsPage');
+  const isViewportNarrow = useViewportNarrow();
   const { toast } = useToast();
   const isSales = mode === 'sales';
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -282,10 +284,10 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     try {
       await api.post(
         isSales ? API_ROUTES.SALES.API_PAYMENT_SEND : API_ROUTES.PURCHASES.API_PAYMENT_SEND,
-        { 
+        {
           transaction_id: selectedPaymentForEmail.transaction_id || selectedPaymentForEmail.id,
           transaction_type: selectedPaymentForEmail.transaction_type,
-          emails 
+          emails
         }
       );
       toast({ title: tPayments('sendEmailDialog.success') });
@@ -311,9 +313,9 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     try {
       const blob = await api.getBlob(
         isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT,
-        { 
+        {
           transaction_id: selectedPayment.transaction_id || selectedPayment.id,
-          transaction_type: selectedPayment.transaction_type 
+          transaction_type: selectedPayment.transaction_type
         }
       );
       const fileName = getDocumentFileName(selectedPayment, 'payment');
@@ -400,6 +402,34 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
             onRefresh={() => loadPayments(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
+            isNarrow={isViewportNarrow}
+            renderCard={(payment: Payment, _isSelected: boolean) => {
+              const { type, variant } = getPaymentType(payment);
+              const statusLower = payment.status?.toLowerCase();
+              return (
+                <DataCard isSelected={_isSelected}
+                  title={payment.doc_no || `PAY-${payment.id}`}
+                  subtitle={formatDateTime(payment.createdAt)}
+                  badge={
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      <Badge variant={variant} className="capitalize text-[10px]">
+                        {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                      </Badge>
+                      {statusLower && (
+                        <Badge variant={(STATUS_BADGE[statusLower] ?? 'default') as any} className="capitalize text-[10px]">
+                          {statusLower}
+                        </Badge>
+                      )}
+                    </div>
+                  }
+                  fields={[
+                    { label: t('PaymentsPage.columns.amount'), value: `${payment.currency || ''} ${Math.abs(parseFloat(String(payment.amount || 0))).toFixed(2)}`, primary: true },
+                    { label: t('PaymentsPage.columns.method'), value: payment.method || '-' },
+                    { label: t('InvoicesPage.columns.docNo'), value: payment.invoice_doc_no || '-' },
+                  ]}
+                />
+              );
+            }}
             columnTranslations={{
               doc_no: t('PaymentsPage.columns.doc_no'),
               user_name: isSales ? t('PaymentsPage.columns.user') : t('InvoicesPage.columns.provider'),
@@ -431,7 +461,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
             <div className="flex-none bg-card shadow-sm border-b border-border">
               {/* Título y badges principales */}
               <div className="px-6 py-4 border-b border-border/50">
-                <div className="flex items-start justify-between gap-4 pr-10">
+                <div className="flex items-start justify-between gap-4 pr-10 sm:pr-20">
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedPayment.doc_no || `PAY-${selectedPayment.id}`}</SheetTitle>
@@ -457,10 +487,10 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               {/* Información del documento integrada en el header */}
               <div className="px-6 py-3">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Monto:</span>
-                      <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Monto:</span>
+                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Método:</span>
                     <span className="text-sm">{selectedPayment.method || '-'}</span>

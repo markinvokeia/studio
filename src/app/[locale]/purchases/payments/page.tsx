@@ -214,6 +214,7 @@ function PaymentsPageContent() {
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <TwoPanelLayout
                 isRightPanelOpen={!!selectedPayment}
+                onBack={handleCloseDetails}
                 leftPanel={
                     <PaymentsTable
                         payments={payments}
@@ -234,6 +235,7 @@ function PaymentsPageContent() {
                         title={t('title')}
                         description={t('description')}
                         className="h-full"
+                        isCompact={!!selectedPayment}
                     />
                 }
                 rightPanel={

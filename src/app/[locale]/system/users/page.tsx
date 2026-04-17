@@ -1,6 +1,8 @@
 'use client';
 
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +41,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { SystemUserColumnsWrapper } from './columns';
+import { useDeepLink } from '@/hooks/use-deep-link';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -164,6 +167,78 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
   }
 }
 
+function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, userCount, pagination, setPagination, columnFilters, setColumnFilters, filtersOptionList, handleClearFilters, canCreate, t }: {
+  columns: any[]; users: any[]; selectedUser: any;
+  onRowSelectionChange: (rows: any[]) => void; onCreate: () => void; onRefresh: () => void; isRefreshing: boolean;
+  rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  userCount: number; pagination: PaginationState; setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
+  columnFilters: ColumnFiltersState; setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  filtersOptionList: any[]; handleClearFilters: () => void; canCreate: boolean; t: (k: string) => string;
+}) {
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isViewportNarrow = useViewportNarrow();
+  const isNarrow = !!selectedUser || panelNarrow || isViewportNarrow;
+  return (
+    <DataTable
+      columns={columns}
+      data={users}
+      filterColumnId="email"
+      filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
+      onRowSelectionChange={onRowSelectionChange}
+      enableSingleRowSelection={true}
+      onCreate={onCreate}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      pageCount={Math.ceil(userCount / pagination.pageSize)}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      manualPagination={true}
+      columnFilters={columnFilters}
+      onColumnFiltersChange={setColumnFilters}
+      isNarrow={isNarrow}
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
+          title={row.name || ''}
+          subtitle={row.email || row.phone_number || ''}
+          avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
+          showArrow
+          onClick={() => onRowSelectionChange([row])}
+        />
+      )}
+      customToolbar={(table: any) => (
+        <DataTableAdvancedToolbar
+          table={table}
+          filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
+          searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
+          onSearchChange={(value: string) => {
+            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            setColumnFilters((prev) => {
+              const newFilters = prev.filter((f) => f.id !== 'email');
+              if (value) newFilters.push({ id: 'email', value });
+              return newFilters;
+            });
+          }}
+          filters={filtersOptionList}
+          onClearFilters={handleClearFilters}
+          onCreate={canCreate ? onCreate : undefined}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
+          extraButtons={null}
+        />
+      )}
+      columnTranslations={{
+        name: t('SystemUserColumns.name'),
+        email: t('SystemUserColumns.email'),
+        phone_number: t('SystemUserColumns.phone'),
+        is_active: t('SystemUserColumns.status'),
+        roles: t('SystemUserColumns.roles'),
+      }}
+    />
+  );
+}
+
 export default function SystemUsersPage() {
   const t = useTranslations();
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -177,9 +252,10 @@ export default function SystemUsersPage() {
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
   const [isRolesLoading, setIsRolesLoading] = React.useState(false);
-  const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [detailError, setDetailError] = React.useState<string | null>(null);
+  const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [hasPasswordPermission, setHasPasswordPermission] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -192,6 +268,17 @@ export default function SystemUsersPage() {
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
   const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema(t)),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+    },
+  });
+
+  const detailForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
       name: '',
@@ -292,7 +379,6 @@ export default function SystemUsersPage() {
 
   const handleCreate = () => {
     if (!canCreate) return;
-    setEditingUser(null);
     form.reset({
       name: '',
       email: '',
@@ -304,25 +390,22 @@ export default function SystemUsersPage() {
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    form.reset({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone_number,
-      identity_document: user.identity_document || '',
-      is_active: user.is_active,
-    });
-    setSubmissionError(null);
-    setIsDialogOpen(true);
-  };
-
-  const userColumns = SystemUserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: handleEdit, canEdit: canUpdate, canToggleStatus: canToggleStatus });
+  const userColumns = SystemUserColumnsWrapper({ onToggleActivate: handleToggleActivate, onEdit: () => {}, canEdit: canUpdate, canToggleStatus: canToggleStatus });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedUser(user);
+    if (user) {
+      detailForm.reset({
+        id: user.id,
+        name: user.name,
+        email: user.email || '',
+        phone: user.phone_number || '',
+        identity_document: user.identity_document || '',
+        is_active: user.is_active,
+      });
+      setDetailError(null);
+    }
   };
 
   React.useEffect(() => {
@@ -361,17 +444,43 @@ export default function SystemUsersPage() {
     setRowSelection({});
   };
 
+  const onDetailSubmit = async (data: UserFormValues) => {
+    setDetailError(null);
+    detailForm.clearErrors();
+    setIsSavingDetail(true);
+    try {
+      await upsertUser(data);
+      toast({
+        title: t('SystemUsersPage.createDialog.editSuccessTitle'),
+        description: t('SystemUsersPage.createDialog.editSuccessDescription'),
+      });
+      const updated: User = {
+        ...selectedUser!,
+        name: data.name,
+        email: data.email || '',
+        phone_number: data.phone || '',
+        identity_document: data.identity_document || '',
+        is_active: data.is_active,
+      };
+      setSelectedUser(updated);
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+    } catch (error: any) {
+      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+      setDetailError(errorData?.message || (error instanceof Error ? error.message : t('SystemUsersPage.createDialog.validation.genericError')));
+    } finally {
+      setIsSavingDetail(false);
+    }
+  };
+
   const onSubmit = async (data: UserFormValues) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
       await upsertUser(data);
-      const isEditing = !!editingUser;
-
       toast({
-        title: isEditing ? t('SystemUsersPage.createDialog.editSuccessTitle') : t('SystemUsersPage.createDialog.createSuccessTitle'),
-        description: isEditing ? t('SystemUsersPage.createDialog.editSuccessDescription') : t('SystemUsersPage.createDialog.createSuccessDescription'),
+        title: t('SystemUsersPage.createDialog.createSuccessTitle'),
+        description: t('SystemUsersPage.createDialog.createSuccessDescription'),
       });
       setIsDialogOpen(false);
       loadUsers();
@@ -429,11 +538,28 @@ export default function SystemUsersPage() {
     setColumnFilters([]);
   };
 
+  const [activeTab, setActiveTab] = React.useState('details');
+
+  useDeepLink<User>({
+    tabMap: { 'Detalles': 'details', 'Roles': 'roles', 'Historial': 'logs' },
+    onFilter: (v) => {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      setColumnFilters([{ id: 'email', value: v }]);
+    },
+    items: users,
+    isLoading: isRefreshing,
+    onAutoSelect: (user) => handleRowSelectionChange([user]),
+    setRowSelection,
+    onTabChange: (id) => setActiveTab(id),
+    actionMap: { 'Crear': () => handleCreate() },
+  });
+
   return (
     <>
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
           isRightPanelOpen={!!selectedUser}
+          onBack={handleCloseDetails}
           leftPanel={
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
               <CardHeader className="flex-none p-4">
@@ -447,55 +573,26 @@ export default function SystemUsersPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
-                <DataTable
+              <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 bg-card">
+                <SystemUsersTableNarrow
                   columns={userColumns}
-                  data={users}
-                  filterColumnId="email"
-                  filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
+                  users={users}
+                  selectedUser={selectedUser}
                   onRowSelectionChange={handleRowSelectionChange}
-                  enableSingleRowSelection={true}
                   onCreate={handleCreate}
                   onRefresh={loadUsers}
                   isRefreshing={isRefreshing}
                   rowSelection={rowSelection}
                   setRowSelection={setRowSelection}
-                  pageCount={Math.ceil(userCount / pagination.pageSize)}
+                  userCount={userCount}
                   pagination={pagination}
-                  onPaginationChange={setPagination}
-                  manualPagination={true}
+                  setPagination={setPagination}
                   columnFilters={columnFilters}
-                  onColumnFiltersChange={setColumnFilters}
-                  customToolbar={(table) => (
-                    <DataTableAdvancedToolbar
-                      table={table}
-                      filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
-                      searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
-                      onSearchChange={(value) => {
-                        setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-                        setColumnFilters((prev) => {
-                          const newFilters = prev.filter((f) => f.id !== 'email');
-                          if (value) {
-                            newFilters.push({ id: 'email', value });
-                          }
-                          return newFilters;
-                        });
-                      }}
-                      filters={filtersOptionList}
-                      onClearFilters={handleClearFilters}
-                      onCreate={canCreate ? handleCreate : undefined}
-                      onRefresh={loadUsers}
-                      isRefreshing={isRefreshing}
-                      extraButtons={null}
-                    />
-                  )}
-                  columnTranslations={{
-                    name: t('SystemUserColumns.name'),
-                    email: t('SystemUserColumns.email'),
-                    phone_number: t('SystemUserColumns.phone'),
-                    is_active: t('SystemUserColumns.status'),
-                    roles: t('SystemUserColumns.roles'),
-                  }}
+                  setColumnFilters={setColumnFilters}
+                  filtersOptionList={filtersOptionList}
+                  handleClearFilters={handleClearFilters}
+                  canCreate={canCreate}
+                  t={t}
                 />
               </CardContent>
             </Card>
@@ -526,12 +623,53 @@ export default function SystemUsersPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
-                  <Tabs defaultValue="roles" className="w-full flex-1 flex flex-col min-h-0">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col min-h-0">
                     <TabsList>
+                      <TabsTrigger value="details">{t('SystemUsersPage.tabs.details')}</TabsTrigger>
                       {canViewRoles && <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>}
                       {canViewLogs && <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>}
                     </TabsList>
-                    <div className="flex-1 overflow-hidden flex flex-col min-h-0 mt-4">
+                    <div className="flex-1 overflow-auto mt-4">
+                      <TabsContent value="details" className="m-0">
+                        <Form {...detailForm}>
+                          <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                            {detailError && (
+                              <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>{t('SystemUsersPage.createDialog.validation.errorTitle')}</AlertTitle>
+                                <AlertDescription>{detailError}</AlertDescription>
+                              </Alert>
+                            )}
+                            <FormField control={detailForm.control} name="name" render={({ field }) => (
+                              <FormItem><FormLabel>{t('SystemUsersPage.createDialog.name')}</FormLabel><FormControl><Input placeholder={t('SystemUsersPage.createDialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={detailForm.control} name="email" render={({ field }) => (
+                              <FormItem><FormLabel>{t('SystemUsersPage.createDialog.email')}</FormLabel><FormControl><Input type="email" placeholder={t('SystemUsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={detailForm.control} name="phone" render={({ field }) => (
+                              <FormItem><FormLabel>{t('SystemUsersPage.createDialog.phone')}</FormLabel><FormControl>
+                                <PhoneInput {...field} defaultCountry="UY" placeholder={t('SystemUsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                              </FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
+                              <FormItem><FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={detailForm.control} name="is_active" render={({ field }) => (
+                              <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                <FormLabel>{t('SystemUsersPage.createDialog.isActive')}</FormLabel>
+                              </FormItem>
+                            )} />
+                            {canUpdate && (
+                              <div className="flex gap-2 pt-2">
+                                <Button type="submit" disabled={isSavingDetail}>
+                                  {isSavingDetail ? t('SystemUsersPage.createDialog.editSave') + '...' : t('SystemUsersPage.createDialog.editSave')}
+                                </Button>
+                              </div>
+                            )}
+                          </form>
+                        </Form>
+                      </TabsContent>
                       {canViewRoles && (
                         <TabsContent value="roles" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
                           <UserRoles
@@ -561,8 +699,8 @@ export default function SystemUsersPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingUser ? t('SystemUsersPage.createDialog.editTitle') : t('SystemUsersPage.createDialog.title')}</DialogTitle>
-            <DialogDescription>{editingUser ? t('SystemUsersPage.createDialog.editDescription') : t('SystemUsersPage.createDialog.description')}</DialogDescription>
+            <DialogTitle>{t('SystemUsersPage.createDialog.title')}</DialogTitle>
+            <DialogDescription>{t('SystemUsersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
@@ -646,7 +784,7 @@ export default function SystemUsersPage() {
                 />
               </DialogBody>
               <DialogFooter>
-                <Button type="submit">{editingUser ? t('SystemUsersPage.createDialog.editSave') : t('SystemUsersPage.createDialog.save')}</Button>
+                <Button type="submit">{t('SystemUsersPage.createDialog.save')}</Button>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('SystemUsersPage.createDialog.cancel')}</Button>
               </DialogFooter>
             </form>

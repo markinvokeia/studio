@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -23,6 +24,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { AlertTriangle, Archive } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -93,6 +95,7 @@ export default function CashPointsPage() {
     const t = useTranslations('PhysicalCashRegistersPage');
     const tValidation = useTranslations('PhysicalCashRegistersPage.validation');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const [cashPoints, setCashPoints] = React.useState<CashPoint[]>([]);
     const [cashPointCount, setCashPointCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -214,6 +217,19 @@ export default function CashPointsPage() {
                         onCreate={handleCreate}
                         onRefresh={loadCashPoints}
                         isRefreshing={isRefreshing}
+                        isNarrow={isNarrow}
+                        renderCard={(row: CashPoint, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
+                                title={row.name}
+                                subtitle={row.id}
+                                badge={
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {row.is_active ? t('active') : t('inactive')}
+                                    </span>
+                                }
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

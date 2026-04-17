@@ -5,17 +5,10 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Appointment } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal } from 'lucide-react';
+import { Pencil, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 interface AppointmentColumnsProps {
   t: (key: string) => string;
@@ -25,6 +18,7 @@ interface AppointmentColumnsProps {
 }
 
 export const getAppointmentColumns = ({ t, tStatus, onEdit, onCancel }: AppointmentColumnsProps): ColumnDef<Appointment>[] => [
+  createSelectColumn<Appointment>(),
   { accessorKey: 'summary', header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} /> },
   { accessorKey: 'patientName', header: ({ column }) => <DataTableColumnHeader column={column} title={t('patient')} /> },
   { accessorKey: 'doctorName', header: ({ column }) => <DataTableColumnHeader column={column} title={t('doctor')} /> },
@@ -58,19 +52,16 @@ export const getAppointmentColumns = ({ t, tStatus, onEdit, onCancel }: Appointm
     cell: ({ row }) => {
       const appointment = row.original;
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => onEdit(appointment)}>{t('edit')}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onCancel(appointment)} className="text-destructive">{t('cancel')}</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onEdit(appointment)}>
+          <Pencil className="h-3.5 w-3.5" />
+          <span className="text-[9px] font-medium leading-tight">{t('edit')}</span>
+        </button>
+        <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onCancel(appointment)}>
+          <X className="h-3.5 w-3.5" />
+          <span className="text-[9px] font-medium leading-tight">{t('cancel')}</span>
+        </button>
+        </div>
       );
     },
   },

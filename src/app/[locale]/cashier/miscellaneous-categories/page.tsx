@@ -5,6 +5,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import {
     Dialog,
@@ -25,6 +26,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import { AlertTriangle, Tags } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -122,6 +124,7 @@ export default function MiscellaneousCategoriesPage() {
     const t = useTranslations('ProductCategoriesPage');
     const tValidation = useTranslations('ProductCategoriesPage.validation');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
     const [categoryCount, setCategoryCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -257,6 +260,19 @@ export default function MiscellaneousCategoriesPage() {
                         onRefresh={loadCategories}
                         isRefreshing={isRefreshing}
                         columnTranslations={columnTranslations}
+                        isNarrow={isNarrow}
+                        renderCard={(row: MiscellaneousCategory, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {row.type}
+                                    </span>
+                                }
+                                showArrow
+                            />
+                        )}
                     />
                 </CardContent>
             </Card>

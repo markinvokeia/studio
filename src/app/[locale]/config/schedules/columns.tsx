@@ -1,19 +1,12 @@
 
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { ClinicSchedule } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 const dayOfWeekMap: { [key: number]: string } = {
     0: 'sunday',
@@ -41,6 +34,7 @@ export const SchedulesColumnsWrapper = ({
     const tDays = useTranslations('SchedulesPage.days');
 
     const columns: ColumnDef<ClinicSchedule>[] = [
+        createSelectColumn<ClinicSchedule>(),
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('id')} /> },
         {
             accessorKey: 'day_of_week',
@@ -57,21 +51,18 @@ export const SchedulesColumnsWrapper = ({
             id: 'actions',
             cell: ({ row }) => {
                 const schedule = row.original;
-                return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                            {canEdit && <DropdownMenuItem onClick={() => onEdit(schedule)}>{t('edit')}</DropdownMenuItem>}
-                            {canDelete && <DropdownMenuItem onClick={() => onDelete(schedule)} className="text-destructive">{t('delete')}</DropdownMenuItem>}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                );
+            return (
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              {canEdit && <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onEdit(schedule)}>
+                <Pencil className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-medium leading-tight">{t('edit')}</span>
+              </button>}
+              {canDelete && <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(schedule)}>
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="text-[9px] font-medium leading-tight">{t('delete')}</span>
+              </button>}
+              </div>
+            );
             },
         },
     ];

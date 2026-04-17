@@ -243,6 +243,16 @@ export function Header() {
         [sendToWebhook],
     );
 
+    // ── Mobile: track viewport ────────────────────────────────────────────────
+    const [isMobile, setIsMobile] = React.useState(false);
+    React.useEffect(() => {
+        const mq = window.matchMedia('(max-width: 639px)');
+        const update = () => setIsMobile(mq.matches);
+        update();
+        mq.addEventListener('change', update);
+        return () => mq.removeEventListener('change', update);
+    }, []);
+
     // ── Locale switcher ───────────────────────────────────────────────────────
 
     const onSelectLocale = (newLocale: string) => {
@@ -298,24 +308,99 @@ export function Header() {
 
     return (
         <>
-            {/* ── Floating header bar ─────────────────────────────────────── */}
-            <div className="fixed top-3 right-4 z-[50] flex flex-col items-end gap-2">
+            {/* ── Floating widget ─────────────────────────────────────────── */}
+            {/* Desktop: top-right pill | Mobile: right-edge vertical column */}
+            <div className={cn(
+                "fixed z-[50]",
+                isMobile
+                    ? isExpanded
+                        ? "top-0 left-0 right-0 flex items-start"
+                        : "top-0 right-0 flex items-start"
+                    : "top-3 right-4 flex flex-col items-end gap-2"
+            )}>
                 {!isExpanded ? (
-                    <div className="flex items-center gap-1 bg-[hsl(var(--floating-header-bg)/0.8)] backdrop-blur-md p-1 rounded-full border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]">
+                    /* ── Collapsed state: widget toggle button in top-right slot ── */
+                    <button
+                        type="button"
+                        onClick={() => setIsExpanded(true)}
+                        className={cn(
+                            "flex items-center justify-center bg-[hsl(var(--floating-header-bg)/0.85)] backdrop-blur-md border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]",
+                            isMobile
+                                ? "h-12 w-12 rounded-none border-t-0 border-r-0 border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)]"
+                                : "h-8 w-8 rounded-full"
+                        )}
+                        aria-label={tFloating('openMenu')}
+                    >
+                        <ChevronLeft className={cn("h-4 w-4", isMobile ? "text-foreground" : "text-muted-foreground")} />
+                    </button>
+                ) : isMobile ? (
+                    /* ── Mobile expanded: full-width bar (leaves space for hamburger) ── */
+                    <div className={cn(
+                        'flex flex-row-reverse items-center gap-0.5 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md py-1.5 px-1.5 border-b border-border shadow-md w-full justify-start overflow-x-auto',
+                        'animate-in fade-in slide-in-from-top-2 duration-200',
+                    )}>
+                        {/* Close button */}
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => setIsExpanded(true)}
-                            className="rounded-full h-8 w-8 hover:bg-accent"
+                            onClick={() => setIsExpanded(false)}
+                            className="rounded-xl h-8 w-8 hover:bg-accent flex-none"
                         >
-                            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </Button>
-                        <VoiceAssistant
-                            onAudioReady={handleAudioReady}
-                            isProcessing={isSending}
-                        />
+
+                        <div className="h-6 w-px bg-border/50 mx-0.5 flex-none" />
+
+                        <OpenCashSessionWidget />
+                        <TVDisplayWidget />
+
+                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
+                            <Link href={`/${locale}/alerts`} passHref>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                        'relative rounded-xl h-9 w-9',
+                                        pendingCount > 0 && 'bg-red-500/10 text-red-600',
+                                    )}
+                                >
+                                    <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
+                                        <Bell className="h-5 w-5" />
+                                    </div>
+                                    {pendingCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
+                                            {pendingCount > 99 ? '99+' : pendingCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            </Link>
+                        )}
+
+                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
+                                        <Globe className="h-5 w-5 text-muted-foreground" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" side="left" className="rounded-xl">
+                                    <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
+                                        <div className="flex items-center gap-2"><UyFlagIcon className="h-4 w-4" />{t('spanish')}</div>
+                                        {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
+                                        <div className="flex items-center gap-2"><UsFlagIcon className="h-4 w-4" />{t('english')}</div>
+                                        {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+
+                        <HelpMenu />
+                        <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
                     </div>
                 ) : (
+                    /* ── Desktop expanded: horizontal pill ── */
                     <div
                         className={cn(
                             'flex items-center gap-3 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all',
@@ -328,9 +413,7 @@ export function Header() {
 
                             <div className="h-6 w-px bg-border/50" />
 
-                            {hasPermission(
-                                GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE,
-                            ) && (
+                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
                                 <Link href={`/${locale}/alerts`} passHref>
                                     <Button
                                         variant="ghost"
@@ -340,11 +423,7 @@ export function Header() {
                                             pendingCount > 0 && 'bg-red-500/10 text-red-600',
                                         )}
                                     >
-                                        <div
-                                            className={cn(
-                                                pendingCount > 0 && 'animate-bell-ring',
-                                            )}
-                                        >
+                                        <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
                                             <Bell className="h-5 w-5" />
                                         </div>
                                         {pendingCount > 0 && (
@@ -357,52 +436,29 @@ export function Header() {
                                 </Link>
                             )}
 
-                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) &&
-                                activeCashSession && (
-                                    <ExchangeRate activeCashSession={activeCashSession} />
-                                )}
+                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
+                                <ExchangeRate activeCashSession={activeCashSession} />
+                            )}
 
                             {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="rounded-full h-9 w-9"
-                                        >
+                                        <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
                                             <Globe className="h-5 w-5 text-muted-foreground" />
-                                            <span className="sr-only">
-                                                {t('toggleLanguage')}
-                                            </span>
+                                            <span className="sr-only">{t('toggleLanguage')}</span>
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="rounded-xl">
-                                        <DropdownMenuItem
-                                            onSelect={() => onSelectLocale('es')}
-                                            disabled={locale === 'es'}
-                                        >
+                                        <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
                                             <span className="flex items-center justify-between w-full font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    <UyFlagIcon className="h-4 w-4" />
-                                                    {t('spanish')}
-                                                </div>
-                                                {locale === 'es' && (
-                                                    <Check className="h-4 w-4 ml-2 text-primary" />
-                                                )}
+                                                <div className="flex items-center gap-2"><UyFlagIcon className="h-4 w-4" />{t('spanish')}</div>
+                                                {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                             </span>
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                            onSelect={() => onSelectLocale('en')}
-                                            disabled={locale === 'en'}
-                                        >
+                                        <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
                                             <span className="flex items-center justify-between w-full font-medium">
-                                                <div className="flex items-center gap-2">
-                                                    <UsFlagIcon className="h-4 w-4" />
-                                                    {t('english')}
-                                                </div>
-                                                {locale === 'en' && (
-                                                    <Check className="h-4 w-4 ml-2 text-primary" />
-                                                )}
+                                                <div className="flex items-center gap-2"><UsFlagIcon className="h-4 w-4" />{t('english')}</div>
+                                                {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
                                             </span>
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
@@ -413,10 +469,7 @@ export function Header() {
 
                             <div className="h-6 w-px bg-border/50" />
 
-                            <VoiceAssistant
-                                onAudioReady={handleAudioReady}
-                                isProcessing={isSending}
-                            />
+                            <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
                         </div>
 
                         <Button
@@ -433,7 +486,7 @@ export function Header() {
 
             {/* ── Chat panel ─────────────────────────────────────────────── */}
             {isChatOpen && (
-                <div className="fixed bottom-4 right-4 z-[60] w-full max-w-sm animate-in slide-in-from-bottom-4 duration-300">
+                <div className="fixed bottom-0 right-0 sm:bottom-4 sm:right-4 z-[60] w-full sm:max-w-sm animate-in slide-in-from-bottom-4 duration-300">
                     <Card className="h-[60vh] flex flex-col shadow-2xl border-primary/20 overflow-hidden">
                         <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-primary text-primary-foreground shrink-0">
                             <CardTitle className="text-sm font-bold flex items-center gap-2">

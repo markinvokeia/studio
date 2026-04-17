@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { UserFinancial } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -37,17 +36,6 @@ export function UserFinancialSummaryStats({
     return `${symbol} ${formattedValue}`;
   };
 
-  const renderStatValue = (value: { USD?: number; UYU?: number }, valueColor: string) => (
-    <div className="flex flex-col leading-tight">
-      <span className={cn('text-sm font-bold tracking-tight', valueColor)}>
-        {formatCurrency(value.UYU ?? 0, 'UYU')}
-      </span>
-      <span className="text-[11px] font-medium opacity-70">
-        {formatCurrency(value.USD ?? 0, 'USD')}
-      </span>
-    </div>
-  );
-
   const stats = [
     {
       title: t('stats.totalInvoiced'),
@@ -55,8 +43,7 @@ export function UserFinancialSummaryStats({
         USD: financialData?.financial_data?.USD?.total_invoiced ?? 0,
         UYU: financialData?.financial_data?.UYU?.total_invoiced ?? 0,
       },
-      valueColor: 'text-blue-700 dark:text-blue-300',
-      cardClass: 'bg-blue-50 dark:bg-blue-950/60 border-blue-100 dark:border-blue-900',
+      accentColor: '#3B82F6',
     },
     {
       title: t('stats.totalPaid'),
@@ -64,8 +51,7 @@ export function UserFinancialSummaryStats({
         USD: financialData?.financial_data?.USD?.total_paid ?? 0,
         UYU: financialData?.financial_data?.UYU?.total_paid ?? 0,
       },
-      valueColor: 'text-emerald-700 dark:text-emerald-300',
-      cardClass: 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-100 dark:border-emerald-900',
+      accentColor: '#10B981',
     },
     {
       title: t('stats.currentDebt'),
@@ -73,8 +59,7 @@ export function UserFinancialSummaryStats({
         USD: financialData?.financial_data?.USD?.current_debt ?? 0,
         UYU: financialData?.financial_data?.UYU?.current_debt ?? 0,
       },
-      valueColor: 'text-rose-700 dark:text-rose-300',
-      cardClass: 'bg-rose-50 dark:bg-rose-950/60 border-rose-100 dark:border-rose-900',
+      accentColor: '#F43F5E',
     },
     {
       title: t('stats.availableBalance'),
@@ -82,8 +67,7 @@ export function UserFinancialSummaryStats({
         USD: financialData?.financial_data?.USD?.available_balance ?? 0,
         UYU: financialData?.financial_data?.UYU?.available_balance ?? 0,
       },
-      valueColor: 'text-violet-700 dark:text-violet-300',
-      cardClass: 'bg-violet-50 dark:bg-violet-950/60 border-violet-100 dark:border-violet-900',
+      accentColor: '#8B5CF6',
     },
   ];
 
@@ -94,44 +78,57 @@ export function UserFinancialSummaryStats({
           {t('stats.title')}
         </span>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             onClick={onToggle}
           >
-            {isOpen ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            {isOpen ? t('stats.hideStats') : t('stats.showStats')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs gap-1 text-muted-foreground hover:bg-primary hover:text-primary-foreground"
+            {isOpen ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+            <span className="text-[9px] font-medium leading-tight">
+              {isOpen ? t('stats.hideStats') : t('stats.showStats')}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             onClick={onPrint}
           >
-            <Printer className="h-3 w-3" />
-            {t('stats.printFinancialSummary')}
-          </Button>
+            <Printer className="h-3.5 w-3.5" />
+            <span className="hidden sm:block text-[9px] font-medium leading-tight">{t('stats.print')}</span>
+          </button>
         </div>
       </div>
       <CollapsibleContent className="transition-all">
         <div className="grid grid-cols-2 gap-2 pb-2 md:grid-cols-4">
-          {stats.map((stat) => (
-            <div
-              key={stat.title}
-              className={cn(
-                'rounded-lg border px-3 py-2 flex flex-col gap-1 overflow-hidden shadow-none',
-                stat.cardClass
-              )}
-            >
-              <span className="text-[9px] uppercase font-bold tracking-tight truncate opacity-60">
-                {stat.title}
-              </span>
-              <div className="mt-0.5">
-                {renderStatValue(stat.value, stat.valueColor)}
+          {stats.map((stat) => {
+            const uyuValue = Number(stat.value.UYU ?? 0);
+            const isBalance = stat.title === t('stats.availableBalance');
+            const valueColor = isBalance
+              ? uyuValue >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+              : undefined;
+
+            return (
+              <div
+                key={stat.title}
+                className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+              >
+                <div className="h-[3px] w-full" style={{ background: stat.accentColor }} />
+                <div className="px-3 py-2.5 flex flex-col gap-1">
+                  <span className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium truncate">
+                    {stat.title}
+                  </span>
+                  <div className="flex flex-col leading-tight mt-0.5">
+                    <span className={cn('text-2xl font-bold tracking-tight', valueColor ?? 'text-foreground')}>
+                      {formatCurrency(uyuValue, 'UYU')}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatCurrency(stat.value.USD ?? 0, 'USD')}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CollapsibleContent>
       <div className="mt-1 border-t border-border" />

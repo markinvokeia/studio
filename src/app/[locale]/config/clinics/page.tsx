@@ -228,87 +228,89 @@ export default function ClinicsPage() {
 
 
     return (
-        <Card>
-            <CardHeader className="flex-none p-4">
-                <div className="flex items-start gap-3">
-                    <div className="header-icon-circle mt-0.5">
-                        <Building className="h-5 w-5" />
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+                <CardHeader className="flex-none p-4">
+                    <div className="flex items-start gap-3">
+                        <div className="header-icon-circle mt-0.5">
+                            <Building className="h-5 w-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <CardTitle className="text-lg">{t('title')}</CardTitle>
+                            <CardDescription className="text-xs">{t('description')}</CardDescription>
+                        </div>
                     </div>
-                    <div className="flex flex-col text-left">
-                        <CardTitle className="text-lg">{t('title')}</CardTitle>
-                        <CardDescription className="text-xs">{t('description')}</CardDescription>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent className="bg-card">
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="logo">{t('logoLabel')}</Label>
-                            <div className="flex items-center gap-4">
-                                <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
-                                    {logoPreview ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain rounded-md" />
-                                    ) : (
-                                        <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto bg-card p-4">
+                    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="logo">{t('logoLabel')}</Label>
+                                <div className="flex items-center gap-4">
+                                    <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
+                                        {logoPreview ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain rounded-md" />
+                                        ) : (
+                                            <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                                        )}
+                                    </div>
+                                    {canUploadLogo && (
+                                        <Input id="logo" type="file" onChange={handleLogoChange} accept="image/*" className="max-w-xs" />
                                     )}
                                 </div>
-                                {canUploadLogo && (
-                                    <Input id="logo" type="file" onChange={handleLogoChange} accept="image/*" className="max-w-xs" />
-                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="name">{t('nameLabel')}</Label>
+                                <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder={t('namePlaceholder')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="location">{t('locationLabel')}</Label>
+                                <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder={t('locationPlaceholder')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="contact_email">{t('emailLabel')}</Label>
+                                <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder={t('emailPlaceholder')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone_number">{t('phoneLabel')}</Label>
+                                <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder={t('phonePlaceholder')} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="currency">{t('currencyLabel')}</Label>
+                                <Select onValueChange={(value) => handleSelectChange('currency', value)} value={clinic.currency}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={t('currencyPlaceholder')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="USD">USD</SelectItem>
+                                        <SelectItem value="UYU">UYU</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="name">{t('nameLabel')}</Label>
-                            <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder={t('namePlaceholder')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="location">{t('locationLabel')}</Label>
-                            <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder={t('locationPlaceholder')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="contact_email">{t('emailLabel')}</Label>
-                            <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder={t('emailPlaceholder')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="phone_number">{t('phoneLabel')}</Label>
-                            <Input id="phone_number" value={clinic.phone_number} onChange={handleInputChange} placeholder={t('phonePlaceholder')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="currency">{t('currencyLabel')}</Label>
-                            <Select onValueChange={(value) => handleSelectChange('currency', value)} value={clinic.currency}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t('currencyPlaceholder')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="USD">USD</SelectItem>
-                                    <SelectItem value="UYU">UYU</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div className="h-[300px] w-full overflow-hidden rounded-lg md:h-full mb-4 md:mb-0">
+                            <iframe
+                                className="h-full w-full border-0"
+                                loading="lazy"
+                                allowFullScreen
+                                src={`https://maps.google.com/maps?q=${encodeURIComponent(clinic.location)}&output=embed`}
+                            ></iframe>
                         </div>
                     </div>
-                    <div className="h-[400px] w-full overflow-hidden rounded-lg md:h-full">
-                        <iframe
-                            className="h-full w-full border-0"
-                            loading="lazy"
-                            allowFullScreen
-                            src={`https://maps.google.com/maps?q=${encodeURIComponent(clinic.location)}&output=embed`}
-                        ></iframe>
-                    </div>
-                </div>
-            </CardContent>
-            <CardFooter className="justify-between">
-                {canUpdate && (
-                    <Button onClick={handleSaveChanges} disabled={isSaving}>
-                        {isSaving ? t('saving') : t('save')}
+                </CardContent>
+                <CardFooter className="flex-none justify-between border-t bg-card px-4 py-3">
+                    {canUpdate && (
+                        <Button onClick={handleSaveChanges} disabled={isSaving}>
+                            {isSaving ? t('saving') : t('save')}
+                        </Button>
+                    )}
+                    <Button variant="outline" size="icon" onClick={loadClinic} disabled={isLoading}>
+                        <RefreshCw className={`h-4 w-4 ${isLoading || isSaving ? 'animate-spin' : ''}`} />
                     </Button>
-                )}
-                <Button variant="outline" size="icon" onClick={loadClinic} disabled={isLoading}>
-                    <RefreshCw className={`h-4 w-4 ${isLoading || isSaving ? 'animate-spin' : ''}`} />
-                </Button>
-            </CardFooter>
-        </Card>
+                </CardFooter>
+            </Card>
+        </div>
     );
 }

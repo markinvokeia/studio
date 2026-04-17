@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Filter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -71,7 +71,10 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
       </Popover>
       <Select>
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder={t('filterBy')} />
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <SelectValue placeholder={t('filterBy')} />
+          </div>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="service">{t('byService')}</SelectItem>
@@ -79,7 +82,6 @@ export function ReportFilters({ date, setDate }: ReportFiltersProps) {
           <SelectItem value="status">{t('byStatus')}</SelectItem>
         </SelectContent>
       </Select>
-      <Button>{t('apply')}</Button>
     </div>
   );
 }

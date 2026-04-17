@@ -27,14 +27,19 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, AlertRule } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef } from '@tanstack/react-table';
-import { AlertTriangle, BotMessageSquare, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { AlertTriangle, BotMessageSquare, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { RowSelectionState } from '@tanstack/react-table';
 
 const ruleFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
@@ -140,6 +145,7 @@ export default function AlertRulesPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_RULES_DELETE);
+    const isNarrow = useViewportNarrow();
 
     const [rules, setRules] = React.useState<AlertRule[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
@@ -158,6 +164,9 @@ export default function AlertRulesPage() {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
     const [isTesting, setIsTesting] = React.useState(false);
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedRule, setSelectedRule] = React.useState<AlertRule | null>(null);
 
     const form = useForm<RuleFormValues>({
         resolver: zodResolver(ruleFormSchema(tValidation)),
@@ -295,6 +304,9 @@ export default function AlertRulesPage() {
     };
 
     const handleEdit = (rule: AlertRule) => {
+        setSelectedRule(rule);
+        const idx = rules.findIndex(r => String(r.id) === String(rule.id));
+        if (idx >= 0) setRowSelection({ [idx]: true });
         setEditingRule(rule);
         setSelectedTable(rule.source_table || '');
         const conds = (rule as any).condition_config?.conditions || [];
@@ -318,7 +330,7 @@ export default function AlertRulesPage() {
             user_id_field: (rule as any).user_id_field || '',
         });
         setSubmissionError(null);
-        setIsDialogOpen(true);
+        setIsEditing(true);
     };
 
     const handleDuplicate = (rule: AlertRule) => {
@@ -419,12 +431,40 @@ export default function AlertRulesPage() {
             }
             await api.post(API_ROUTES.SYSTEM.ALERT_RULES, data);
             toast({ title: editingRule ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
-            setIsDialogOpen(false);
+            if (editingRule) {
+                setIsEditing(false);
+            } else {
+                setIsDialogOpen(false);
+            }
             loadData();
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    React.useEffect(() => {
+        if (selectedRule) {
+            const updated = rules.find(r => String(r.id) === String(selectedRule.id));
+            if (updated) setSelectedRule(updated);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rules]);
+
+    const handleRowSelection = (rows: AlertRule[]) => {
+        setSelectedRule(rows[0] ?? null);
+        setIsEditing(false);
+        setSubmissionError(null);
+    };
+
+    const handleBack = () => {
+        if (isEditing) {
+            setIsEditing(false);
+            setSubmissionError(null);
+        } else {
+            setSelectedRule(null);
+            setRowSelection({});
         }
     };
 
@@ -478,39 +518,415 @@ export default function AlertRulesPage() {
         },
     ];
 
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><BotMessageSquare className="h-5 w-5" /></div>
+                    <div className="flex flex-col text-left">
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                {canViewList ? (
+                    <DataTable
+                        columns={columns}
+                        data={rules}
+                        filterColumnId="name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onCreate={canCreate ? handleCreate : undefined}
+                        onRefresh={loadData}
+                        isRefreshing={isRefreshing}
+                        isNarrow={isNarrow || !!selectedRule}
+                        renderCard={(row: AlertRule, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.priority === 'CRITICAL' ? 'bg-red-100 text-red-700' : row.priority === 'HIGH' ? 'bg-orange-100 text-orange-700' : row.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-slate-100 text-slate-500'}`}>{row.priority}</span>}
+                                showArrow
+                            />
+                        )}
+                        enableSingleRowSelection
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        onRowSelectionChange={handleRowSelection}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">{t('noAccess')}</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = (selectedRule || isEditing) ? (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><BotMessageSquare className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base lg:text-lg truncate">
+                            {isEditing ? (editingRule?.name || t('dialog.editTitle')) : selectedRule?.name}
+                        </CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{isEditing ? editingRule?.code : selectedRule?.code}</p>
+                    </div>
+                    {!isEditing && selectedRule && (
+                        <div className="flex gap-1 flex-none">
+                            {canUpdate && (
+                                <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
+                                    <Pencil className="h-4 w-4 mr-1" />{t('columns.edit')}
+                                </Button>
+                            )}
+                            {canDelete && (
+                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </CardHeader>
+            <Separator />
+            {!isEditing ? (
+                <CardContent className="flex-1 overflow-auto p-4">
+                    <dl className="space-y-3 text-sm">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.name')}</dt>
+                            <dd className="text-foreground">{selectedRule!.name}</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Código</dt>
+                            <dd className="text-foreground font-mono text-xs">{selectedRule!.code}</dd>
+                        </div>
+                        {selectedRule!.description && (
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Descripción</dt>
+                                <dd className="text-foreground text-xs">{selectedRule!.description}</dd>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.priority')}</dt>
+                                <dd><Badge variant={selectedRule!.priority === 'CRITICAL' ? 'destructive' : 'secondary'}>{selectedRule!.priority}</Badge></dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.isActive')}</dt>
+                                <dd><Badge variant={selectedRule!.is_active ? 'success' : 'outline'}>{selectedRule!.is_active ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                            </div>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.category')}</dt>
+                            <dd className="text-foreground">{categories.find(c => String(c.id) === String(selectedRule!.category_id))?.name || selectedRule!.category_id}</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Tabla fuente</dt>
+                            <dd className="text-foreground font-mono text-xs">{selectedRule!.source_table || '-'}</dd>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoEmail')}</dt>
+                                <dd><Badge variant={selectedRule!.auto_send_email ? 'success' : 'outline'}>{selectedRule!.auto_send_email ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                            </div>
+                            <div>
+                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoSms')}</dt>
+                                <dd><Badge variant={selectedRule!.auto_send_sms ? 'success' : 'outline'}>{selectedRule!.auto_send_sms ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                            </div>
+                        </div>
+                    </dl>
+                </CardContent>
+            ) : (
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+                        <CardContent className="flex-1 overflow-auto p-4 space-y-4">
+                            {submissionError && (
+                                <Alert variant="destructive">
+                                    <AlertTriangle className="h-4 w-4" />
+                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                    <AlertDescription>{submissionError}</AlertDescription>
+                                </Alert>
+                            )}
+                            <FormField control={form.control} name="name" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.name')}</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="code" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.code')}</FormLabel>
+                                    <FormControl><Input {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="category_id" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.category')}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {categories.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.name}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="description" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.description')}</FormLabel>
+                                    <FormControl><Textarea {...field} /></FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="priority" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.priority')}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="LOW">{t('priorities.low')}</SelectItem>
+                                            <SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem>
+                                            <SelectItem value="HIGH">{t('priorities.high')}</SelectItem>
+                                            <SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="source_table" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.sourceTable')}</FormLabel>
+                                    <Select onValueChange={(val) => { field.onChange(val); setSelectedTable(val); }} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Object.keys(tablesAndColumns).map(table => (
+                                                <SelectItem key={table} value={table}>{table}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="table_id_field" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.tableIdField')}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectTableIdField')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
+                                                <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <FormField control={form.control} name="user_id_field" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.userIdField')}</FormLabel>
+                                    <Select onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} value={field.value || 'none'}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectUserIdField')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="none">{t('dialog.noUserIdField')}</SelectItem>
+                                            {selectedTable && getPotentialUserIdFields(selectedTable).map(col => (
+                                                <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <div className="space-y-4">
+                                <Label>{t('dialog.conditions')}</Label>
+                                {conditions.map((cond, index) => (
+                                    <div key={cond.id} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:p-0 sm:border-0">
+                                        {index > 0 && (
+                                            <Select value={cond.logic} onValueChange={(val: any) => { const c = [...conditions]; c[index].logic = val; setConditions(c); }}>
+                                                <SelectTrigger className="w-full sm:w-16"><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="AND">AND</SelectItem>
+                                                    <SelectItem value="OR">OR</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                        <Select value={cond.column} onValueChange={(val) => { const c = [...conditions]; c[index].column = val; setConditions(c); }}>
+                                            <SelectTrigger className="w-full sm:flex-1"><SelectValue placeholder="Column" /></SelectTrigger>
+                                            <SelectContent>
+                                                {(tablesAndColumns[selectedTable] || []).map(col => (
+                                                    <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <Select value={cond.operator} onValueChange={(val) => { const c = [...conditions]; c[index].operator = val; setConditions(c); }}>
+                                            <SelectTrigger className="w-full sm:w-24"><SelectValue placeholder="Op" /></SelectTrigger>
+                                            <SelectContent>
+                                                {getAvailableOperators(cond.column).map(op => (
+                                                    <SelectItem key={op} value={op}>{op}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <DynamicFieldInput
+                                            value={cond.value}
+                                            onChange={(val) => { const c = [...conditions]; c[index].value = val; setConditions(c); }}
+                                            fieldType={getColumnType(cond.column) || ''}
+                                            operator={cond.operator}
+                                            className="w-full sm:flex-1"
+                                        />
+                                        <Button type="button" variant="ghost" size="icon" className="self-end sm:self-auto" onClick={() => setConditions(conditions.filter((_, i) => i !== index))}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                <Button type="button" variant="outline" size="sm" onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}>
+                                    Add Condition
+                                </Button>
+                            </div>
+                            <div className="space-y-4">
+                                <Label>{t('dialog.displayFields')}</Label>
+                                {displayFields.map((field, index) => {
+                                    const columnType = tablesAndColumns[selectedTable]?.find(c => c.name === field.source_column)?.type || '';
+                                    return (
+                                        <div key={field.id} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:p-0 sm:border-0">
+                                            <Input placeholder={t('dialog.fieldLabel')} value={field.label} onChange={(e) => { const f = [...displayFields]; f[index].label = e.target.value; setDisplayFields(f); }} className="w-full sm:flex-1" />
+                                            <Select value={field.source_column} onValueChange={(val) => { const f = [...displayFields]; f[index].source_column = val; f[index].type = getColumnType(val) || 'text'; setDisplayFields(f); }}>
+                                                <SelectTrigger className="w-full sm:flex-1"><SelectValue placeholder={t('dialog.selectFieldColumn')} /></SelectTrigger>
+                                                <SelectContent>
+                                                    {(tablesAndColumns[selectedTable] || []).map(col => (
+                                                        <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <div className="w-full sm:w-28 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted">{columnType || '-'}</div>
+                                            <Button type="button" variant="ghost" size="icon" className="self-end sm:self-auto" onClick={() => setDisplayFields(displayFields.filter((_, i) => i !== index))}>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    );
+                                })}
+                                <Button type="button" variant="outline" size="sm" onClick={() => setDisplayFields([...displayFields, { id: `field-${Date.now()}`, label: '', source_column: '', type: 'text' }])}>
+                                    {t('dialog.addDisplayField')}
+                                </Button>
+                            </div>
+                            <FormField control={form.control} name="recurrence_type" render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>{t('dialog.recurrenceType')}</FormLabel>
+                                    <Select onValueChange={field.onChange} value={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrenceType')} /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="ONCE">Once</SelectItem>
+                                            <SelectItem value="DAILY">Daily</SelectItem>
+                                            <SelectItem value="WEEKLY">Weekly</SelectItem>
+                                            <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="email_template_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.emailTemplate')}</FormLabel>
+                                        <Select onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)} value={field.value?.toString()}>
+                                            <FormControl>
+                                                <SelectTrigger><SelectValue placeholder={t('dialog.selectEmailTemplate')} /></SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {emailTemplates.map(tmp => <SelectItem key={tmp.id} value={tmp.id.toString()}>{tmp.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="sms_template_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.smsTemplate')}</FormLabel>
+                                        <Select onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)} value={field.value?.toString()}>
+                                            <FormControl>
+                                                <SelectTrigger><SelectValue placeholder={t('dialog.selectSmsTemplate')} /></SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {smsTemplates.map(tmp => <SelectItem key={tmp.id} value={tmp.id.toString()}>{tmp.name}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField control={form.control} name="days_before" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.daysBefore')}</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="days_after" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.daysAfter')}</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                                <FormField control={form.control} name="auto_send_email" render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0 rounded-md border p-3 sm:border-0 sm:p-0">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <FormLabel className="font-normal">{t('dialog.autoSendEmail')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="auto_send_sms" render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0 rounded-md border p-3 sm:border-0 sm:p-0">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <FormLabel className="font-normal">{t('dialog.autoSendSms')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="is_active" render={({ field }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0 rounded-md border p-3 sm:border-0 sm:p-0">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <FormLabel className="font-normal">{t('dialog.isActive')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                            </div>
+                        </CardContent>
+                        <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? t('dialog.saving') : t('dialog.save')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); }} disabled={isSubmitting}>
+                                {t('dialog.cancel')}
+                            </Button>
+                        </div>
+                    </form>
+                </Form>
+            )}
+        </Card>
+    ) : <div />;
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                    <CardHeader className="p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <BotMessageSquare className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                                <CardTitle className="text-lg">{t('title')}</CardTitle>
-                                <CardDescription className="text-xs">{t('description')}</CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                        {canViewList ? (
-                            <DataTable
-                                columns={columns}
-                                data={rules}
-                                filterColumnId="name"
-                                filterPlaceholder={t('filterPlaceholder')}
-                                onCreate={canCreate ? handleCreate : undefined}
-                                onRefresh={loadData}
-                                isRefreshing={isRefreshing}
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">{t('noAccess')}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <TwoPanelLayout
+                    leftPanel={leftPanel}
+                    rightPanel={rightPanel}
+                    isRightPanelOpen={!!selectedRule || isEditing}
+                    onBack={handleBack}
+                    leftPanelDefaultSize={50}
+                    rightPanelDefaultSize={50}
+                />
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

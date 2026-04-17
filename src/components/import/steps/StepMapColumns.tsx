@@ -45,80 +45,138 @@ export function StepMapColumns({ csvHeaders, schema, mapping, onChange }: StepMa
   };
 
   return (
-    <div className="rounded-lg border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/50">
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-1/2">
-              {t('csvColumn')}
-            </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-1/2">
-              {t('entityField')}
-            </th>
-            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-24">
-              Estado
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {csvHeaders.map((header) => {
-            const currentValue = mapping[header] ?? null;
-            const autoMapped = isAutoMapped(header, currentValue);
-            const unmapped = isUnmapped(header);
+    <div className="flex flex-col gap-4">
+      {/* Mobile: stacked cards */}
+      <div className="flex flex-col gap-3 sm:hidden">
+        {csvHeaders.map((header) => {
+          const currentValue = mapping[header] ?? null;
+          const autoMapped = isAutoMapped(header, currentValue);
+          const unmapped = isUnmapped(header);
 
-            return (
-              <tr key={header} className="border-b last:border-0 hover:bg-muted/20">
-                <td className="px-4 py-2.5">
-                  <span
-                    className={cn(
-                      'inline-block rounded px-2 py-0.5 font-mono text-xs',
-                      unmapped
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-muted text-foreground'
-                    )}
-                  >
-                    {header}
-                  </span>
-                </td>
-                <td className="px-4 py-2.5">
-                  <select
-                    value={currentValue ?? ''}
-                    onChange={(e) => handleChange(header, e.target.value || null)}
-                    className={cn(
-                      'w-full rounded-md border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50',
-                      unmapped ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-background'
-                    )}
-                  >
-                    <option value="">{t('noMap')}</option>
-                    {schema.fields.map((field) => (
-                      <option key={field.key} value={field.key}>
-                        {field.label}
-                        {field.required ? ` (${t('required')})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-2.5">
-                  {unmapped ? (
-                    <span className="text-xs text-muted-foreground italic">{t('noMap')}</span>
-                  ) : autoMapped ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                      {t('autoMapped')}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                      Manual
-                    </span>
+          return (
+            <div
+              key={header}
+              className={cn(
+                'rounded-lg border p-3 space-y-2',
+                unmapped ? 'border-destructive/30 bg-destructive/5' : 'border-border bg-card'
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span
+                  className={cn(
+                    'inline-block rounded px-2 py-0.5 font-mono text-xs',
+                    unmapped ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground'
                   )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                >
+                  {header}
+                </span>
+                {unmapped ? (
+                  <span className="text-xs text-muted-foreground italic">{t('noMap')}</span>
+                ) : autoMapped ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {t('autoMapped')}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                    Manual
+                  </span>
+                )}
+              </div>
+              <select
+                value={currentValue ?? ''}
+                onChange={(e) => handleChange(header, e.target.value || null)}
+                className={cn(
+                  'w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50',
+                  unmapped ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-background'
+                )}
+              >
+                <option value="">{t('noMap')}</option>
+                {schema.fields.map((field) => (
+                  <option key={field.key} value={field.key}>
+                    {field.label}
+                    {field.required ? ` (${t('required')})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block rounded-lg border">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-1/2">
+                {t('csvColumn')}
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-1/2">
+                {t('entityField')}
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground w-24">
+                Estado
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {csvHeaders.map((header) => {
+              const currentValue = mapping[header] ?? null;
+              const autoMapped = isAutoMapped(header, currentValue);
+              const unmapped = isUnmapped(header);
+
+              return (
+                <tr key={header} className="border-b last:border-0 hover:bg-muted/20">
+                  <td className="px-4 py-2.5">
+                    <span
+                      className={cn(
+                        'inline-block rounded px-2 py-0.5 font-mono text-xs',
+                        unmapped ? 'bg-destructive/10 text-destructive' : 'bg-muted text-foreground'
+                      )}
+                    >
+                      {header}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <select
+                      value={currentValue ?? ''}
+                      onChange={(e) => handleChange(header, e.target.value || null)}
+                      className={cn(
+                        'w-full rounded-md border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50',
+                        unmapped ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-background'
+                      )}
+                    >
+                      <option value="">{t('noMap')}</option>
+                      {schema.fields.map((field) => (
+                        <option key={field.key} value={field.key}>
+                          {field.label}
+                          {field.required ? ` (${t('required')})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {unmapped ? (
+                      <span className="text-xs text-muted-foreground italic">{t('noMap')}</span>
+                    ) : autoMapped ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        {t('autoMapped')}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                        Manual
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* Field reference */}
-      <div className="border-t bg-muted/30 px-4 py-3">
+      <div className="rounded-lg border bg-muted/30 px-4 py-3">
         <p className="mb-2 text-xs font-medium text-muted-foreground">Campos disponibles en el sistema:</p>
         <div className="flex flex-wrap gap-1.5">
           {schema.fields.map((field) => (

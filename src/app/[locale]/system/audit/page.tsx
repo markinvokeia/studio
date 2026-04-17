@@ -1,24 +1,21 @@
 
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { AuditLog } from '@/lib/types';
 import api from '@/services/api';
-import { ColumnDef, PaginationState, VisibilityState } from '@tanstack/react-table';
-import { BarChart, MoreHorizontal } from 'lucide-react';
+import { ColumnDef, PaginationState, RowSelectionState, VisibilityState } from '@tanstack/react-table';
+import { BarChart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -27,7 +24,6 @@ type GetAuditLogsResponse = {
     total: number;
 };
 
-
 async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsResponse> {
     try {
         const responseData = await api.get(API_ROUTES.SYSTEM.AUDIT_LOGS, {
@@ -35,10 +31,8 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
             limit: pagination.pageSize.toString(),
         });
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-
         const logsData = Array.isArray(data.data) ? data.data : (data.audit_logs || data.data || data.result || []);
         const total = data.total || (Array.isArray(data) ? data.length : 0);
-
         const mappedLogs = logsData.map((apiLog: any) => ({
             id: apiLog.id ? String(apiLog.id) : `aud_${Math.random().toString(36).substr(2, 9)}`,
             changed_at: apiLog.changed_at,
@@ -49,7 +43,6 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
             old_value: apiLog.old_value,
             new_value: apiLog.new_value,
         }));
-
         return { auditLogs: mappedLogs, total };
     } catch (error) {
         console.error("Failed to fetch audit logs:", error);
@@ -57,82 +50,33 @@ async function getAuditLogs(pagination: PaginationState): Promise<GetAuditLogsRe
     }
 }
 
+function formatJsonValue(value: any): string {
+    if (value === null || value === undefined) return '-';
+    if (typeof value === 'object') return JSON.stringify(value, null, 2);
+    return String(value);
+}
 
 export default function AuditLogPage() {
     const t = useTranslations('AuditLog');
     const { hasPermission } = usePermissions();
     const canViewList = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
-    const canViewDetail = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_DETAIL);
+    const isNarrow = useViewportNarrow();
+
     const [data, setData] = React.useState<AuditLog[]>([]);
     const [logCount, setLogCount] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: 10,
-    });
-    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
-        id: false,
-    });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({ id: false });
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedLog, setSelectedLog] = React.useState<AuditLog | null>(null);
 
     const columns: ColumnDef<AuditLog>[] = React.useMemo(() => [
-        {
-            accessorKey: 'id',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />,
-            enableHiding: true,
-        },
+        { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} />, enableHiding: true },
         { accessorKey: 'changed_at', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedAt')} /> },
         { accessorKey: 'table_name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.table')} /> },
         { accessorKey: 'record_id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.recordId')} /> },
         { accessorKey: 'operation', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.operation')} /> },
-        {
-            accessorKey: 'old_value',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.oldValue')} />,
-            cell: ({ row }) => {
-                const value = row.original.old_value;
-                let displayValue = '';
-                if (typeof value === 'object' && value !== null) {
-                    displayValue = JSON.stringify(value, null, 2);
-                } else if (value !== null && value !== undefined) {
-                    displayValue = String(value);
-                }
-                return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
-            }
-        },
-        {
-            accessorKey: 'new_value',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.newValue')} />,
-            cell: ({ row }) => {
-                const value = row.original.new_value;
-                let displayValue = '';
-                if (typeof value === 'object' && value !== null) {
-                    displayValue = JSON.stringify(value, null, 2);
-                } else if (value !== null && value !== undefined) {
-                    displayValue = String(value);
-                }
-                return <pre className="text-xs whitespace-pre-wrap max-w-xs break-all">{displayValue}</pre>
-            }
-        },
         { accessorKey: 'changed_by', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.changedBy')} /> },
-        {
-            id: 'actions',
-            cell: ({ row }) => {
-                const log = row.original;
-                return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">{t('columns.openMenu')}</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canViewDetail && <DropdownMenuItem>{t('columns.viewDetails')}</DropdownMenuItem>}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                );
-            },
-        },
     ], [t]);
 
     const loadLogs = React.useCallback(async () => {
@@ -143,47 +87,123 @@ export default function AuditLogPage() {
         setIsRefreshing(false);
     }, [pagination]);
 
-    React.useEffect(() => {
-        loadLogs();
-    }, [loadLogs]);
+    React.useEffect(() => { loadLogs(); }, [loadLogs]);
+
+    const handleRowSelection = (rows: AuditLog[]) => {
+        setSelectedLog(rows[0] ?? null);
+    };
+
+    const handleBack = () => {
+        setSelectedLog(null);
+        setRowSelection({});
+    };
+
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><BarChart className="h-5 w-5" /></div>
+                    <div>
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                {canViewList ? (
+                    <DataTable
+                        columns={columns}
+                        data={data}
+                        filterColumnId="table_name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onRefresh={loadLogs}
+                        isRefreshing={isRefreshing}
+                        isNarrow={isNarrow || !!selectedLog}
+                        renderCard={(row: AuditLog, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
+                                title={row.table_name}
+                                subtitle={`${row.operation} · ${row.changed_at}`}
+                                showArrow
+                            />
+                        )}
+                        pageCount={Math.ceil(logCount / pagination.pageSize)}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
+                        manualPagination={true}
+                        columnVisibility={columnVisibility}
+                        onColumnVisibilityChange={setColumnVisibility}
+                        enableSingleRowSelection
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        onRowSelectionChange={handleRowSelection}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">{t('noAccess')}</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = selectedLog ? (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><BarChart className="h-5 w-5" /></div>
+                    <div className="min-w-0">
+                        <CardTitle className="text-base lg:text-lg truncate">{selectedLog.table_name}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{selectedLog.operation} · {selectedLog.record_id}</p>
+                    </div>
+                </div>
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex-1 overflow-auto p-4">
+                <dl className="space-y-3 text-sm">
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.changedAt')}</dt>
+                        <dd className="text-foreground">{selectedLog.changed_at || '-'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.changedBy')}</dt>
+                        <dd className="text-foreground">{selectedLog.changed_by || '-'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.operation')}</dt>
+                        <dd><Badge variant="secondary">{selectedLog.operation}</Badge></dd>
+                    </div>
+                    <Separator />
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">{t('columns.oldValue')}</dt>
+                        <dd>
+                            <pre className="text-xs whitespace-pre-wrap break-all bg-muted/50 rounded p-2 max-h-48 overflow-auto">
+                                {formatJsonValue(selectedLog.old_value)}
+                            </pre>
+                        </dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">{t('columns.newValue')}</dt>
+                        <dd>
+                            <pre className="text-xs whitespace-pre-wrap break-all bg-muted/50 rounded p-2 max-h-48 overflow-auto">
+                                {formatJsonValue(selectedLog.new_value)}
+                            </pre>
+                        </dd>
+                    </div>
+                </dl>
+            </CardContent>
+        </Card>
+    ) : <div />;
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                <CardHeader className="flex-none p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="header-icon-circle mt-0.5">
-                            <BarChart className="h-5 w-5" />
-                        </div>
-                        <div className="flex flex-col text-left">
-                            <CardTitle className="text-lg">{t('title')}</CardTitle>
-                            <CardDescription className="text-xs">{t('description')}</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                    {canViewList ? (
-                        <DataTable
-                            columns={columns}
-                            data={data}
-                            filterColumnId="table_name"
-                            filterPlaceholder={t('filterPlaceholder')}
-                            onRefresh={loadLogs}
-                            isRefreshing={isRefreshing}
-                            pageCount={Math.ceil(logCount / pagination.pageSize)}
-                            pagination={pagination}
-                            onPaginationChange={setPagination}
-                            manualPagination={true}
-                            columnVisibility={columnVisibility}
-                            onColumnVisibilityChange={setColumnVisibility}
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full">
-                            <p className="text-muted-foreground">{t('noAccess')}</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+            <TwoPanelLayout
+                leftPanel={leftPanel}
+                rightPanel={rightPanel}
+                isRightPanelOpen={!!selectedLog}
+                onBack={handleBack}
+                leftPanelDefaultSize={45}
+                rightPanelDefaultSize={55}
+            />
         </div>
     );
 }

@@ -35,6 +35,7 @@ import { format } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { VerticalTab } from '../ui/vertical-tab-strip';
 
 // ── Data fetching ────────────────────────────────────────────────────────────
 
@@ -56,7 +57,6 @@ async function fetchInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
     });
   } catch { return []; }
 }
-
 
 async function fetchInvoicePayments(invoiceId: string): Promise<Payment[]> {
   try {
@@ -95,7 +95,7 @@ async function fetchInvoicePayments(invoiceId: string): Promise<Payment[]> {
   } catch { return []; }
 }
 
-// ── Status helpers ────────────────────────────────────────────────────────────
+// ── Status helpers ─────────────────────────────────────────────────────────
 
 function statusVariant(status: string): 'success' | 'destructive' | 'info' | 'outline' | 'default' {
   switch (status.toLowerCase()) {
@@ -379,6 +379,11 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
   const canShowConfirmAction = currentInvoiceData.status === 'draft';
   const canShowPaymentAction = currentInvoiceData.status === 'booked' && currentInvoiceData.payment_status !== 'paid';
 
+  const tabs: VerticalTab[] = [
+    { id: 'items', icon: Check, label: t('InvoiceItemsTable.title') },
+    { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
+  ];
+
   return (
     <ResizableSheet
       open={open}
@@ -390,10 +395,10 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
     >
       <div className="flex flex-col h-full overflow-hidden">
         {/* Header */}
-        <div className="flex-none border-b border-border bg-card px-6 py-5 pr-14">
+        <div className="flex-none border-b border-border bg-card px-6 py-4 pr-14">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted shrink-0">
-              <Receipt className="h-5 w-5 text-muted-foreground" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted shrink-0">
+              <Receipt className="h-4 w-4 text-muted-foreground" />
             </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">

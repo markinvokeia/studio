@@ -1,6 +1,8 @@
 'use client';
 
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 import { PermissionUsers } from '@/components/permissions/permission-users';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -40,6 +42,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { PermissionsColumnsWrapper } from './columns';
+import { useDeepLink } from '@/hooks/use-deep-link';
 
 const permissionFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -77,6 +80,41 @@ async function deletePermission(id: string) {
   return await api.delete(API_ROUTES.PERMISSIONS_DELETE, { id });
 }
 
+function PermissionsTableNarrow({ columns, permissions, selectedPermission, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, filterPlaceholder }: {
+  columns: any[]; permissions: any[]; selectedPermission: any;
+  onRowSelectionChange: (rows: any[]) => void; onCreate?: () => void; onRefresh: () => void; isRefreshing: boolean;
+  rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  filterPlaceholder: string;
+}) {
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isViewportNarrow = useViewportNarrow();
+  const isNarrow = !!selectedPermission || panelNarrow || isViewportNarrow;
+  return (
+    <DataTable
+      columns={columns}
+      data={permissions}
+      filterColumnId="name"
+      filterPlaceholder={filterPlaceholder}
+      onRowSelectionChange={onRowSelectionChange}
+      enableSingleRowSelection={true}
+      onCreate={onCreate}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      isNarrow={isNarrow}
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
+          title={row.name || ''}
+          subtitle={row.code || row.description || ''}
+          showArrow
+          onClick={() => onRowSelectionChange([row])}
+        />
+      )}
+    />
+  );
+}
+
 export default function PermissionsPage() {
   const t = useTranslations('PermissionsPage');
   const tValidation = useTranslations('PermissionsPage.validation');
@@ -91,16 +129,24 @@ export default function PermissionsPage() {
 
   const [permissions, setPermissions] = React.useState<Permission[]>([]);
   const [selectedPermission, setSelectedPermission] = React.useState<Permission | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [editingPermission, setEditingPermission] = React.useState<Permission | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
   const [deletingPermission, setDeletingPermission] = React.useState<Permission | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-  const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [createError, setCreateError] = React.useState<string | null>(null);
+  const [detailError, setDetailError] = React.useState<string | null>(null);
+  const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const { toast } = useToast();
 
-  const form = useForm<PermissionFormValues>({
+  // Form for create dialog
+  const createForm = useForm<PermissionFormValues>({
+    resolver: zodResolver(permissionFormSchema(tValidation)),
+    defaultValues: { name: '', description: '', action: '', resource: '' },
+  });
+
+  // Form for inline detail edit
+  const detailForm = useForm<PermissionFormValues>({
     resolver: zodResolver(permissionFormSchema(tValidation)),
     defaultValues: { name: '', description: '', action: '', resource: '' },
   });
@@ -116,20 +162,25 @@ export default function PermissionsPage() {
     loadPermissions();
   }, [loadPermissions]);
 
+  // Populate detail form when selection changes
+  React.useEffect(() => {
+    if (selectedPermission) {
+      detailForm.reset({
+        id: selectedPermission.id,
+        name: selectedPermission.name,
+        description: selectedPermission.description || '',
+        action: selectedPermission.action || '',
+        resource: selectedPermission.resource || '',
+      });
+      setDetailError(null);
+    }
+  }, [selectedPermission, detailForm]);
+
   const handleCreate = () => {
     if (!canCreate) return;
-    setEditingPermission(null);
-    form.reset({ name: '', description: '', action: '', resource: '' });
-    setSubmissionError(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleEdit = (permission: Permission) => {
-    if (!canUpdate) return;
-    setEditingPermission(permission);
-    form.reset(permission);
-    setSubmissionError(null);
-    setIsDialogOpen(true);
+    createForm.reset({ name: '', description: '', action: '', resource: '' });
+    setCreateError(null);
+    setIsCreateDialogOpen(true);
   };
 
   const handleDelete = (permission: Permission) => {
@@ -148,6 +199,10 @@ export default function PermissionsPage() {
       });
       setIsDeleteDialogOpen(false);
       setDeletingPermission(null);
+      if (selectedPermission?.id === deletingPermission.id) {
+        setSelectedPermission(null);
+        setRowSelection({});
+      }
       loadPermissions();
     } catch (error) {
       toast({
@@ -168,28 +223,67 @@ export default function PermissionsPage() {
     setRowSelection({});
   };
 
-  const onSubmit = async (values: PermissionFormValues) => {
-    setSubmissionError(null);
+  const onCreateSubmit = async (values: PermissionFormValues) => {
+    setCreateError(null);
     try {
       await upsertPermission(values);
       toast({
-        title: editingPermission ? t('toast.editSuccess') : t('toast.createSuccess'),
+        title: t('toast.createSuccess'),
         description: t('toast.successDescription', { name: values.name }),
       });
-      setIsDialogOpen(false);
+      setIsCreateDialogOpen(false);
       loadPermissions();
     } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+      setCreateError(error instanceof Error ? error.message : t('toast.genericError'));
     }
   };
 
-  const permissionsColumns = PermissionsColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete, canEdit: canUpdate, canDelete: canDelete });
+  const onDetailSubmit = async (values: PermissionFormValues) => {
+    setDetailError(null);
+    setIsSavingDetail(true);
+    try {
+      await upsertPermission(values);
+      toast({
+        title: t('toast.editSuccess'),
+        description: t('toast.successDescription', { name: values.name }),
+      });
+      setPermissions(prev => prev.map(p => p.id === values.id ? { ...p, ...values } : p));
+      setSelectedPermission(prev => prev ? { ...prev, ...values } : prev);
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : t('toast.genericError'));
+    } finally {
+      setIsSavingDetail(false);
+    }
+  };
 
+  const permissionsColumns = PermissionsColumnsWrapper({ onDelete: handleDelete, canDelete: canDelete });
+
+  const [activeTab, setActiveTab] = React.useState('details');
+  const [deepLinkFilter, setDeepLinkFilter] = React.useState('');
+  const deepLinkItems = deepLinkFilter
+    ? permissions.filter(p => p.name.toLowerCase().includes(deepLinkFilter.toLowerCase()))
+    : permissions;
+
+  useDeepLink<Permission>({
+    tabMap: { 'Detalles': 'details', 'Usuarios': 'users' },
+    onFilter: (v) => setDeepLinkFilter(v),
+    items: deepLinkItems,
+    allItems: permissions,
+    isLoading: isRefreshing,
+    onAutoSelect: (perm) => handleRowSelectionChange([perm]),
+    setRowSelection,
+    onTabChange: (id) => setActiveTab(id),
+    actionMap: { 'Crear': () => handleCreate() },
+    filterDelay: 300,
+  });
+
+  const actionOptions = ['create', 'read', 'update', 'delete', 'manage'];
 
   return (
     <>
       <TwoPanelLayout
         isRightPanelOpen={!!selectedPermission}
+        onBack={handleCloseDetails}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
@@ -203,19 +297,18 @@ export default function PermissionsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
-              <DataTable
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 bg-card">
+              <PermissionsTableNarrow
                 columns={permissionsColumns}
-                data={permissions}
-                filterColumnId="name"
-                filterPlaceholder={t('filterPlaceholder')}
+                permissions={permissions}
+                selectedPermission={selectedPermission}
                 onRowSelectionChange={handleRowSelectionChange}
-                enableSingleRowSelection={true}
                 onCreate={canCreate ? handleCreate : undefined}
                 onRefresh={loadPermissions}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
+                filterPlaceholder={t('filterPlaceholder')}
               />
             </CardContent>
           </Card>
@@ -239,11 +332,85 @@ export default function PermissionsPage() {
                 </Button>
               </CardHeader>
               <CardContent className="flex-1 overflow-auto p-4 pt-0">
-                <Tabs defaultValue="users" className="w-full h-full flex flex-col">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                   <TabsList>
+                    <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
                     <TabsTrigger value="users">{t('tabs.users')}</TabsTrigger>
                   </TabsList>
                   <div className="flex-1 overflow-auto mt-4">
+                    <TabsContent value="details" className="m-0">
+                      <Form {...detailForm}>
+                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                          {detailError && (
+                            <Alert variant="destructive">
+                              <AlertTriangle className="h-4 w-4" />
+                              <AlertTitle>{t('toast.error')}</AlertTitle>
+                              <AlertDescription>{detailError}</AlertDescription>
+                            </Alert>
+                          )}
+                          <FormField
+                            control={detailForm.control}
+                            name="name"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('dialog.name')}</FormLabel>
+                                <FormControl><Input placeholder={t('dialog.namePlaceholder')} {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={detailForm.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('dialog.descriptionLabel')}</FormLabel>
+                                <FormControl><Input placeholder={t('dialog.descriptionPlaceholder')} {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={detailForm.control}
+                            name="action"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('dialog.action')}</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                    <SelectTrigger><SelectValue placeholder={t('dialog.selectAction')} /></SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {actionOptions.map(a => (
+                                      <SelectItem key={a} value={a}>{t(`dialog.actions.${a}`)}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={detailForm.control}
+                            name="resource"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('dialog.resource')}</FormLabel>
+                                <FormControl><Input placeholder={t('dialog.resourcePlaceholder')} {...field} /></FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          {canUpdate && (
+                            <div className="flex gap-2 pt-2">
+                              <Button type="submit" disabled={isSavingDetail}>
+                                {isSavingDetail ? t('dialog.save') + '...' : t('dialog.save')}
+                              </Button>
+                            </div>
+                          )}
+                        </form>
+                      </Form>
+                    </TabsContent>
                     <TabsContent value="users" className="m-0">
                       <PermissionUsers permissionId={selectedPermission.id} />
                     </TabsContent>
@@ -255,26 +422,25 @@ export default function PermissionsPage() {
         }
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Create dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingPermission ? t('dialog.editTitle') : t('dialog.title')}</DialogTitle>
-            <DialogDescription>
-              {editingPermission ? t('dialog.editDescription') : t('dialog.description')}
-            </DialogDescription>
+            <DialogTitle>{t('dialog.title')}</DialogTitle>
+            <DialogDescription>{t('dialog.description')}</DialogDescription>
           </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <Form {...createForm}>
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
-                {submissionError && (
+                {createError && (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>{t('toast.error')}</AlertTitle>
-                    <AlertDescription>{submissionError}</AlertDescription>
+                    <AlertDescription>{createError}</AlertDescription>
                   </Alert>
                 )}
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
@@ -285,7 +451,7 @@ export default function PermissionsPage() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -296,7 +462,7 @@ export default function PermissionsPage() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="action"
                   render={({ field }) => (
                     <FormItem>
@@ -318,7 +484,7 @@ export default function PermissionsPage() {
                   )}
                 />
                 <FormField
-                  control={form.control}
+                  control={createForm.control}
                   name="resource"
                   render={({ field }) => (
                     <FormItem>
@@ -330,13 +496,14 @@ export default function PermissionsPage() {
                 />
               </DialogBody>
               <DialogFooter>
-                <Button type="submit">{editingPermission ? t('dialog.save') : t('dialog.create')}</Button>
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
+                <Button type="submit">{t('dialog.create')}</Button>
+                <Button variant="outline" type="button" onClick={() => setIsCreateDialogOpen(false)}>{t('dialog.cancel')}</Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
+
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

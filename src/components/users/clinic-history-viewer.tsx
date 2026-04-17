@@ -92,14 +92,27 @@ interface ClinicHistoryViewerProps {
     createSessionTrigger?: number;
     createDocumentTrigger?: number;
     onClinicalDataChange?: () => void;
+    /** Deep-link: navigate to this view on mount (one-shot) */
+    deepLinkView?: string;
 }
 
 type ActiveView = 'anamnesis' | 'timeline' | 'odontogram' | 'documents';
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, onClinicalDataChange }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, onClinicalDataChange, deepLinkView }: ClinicHistoryViewerProps) {
     const t = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const [activeView, setActiveView] = React.useState<ActiveView>('anamnesis');
+
+    // Apply deep-link view once on mount
+    const deepLinkApplied = React.useRef(false);
+    React.useEffect(() => {
+        if (deepLinkApplied.current || !deepLinkView) return;
+        const valid: ActiveView[] = ['anamnesis', 'timeline', 'odontogram', 'documents'];
+        if (valid.includes(deepLinkView as ActiveView)) {
+            deepLinkApplied.current = true;
+            setActiveView(deepLinkView as ActiveView);
+        }
+    }, [deepLinkView]);
     const [isOdontogramFullscreen, setIsOdontogramFullscreen] = React.useState(false);
 
     const {
@@ -1901,8 +1914,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
 
     return (
         <div className="space-y-4">
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
-                <div className="flex items-center justify-between mb-6">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm px-2 py-4 sm:p-6 border-0">
+                <div className="flex items-center justify-between mb-4 sm:mb-6 px-1 sm:px-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Clock className="h-5 w-5 text-primary" />
@@ -1931,50 +1944,50 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                     </div>
                 ) : (
                     <div className="relative">
-                        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
+                        <div className="absolute left-[9px] sm:left-[11px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
                         {sessions.map((session, index) => {
                             const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
                             const isOpen = openItems.includes(String(session.sesion_id));
 
                             return (
-                                <div key={index} className="relative flex items-start mb-6 last:mb-0 pl-8">
-                                    <div className="absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                                        <Icon className="h-3.5 w-3.5 text-primary" />
+                                <div key={index} className="relative flex items-start mb-4 sm:mb-6 last:mb-0 pl-7 sm:pl-10">
+                                    <div className="absolute left-0 top-0 z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
+                                        <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
                                     </div>
-                                    <Card className="flex-1 hover:shadow-md transition-shadow duration-200 border-muted/60">
-                                        <CardHeader className="pb-2">
-                                            <div className="flex justify-between items-start">
-                                                <div className="flex-1 min-w-0 pr-2">
-                                                    <CardTitle className="text-base font-semibold line-clamp-2">
-                                                        {session.procedimiento_realizado ? (session.procedimiento_realizado.length > 50 ? session.procedimiento_realizado.slice(0, 50) + '...' : session.procedimiento_realizado) : t('noTitle')}
+                                    <Card className="flex-1 min-w-0 hover:shadow-md transition-shadow duration-200 border-muted/60">
+                                        <CardHeader className="p-3 sm:p-4 pb-2">
+                                            <div className="flex items-start gap-2">
+                                                <div className="flex-1 min-w-0">
+                                                    <CardTitle className="text-sm sm:text-base font-semibold break-words whitespace-normal leading-tight">
+                                                        {session.procedimiento_realizado || t('noTitle')}
                                                     </CardTitle>
-                                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
-                                                        <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                            <CalendarIcon className="h-3.5 w-3.5" />
+                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                                                        <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                                            <CalendarIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                                                             {formatDate(session.fecha_sesion)}
                                                         </p>
                                                         {(session.nombre_doctor || session.doctor_name) && (
-                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                                <User className="h-3.5 w-3.5" />
-                                                                {session.nombre_doctor || session.doctor_name}
+                                                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                                                <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                                                                <span className="truncate">{session.nombre_doctor || session.doctor_name}</span>
                                                             </p>
                                                         )}
                                                         {session.quote_id && (
-                                                            <p className="text-sm text-muted-foreground flex items-center gap-1.5">
-                                                                <Link2 className="h-3.5 w-3.5" />
+                                                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
+                                                                <Link2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
                                                                 {t('quote')}: {session.quote_doc_no || session.quote_id}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <span className="hidden sm:inline text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
                                                         {session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : session.tipo_sesion}
                                                     </span>
                                                     {session.tipo_sesion !== 'odontograma' && (
                                                         <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
                                                                     <MoreHorizontal className="h-4 w-4" />
                                                                 </Button>
                                                             </DropdownMenuTrigger>
@@ -1989,13 +2002,13 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                         </CardHeader>
                                         <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
                                             <CollapsibleTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="w-full justify-start px-4 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+                                                <Button variant="ghost" size="sm" className="w-full justify-start px-3 sm:px-4 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
                                                     {isOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
                                                     {isOpen ? t('hideDetails') || 'Ocultar detalles' : t('showDetails') || 'Ver detalles'}
                                                 </Button>
                                             </CollapsibleTrigger>
                                             <CollapsibleContent>
-                                                <CardContent className="pt-0 pb-3 space-y-3">
+                                                <CardContent className="pt-0 pb-3 px-3 sm:px-6 space-y-3">
                                                     {session.procedimiento_realizado && session.tipo_sesion !== 'odontograma' && (
                                                         <div className="border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
@@ -2003,7 +2016,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                                        <div className="border-l-2 border-red-400/50 pl-3 py-1 bg-red-50/50 dark:bg-red-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-red-400/50 pl-3 py-1 bg-red-50/60/50 dark:bg-red-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
                                                         </div>
@@ -2015,7 +2028,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {(session.plan_proxima_cita || session.fecha_proxima_cita) && (
-                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/50 dark:bg-blue-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/60/50 dark:bg-blue-950/20 rounded-r-md">
                                                             <div className="flex items-center justify-between gap-4 flex-wrap">
                                                                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
                                                                 {session.fecha_proxima_cita && (
@@ -2032,7 +2045,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                         </div>
                                                     )}
                                                     {session.tratamientos && session.tratamientos.length > 0 && (
-                                                        <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/50 dark:bg-green-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/60/50 dark:bg-green-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                                                 {session.tratamientos.map((tr: any, i: number) => (
@@ -2040,14 +2053,14 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                                         {tr.numero_diente && (
                                                                             <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
                                                                         )}
-                                                                        <p className="text-sm leading-relaxed text-muted-foreground truncate" title={tr.descripcion}>{tr.descripcion}</p>
+                                                                        <p className="text-sm leading-relaxed text-muted-foreground break-words sm:truncate" title={tr.descripcion}>{tr.descripcion}</p>
                                                                     </div>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     )}
                                                     {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1 bg-purple-50/50 dark:bg-purple-950/20 rounded-r-md">
+                                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1 bg-purple-50/60/50 dark:bg-purple-950/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
@@ -2118,16 +2131,16 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                     showMaximize
                     maximizeLabel={tPage('viewer.maximize')}
                     restoreLabel={tPage('viewer.restore')}
-                    className="h-[88vh] max-w-[95vw] p-0"
+                    className="h-full max-h-[90vh] max-w-[95vw] p-0"
                 >
                     <DialogHeader className="border-b px-6 py-4">
                         <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleSaveSession} className="flex h-full flex-col overflow-hidden">
-                        <DialogBody className="flex-1 overflow-y-auto px-6 py-4">
-                            <div className="grid h-full min-h-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
+                    <form onSubmit={handleSaveSession} className="flex min-h-0 flex-1 flex-col">
+                        <div className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain px-6 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+                            <div className="space-y-6 xl:flex xl:flex-row xl:gap-6 xl:space-y-0">
                                 {/* Left Column: General Info */}
-                                <div className="grid min-h-0 content-start gap-4 md:grid-cols-2">
+                                <div className="grid content-start gap-4 md:grid-cols-2 xl:flex-1">
                                     <div className="space-y-2">
                                             <Label>{tDialog('date')}</Label>
                                             <DatePickerInput
@@ -2252,7 +2265,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                             value={sessionForm.procedimiento_realizado}
                                             onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
                                             placeholder={tDialog('procedurePlaceholder')}
-                                            className="min-h-[180px] resize-y xl:min-h-[260px]"
+                                            className="min-h-[80px] resize-y xl:min-h-[260px]"
                                         />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
@@ -2261,7 +2274,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                             value={sessionForm.plan_proxima_cita}
                                             onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
                                             placeholder={tDialog('nextSessionPlanPlaceholder')}
-                                            className="min-h-[110px] resize-y xl:min-h-[160px]"
+                                            className="min-h-[60px] resize-y xl:min-h-[160px]"
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -2274,8 +2287,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                 </div>
 
                                 {/* Right Column: Treatments & Attachments */}
-                                <div className="flex min-h-0 flex-col gap-4">
-                                    <Card className="flex min-h-0 flex-1 flex-col shadow-none border bg-muted/5">
+                                <div className="flex flex-col gap-4 xl:w-[340px] xl:flex-shrink-0">
+                                    <Card className="flex flex-col shadow-none border bg-muted/5">
                                         <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
                                             <CardTitle className="text-sm font-bold">{tDialog('treatments') || 'Trabajos'}</CardTitle>
                                             <Button type="button" variant="ghost" size="sm" onClick={() => setSessionTreatments([...sessionTreatments, { numero_diente: '', descripcion: '' }])} className="h-7 px-2 text-xs">
@@ -2283,10 +2296,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                 {tDialog('addTreatment') || 'Añadir'}
                                             </Button>
                                         </CardHeader>
-                                        <CardContent className="flex-1 min-h-0 p-2 pt-0">
-                                            <div className="h-full min-h-[180px] overflow-y-auto pr-2 space-y-2">
+                                        <CardContent className="flex-1 p-2 pt-0">
+                                            <div className="min-h-[120px] max-h-[300px] overflow-y-auto pr-2 space-y-2 xl:min-h-[180px] xl:max-h-[400px]">
                                                 {sessionTreatments.length === 0 ? (
-                                                    <div className="flex h-full min-h-[160px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md">
+                                                    <div className="flex min-h-[100px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md xl:min-h-[160px]">
                                                         No treatments added yet.
                                                     </div>
                                                 ) : sessionTreatments.map((treatment, index) => (
@@ -2328,11 +2341,11 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                     </Card>
 
                                     {/* Attachments Section */}
-                                    <Card className="flex min-h-0 flex-[1.15] flex-col shadow-none border bg-muted/5">
+                                    <Card className="flex flex-col shadow-none border bg-muted/5 xl:flex-[1.15]">
                                         <CardHeader className="py-2 px-3">
                                             <CardTitle className="text-sm font-bold">{tDialog('attachments')}</CardTitle>
                                         </CardHeader>
-                                        <CardContent className="flex min-h-0 flex-1 flex-col p-3">
+                                        <CardContent className="flex flex-1 flex-col p-3">
                                             {/* Drag and Drop Area */}
                                             <div
                                                 className={cn(
@@ -2425,7 +2438,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                     </Card>
                                 </div>
                             </div>
-                        </DialogBody>
+                        </div>
                         <DialogFooter className="mt-auto border-t bg-background px-6 py-3 shadow-[0_-1px_0_hsl(var(--border))] gap-2 sm:justify-end">
                             <Button type="button" variant="outline" onClick={() => setIsSessionDialogOpen(false)}>
                                 {tDialog('cancel')}
@@ -2720,12 +2733,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
 
     return (
         <>
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
-                <div className="flex items-center justify-between mb-4">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-3 sm:p-6 border-0 w-full min-w-0">
+                <div className="flex items-center justify-between mb-4 gap-2">
                     <h3 className="text-xl font-bold text-card-foreground">{t('tabs.documents')}</h3>
-                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline">
-                        <Upload className="h-4 w-4 mr-2" />
-                        {t('documents.add')}
+                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
+                        <Upload className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">{t('documents.add')}</span>
                     </Button>
                 </div>
 

@@ -1,22 +1,21 @@
 'use client';
 
-import * as React from 'react';
-import { Table } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     DropdownMenu,
+    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-    DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { Filter, X, Search, ChevronDown, Check, PlusCircle, RefreshCw, SlidersHorizontal, Settings2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Table } from '@tanstack/react-table';
+import { Check, PlusCircle, RefreshCw, Search, Settings2, SlidersHorizontal, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import * as React from 'react';
 
 export interface FilterOption {
     value: string;
@@ -87,7 +86,7 @@ export function DataTableAdvancedToolbar<TData>({
             </div>
 
             <div className="flex flex-1 items-center gap-1.5 min-w-0 overflow-hidden">
-{/* Active Filter Chips - moved outside search bar */}
+                {/* Active Filter Chips - moved outside search bar */}
 
                 <Input
                     ref={inputRef}
@@ -176,26 +175,36 @@ export function DataTableAdvancedToolbar<TData>({
     );
 
     return (
-        <div className="flex flex-col gap-y-2 w-full">
-            <div className="flex items-center justify-between gap-x-4 w-full">
-                <div className="flex items-center gap-2 flex-grow min-w-0">
-                    <div className={isCompact ? "flex-1 min-w-0" : "w-full sm:max-w-[724px]"}>
-                        {SearchBar}
-                    </div>
+        <div className="flex flex-col gap-2 w-full">
+            {/* Row 1: Search + Create + Refresh */}
+            <div className="flex items-center gap-2 w-full">
+                <div className={isCompact ? "flex-1 min-w-0" : "flex-1 min-w-0 sm:max-w-[724px]"}>
+                    {SearchBar}
                 </div>
-
                 <div className="flex items-center gap-2 shrink-0">
                     {onCreate && (
-                        <Button variant="default" size="sm" className="h-9 gap-1.5" onClick={onCreate}>
+                        <Button
+                            variant="default"
+                            size="icon"
+                            className={cn(
+                                "h-9 w-9 shrink-0",
+                                !createButtonIconOnly && "sm:w-auto sm:px-3 sm:gap-1.5"
+                            )}
+                            onClick={onCreate}
+                        >
                             <PlusCircle className="h-4 w-4" />
-                            {createButtonLabel || t('create')}
+                            {createButtonIconOnly ? (
+                                <span className="sr-only">{createButtonLabel || t('create')}</span>
+                            ) : (
+                                <span className="hidden sm:inline">{createButtonLabel || t('create')}</span>
+                            )}
                         </Button>
                     )}
                     {onRefresh && (
                         <Button
                             variant="outline"
                             size="icon"
-                            className="h-9 w-9"
+                            className="h-9 w-9 shrink-0"
                             onClick={onRefresh}
                             disabled={isRefreshing}
                         >
@@ -203,10 +212,11 @@ export function DataTableAdvancedToolbar<TData>({
                             <span className="sr-only">{t('refresh')}</span>
                         </Button>
                     )}
+                    {/* Column toggle — desktop only */}
                     {table && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-9 w-9">
+                                <Button variant="outline" size="icon" className="hidden sm:flex h-9 w-9 shrink-0">
                                     <Settings2 className="h-4 w-4" />
                                     <span className="sr-only">{t('view')}</span>
                                 </Button>
@@ -236,12 +246,16 @@ export function DataTableAdvancedToolbar<TData>({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
+                    {/* Extra buttons — desktop only (inline) */}
+                    {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+                </div>
+            </div>
+            {/* Row 2 — mobile only: extra action buttons */}
+            {extraButtons && (
+                <div className="flex sm:hidden items-center gap-2 overflow-x-auto">
                     {extraButtons}
                 </div>
-</div>
-
-            
-
+            )}
         </div>
     );
 }

@@ -2,24 +2,14 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { User } from '@/lib/types';
 import { ColumnDef } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
-export const getColumns = (t: (key: string) => string, onToggleActivate: (user: User) => void, onEdit: (user: User) => void): ColumnDef<User>[] => [
+export const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
     id: 'select',
     header: () => null,
@@ -80,45 +70,13 @@ export const getColumns = (t: (key: string) => string, onToggleActivate: (user: 
       </Badge>
     ),
   },
-  {
-    id: 'actions',
-    cell: function Cell({ row }) {
-      const t = useTranslations('UserColumns');
-      const user = row.original;
-      return (
-        <div onClick={(e) => e.stopPropagation()}>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(user.id)}
-              >
-                {t('copyId')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onEdit(user)}>{t('edit')}</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onToggleActivate(user)}>
-                {user.is_active ? t('deactivate') : t('activate')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      );
-    },
-  },
 ];
 
 
-export function UserColumnsWrapper({ onToggleActivate, onEdit }: { onToggleActivate: (user: User) => void; onEdit: (user: User) => void; }) {
+export function UserColumnsWrapper() {
   const t = useTranslations('UserColumns');
   const columns = React.useMemo(() => {
-    return getColumns(t, onToggleActivate, onEdit);
-  }, [t, onToggleActivate, onEdit]);
+    return getColumns(t);
+  }, [t]);
   return columns;
 }

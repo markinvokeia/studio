@@ -4,17 +4,10 @@
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Medication } from '@/lib/types';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
 import { Can } from '@/components/auth/Can';
-import { MoreHorizontal } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 interface MedicationsColumnsProps {
     onEdit: (medication: Medication) => void;
@@ -26,6 +19,7 @@ interface MedicationsColumnsProps {
 export const MedicationsColumnsWrapper = ({ onEdit, onDelete }: MedicationsColumnsProps) => {
     const t = useTranslations('MedicationsColumns');
     const columns: ColumnDef<Medication>[] = [
+        createSelectColumn<Medication>(),
         { accessorKey: 'id', header: ({column}) => <DataTableColumnHeader column={column} title={t('id')} /> },
         { accessorKey: 'nombre_generico', header: ({column}) => <DataTableColumnHeader column={column} title={t('genericName')} /> },
         { accessorKey: 'nombre_comercial', header: ({column}) => <DataTableColumnHeader column={column} title={t('commercialName')} /> },
@@ -33,25 +27,18 @@ export const MedicationsColumnsWrapper = ({ onEdit, onDelete }: MedicationsColum
             id: 'actions',
             cell: ({ row }) => {
             const medication = row.original;
-            return (
-                <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Open menu</span>
-                    <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>{t('actions')}</DropdownMenuLabel>
-                    <Can permission="CATALOG_MEDICATIONS_UPDATE">
-                        <DropdownMenuItem onClick={() => onEdit(medication)}>{t('edit')}</DropdownMenuItem>
-                    </Can>
-                    <Can permission="CATALOG_MEDICATIONS_DELETE">
-                        <DropdownMenuItem onClick={() => onDelete(medication)} className="text-destructive">{t('delete')}</DropdownMenuItem>
-                    </Can>
-                </DropdownMenuContent>
-                </DropdownMenu>
-            );
+                    return (
+                      <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onEdit(medication)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="text-[9px] font-medium leading-tight">{t('edit')}</span>
+                      </button>
+                      <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(medication)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span className="text-[9px] font-medium leading-tight">{t('delete')}</span>
+                      </button>
+                      </div>
+                    );
             },
         },
     ];

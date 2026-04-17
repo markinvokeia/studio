@@ -13,10 +13,31 @@ const STEP_KEYS = ['selectType', 'upload', 'preview', 'mapping', 'validate', 're
 
 export function WizardStepper({ currentStep, totalSteps }: WizardStepperProps) {
   const t = useTranslations('ImportPage.steps');
+  const currentKey = STEP_KEYS[currentStep];
+  const progress = Math.round((currentStep / (totalSteps - 1)) * 100);
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between">
+    <div className="w-full space-y-2">
+      {/* Mobile: progress bar + step label */}
+      <div className="sm:hidden space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Paso {currentStep + 1} de {totalSteps}
+          </span>
+          <span className="text-xs font-semibold text-primary">
+            {currentKey ? t(currentKey) : ''}
+          </span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-1.5 rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Desktop: circles + labels */}
+      <div className="hidden sm:flex items-center justify-between">
         {Array.from({ length: totalSteps }).map((_, index) => {
           const isCompleted = index < currentStep;
           const isActive = index === currentStep;

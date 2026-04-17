@@ -23,6 +23,8 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Eye, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', processing: 'default', cancelled: 'destructive' };
@@ -138,6 +140,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
   const t = useTranslations();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const isViewportNarrow = useViewportNarrow();
   const isSales = mode === 'sales';
   const canInvoiceFromOrder = hasPermission(
     isSales
@@ -353,6 +356,23 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
             onRefresh={() => loadOrders(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
+            isNarrow={isViewportNarrow}
+            renderCard={(order: Order, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
+                title={order.doc_no || `ORD-${order.id}`}
+                subtitle={formatDateTime(order.createdAt)}
+                badge={
+                  <Badge variant={(STATUS_BADGE[order.status?.toLowerCase().trim()] ?? 'default') as any} className="capitalize text-[10px]">
+                    {t(`OrdersPage.status.${STATUS_KEY_MAP[order.status?.toLowerCase().trim()] || order.status?.toLowerCase()}`)}
+                  </Badge>
+                }
+                fields={[
+                  { label: t('QuoteColumns.currency'), value: order.currency || '-' },
+                  { label: t('QuoteColumns.quoteDocNo'), value: order.quote_doc_no || '-' },
+                  { label: t('UserColumns.name'), value: order.user_name || '-' },
+                ]}
+              />
+            )}
             columnTranslations={{
               doc_no: t('OrderColumns.docNo'),
               user_name: t('UserColumns.name'),
@@ -384,7 +404,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
             <div className="flex-none bg-card shadow-sm border-b border-border">
               {/* Título y badges principales */}
               <div className="px-6 py-4 border-b border-border/50">
-                <div className="flex items-start justify-between gap-4 pr-10">
+                <div className="flex items-start justify-between gap-4 pr-10 sm:pr-20">
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedOrder.doc_no}</SheetTitle>

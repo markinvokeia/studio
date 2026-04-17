@@ -8,26 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-    Dialog,
-    DialogBody,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { DataCard } from '@/components/ui/data-card';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { PaymentMethod } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef } from '@tanstack/react-table';
-import { AlertTriangle, CreditCard, MoreHorizontal } from 'lucide-react';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { AlertTriangle, CreditCard, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -47,10 +42,8 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
     try {
         const data = await api.get(API_ROUTES.CASHIER.PAYMENT_METHODS);
         const methodsData = Array.isArray(data) ? data : (data.payment_methods || data.data || []);
-
         return methodsData.map((m: any) => ({ ...m, id: String(m.id) }));
-    } catch (error) {
-        console.error("Failed to fetch payment methods:", error);
+    } catch {
         return [];
     }
 }
@@ -58,8 +51,7 @@ async function getPaymentMethods(): Promise<PaymentMethod[]> {
 async function upsertPaymentMethod(data: PaymentMethodFormValues) {
     const responseData = await api.post(API_ROUTES.SALES.PAYMENT_METHODS_UPSERT, data);
     if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save payment method';
-        throw new Error(message);
+        throw new Error(responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to save');
     }
     return responseData;
 }
@@ -67,8 +59,7 @@ async function upsertPaymentMethod(data: PaymentMethodFormValues) {
 async function deletePaymentMethod(id: string) {
     const responseData = await api.delete(API_ROUTES.SALES.PAYMENT_METHODS_DELETE, { id });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message) || 'Failed to delete payment method';
-        throw new Error(message);
+        throw new Error(responseData.message || 'Failed to delete');
     }
     return responseData;
 }
@@ -79,23 +70,20 @@ export default function PaymentMethodsPage() {
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
-    // Permission checks
-    const canViewList = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_VIEW_LIST);
     const canCreate = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_CREATE);
     const canUpdate = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_UPDATE);
     const canDelete = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_DELETE);
-    const canToggleStatus = hasPermission(SALES_PERMISSIONS.PAYMENT_METHODS_TOGGLE_STATUS);
+    const isNarrow = useViewportNarrow();
 
     const [methods, setMethods] = React.useState<PaymentMethod[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-
-    const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-    const [editingMethod, setEditingMethod] = React.useState<PaymentMethod | null>(null);
-
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedMethod, setSelectedMethod] = React.useState<PaymentMethod | null>(null);
+    const [isEditing, setIsEditing] = React.useState(false);
+    const [isSaving, setIsSaving] = React.useState(false);
+    const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingMethod, setDeletingMethod] = React.useState<PaymentMethod | null>(null);
-
-    const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const form = useForm<PaymentMethodFormValues>({
         resolver: zodResolver(paymentMethodSchema(tValidation)),
@@ -103,201 +91,225 @@ export default function PaymentMethodsPage() {
 
     const loadMethods = React.useCallback(async () => {
         setIsRefreshing(true);
-        const fetchedMethods = await getPaymentMethods();
-        setMethods(fetchedMethods);
+        const fetched = await getPaymentMethods();
+        setMethods(fetched);
         setIsRefreshing(false);
     }, []);
 
-    React.useEffect(() => {
-        loadMethods();
-    }, [loadMethods]);
+    React.useEffect(() => { loadMethods(); }, [loadMethods]);
+
+    const handleRowSelection = (rows: PaymentMethod[]) => {
+        const method = rows[0] ?? null;
+        setSelectedMethod(method);
+        setIsEditing(false);
+        setSubmissionError(null);
+        if (method) form.reset(method);
+    };
 
     const handleCreate = () => {
-        setEditingMethod(null);
+        setSelectedMethod(null);
+        setRowSelection({});
+        setIsEditing(true);
+        setSubmissionError(null);
         form.reset({ name: '', code: '', is_cash_equivalent: false, is_active: true });
-        setSubmissionError(null);
-        setIsDialogOpen(true);
     };
 
-    const handleEdit = (method: PaymentMethod) => {
-        setEditingMethod(method);
-        form.reset(method);
-        setSubmissionError(null);
-        setIsDialogOpen(true);
+    const handleClose = () => {
+        setSelectedMethod(null);
+        setRowSelection({});
+        setIsEditing(false);
     };
 
-    const handleDelete = (method: PaymentMethod) => {
-        setDeletingMethod(method);
-        setIsDeleteDialogOpen(true);
+    const handleBack = () => {
+        if (isEditing && selectedMethod) {
+            setIsEditing(false);
+            form.reset(selectedMethod);
+        } else {
+            handleClose();
+        }
+    };
+
+    const onSubmit = async (values: PaymentMethodFormValues) => {
+        setSubmissionError(null);
+        setIsSaving(true);
+        try {
+            const saved = await upsertPaymentMethod(values);
+            toast({ title: selectedMethod ? t('toast.editSuccess') : t('toast.createSuccess') });
+            await loadMethods();
+            // Re-select updated method
+            const updatedId = values.id || (Array.isArray(saved) ? saved[0]?.id : saved?.id);
+            if (updatedId) {
+                const updated = methods.find(m => String(m.id) === String(updatedId));
+                if (updated) { setSelectedMethod(updated); form.reset(updated); }
+            }
+            setIsEditing(false);
+        } catch (error) {
+            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const confirmDelete = async () => {
         if (!deletingMethod) return;
         try {
             await deletePaymentMethod(deletingMethod.id);
-            toast({ title: t('toast.deleteSuccess'), description: t('toast.deleteDescription', { name: deletingMethod.name }) });
+            toast({ title: t('toast.deleteSuccess') });
             setIsDeleteDialogOpen(false);
             setDeletingMethod(null);
+            handleClose();
             loadMethods();
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('toast.errorTitle'),
-                description: error instanceof Error ? error.message : t('toast.deleteError'),
-            });
-        }
-    };
-
-    const onSubmit = async (values: PaymentMethodFormValues) => {
-        setSubmissionError(null);
-        try {
-            await upsertPaymentMethod(values);
-            toast({ title: editingMethod ? t('toast.editSuccess') : t('toast.createSuccess'), description: t('toast.saveDescription', { name: values.name }) });
-            setIsDialogOpen(false);
-            loadMethods();
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteError') });
         }
     };
 
     const columns: ColumnDef<PaymentMethod>[] = [
-        { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
         { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
         { accessorKey: 'code', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.code')} /> },
         {
-            accessorKey: 'is_cash_equivalent',
-            header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.isCashEquivalent')} />,
-            cell: ({ row }) => <Badge variant={row.original.is_cash_equivalent ? 'success' : 'outline'}>{row.original.is_cash_equivalent ? t('columns.yes') : t('columns.no')}</Badge>
-        },
-        {
             accessorKey: 'is_active',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
-            cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'destructive'}>{row.original.is_active ? t('columns.yes') : t('columns.no')}</Badge>
-        },
-        {
-            id: 'actions',
-            cell: ({ row }) => {
-                const method = row.original;
-                return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(method)}>{t('columns.edit')}</DropdownMenuItem>}
-                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(method)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                );
-            },
+            cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'outline'}>{row.original.is_active ? t('columns.yes') : t('columns.no')}</Badge>
         },
     ];
 
+    const isRightOpen = !!selectedMethod || isEditing;
+
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><CreditCard className="h-5 w-5" /></div>
+                    <div>
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                <DataTable
+                    columns={columns}
+                    data={methods}
+                    filterColumnId="name"
+                    filterPlaceholder={t('filterPlaceholder')}
+                    onCreate={canCreate ? handleCreate : undefined}
+                    onRefresh={loadMethods}
+                    isRefreshing={isRefreshing}
+                    enableSingleRowSelection
+                    rowSelection={rowSelection}
+                    setRowSelection={setRowSelection}
+                    onRowSelectionChange={handleRowSelection}
+                    isNarrow={isNarrow || !!selectedMethod}
+                    renderCard={(row: PaymentMethod, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
+                            title={row.name}
+                            subtitle={row.code}
+                            badge={<Badge variant={row.is_active ? 'success' : 'outline'} className="text-[10px]">{row.is_active ? t('columns.yes') : t('columns.no')}</Badge>}
+                            fields={[{ label: t('columns.isCashEquivalent'), value: row.is_cash_equivalent ? t('columns.yes') : t('columns.no') }]}
+                        />
+                    )}
+                />
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                        <div className="header-icon-circle flex-none"><CreditCard className="h-5 w-5" /></div>
+                        <CardTitle className="text-base lg:text-lg truncate">
+                            {isEditing && !selectedMethod ? t('dialog.createTitle') : (selectedMethod?.name ?? '')}
+                        </CardTitle>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-none">
+                        {selectedMethod && !isEditing && canUpdate && (
+                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">{t('columns.edit')}</span>
+                            </Button>
+                        )}
+                        {selectedMethod && !isEditing && canDelete && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMethod(selectedMethod); setIsDeleteDialogOpen(true); }}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                </div>
+                {selectedMethod && (
+                    <div className="mt-1 ml-10">
+                        <Badge variant={selectedMethod.is_active ? 'success' : 'outline'} className="text-[10px]">
+                            {selectedMethod.is_active ? t('columns.yes') : t('columns.no')}
+                        </Badge>
+                    </div>
+                )}
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex-1 overflow-auto p-4">
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        {submissionError && (
+                            <Alert variant="destructive">
+                                <AlertTriangle className="h-4 w-4" />
+                                <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                <AlertDescription>{submissionError}</AlertDescription>
+                            </Alert>
+                        )}
+                        <FormField control={form.control} name="name" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t('dialog.name')}</FormLabel>
+                                <FormControl><Input {...field} disabled={!isEditing} placeholder={t('dialog.namePlaceholder')} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="code" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>{t('dialog.code')}</FormLabel>
+                                <FormControl><Input {...field} disabled={!isEditing} placeholder={t('dialog.codePlaceholder')} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="is_cash_equivalent" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing} /></FormControl>
+                                <FormLabel className="font-normal">{t('dialog.isCashEquivalent')}</FormLabel>
+                            </FormItem>
+                        )} />
+                        <FormField control={form.control} name="is_active" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing} /></FormControl>
+                                <FormLabel className="font-normal">{t('dialog.isActive')}</FormLabel>
+                            </FormItem>
+                        )} />
+                        {isEditing && (
+                            <div className="flex gap-2 pt-2">
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); if (selectedMethod) form.reset(selectedMethod); else handleClose(); }} disabled={isSaving}>
+                                    {t('dialog.cancel')}
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {selectedMethod ? t('dialog.save') : t('dialog.create')}
+                                </Button>
+                            </div>
+                        )}
+                    </form>
+                </Form>
+            </CardContent>
+        </Card>
+    );
+
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                <CardHeader className="p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="header-icon-circle mt-0.5">
-                            <CreditCard className="h-5 w-5" />
-                        </div>
-                        <div className="flex flex-col">
-                            <CardTitle className="text-lg">{t('title')}</CardTitle>
-                            <CardDescription className="text-xs">{t('description')}</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                    <DataTable
-                        columns={columns}
-                        data={methods}
-                        filterColumnId="name"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={canCreate ? handleCreate : undefined}
-                        onRefresh={loadMethods}
-                        isRefreshing={isRefreshing}
-                    />
-                </CardContent>
-            </Card>
-
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingMethod ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
-                    </DialogHeader>
-                    <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-                            <DialogBody className="space-y-4 py-4 px-6">
-                                {submissionError && (
-                                    <Alert variant="destructive">
-                                        <AlertTriangle className="h-4 w-4" />
-                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                        <AlertDescription>{submissionError}</AlertDescription>
-                                    </Alert>
-                                )}
-                                <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('dialog.name')}</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder={t('dialog.namePlaceholder')} {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="code"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('dialog.code')}</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder={t('dialog.codePlaceholder')} {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="is_cash_equivalent"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                            <FormLabel>{t('dialog.isCashEquivalent')}</FormLabel>
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="is_active"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                            <FormLabel>{t('dialog.isActive')}</FormLabel>
-                                        </FormItem>
-                                    )}
-                                />
-                            </DialogBody>
-                            <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('dialog.cancel')}</Button>
-                                <Button type="submit">{editingMethod ? t('dialog.save') : t('dialog.create')}</Button>
-                            </DialogFooter>
-                        </form>
-                    </Form>
-                </DialogContent>
-            </Dialog>
+            <TwoPanelLayout
+                leftPanel={leftPanel}
+                rightPanel={rightPanel}
+                isRightPanelOpen={isRightOpen}
+                onBack={handleBack}
+                leftPanelDefaultSize={40}
+                rightPanelDefaultSize={60}
+            />
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

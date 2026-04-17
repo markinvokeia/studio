@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -23,7 +24,10 @@ import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isToday, parseISO } from 'date-fns';
-import { AlertTriangle, ArrowRight, Banknote, BookOpenCheck, Box, Coins, CreditCard, DollarSign, Info, Minus, Plus, Printer, RefreshCw, TrendingDown, TrendingUp, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Banknote, BookOpenCheck, Box, CheckCircle2, ChevronLeft, ChevronRight, Coins, CreditCard, DollarSign, FileText, Info, Minus, Plus, Printer, RefreshCw, Settings, TrendingDown, TrendingUp, Upload } from 'lucide-react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
+import { Badge } from '@/components/ui/badge';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -207,9 +211,9 @@ export default function CashierPage() {
     }
 
     if (activeSession) {
-        return (
-            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
-                {showClosingWizard ? (
+        if (showClosingWizard) {
+            return (
+                <div className="flex-1 flex flex-col min-h-0">
                     <CloseSessionWizard
                         currentStep={closeWizardStep}
                         setCurrentStep={setCloseWizardStep}
@@ -231,24 +235,27 @@ export default function CashierPage() {
                         setClosedSessionReport={setClosedSessionReport}
                         checkActiveSession={checkActiveSession}
                     />
-                ) : (
-                    <ActiveSessionDashboard
-                        session={activeSession}
-                        movements={sessionMovements}
-                        onCloseSession={() => setShowClosingWizard(true)}
-                        onViewAllCashPoints={() => {
-                            setActiveSession(null);
-                            fetchCashPointStatus();
-                        }}
-                    />
-                )}
+                </div>
+            );
+        }
+        return (
+            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+                <ActiveSessionDashboard
+                    session={activeSession}
+                    movements={sessionMovements}
+                    onCloseSession={() => setShowClosingWizard(true)}
+                    onViewAllCashPoints={() => {
+                        setActiveSession(null);
+                        fetchCashPointStatus();
+                    }}
+                />
             </div>
         );
     }
 
     if (showOpeningWizard) {
         return (
-            <div className="flex-1 overflow-y-auto pr-2 pb-4 min-h-0">
+            <div className="flex-1 flex flex-col min-h-0">
                 <OpenSessionWizard
                     currentStep={openWizardStep}
                     setCurrentStep={setOpenWizardStep}
@@ -385,6 +392,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
     const { toast } = useToast();
     const sessionCurrency = session.currency || 'UYU';
     const [isPrinting, setIsPrinting] = React.useState(false);
+    const isViewportNarrow = useViewportNarrow();
 
     const openingDetails = useMemo(() => {
         const amounts = (session as any).amounts || [];
@@ -544,48 +552,22 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{t('openSession.openingAmount')}</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            {renderAmount(openingDetails.totalUYU, 'UYU')}
-                            {renderAmount(openingDetails.totalUSD, 'USD')}
-                            <p className="text-xs text-muted-foreground">{formatDateTime(session.fechaApertura)}</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{t('activeSession.cashOnHand')}</CardTitle>
-                            <Banknote className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            {renderAmount(cashOnHand.UYU, 'UYU')}
-                            {renderAmount(cashOnHand.USD, 'USD')}
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{t('activeSession.totalIncome')}</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent>
-                            {renderAmount(totalIncome.UYU, 'UYU')}
-                            {renderAmount(totalIncome.USD, 'USD')}
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">{t('activeSession.totalOutcome')}</CardTitle>
-                            <TrendingDown className="h-4 w-4 text-red-500" />
-                        </CardHeader>
-                        <CardContent>
-                            {renderAmount(totalOutcome.UYU, 'UYU')}
-                            {renderAmount(totalOutcome.USD, 'USD')}
-                        </CardContent>
-                    </Card>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                        { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: [{ v: openingDetails.totalUYU, c: 'UYU' as const }, { v: openingDetails.totalUSD, c: 'USD' as const }] },
+                        { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: [{ v: cashOnHand.UYU, c: 'UYU' as const }, { v: cashOnHand.USD, c: 'USD' as const }] },
+                        { title: t('activeSession.totalIncome'), accentColor: '#10B981', amounts: [{ v: totalIncome.UYU, c: 'UYU' as const }, { v: totalIncome.USD, c: 'USD' as const }] },
+                        { title: t('activeSession.totalOutcome'), accentColor: '#F43F5E', amounts: [{ v: totalOutcome.UYU, c: 'UYU' as const }, { v: totalOutcome.USD, c: 'USD' as const }] },
+                    ].map(card => (
+                        <div key={card.title} className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+                            <div className="h-[3px] w-full" style={{ background: card.accentColor }} />
+                            <div className="px-3 py-2.5 flex flex-col gap-1">
+                                <span className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium truncate">{card.title}</span>
+                                {card.amounts.map(({ v, c }) => renderAmount(v, c))}
+                                {card.extra}
+                            </div>
+                        </div>
+                    ))}
                 </div>
                 <Tabs defaultValue="transactions">
                     <TabsList>
@@ -593,12 +575,38 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                         <TabsTrigger value="opening_details">{t('activeSession.openingDetails')}</TabsTrigger>
                     </TabsList>
                     <TabsContent value="transactions">
-                        <DataTable columns={movementColumns} data={allMovements} />
+                        <DataTable
+                            columns={movementColumns}
+                            data={allMovements}
+                            isNarrow={isViewportNarrow}
+                            renderCard={(mov: CajaMovimiento, _isSelected: boolean) => {
+                                const isExpense = mov.tipo === 'EGRESO';
+                                const dateStr = mov.fecha;
+                                const parsed = typeof dateStr === 'string' ? parseISO(dateStr.replace('Z', '')) : new Date(dateStr);
+                                const dateDisplay = isToday(parsed)
+                                    ? `${tColumns('today')} - ${format(parsed, 'HH:mm')}`
+                                    : format(parsed, 'dd/MM/yyyy HH:mm');
+                                const methodCode = normalizePaymentMethodCode(mov.metodoPago);
+                                return (
+                                    <DataCard isSelected={_isSelected}
+                                        accentColor={isExpense ? '#F43F5E' : '#10B981'}
+                                        fields={[
+                                            { label: tColumns('documentNumber'), value: mov.documentNumber || '-' },
+                                            { label: tColumns('description'), value: mov.descripcion || '-' },
+                                            { label: tColumns('amount'), value: <span className={cn(isExpense ? 'text-red-500' : 'text-green-500', 'font-semibold')}>{isExpense ? '-' : '+'}{mov.monto.toFixed(2)} {mov.currency}</span>, primary: true },
+                                            { label: tColumns('registeredUser'), value: mov.registeredUserName || '-' },
+                                            { label: tColumns('method'), value: tPaymentMethods(methodCode) || methodCode },
+                                            { label: tColumns('date'), value: dateDisplay },
+                                        ]}
+                                    />
+                                );
+                            }}
+                        />
                     </TabsContent>
                     <TabsContent value="opening_details">
                         {openingDetails.denominations ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Table>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                                <Table className="w-full">
                                     <TableHeader><TableRow><TableHead colSpan={3}>UYU</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {openingDetails.denominations.uyu && Object.entries(openingDetails.denominations.uyu).map(([den, qty]) => (
@@ -610,7 +618,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                                         ))}
                                     </TableBody>
                                 </Table>
-                                <Table>
+                                <Table className="w-full">
                                     <TableHeader><TableRow><TableHead colSpan={3}>USD</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {openingDetails.denominations.usd && Object.entries(openingDetails.denominations.usd).map(([den, qty]) => (
@@ -627,18 +635,33 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </TabsContent>
                 </Tabs>
             </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={onViewAllCashPoints}>{t('viewAllCashPoints')}</Button>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={handlePrintOpening} disabled={isPrinting}>
-                        {isPrinting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
-                        {t('activeSession.printOpening')}
-                    </Button>
-                    <Button className="w-full md:w-auto" onClick={onCloseSession}>
-                        {isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                </div>
+            <CardFooter className="flex gap-2">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" onClick={onViewAllCashPoints}>
+                                <Box className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{t('viewAllCashPoints')}</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button variant="outline" size="icon" onClick={handlePrintOpening} disabled={isPrinting}>
+                                {isPrinting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{t('activeSession.printOpening')}</p></TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button size="icon" onClick={onCloseSession}>
+                                <ArrowRight className="h-4 w-4" />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{isWizardOpen ? t('wizard.next') : t('wizard.startClosing')}</p></TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </CardFooter>
         </Card>
     );
@@ -693,148 +716,199 @@ function CloseSessionWizard({
     };
 
 
-    return (
-        <Card className="w-full">
-            <CardHeader>
-                <CardTitle>{t('wizard.title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <Tabs value={currentStep} className="w-full">
-                    <TabsList className="grid w-full grid-cols-6">
-                        <TabsTrigger value="REVIEW">{t('wizard.steps.review')}</TabsTrigger>
-                        <TabsTrigger value="COUNT_UYU" disabled={currentStep === 'REVIEW'}>{t('wizard.steps.countUYU')}</TabsTrigger>
-                        <TabsTrigger value="COUNT_USD" disabled={!['COUNT_USD', 'BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>{t('wizard.steps.countUSD')}</TabsTrigger>
-                        <TabsTrigger value="BANK_DEPOSIT" disabled={!['BANK_DEPOSIT', 'DECLARE', 'REPORT'].includes(currentStep)}>{t('wizard.steps.bankDeposit')}</TabsTrigger>
-                        <TabsTrigger value="DECLARE" disabled={!['DECLARE', 'REPORT'].includes(currentStep)}>{t('wizard.steps.declare')}</TabsTrigger>
-                        <TabsTrigger value="REPORT" disabled={currentStep !== 'REPORT'}>{t('wizard.steps.report')}</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="REVIEW" className="mt-4">
-                        <ActiveSessionDashboard
-                            session={activeSession}
-                            movements={sessionMovements}
-                            onCloseSession={handleNextStep}
-                            onViewAllCashPoints={onExitWizard}
-                            isWizardOpen={true}
-                        />
-                    </TabsContent>
-                    <TabsContent value="COUNT_UYU" className="mt-4">
-                        <CashCounter
-                            currency="UYU"
-                            denominations={denominationsUYU}
-                            coins={coinsUYU}
-                            quantities={uyuDenominations}
-                            onQuantitiesChange={setUyuDenominations}
-                            imageMap={UYU_IMAGES}
-                        />
-                    </TabsContent>
-                    <TabsContent value="COUNT_USD" className="mt-4">
-                        <CashCounter
-                            currency="USD"
-                            denominations={denominationsUSD}
-                            coins={coinsUSD}
-                            quantities={usdDenominations}
-                            onQuantitiesChange={setUsdDenominations}
-                            imageMap={USD_IMAGES}
-                        />
-                    </TabsContent>
-                    <TabsContent value="BANK_DEPOSIT" className="mt-4">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('bankDeposit.title')}</CardTitle>
-                                <CardDescription>{t('bankDeposit.description')}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <DenominationCounter
-                                        title={t('bankDeposit.countUYU')}
-                                        denominations={denominationsUYU}
-                                        coins={coinsUYU}
-                                        currency="UYU"
-                                        quantities={bankDepositUyuDenominations}
-                                        onQuantitiesChange={setBankDepositUyuDenominations}
-                                        imageMap={UYU_IMAGES}
-                                        availableDenominations={uyuDenominations}
-                                    />
-                                    <DenominationCounter
-                                        title={t('bankDeposit.countUSD')}
-                                        denominations={denominationsUSD}
-                                        coins={coinsUSD}
-                                        currency="USD"
-                                        quantities={bankDepositUsdDenominations}
-                                        onQuantitiesChange={setBankDepositUsdDenominations}
-                                        imageMap={USD_IMAGES}
-                                        availableDenominations={usdDenominations}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="files">{t('bankDeposit.attachFiles')}</Label>
-                                    <Label htmlFor="files" className="cursor-pointer block mt-2">
-                                        <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md bg-muted/10 hover:bg-muted/30 transition-colors">
-                                            <div className="flex flex-col items-center gap-2 text-muted-foreground text-sm">
-                                                <Upload className="h-6 w-6" />
-                                                <span>{t('bankDeposit.chooseFiles')}</span>
-                                            </div>
-                                        </div>
-                                        <Input id="files" type="file" multiple className="hidden" onChange={(e) => setBankDepositFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
-                                    </Label>
-                                    {bankDepositFiles.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-4">
-                                            {bankDepositFiles.map((file, index) => (
-                                                <div key={index} className="relative w-16 h-16">
-                                                    {file.type.startsWith('image/') ? (
-                                                        <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover rounded" />
-                                                    ) : (
-                                                        <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
-                                                            {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
-                                                        </div>
-                                                    )}
-                                                    <Button
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0"
-                                                        onClick={() => setBankDepositFiles(bankDepositFiles.filter((_, i) => i !== index))}
-                                                    >
-                                                        ×
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                    <TabsContent value="DECLARE">
-                        <DeclareCashup
-                            activeSession={activeSession}
-                            declaredUyu={uyuTotal}
-                            declaredUsd={usdTotal}
-                            uyuDenominations={uyuDenominations}
-                            usdDenominations={usdDenominations}
-                            bankDepositUyu={bankDepositUyuDenominations}
-                            bankDepositUsd={bankDepositUsdDenominations}
-                            bankDepositFiles={bankDepositFiles}
-                            checkActiveSession={checkActiveSession}
-                            onSessionClosed={(reportData) => {
-                                setClosedSessionReport(reportData);
-                                setCurrentStep('REPORT');
-                            }}
-                            onBack={handlePreviousStep}
-                        />
-                    </TabsContent>
-                    <TabsContent value="REPORT">
-                        <SessionReport reportData={closedSessionReport} onFinish={onExitWizard} />
-                    </TabsContent>
-                </Tabs>
+    const closeSteps: Array<{ id: string; label: string; icon: React.ElementType }> = [
+        { id: 'REVIEW', label: t('wizard.steps.review'), icon: BookOpenCheck },
+        { id: 'COUNT_UYU', label: t('wizard.steps.countUYU'), icon: Banknote },
+        { id: 'COUNT_USD', label: t('wizard.steps.countUSD'), icon: DollarSign },
+        { id: 'BANK_DEPOSIT', label: t('wizard.steps.bankDeposit'), icon: Upload },
+        { id: 'DECLARE', label: t('wizard.steps.declare'), icon: CheckCircle2 },
+        { id: 'REPORT', label: t('wizard.steps.report'), icon: FileText },
+    ];
+    const closeStepOrder = ['REVIEW', 'COUNT_UYU', 'COUNT_USD', 'BANK_DEPOSIT', 'DECLARE', 'REPORT'];
 
-                {currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT' && (
-                    <CardFooter className='justify-between mt-4'>
-                        <Button variant="outline" onClick={handlePreviousStep}>{t('wizard.back')}</Button>
-                        <Button onClick={handleNextStep}>{t('wizard.next')}</Button>
-                    </CardFooter>
+    return (
+        <div className="flex flex-col flex-1 min-h-0">
+            {/* Stepper header */}
+            <div className="flex-none px-4 pt-4 pb-3 border-b bg-card">
+                {/* Mobile: progress bar + current step label */}
+                <div className="sm:hidden flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-primary rounded-full transition-all duration-300"
+                                style={{ width: `${((closeStepOrder.indexOf(currentStep) + 1) / closeStepOrder.length) * 100}%` }}
+                            />
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                            {closeStepOrder.indexOf(currentStep) + 1}/{closeStepOrder.length}
+                        </span>
+                    </div>
+                    <p className="text-sm font-medium">{closeSteps.find(s => s.id === currentStep)?.label}</p>
+                </div>
+                {/* Desktop: step circles */}
+                <div className="hidden sm:flex items-center justify-center">
+                    {closeSteps.map((step, idx) => {
+                        const isActive = currentStep === step.id;
+                        const isPast = closeStepOrder.indexOf(currentStep) > idx;
+                        const StepIcon = step.icon;
+                        return (
+                            <React.Fragment key={step.id}>
+                                <div className="flex flex-col items-center gap-1">
+                                    <div className={cn(
+                                        "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
+                                        isActive ? "border-primary bg-primary text-primary-foreground"
+                                            : isPast ? "border-primary bg-primary/10 text-primary"
+                                            : "border-border bg-muted text-muted-foreground"
+                                    )}>
+                                        <StepIcon className="h-3.5 w-3.5" />
+                                    </div>
+                                    <span className={cn(
+                                        "text-[10px] whitespace-nowrap",
+                                        isActive ? "text-primary font-medium" : isPast ? "text-primary" : "text-muted-foreground"
+                                    )}>{step.label}</span>
+                                </div>
+                                {idx < closeSteps.length - 1 && (
+                                    <div className={cn("h-px w-6 mx-1 mb-5 shrink-0", isPast ? "bg-primary" : "bg-border")} />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
+            </div>
+            {/* Step content */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
+                {currentStep === 'REVIEW' && (
+                    <ActiveSessionDashboard
+                        session={activeSession}
+                        movements={sessionMovements}
+                        onCloseSession={handleNextStep}
+                        onViewAllCashPoints={onExitWizard}
+                        isWizardOpen={true}
+                    />
                 )}
-            </CardContent>
-        </Card>
+                {currentStep === 'COUNT_UYU' && (
+                    <CashCounter
+                        currency="UYU"
+                        denominations={denominationsUYU}
+                        coins={coinsUYU}
+                        quantities={uyuDenominations}
+                        onQuantitiesChange={setUyuDenominations}
+                        imageMap={UYU_IMAGES}
+                    />
+                )}
+                {currentStep === 'COUNT_USD' && (
+                    <CashCounter
+                        currency="USD"
+                        denominations={denominationsUSD}
+                        coins={coinsUSD}
+                        quantities={usdDenominations}
+                        onQuantitiesChange={setUsdDenominations}
+                        imageMap={USD_IMAGES}
+                    />
+                )}
+                {currentStep === 'BANK_DEPOSIT' && (
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="font-medium text-base">{t('bankDeposit.title')}</h3>
+                            <p className="text-sm text-muted-foreground mt-0.5">{t('bankDeposit.description')}</p>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <DenominationCounter
+                                title={t('bankDeposit.countUYU')}
+                                denominations={denominationsUYU}
+                                coins={coinsUYU}
+                                currency="UYU"
+                                quantities={bankDepositUyuDenominations}
+                                onQuantitiesChange={setBankDepositUyuDenominations}
+                                imageMap={UYU_IMAGES}
+                                availableDenominations={uyuDenominations}
+                            />
+                            <DenominationCounter
+                                title={t('bankDeposit.countUSD')}
+                                denominations={denominationsUSD}
+                                coins={coinsUSD}
+                                currency="USD"
+                                quantities={bankDepositUsdDenominations}
+                                onQuantitiesChange={setBankDepositUsdDenominations}
+                                imageMap={USD_IMAGES}
+                                availableDenominations={usdDenominations}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="files">{t('bankDeposit.attachFiles')}</Label>
+                            <Label htmlFor="files" className="cursor-pointer block mt-2">
+                                <div className="flex items-center justify-center w-full h-24 border-2 border-dashed rounded-md bg-muted/10 hover:bg-muted/30 transition-colors">
+                                    <div className="flex flex-col items-center gap-2 text-muted-foreground text-sm">
+                                        <Upload className="h-6 w-6" />
+                                        <span>{t('bankDeposit.chooseFiles')}</span>
+                                    </div>
+                                </div>
+                                <Input id="files" type="file" multiple className="hidden" onChange={(e) => setBankDepositFiles(prev => [...prev, ...Array.from(e.target.files || [])])} />
+                            </Label>
+                            {bankDepositFiles.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                    {bankDepositFiles.map((file, index) => (
+                                        <div key={index} className="relative w-16 h-16">
+                                            {file.type.startsWith('image/') ? (
+                                                <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover rounded" />
+                                            ) : (
+                                                <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                                                    {file.type.split('/')[1]?.toUpperCase() || 'FILE'}
+                                                </div>
+                                            )}
+                                            <Button
+                                                variant="destructive"
+                                                size="sm"
+                                                className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0"
+                                                onClick={() => setBankDepositFiles(bankDepositFiles.filter((_, i) => i !== index))}
+                                            >
+                                                ×
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+                {currentStep === 'DECLARE' && (
+                    <DeclareCashup
+                        activeSession={activeSession}
+                        declaredUyu={uyuTotal}
+                        declaredUsd={usdTotal}
+                        uyuDenominations={uyuDenominations}
+                        usdDenominations={usdDenominations}
+                        bankDepositUyu={bankDepositUyuDenominations}
+                        bankDepositUsd={bankDepositUsdDenominations}
+                        bankDepositFiles={bankDepositFiles}
+                        checkActiveSession={checkActiveSession}
+                        onSessionClosed={(reportData) => {
+                            setClosedSessionReport(reportData);
+                            setCurrentStep('REPORT');
+                        }}
+                        onBack={handlePreviousStep}
+                    />
+                )}
+                {currentStep === 'REPORT' && (
+                    <SessionReport reportData={closedSessionReport} onFinish={onExitWizard} />
+                )}
+            </div>
+            {/* Footer nav — always visible, skip REVIEW/DECLARE/REPORT (they manage their own actions) */}
+            {currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT' && (
+                <div className="flex-none px-4 py-3 border-t bg-card">
+                    <div className="flex gap-3">
+                        <Button variant="outline" onClick={handlePreviousStep} className="flex-1 sm:flex-none gap-1.5">
+                            <ChevronLeft className="h-4 w-4" />
+                            {t('wizard.back')}
+                        </Button>
+                        <Button onClick={handleNextStep} className="flex-1 sm:flex-none gap-1.5">
+                            {t('wizard.next')}
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -892,53 +966,53 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                 <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>{t('wizard.prefillZero')}</Button>
                 <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>{t('wizard.prefillLast')}</Button>
             </div>
-            <ScrollArea className="h-96">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
-                    {denominations.map(den => {
-                        const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
-                        return (
-                            <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
-                                <div className="w-[80px] h-[40px] relative">
-                                    {imageMap[den] ? (
-                                        <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
-                                    ) : (
-                                        <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
-                                    )}
-                                </div>
-                                <div className="flex items-center">
-                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
-                                    <Input
-                                        id={`den-${den}`}
-                                        type="number"
-                                        min="0"
-                                        max={availableDenominations ? availableDenominations[den] || 0 : undefined}
-                                        value={quantities[den] || ''}
-                                        onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                        className="w-16 text-center mx-1 h-8 text-base"
-                                        disabled={isDisabled}
-                                    />
-                                    <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
-                                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                {denominations.map(den => {
+                    const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
+                    return (
+                        <div key={den} className="flex items-center gap-3 w-full">
+                            <div className="w-[72px] h-[40px] relative shrink-0">
+                                {imageMap[den] ? (
+                                    <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-md object-contain" />
+                                ) : (
+                                    <div className="w-full h-full bg-muted rounded-md flex items-center justify-center text-xs text-muted-foreground">No Image</div>
+                                )}
                             </div>
-                        );
-                    })}
-                </div>
-                {coins.length > 0 && <div className="mt-6 border-t pt-4">
-                    <h4 className="font-medium text-md mb-2 flex items-center gap-2"><Coins /> Monedas</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4 p-1">
+                            <div className="flex items-center flex-1">
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                <Input
+                                    id={`den-${den}`}
+                                    type="number"
+                                    min="0"
+                                    max={availableDenominations ? availableDenominations[den] || 0 : undefined}
+                                    value={quantities[den] || ''}
+                                    onChange={(e) => handleQuantityChange(den, e.target.value)}
+                                    className="flex-1 text-center mx-1 h-8 text-base"
+                                    disabled={isDisabled}
+                                />
+                                <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            {coins.length > 0 && (
+                <div className="border-t pt-4">
+                    <h4 className="font-medium text-md mb-3 flex items-center gap-2"><Coins /> Monedas</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                         {coins.map(den => {
                             const isDisabled = availableDenominations ? (availableDenominations[den] || 0) <= 0 : false;
                             return (
-                                <div key={den} className="grid grid-cols-[80px_1fr] items-center gap-4">
-                                    <div className="w-[40px] h-[40px] relative">
+                                <div key={den} className="flex items-center gap-3 w-full">
+                                    <div className="w-[40px] h-[40px] relative shrink-0">
                                         {imageMap[den] ? (
                                             <Image src={imageMap[den]} alt={`${den} ${currency}`} layout="fill" className="rounded-full object-contain" />
                                         ) : (
                                             <div className="w-full h-full bg-muted rounded-full flex items-center justify-center text-xs text-muted-foreground">No Img</div>
                                         )}
                                     </div>
-                                    <div className="flex items-center">
-                                        <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
+                                    <div className="flex items-center flex-1">
+                                        <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) - 1))}><Minus className="h-4 w-4" /></Button>
                                         <Input
                                             id={`den-${den}`}
                                             type="number"
@@ -946,17 +1020,17 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
                                             max={availableDenominations ? availableDenominations[den] || 0 : undefined}
                                             value={quantities[den] || ''}
                                             onChange={(e) => handleQuantityChange(den, e.target.value)}
-                                            className="w-16 text-center mx-1 h-8 text-base"
+                                            className="flex-1 text-center mx-1 h-8 text-base"
                                             disabled={isDisabled}
                                         />
-                                        <Button type="button" variant="outline" size="icon" className="h-8 w-8" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
+                                        <Button type="button" variant="outline" size="icon" className="h-8 w-8 shrink-0" disabled={isDisabled} onClick={() => handleQuantityChange(den, String((quantities[den] || 0) + 1))}><Plus className="h-4 w-4" /></Button>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                </div>}
-            </ScrollArea>
+                </div>
+            )}
         </div>
     );
 };
@@ -972,23 +1046,19 @@ const CashCounter = ({ currency, denominations, coins, quantities, onQuantitiesC
 }) => {
     const t = useTranslations('CashierPage');
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('wizard.cashCountTitle', { currency })}</CardTitle>
-                <CardDescription>{t('wizard.cashCountDescription')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DenominationCounter
-                    title={currency === 'UYU' ? t('wizard.uyuCountTitle') : t('wizard.usdCountTitle')}
-                    denominations={denominations}
-                    coins={coins}
-                    currency={currency}
-                    quantities={quantities}
-                    onQuantitiesChange={onQuantitiesChange}
-                    imageMap={imageMap}
-                />
-            </CardContent>
-        </Card>
+        <div className="space-y-2">
+            <h3 className="font-medium text-base">{t('wizard.cashCountTitle', { currency })}</h3>
+            <p className="text-sm text-muted-foreground mb-3">{t('wizard.cashCountDescription')}</p>
+            <DenominationCounter
+                title={currency === 'UYU' ? t('wizard.uyuCountTitle') : t('wizard.usdCountTitle')}
+                denominations={denominations}
+                coins={coins}
+                currency={currency}
+                quantities={quantities}
+                onQuantitiesChange={onQuantitiesChange}
+                imageMap={imageMap}
+            />
+        </div>
     );
 };
 
@@ -1115,28 +1185,29 @@ const DeclareCashup = ({ activeSession, declaredUyu, declaredUsd, uyuDenominatio
     }
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('title')}</CardTitle>
-                <CardDescription>{t('description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-                {renderTotalsByCurrency('UYU')}
-                <hr className="my-6" />
-                {renderTotalsByCurrency('USD')}
-                <div className="space-y-2 pt-6">
-                    <Label htmlFor="notes">{t('notes')}</Label>
-                    <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
-                </div>
-            </CardContent>
-            <CardFooter className='justify-between mt-4'>
-                <Button variant="outline" onClick={onBack}>{t('wizard.back')}</Button>
-                <Button className="w-full md:w-auto" onClick={handleCloseSession}>
-                    {t('closeSessionButton')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+        <div className="space-y-6">
+            <div>
+                <h3 className="font-semibold text-base">{t('title')}</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">{t('description')}</p>
+            </div>
+            {renderTotalsByCurrency('UYU')}
+            <hr />
+            {renderTotalsByCurrency('USD')}
+            <div className="space-y-2">
+                <Label htmlFor="notes">{t('notes')}</Label>
+                <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
+                <Button variant="outline" onClick={onBack} className="flex-1 sm:flex-none gap-1.5">
+                    <ChevronLeft className="h-4 w-4" />
+                    {t('wizard.back')}
                 </Button>
-            </CardFooter>
-        </Card>
+                <Button onClick={handleCloseSession} className="flex-1 sm:flex-none gap-1.5">
+                    {t('closeSessionButton')}
+                    <ArrowRight className="h-4 w-4" />
+                </Button>
+            </div>
+        </div>
     );
 };
 
@@ -1170,13 +1241,11 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
 
     if (!reportDetails || !session || !movements) {
         return (
-            <Card>
-                <CardHeader><CardTitle>Session Report</CardTitle></CardHeader>
-                <CardContent>
-                    <p>No report data available.</p>
-                    <Button onClick={onFinish} className="mt-4">Return to Cashier</Button>
-                </CardContent>
-            </Card>
+            <div className="space-y-4">
+                <h3 className="font-semibold">Session Report</h3>
+                <p>No report data available.</p>
+                <Button onClick={onFinish} className="mt-4">Return to Cashier</Button>
+            </div>
         );
     }
 
@@ -1217,31 +1286,29 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('sessionClosedTitle', { id: session.id })}</CardTitle>
-                <CardDescription>
+        <div className="space-y-6">
+            <div>
+                <h3 className="font-semibold text-base">{t('sessionClosedTitle', { id: session.id })}</h3>
+                <p className="text-sm text-muted-foreground mt-0.5">
                     {t('sessionClosedDescription', { user: session.user_name || 'N/A', location: session.cash_point_name || 'N/A' })}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {renderReportSection('UYU')}
-                    {renderReportSection('USD')}
-                </div>
-                <div className="mt-4">
-                    <p><strong>{t('closingTime')}</strong> {formatDateTime(session.closed_at)}</p>
-                    {session.closing_notes && <p><strong>{t('notes')}</strong> {session.closing_notes}</p>}
-                </div>
-            </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={handlePrintClose} disabled={isPrinting}>
-                    {isPrinting ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
+                </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {renderReportSection('UYU')}
+                {renderReportSection('USD')}
+            </div>
+            <div>
+                <p><strong>{t('closingTime')}</strong> {formatDateTime(session.closed_at)}</p>
+                {session.closing_notes && <p><strong>{t('notes')}</strong> {session.closing_notes}</p>}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
+                <Button variant="outline" onClick={handlePrintClose} disabled={isPrinting} className="flex-1 sm:flex-none gap-1.5">
+                    {isPrinting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                     {t('printClosing')}
                 </Button>
-                <Button onClick={onFinish}>{t('finishReturn')}</Button>
-            </CardFooter>
-        </Card>
+                <Button onClick={onFinish} className="flex-1 sm:flex-none">{t('finishReturn')}</Button>
+            </div>
+        </div>
     );
 };
 
@@ -1559,15 +1626,65 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
         )
     };
 
+    const openSteps: Array<{ id: OpenSessionStep; label: string; icon: React.ElementType }> = [
+        { id: 'CONFIG', label: t('wizard.steps.config'), icon: Settings },
+        { id: 'COUNT_UYU', label: t('wizard.steps.countUYU'), icon: Banknote },
+        { id: 'COUNT_USD', label: t('wizard.steps.countUSD'), icon: DollarSign },
+        { id: 'CONFIRM', label: t('wizard.steps.confirm'), icon: CheckCircle2 },
+    ];
+    const openStepOrder: OpenSessionStep[] = ['CONFIG', 'COUNT_UYU', 'COUNT_USD', 'CONFIRM'];
+
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('openSession.wizardTitle')}: <span className="font-bold">{stepTitles[currentStep]}</span></CardTitle>
-                <CardDescription>
-                    Paso {Object.keys(stepComponents).indexOf(currentStep) + 1} de {Object.keys(stepComponents).length}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+        <div className="flex flex-col flex-1 min-h-0">
+            {/* Stepper header */}
+            <div className="flex-none px-4 pt-4 pb-3 border-b bg-card">
+                {/* Mobile: progress bar + current step label */}
+                <div className="sm:hidden flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-primary rounded-full transition-all duration-300"
+                                style={{ width: `${((openStepOrder.indexOf(currentStep) + 1) / openStepOrder.length) * 100}%` }}
+                            />
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                            {openStepOrder.indexOf(currentStep) + 1}/{openStepOrder.length}
+                        </span>
+                    </div>
+                    <p className="text-sm font-medium">{openSteps.find(s => s.id === currentStep)?.label}</p>
+                </div>
+                {/* Desktop: step circles */}
+                <div className="hidden sm:flex items-center justify-center">
+                    {openSteps.map((step, idx) => {
+                        const isActive = currentStep === step.id;
+                        const isPast = openStepOrder.indexOf(currentStep) > idx;
+                        const StepIcon = step.icon;
+                        return (
+                            <React.Fragment key={step.id}>
+                                <div className="flex flex-col items-center gap-1">
+                                    <div className={cn(
+                                        "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
+                                        isActive ? "border-primary bg-primary text-primary-foreground"
+                                            : isPast ? "border-primary bg-primary/10 text-primary"
+                                            : "border-border bg-muted text-muted-foreground"
+                                    )}>
+                                        <StepIcon className="h-3.5 w-3.5" />
+                                    </div>
+                                    <span className={cn(
+                                        "text-[10px] whitespace-nowrap",
+                                        isActive ? "text-primary font-medium" : isPast ? "text-primary" : "text-muted-foreground"
+                                    )}>{step.label}</span>
+                                </div>
+                                {idx < openSteps.length - 1 && (
+                                    <div className={cn("h-px w-6 mx-1 mb-5 shrink-0", isPast ? "bg-primary" : "bg-border")} />
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
+                </div>
+            </div>
+            {/* Step content */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
                 {submissionError && (
                     <Alert variant="destructive" className="mb-4">
                         <AlertTriangle className="h-4 w-4" />
@@ -1576,13 +1693,24 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                     </Alert>
                 )}
                 {stepComponents[currentStep]}
-            </CardContent>
-            <CardFooter className="justify-between">
-                <Button variant="outline" onClick={handlePreviousStep} disabled={isSubmitting}>{t('wizard.back')}</Button>
-                <Button onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep} disabled={isSubmitting || exchangeRateStatus === 'loading'}>
-                    {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : t('wizard.next'))}
-                </Button>
-            </CardFooter>
-        </Card>
+            </div>
+            {/* Footer nav — always visible */}
+            <div className="flex-none px-4 py-3 border-t bg-card">
+                <div className="flex gap-3">
+                    <Button variant="outline" onClick={handlePreviousStep} disabled={isSubmitting} className="flex-1 sm:flex-none gap-1.5">
+                        <ChevronLeft className="h-4 w-4" />
+                        {t('wizard.back')}
+                    </Button>
+                    <Button
+                        onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep}
+                        disabled={isSubmitting || exchangeRateStatus === 'loading'}
+                        className="flex-1 sm:flex-none gap-1.5"
+                    >
+                        {isSubmitting ? 'Abriendo...' : (currentStep === 'CONFIRM' ? t('confirmation.confirmButton') : t('wizard.next'))}
+                        {currentStep === 'CONFIRM' ? <CheckCircle2 className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                </div>
+            </div>
+        </div>
     );
 }

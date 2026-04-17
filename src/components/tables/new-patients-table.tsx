@@ -17,6 +17,8 @@ import { cn } from '@/lib/utils';
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { UserPlusIcon } from '../icons/user-plus-icon';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 
 const getColumns = (t: (key: string) => string): ColumnDef<User>[] => [
   {
@@ -59,6 +61,7 @@ interface NewPatientsTableProps {
   columnFilters?: ColumnFiltersState;
   onColumnFiltersChange?: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   className?: string;
+  onRowClick?: (patient: User) => void;
 }
 
 export function NewPatientsTable({
@@ -71,9 +74,11 @@ export function NewPatientsTable({
   columnFilters,
   onColumnFiltersChange,
   className,
+  onRowClick,
 }: NewPatientsTableProps) {
   const t = useTranslations();
   const columns = React.useMemo(() => getColumns(t), [t]);
+  const isNarrow = useViewportNarrow();
 
   return (
     <Card className={cn("h-full flex-1 flex flex-col min-h-0", className)}>
@@ -102,6 +107,16 @@ export function NewPatientsTable({
           columnFilters={columnFilters}
           onColumnFiltersChange={onColumnFiltersChange}
           manualPagination={true}
+          isNarrow={isNarrow}
+          onRowClick={onRowClick}
+          renderCard={(patient: User, _isSelected: boolean) => (
+            <DataCard isSelected={_isSelected}
+              title={patient.name}
+              subtitle={patient.email || patient.phone_number || patient.identity_document || ''}
+              badge={<Badge variant={patient.is_active ? 'default' : 'outline'}>{patient.is_active ? t('UserColumns.active') : t('UserColumns.inactive')}</Badge>}
+              showArrow={!!onRowClick}
+            />
+          )}
         />
       </CardContent>
     </Card>

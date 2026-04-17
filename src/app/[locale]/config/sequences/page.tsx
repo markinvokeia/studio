@@ -2,9 +2,12 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { DatePickerInput } from '@/components/ui/date-picker';
@@ -12,7 +15,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { handleApiErrorEnhanced } from '@/lib/error-utils';
@@ -20,12 +25,13 @@ import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/seque
 import { Sequence } from '@/lib/types';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Check, Filter, List, PlusCircle, RefreshCw, Search, X } from 'lucide-react';
+import { Check, Filter, List, Pencil, PlusCircle, RefreshCw, Search, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { SequencesColumnsWrapper } from './columns';
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 
 const sequenceFormSchema = (t: (key: string) => string) => z.object({
   id: z.number().optional(),
@@ -164,6 +170,7 @@ export default function SequencesPage() {
   const t = useTranslations('SequencesPage');
   const tValidation = useTranslations('SequencesPage.validation');
   const { toast } = useToast();
+  const isNarrow = useViewportNarrow();
   const [sequences, setSequences] = React.useState<Sequence[]>([]);
   const [total, setTotal] = React.useState(0);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -187,6 +194,9 @@ export default function SequencesPage() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [deletingSequence, setDeletingSequence] = React.useState<Sequence | null>(null);
+
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [selectedSequence, setSelectedSequence] = React.useState<Sequence | null>(null);
 
   const form = useForm<SequenceFormValues>({
     resolver: zodResolver(sequenceFormSchema(tValidation)),
@@ -251,6 +261,15 @@ export default function SequencesPage() {
     setIsDeleteDialogOpen(true);
   };
 
+  const handleRowSelection = (rows: Sequence[]) => {
+    setSelectedSequence(rows[0] ?? null);
+  };
+
+  const handleBack = () => {
+    setSelectedSequence(null);
+    setRowSelection({});
+  };
+
   const confirmDelete = async () => {
     if (!deletingSequence) return;
     try {
@@ -261,6 +280,10 @@ export default function SequencesPage() {
       });
       setIsDeleteDialogOpen(false);
       setDeletingSequence(null);
+      if (selectedSequence?.id === deletingSequence.id) {
+        setSelectedSequence(null);
+        setRowSelection({});
+      }
       loadSequences();
     } catch (error) {
       toast({
@@ -300,26 +323,37 @@ export default function SequencesPage() {
   const pattern = form.watch('pattern');
   const preview = pattern && documentType ? previewPattern(pattern, documentType) : '';
 
-  const sequencesColumns = SequencesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+  const inlineColumns: ColumnDef<Sequence>[] = React.useMemo(() => [
+    { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
+    { accessorKey: 'name', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.name')} /> },
+    { accessorKey: 'document_type', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.documentType')} /> },
+    { accessorKey: 'pattern', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.pattern')} /> },
+    { accessorKey: 'current_counter', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.currentCounter')} /> },
+    { accessorKey: 'reset_period', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.resetPeriod')} /> },
+    {
+      accessorKey: 'is_active',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.isActive')} />,
+      cell: ({ row }) => <Badge variant={row.original.is_active ? 'success' : 'secondary'}>{row.original.is_active ? 'Activo' : 'Inactivo'}</Badge>,
+    },
+  ], [t]);
 
-  return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
-        <CardHeader className="flex-none p-4">
-          <div className="flex items-start gap-3">
-            <div className="header-icon-circle mt-0.5">
-              <List className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col text-left">
-              <CardTitle className="text-lg">{t('title')}</CardTitle>
-              <CardDescription className="text-xs">{t('description')}</CardDescription>
-            </div>
+  const leftPanel = (
+    <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+      <CardHeader className="flex-none p-4">
+        <div className="flex items-start gap-3">
+          <div className="header-icon-circle mt-0.5">
+            <List className="h-5 w-5" />
           </div>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-          <DataTable
-            columns={sequencesColumns}
-            data={sequences}
+          <div className="flex flex-col text-left">
+            <CardTitle className="text-lg">{t('title')}</CardTitle>
+            <CardDescription className="text-xs">{t('description')}</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+        <DataTable
+          columns={inlineColumns}
+          data={sequences}
             onCreate={handleCreate}
             onRefresh={loadSequences}
             isRefreshing={isRefreshing}
@@ -440,9 +474,100 @@ export default function SequencesPage() {
               reset_period: t('columns.resetPeriod'),
               is_active: t('columns.isActive'),
             }}
+            isNarrow={isNarrow || !!selectedSequence}
+            renderCard={(row: Sequence, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
+                title={row.name}
+                subtitle={row.pattern}
+                badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.document_type}</span>}
+                showArrow
+              />
+            )}
+            enableSingleRowSelection
+            rowSelection={rowSelection}
+            setRowSelection={setRowSelection}
+            onRowSelectionChange={handleRowSelection}
+            columnVisibility={{ id: false }}
           />
         </CardContent>
       </Card>
+  );
+
+  const rightPanel = selectedSequence ? (
+    <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+      <CardHeader className="flex-none p-4 pb-2 space-y-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="header-icon-circle flex-none"><List className="h-5 w-5" /></div>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base lg:text-lg truncate">{selectedSequence.name}</CardTitle>
+            <p className="text-xs text-muted-foreground truncate">{selectedSequence.document_type}</p>
+          </div>
+          <div className="flex gap-1 flex-none">
+            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedSequence)}>
+              <Pencil className="h-4 w-4 mr-1" />Editar
+            </Button>
+            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedSequence)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="flex-1 overflow-auto p-4">
+        <dl className="space-y-3 text-sm">
+          <div>
+            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.name')}</dt>
+            <dd className="text-foreground">{selectedSequence.name || '-'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.documentType')}</dt>
+            <dd><Badge variant="outline">{selectedSequence.document_type}</Badge></dd>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.pattern')}</dt>
+            <dd><code className="text-xs bg-muted px-2 py-1 rounded font-mono">{selectedSequence.pattern || '-'}</code></dd>
+          </div>
+          {selectedSequence.preview_example && (
+            <div>
+              <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('createDialog.previewExample')}</dt>
+              <dd><code className="text-xs bg-muted px-2 py-1 rounded font-mono font-bold">{selectedSequence.preview_example}</code></dd>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.currentCounter')}</dt>
+              <dd className="text-foreground">{selectedSequence.current_counter}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.resetPeriod')}</dt>
+              <dd className="text-foreground">{selectedSequence.reset_period}</dd>
+            </div>
+          </div>
+          <div>
+            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.isActive')}</dt>
+            <dd><Badge variant={selectedSequence.is_active ? 'success' : 'secondary'}>{selectedSequence.is_active ? 'Activo' : 'Inactivo'}</Badge></dd>
+          </div>
+          {selectedSequence.created_at && (
+            <div>
+              <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Creado</dt>
+              <dd className="text-foreground text-xs">{selectedSequence.created_at}</dd>
+            </div>
+          )}
+        </dl>
+      </CardContent>
+    </Card>
+  ) : <div />;
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <TwoPanelLayout
+        leftPanel={leftPanel}
+        rightPanel={rightPanel}
+        isRightPanelOpen={!!selectedSequence}
+        onBack={handleBack}
+        leftPanelDefaultSize={50}
+        rightPanelDefaultSize={50}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">

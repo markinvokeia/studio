@@ -1,7 +1,9 @@
 
 'use client';
 
-import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,6 +39,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { DoctorsColumnsWrapper } from './columns';
+import { useDeepLink } from '@/hooks/use-deep-link';
 
 
 const doctorFormSchema = (t: (key: string) => string) => z.object({
@@ -150,6 +153,85 @@ async function getRolesForUser(userId: string): Promise<UserRole[]> {
   }
 }
 
+function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange, onCreate, onRefresh, isRefreshing, rowSelection, setRowSelection, userCount, pagination, setPagination, columnFilters, setColumnFilters, filtersOptionList, handleClearFilters, t }: {
+  columns: any[]; users: any[]; selectedUser: any;
+  onRowSelectionChange: (rows: any[]) => void; onCreate: () => void; onRefresh: () => void; isRefreshing: boolean;
+  rowSelection: RowSelectionState; setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  userCount: number; pagination: PaginationState; setPagination: React.Dispatch<React.SetStateAction<PaginationState>>;
+  columnFilters: ColumnFiltersState; setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  filtersOptionList: any[]; handleClearFilters: () => void; t: (k: string) => string;
+}) {
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const isViewportNarrow = useViewportNarrow();
+  const isNarrow = !!selectedUser || panelNarrow || isViewportNarrow;
+  return (
+    <DataTable
+      columns={columns}
+      data={users}
+      filterColumnId="email"
+      filterPlaceholder={t('UsersPage.filterPlaceholder')}
+      onRowSelectionChange={onRowSelectionChange}
+      enableSingleRowSelection={true}
+      onCreate={onCreate}
+      onRefresh={onRefresh}
+      isRefreshing={isRefreshing}
+      rowSelection={rowSelection}
+      setRowSelection={setRowSelection}
+      pageCount={Math.ceil(userCount / pagination.pageSize)}
+      pagination={pagination}
+      onPaginationChange={setPagination}
+      manualPagination={true}
+      columnFilters={columnFilters}
+      onColumnFiltersChange={setColumnFilters}
+      isNarrow={isNarrow}
+      renderCard={(row: any, _isSelected: boolean) => (
+        <DataCard isSelected={_isSelected}
+          title={row.name || ''}
+          subtitle={row.email || row.phone_number || ''}
+          avatar={row.name ? row.name.slice(0, 2).toUpperCase() : '?'}
+          showArrow
+          onClick={() => onRowSelectionChange([row])}
+        />
+      )}
+      customToolbar={(table: any) => (
+        <DataTableAdvancedToolbar
+          table={table}
+          filterPlaceholder={t('UsersPage.filterPlaceholder')}
+          searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
+          onSearchChange={(value: string) => {
+            setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+            setColumnFilters((prev) => {
+              const newFilters = prev.filter((f) => f.id !== 'email');
+              if (value) newFilters.push({ id: 'email', value });
+              return newFilters;
+            });
+          }}
+          filters={filtersOptionList}
+          onClearFilters={handleClearFilters}
+          onCreate={onCreate}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
+          extraButtons={null}
+          columnTranslations={{
+            name: t('DoctorsPage.DoctorColumns.name'),
+            email: t('DoctorsPage.DoctorColumns.email'),
+            identity_document: t('DoctorsPage.DoctorColumns.identity_document'),
+            phone_number: t('DoctorsPage.DoctorColumns.phone'),
+            is_active: t('DoctorsPage.DoctorColumns.status'),
+          }}
+        />
+      )}
+      columnTranslations={{
+        name: t('DoctorsPage.DoctorColumns.name'),
+        email: t('DoctorsPage.DoctorColumns.email'),
+        identity_document: t('DoctorsPage.DoctorColumns.identity_document'),
+        phone_number: t('DoctorsPage.DoctorColumns.phone'),
+        is_active: t('DoctorsPage.DoctorColumns.status'),
+      }}
+    />
+  );
+}
+
 export default function DoctorsPage() {
   const t = useTranslations();
 
@@ -157,9 +239,10 @@ export default function DoctorsPage() {
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
-  const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+  const [detailError, setDetailError] = React.useState<string | null>(null);
+  const [isSavingDetail, setIsSavingDetail] = React.useState(false);
 
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -172,6 +255,18 @@ export default function DoctorsPage() {
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
   const form = useForm<DoctorFormValues>({
+    resolver: zodResolver(doctorFormSchema(t)),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      identity_document: '',
+      is_active: true,
+      color: '',
+    },
+  });
+
+  const detailForm = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema(t)),
     defaultValues: {
       name: '',
@@ -223,7 +318,6 @@ export default function DoctorsPage() {
   };
 
   const handleCreate = () => {
-    setEditingUser(null);
     form.reset({
       name: '',
       email: '',
@@ -236,29 +330,26 @@ export default function DoctorsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    form.reset({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone_number,
-      identity_document: user.identity_document || '',
-      is_active: user.is_active,
-      color: user.color || '',
-    });
-    setSubmissionError(null);
-    setIsDialogOpen(true);
-  };
-
   const userColumns = DoctorsColumnsWrapper({
     onToggleActivate: handleToggleActivate,
-    onEdit: handleEdit,
+    onEdit: () => {},
   });
 
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedUser(user);
+    if (user) {
+      detailForm.reset({
+        id: user.id,
+        name: user.name,
+        email: user.email || '',
+        phone: user.phone_number || '',
+        identity_document: user.identity_document || '',
+        is_active: user.is_active,
+        color: user.color || '',
+      });
+      setDetailError(null);
+    }
   };
 
   const handleCloseDetails = () => {
@@ -281,17 +372,44 @@ export default function DoctorsPage() {
     setColumnFilters([]);
   };
 
+  const onDetailSubmit = async (data: DoctorFormValues) => {
+    setDetailError(null);
+    detailForm.clearErrors();
+    setIsSavingDetail(true);
+    try {
+      await upsertUser(data);
+      toast({
+        title: t('DoctorsPage.createDialog.editSuccessTitle'),
+        description: t('DoctorsPage.createDialog.editSuccessDescription'),
+      });
+      const updated: User = {
+        ...selectedUser!,
+        name: data.name,
+        email: data.email || '',
+        phone_number: data.phone || '',
+        identity_document: data.identity_document || '',
+        is_active: data.is_active,
+        color: data.color || '',
+      };
+      setSelectedUser(updated);
+      setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+    } catch (error: any) {
+      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
+      setDetailError(errorData?.message || (error instanceof Error ? error.message : t('DoctorsPage.createDialog.validation.genericError')));
+    } finally {
+      setIsSavingDetail(false);
+    }
+  };
+
   const onSubmit = async (data: DoctorFormValues) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
       await upsertUser(data);
-      const isEditing = !!editingUser;
-
       toast({
-        title: isEditing ? t('DoctorsPage.createDialog.editSuccessTitle') : t('DoctorsPage.createDialog.createSuccessTitle'),
-        description: isEditing ? t('DoctorsPage.createDialog.editSuccessDescription') : t('DoctorsPage.createDialog.createSuccessDescription'),
+        title: t('DoctorsPage.createDialog.createSuccessTitle'),
+        description: t('DoctorsPage.createDialog.createSuccessDescription'),
       });
       setIsDialogOpen(false);
       loadUsers();
@@ -324,10 +442,32 @@ export default function DoctorsPage() {
     }
   };
 
+  const [activeTab, setActiveTab] = React.useState('details');
+
+  useDeepLink<User>({
+    tabMap: {
+      'Detalles': 'details',
+      'Servicios': 'services',
+      'Mensajes': 'messages',
+      'Historial': 'logs',
+    },
+    onFilter: (v) => {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      setColumnFilters([{ id: 'email', value: v }]);
+    },
+    items: users,
+    isLoading: isRefreshing,
+    onAutoSelect: (user) => handleRowSelectionChange([user]),
+    setRowSelection,
+    onTabChange: (id) => setActiveTab(id),
+    actionMap: { 'Crear': () => handleCreate() },
+  });
+
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <TwoPanelLayout
         isRightPanelOpen={!!selectedUser}
+        onBack={handleCloseDetails}
         leftPanel={
           <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4">
@@ -341,62 +481,25 @@ export default function DoctorsPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-6 bg-card">
-              <DataTable
+            <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 bg-card">
+              <DoctorsTableNarrow
                 columns={userColumns}
-                data={users}
-                filterColumnId="email"
-                filterPlaceholder={t('UsersPage.filterPlaceholder')}
+                users={users}
+                selectedUser={selectedUser}
                 onRowSelectionChange={handleRowSelectionChange}
-                enableSingleRowSelection={true}
                 onCreate={handleCreate}
                 onRefresh={loadUsers}
                 isRefreshing={isRefreshing}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
-                pageCount={Math.ceil(userCount / pagination.pageSize)}
+                userCount={userCount}
                 pagination={pagination}
-                onPaginationChange={setPagination}
-                manualPagination={true}
+                setPagination={setPagination}
                 columnFilters={columnFilters}
-                onColumnFiltersChange={setColumnFilters}
-                customToolbar={(table) => (
-                  <DataTableAdvancedToolbar
-                    table={table}
-                    filterPlaceholder={t('UsersPage.filterPlaceholder')}
-                    searchQuery={(columnFilters.find(f => f.id === 'email')?.value as string) || ''}
-                    onSearchChange={(value) => {
-                      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
-                      setColumnFilters((prev) => {
-                        const newFilters = prev.filter((f) => f.id !== 'email');
-                        if (value) {
-                          newFilters.push({ id: 'email', value });
-                        }
-                        return newFilters;
-                      });
-                    }}
-                    filters={filtersOptionList}
-                    onClearFilters={handleClearFilters}
-                    onCreate={handleCreate}
-                    onRefresh={loadUsers}
-                    isRefreshing={isRefreshing}
-                    extraButtons={null}
-                    columnTranslations={{
-                      name: t('DoctorsPage.DoctorColumns.name'),
-                      email: t('DoctorsPage.DoctorColumns.email'),
-                      identity_document: t('DoctorsPage.DoctorColumns.identity_document'),
-                      phone_number: t('DoctorsPage.DoctorColumns.phone'),
-                      is_active: t('DoctorsPage.DoctorColumns.status'),
-                    }}
-                  />
-                )}
-                columnTranslations={{
-                  name: t('DoctorsPage.DoctorColumns.name'),
-                  email: t('DoctorsPage.DoctorColumns.email'),
-                  identity_document: t('DoctorsPage.DoctorColumns.identity_document'),
-                  phone_number: t('DoctorsPage.DoctorColumns.phone'),
-                  is_active: t('DoctorsPage.DoctorColumns.status'),
-                }}
+                setColumnFilters={setColumnFilters}
+                filtersOptionList={filtersOptionList}
+                handleClearFilters={handleClearFilters}
+                t={t}
               />
             </CardContent>
           </Card>
@@ -415,14 +518,61 @@ export default function DoctorsPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-auto">
-                <Tabs defaultValue="services" className="w-full h-full flex flex-col">
+              <CardContent className="flex-1 overflow-auto p-4 pt-0">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                   <TabsList className="h-auto items-center justify-start flex-wrap flex-none">
+                    <TabsTrigger value="details">{t('DoctorsPage.tabs.details')}</TabsTrigger>
                     <TabsTrigger value="services">{t('UsersPage.tabs.services')}</TabsTrigger>
                     <TabsTrigger value="messages">{t('UsersPage.tabs.messages')}</TabsTrigger>
                     <TabsTrigger value="logs">{t('UsersPage.tabs.logs')}</TabsTrigger>
                   </TabsList>
                   <div className="flex-1 overflow-auto mt-4">
+                    <TabsContent value="details" className="m-0">
+                      <Form {...detailForm}>
+                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                          {detailError && (
+                            <Alert variant="destructive">
+                              <AlertTriangle className="h-4 w-4" />
+                              <AlertTitle>{t('DoctorsPage.createDialog.validation.errorTitle')}</AlertTitle>
+                              <AlertDescription>{detailError}</AlertDescription>
+                            </Alert>
+                          )}
+                          <FormField control={detailForm.control} name="name" render={({ field }) => (
+                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.name')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.namePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                          <FormField control={detailForm.control} name="email" render={({ field }) => (
+                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.email')}</FormLabel><FormControl><Input type="email" placeholder={t('DoctorsPage.createDialog.emailPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                          <FormField control={detailForm.control} name="phone" render={({ field }) => (
+                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.phone')}</FormLabel><FormControl>
+                              <PhoneInput {...field} defaultCountry="UY" placeholder={t('DoctorsPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                            </FormControl><FormMessage /></FormItem>
+                          )} />
+                          <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
+                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('DoctorsPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                          )} />
+                          <FormField control={detailForm.control} name="color" render={({ field }) => (
+                            <FormItem><FormLabel>{t('DoctorsPage.createDialog.color')}</FormLabel><FormControl>
+                              <div className="flex items-center gap-2">
+                                <Input type="color" className="p-1 h-10 w-14" {...field} />
+                                <Input placeholder="#FFFFFF" {...field} />
+                              </div>
+                            </FormControl><FormMessage /></FormItem>
+                          )} />
+                          <FormField control={detailForm.control} name="is_active" render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                              <FormLabel>{t('DoctorsPage.createDialog.isActive')}</FormLabel>
+                            </FormItem>
+                          )} />
+                          <div className="flex gap-2 pt-2">
+                            <Button type="submit" disabled={isSavingDetail}>
+                              {isSavingDetail ? t('DoctorsPage.createDialog.editSave') + '...' : t('DoctorsPage.createDialog.editSave')}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </TabsContent>
                     <TabsContent value="services" className="m-0">
                       <UserServices userId={selectedUser.id} isSalesUser={selectedUser.is_sales !== false} />
                     </TabsContent>
@@ -443,8 +593,8 @@ export default function DoctorsPage() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingUser ? t('DoctorsPage.createDialog.editTitle') : t('DoctorsPage.createDialog.createTitle')}</DialogTitle>
-            <DialogDescription>{editingUser ? t('DoctorsPage.createDialog.editDescription') : t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
+            <DialogTitle>{t('DoctorsPage.createDialog.createTitle')}</DialogTitle>
+            <DialogDescription>{t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
@@ -544,7 +694,7 @@ export default function DoctorsPage() {
                 />
               </DialogBody>
               <DialogFooter>
-                <Button type="submit">{editingUser ? t('DoctorsPage.createDialog.editSave') : t('DoctorsPage.createDialog.save')}</Button>
+                <Button type="submit">{t('DoctorsPage.createDialog.save')}</Button>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('DoctorsPage.createDialog.cancel')}</Button>
               </DialogFooter>
             </form>

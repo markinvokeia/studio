@@ -650,14 +650,14 @@ const DentalClinicalSystem = () => {
     };
 
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-800">
+          <h3 className="text-xl font-bold text-foreground">
             Periodontograma - Diente {tooth}
           </h3>
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4 text-blue-600" />
-            <span className="text-sm text-gray-600">AAP/EFP 2017</span>
+            <span className="text-sm text-muted-foreground">AAP/EFP 2017</span>
           </div>
         </div>
 
@@ -706,7 +706,7 @@ const DentalClinicalSystem = () => {
                       x={positions[point].x}
                       y={positions[point].y - 20}
                       textAnchor="middle"
-                      className="text-xs font-medium fill-current text-gray-600"
+                      className="text-xs font-medium fill-current text-muted-foreground"
                     >
                       {point}
                     </text>
@@ -735,67 +735,67 @@ const DentalClinicalSystem = () => {
           </div>
 
           <div className="grid grid-cols-3 gap-4">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+            <div className="bg-muted/30 rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-3 flex items-center">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Profundidades (mm)
               </h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {points.map(point => (
                   <div key={point} className="flex justify-between">
-                    <span className="text-gray-600">{point}:</span>
+                    <span className="text-muted-foreground">{point}:</span>
                     <span className="font-medium">{toothData.probing[point]}mm</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+            <div className="bg-blue-50/60 rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-3 flex items-center">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Índices Periodontales
               </h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">BOP:</span>
+                  <span className="text-muted-foreground">BOP:</span>
                   <span className="font-medium">{toothData.BOP.toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">PSR:</span>
+                  <span className="text-muted-foreground">PSR:</span>
                   <span className="font-medium">Código {toothData.PSR}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Movilidad:</span>
+                  <span className="text-muted-foreground">Movilidad:</span>
                   <span className="font-medium">Grado {toothData.mobility}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Furca:</span>
+                  <span className="text-muted-foreground">Furca:</span>
                   <span className="font-medium">Grado {toothData.furcation}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+            <div className="bg-green-50/60 rounded-lg p-4">
+              <h4 className="font-semibold text-foreground mb-3 flex items-center">
                 <Award className="w-4 h-4 mr-2" />
                 Clasificación 2017
               </h4>
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="text-gray-600">Estadio:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${toothData.stage === 'IV' ? 'bg-red-200 text-red-800' :
-                    toothData.stage === 'III' ? 'bg-orange-200 text-orange-800' :
-                      toothData.stage === 'II' ? 'bg-yellow-200 text-yellow-800' :
-                        'bg-green-200 text-green-800'
+                  <span className="text-muted-foreground">Estadio:</span>
+                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${toothData.stage === 'IV' ? 'bg-red-100/70 text-red-700' :
+                    toothData.stage === 'III' ? 'bg-orange-100/70 text-orange-700' :
+                      toothData.stage === 'II' ? 'bg-yellow-100/70 text-yellow-700' :
+                        'bg-green-100/70 text-green-700'
                     }`}>
                     {toothData.stage}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Grado:</span>
-                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${toothData.grade === 'C' ? 'bg-red-200 text-red-800' :
-                    toothData.grade === 'B' ? 'bg-yellow-200 text-yellow-800' :
-                      'bg-green-200 text-green-800'
+                  <span className="text-muted-foreground">Grado:</span>
+                  <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${toothData.grade === 'C' ? 'bg-red-100/70 text-red-700' :
+                    toothData.grade === 'B' ? 'bg-yellow-100/70 text-yellow-700' :
+                      'bg-green-100/70 text-green-700'
                     }`}>
                     {toothData.grade}
                   </span>
@@ -804,23 +804,23 @@ const DentalClinicalSystem = () => {
             </div>
           </div>
 
-          <div className="bg-purple-50 rounded-lg p-4">
-            <h4 className="font-semibold text-gray-800 mb-2">Leyenda de Indicadores</h4>
+          <div className="bg-purple-50/60 rounded-lg p-4">
+            <h4 className="font-semibold text-foreground mb-2">Leyenda de Indicadores</h4>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                <div className="w-4 h-4 bg-green-50/600 rounded-full"></div>
                 <span>&lt; 3mm (Saludable)</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
+                <div className="w-4 h-4 bg-orange-50/600 rounded-full"></div>
                 <span>3-4mm (Moderado)</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                <div className="w-4 h-4 bg-yellow-50/600 rounded-full"></div>
                 <span>≥ 5mm (Severo)</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                <div className="w-4 h-4 bg-red-50/600 rounded-full"></div>
                 <span>Sangrado al sondaje</span>
               </div>
             </div>
@@ -846,35 +846,35 @@ const DentalClinicalSystem = () => {
         <div className="relative max-w-7xl max-h-full w-full h-full flex flex-col">
           <div className="bg-white p-4 flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-bold text-gray-800">{image.name}</h3>
-              <p className="text-gray-600">{image.date} • {image.description}</p>
-              <div className="text-xs text-gray-500 mt-1">
+              <h3 className="text-lg font-bold text-foreground">{image.name}</h3>
+              <p className="text-muted-foreground">{image.date} • {image.description}</p>
+              <div className="text-xs text-muted-foreground mt-1">
                 DICOM: {image.modality} | {image.viewPosition} | {image.bodyPart}
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-gray-100 rounded"
               >
                 <ZoomOut className="w-5 h-5" />
               </button>
-              <span className="text-sm text-gray-600">{Math.round(zoomLevel * 100)}%</span>
+              <span className="text-sm text-muted-foreground">{Math.round(zoomLevel * 100)}%</span>
               <button
                 onClick={() => setZoomLevel(Math.min(3, zoomLevel + 0.25))}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-gray-100 rounded"
               >
                 <ZoomIn className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setZoomLevel(1)}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-gray-100 rounded"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
               <button
                 onClick={onClose}
-                className="p-2 text-gray-600 hover:bg-gray-100 rounded"
+                className="p-2 text-muted-foreground hover:bg-gray-100 rounded"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -896,13 +896,13 @@ const DentalClinicalSystem = () => {
 
     return (
       <div className="space-y-6">
-        <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-gray-800">Galería de Imágenes DICOM</h3>
+            <h3 className="text-xl font-bold text-foreground">Galería de Imágenes DICOM</h3>
             <div className="flex items-center space-x-2">
               <Shield className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-gray-600">DICOM Compliant</span>
-              <Filter className="w-5 h-5 text-gray-500 ml-4" />
+              <span className="text-sm text-muted-foreground">DICOM Compliant</span>
+              <Filter className="w-5 h-5 text-muted-foreground ml-4" />
               <select
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -920,7 +920,7 @@ const DentalClinicalSystem = () => {
             {filteredImages.map((image) => (
               <div
                 key={image.id}
-                className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer border"
+                className="bg-gray-100 rounded-lg overflow-hidden hover:shadow-sm transition-shadow duration-200 cursor-pointer border"
                 onClick={() => setSelectedImage(image)}
               >
                 <div className="aspect-w-16 aspect-h-12">
@@ -931,16 +931,16 @@ const DentalClinicalSystem = () => {
                   />
                 </div>
                 <div className="p-3">
-                  <h4 className="font-semibold text-gray-800 text-sm">{image.name}</h4>
-                  <p className="text-gray-600 text-xs">{image.date}</p>
+                  <h4 className="font-semibold text-foreground text-sm">{image.name}</h4>
+                  <p className="text-muted-foreground text-xs">{image.date}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className={`px-2 py-1 rounded-full text-xs ${image.type === 'radiografia'
-                      ? 'bg-gray-200 text-gray-800'
+                      ? 'bg-gray-200 text-foreground'
                       : 'bg-blue-200 text-blue-800'
                       }`}>
                       {image.modality}
                     </span>
-                    <span className="text-xs text-gray-500">{image.tooth}</span>
+                    <span className="text-xs text-muted-foreground">{image.tooth}</span>
                   </div>
                 </div>
               </div>
@@ -979,21 +979,21 @@ const DentalClinicalSystem = () => {
     };
 
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6 h-96 flex flex-col">
+      <div className="bg-white rounded-xl shadow-sm p-6 h-96 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <MessageSquare className="w-5 h-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-bold text-gray-800">Asistente IA Clínico</h3>
+            <h3 className="text-lg font-bold text-foreground">Asistente IA Clínico</h3>
           </div>
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4 text-green-600" />
-            <span className="text-xs text-gray-600">HL7 FHIR</span>
+            <span className="text-xs text-muted-foreground">HL7 FHIR</span>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-3 mb-4">
           {aiMessages.length === 0 && (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-muted-foreground py-8">
               <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p className="font-medium">Asistente IA con Estándares Médicos</p>
               <p className="text-sm">Consulta sobre análisis HL7 FHIR, códigos SNOMED-CT, clasificación AAP 2017</p>
@@ -1002,7 +1002,7 @@ const DentalClinicalSystem = () => {
 
           {aiMessages.map((msg: any, index) => (
             <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-800'
+              <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-50/600 text-white' : 'bg-gray-100 text-foreground'
                 }`}>
                 <p className="text-sm">{msg.content}</p>
                 <p className="text-xs opacity-70 mt-1">{msg.timestamp.toLocaleTimeString()}</p>
@@ -1012,7 +1012,7 @@ const DentalClinicalSystem = () => {
 
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg">
+              <div className="bg-gray-100 text-foreground px-4 py-2 rounded-lg">
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -1035,7 +1035,7 @@ const DentalClinicalSystem = () => {
           <button
             onClick={sendMessage}
             disabled={!message.trim() || isLoading}
-            className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
+            className="bg-blue-50/600 text-white p-2 rounded-lg hover:bg-blue-600 disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
           </button>
@@ -1045,15 +1045,15 @@ const DentalClinicalSystem = () => {
   };
 
   const VoiceCapture = () => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="flex items-center mb-4">
         <Mic className="w-5 h-5 text-purple-600 mr-2" />
-        <h3 className="text-lg font-bold text-gray-800">Captura por Voz</h3>
+        <h3 className="text-lg font-bold text-foreground">Captura por Voz</h3>
         <Shield className="w-4 h-4 text-green-600 ml-auto" />
       </div>
       <div className="text-center">
-        <p className="text-gray-600 mb-4">Captura de sesiones con transcripción automática y codificación SNOMED-CT</p>
-        <button className="w-20 h-20 rounded-full bg-purple-500 text-white flex items-center justify-center hover:bg-purple-600">
+        <p className="text-muted-foreground mb-4">Captura de sesiones con transcripción automática y codificación SNOMED-CT</p>
+        <button className="w-20 h-20 rounded-full bg-purple-50/600 text-white flex items-center justify-center hover:bg-purple-600">
           <Mic className="w-8 h-8" />
         </button>
       </div>
@@ -1061,15 +1061,15 @@ const DentalClinicalSystem = () => {
   );
 
   const ReportExport = () => (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="flex items-center mb-4">
         <FileDown className="w-5 h-5 text-green-600 mr-2" />
-        <h3 className="text-lg font-bold text-gray-800">Exportar Reportes</h3>
+        <h3 className="text-lg font-bold text-foreground">Exportar Reportes</h3>
         <Shield className="w-4 h-4 text-green-600 ml-auto" />
       </div>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Reporte HL7 FHIR</label>
+          <label className="block text-sm font-medium text-foreground mb-2">Tipo de Reporte HL7 FHIR</label>
           <select className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
             <option>Bundle FHIR Completo</option>
             <option>Observation SNOMED-CT</option>
@@ -1078,10 +1078,10 @@ const DentalClinicalSystem = () => {
           </select>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <button className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 flex items-center justify-center">
+          <button className="bg-red-50/600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 flex items-center justify-center">
             <FileDown className="w-4 h-4 mr-2" />PDF
           </button>
-          <button className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 flex items-center justify-center">
+          <button className="bg-green-50/600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 flex items-center justify-center">
             <FileDown className="w-4 h-4 mr-2" />HL7
           </button>
         </div>
@@ -1090,7 +1090,7 @@ const DentalClinicalSystem = () => {
   );
 
   const MedicalAlerts = ({ alerts }: { alerts: any[] }) => (
-    <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-lg">
+    <div className="bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
           <AlertTriangle className="w-6 h-6 text-red-600 mr-3" />
@@ -1098,7 +1098,7 @@ const DentalClinicalSystem = () => {
         </div>
         <div className="flex items-center space-x-2">
           <Shield className="w-4 h-4 text-blue-600" />
-          <span className="text-xs text-gray-600">SNOMED-CT</span>
+          <span className="text-xs text-muted-foreground">SNOMED-CT</span>
         </div>
       </div>
       <div className="space-y-3">
@@ -1109,7 +1109,7 @@ const DentalClinicalSystem = () => {
               <span className={`font-semibold ${alert.severity === 'high' ? 'text-red-800' : 'text-yellow-800'}`}>
                 🔴 {alert.text}
               </span>
-              <span className="text-xs text-gray-500">{alert.code}</span>
+              <span className="text-xs text-muted-foreground">{alert.code}</span>
             </div>
           </div>
         ))}
@@ -1120,8 +1120,8 @@ const DentalClinicalSystem = () => {
   const TreatmentTimeline = ({ sessions }: { sessions: PatientSession[] }) => {
     if (isLoadingPatientSessions) {
       return (
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-xl font-bold text-gray-800 mb-6">Historial de Tratamientos</h3>
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-xl font-bold text-foreground mb-6">Historial de Tratamientos</h3>
           <div className="space-y-4">
             <div className="flex gap-4">
               <div className="flex flex-col items-center">
@@ -1148,32 +1148,32 @@ const DentalClinicalSystem = () => {
     }
 
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-bold text-gray-800">Historial de Tratamientos</h3>
+          <h3 className="text-xl font-bold text-foreground">Historial de Tratamientos</h3>
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4 text-blue-600" />
-            <span className="text-sm text-gray-600">HL7 FHIR</span>
+            <span className="text-sm text-muted-foreground">HL7 FHIR</span>
           </div>
         </div>
         <div className="relative">
           <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-400 to-blue-600"></div>
           {sessions.map((session, index) => (
             <div key={`${session.sesion_id}-${index}`} className="relative flex items-start mb-8 last:mb-0 pl-8">
-              <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-lg bg-blue-500`}></div>
+              <div className={`absolute left-0 top-0 z-10 w-6 h-6 rounded-full border-4 border-white shadow-sm bg-blue-50/600`}></div>
               <div className="flex-1">
-                <div className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
+                <div className="bg-muted/30 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-200">
                   <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-semibold text-gray-800">{session.procedimiento_realizado}</h4>
-                    <span className="text-sm text-gray-500">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
+                    <h4 className="font-semibold text-foreground">{session.procedimiento_realizado}</h4>
+                    <span className="text-sm text-muted-foreground">{session.fecha_sesion ? format(parseISO(session.fecha_sesion), 'dd/MM/yyyy') : ''}</span>
                   </div>
-                  <div className="space-y-3 text-sm text-gray-700">
-                    <p><strong className="text-gray-600">Diagnóstico:</strong> {session.diagnostico}</p>
-                    <p><strong className="text-gray-600">Procedimiento:</strong> {session.procedimiento_realizado}</p>
-                    <p><strong className="text-gray-600">Notas:</strong> {session.notas_clinicas}</p>
+                  <div className="space-y-3 text-sm text-foreground">
+                    <p><strong className="text-muted-foreground">Diagnóstico:</strong> {session.diagnostico}</p>
+                    <p><strong className="text-muted-foreground">Procedimiento:</strong> {session.procedimiento_realizado}</p>
+                    <p><strong className="text-muted-foreground">Notas:</strong> {session.notas_clinicas}</p>
                     {session.tratamientos && (
                       <div>
-                        <strong className="text-gray-600">Tratamientos:</strong>
+                        <strong className="text-muted-foreground">Tratamientos:</strong>
                         <ul className="list-disc pl-5 mt-1">
                           {session.tratamientos.map((t, i) => (
                             <li key={i}>{t.descripcion} {t.numero_diente && `(Diente ${t.numero_diente})`}</li>
@@ -1183,7 +1183,7 @@ const DentalClinicalSystem = () => {
                     )}
                     {session.archivos_adjuntos && session.archivos_adjuntos.length > 0 && (
                       <div>
-                        <strong className="text-gray-600">Archivos Adjuntos:</strong>
+                        <strong className="text-muted-foreground">Archivos Adjuntos:</strong>
                         <ul className="list-disc pl-5 mt-1">
                           {session.archivos_adjuntos.map((file, i) => (
                             <li key={i}>
@@ -1217,25 +1217,25 @@ const DentalClinicalSystem = () => {
     const condition = ISO_1942_SYMBOLS[toothData.conditions[0] as keyof typeof ISO_1942_SYMBOLS] || ISO_1942_SYMBOLS.SOUND;
 
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-800">Diente {toothNumber}</h3>
+          <h3 className="text-xl font-bold text-foreground">Diente {toothNumber}</h3>
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4 text-blue-600" />
-            <span className="text-xs text-gray-600">ISO 3950</span>
+            <span className="text-xs text-muted-foreground">ISO 3950</span>
           </div>
         </div>
         <div className="space-y-4">
           <div>
-            <span className="font-semibold text-gray-700">Estado ISO 1942:</span>
+            <span className="font-semibold text-foreground">Estado ISO 1942:</span>
             <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: condition.color, borderColor: condition.borderColor, borderWidth: '1px' }}>
               <div className="font-medium">{condition.name} ({condition.code})</div>
-              <div className="text-sm text-gray-600">{condition.description}</div>
+              <div className="text-sm text-muted-foreground">{condition.description}</div>
             </div>
           </div>
           {Object.keys(toothData.surfaces).length > 0 && (
             <div>
-              <span className="font-semibold text-gray-700">Superficies afectadas:</span>
+              <span className="font-semibold text-foreground">Superficies afectadas:</span>
               <div className="flex flex-wrap gap-2 mt-2">
                 {Object.entries(toothData.surfaces).map(([surface, condition]) => (
                   <span key={surface} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
@@ -1247,8 +1247,8 @@ const DentalClinicalSystem = () => {
           )}
           {toothData.notes && (
             <div>
-              <span className="font-semibold text-gray-700">Notas clínicas:</span>
-              <p className="text-sm text-gray-600 mt-1">{toothData.notes}</p>
+              <span className="font-semibold text-foreground">Notas clínicas:</span>
+              <p className="text-sm text-muted-foreground mt-1">{toothData.notes}</p>
             </div>
           )}
         </div>
@@ -1288,34 +1288,34 @@ const DentalClinicalSystem = () => {
     );
 
     const HabitCard = ({ habits, isLoading }: { habits: PatientHabits | null, isLoading: boolean }) => (
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center mb-4">
           <User className="w-5 h-5 text-blue-600 mr-2" />
-          <h3 className="text-lg font-bold text-gray-800">Hábitos del Paciente</h3>
+          <h3 className="text-lg font-bold text-foreground">Hábitos del Paciente</h3>
         </div>
         {isLoading ? (
           <p>Loading patient habits...</p>
         ) : habits ? (
           <div className="space-y-4">
             <div className="flex items-start gap-4">
-              <Wind className="w-5 h-5 text-gray-500 mt-1" />
+              <Wind className="w-5 h-5 text-muted-foreground mt-1" />
               <div>
                 <h4 className="font-semibold">Tabaquismo</h4>
-                <p className="text-sm text-gray-700">{habits.tabaquismo || 'No especificado'}</p>
+                <p className="text-sm text-foreground">{habits.tabaquismo || 'No especificado'}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <GlassWater className="w-5 h-5 text-gray-500 mt-1" />
+              <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
               <div>
                 <h4 className="font-semibold">Alcohol</h4>
-                <p className="text-sm text-gray-700">{habits.alcohol || 'No especificado'}</p>
+                <p className="text-sm text-foreground">{habits.alcohol || 'No especificado'}</p>
               </div>
             </div>
             <div className="flex items-start gap-4">
-              <ToothIcon className="w-5 h-5 text-gray-500 mt-1" />
+              <ToothIcon className="w-5 h-5 text-muted-foreground mt-1" />
               <div>
                 <h4 className="font-semibold">Bruxismo</h4>
-                <p className="text-sm text-gray-700">{habits.bruxismo || 'No especificado'}</p>
+                <p className="text-sm text-foreground">{habits.bruxismo || 'No especificado'}</p>
               </div>
             </div>
           </div>
@@ -1328,10 +1328,10 @@ const DentalClinicalSystem = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center mb-4">
               <User className="w-5 h-5 text-blue-600 mr-2" />
-              <h3 className="text-lg font-bold text-gray-800">Antecedentes Personales</h3>
+              <h3 className="text-lg font-bold text-foreground">Antecedentes Personales</h3>
             </div>
             <div className="space-y-3">
               {isLoadingPersonalHistory ? (
@@ -1340,10 +1340,10 @@ const DentalClinicalSystem = () => {
                 personalHistory.map((item, index) => (
                   <div key={index} className={`border-l-4 ${getAlertBorderColor(item.nivel_alerta)} pl-4 py-2`}>
                     <div className="flex justify-between items-center">
-                      <div className="font-semibold text-gray-800">{item.nombre}</div>
-                      <div className="text-xs text-gray-500">{item.categoria}</div>
+                      <div className="font-semibold text-foreground">{item.nombre}</div>
+                      <div className="text-xs text-muted-foreground">{item.categoria}</div>
                     </div>
-                    <div className="text-sm text-gray-700">{item.comentarios}</div>
+                    <div className="text-sm text-foreground">{item.comentarios}</div>
                   </div>
                 ))
               ) : (
@@ -1352,10 +1352,10 @@ const DentalClinicalSystem = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center mb-4">
               <Heart className="w-5 h-5 text-red-600 mr-2" />
-              <h3 className="text-lg font-bold text-gray-800">Antecedentes Familiares</h3>
+              <h3 className="text-lg font-bold text-foreground">Antecedentes Familiares</h3>
             </div>
             <div className="space-y-3">
               {isLoadingFamilyHistory ? (
@@ -1363,9 +1363,9 @@ const DentalClinicalSystem = () => {
               ) : familyHistory.length > 0 ? (
                 familyHistory.map((item, index) => (
                   <div key={index} className="border-l-4 border-red-200 pl-4 py-2">
-                    <div className="font-semibold text-gray-800">{item.condition}</div>
-                    <div className="text-sm text-gray-600">Familiar: {item.relative}</div>
-                    <div className="text-sm text-gray-700">{item.comments}</div>
+                    <div className="font-semibold text-foreground">{item.condition}</div>
+                    <div className="text-sm text-muted-foreground">Familiar: {item.relative}</div>
+                    <div className="text-sm text-foreground">{item.comments}</div>
                   </div>
                 ))
               ) : (
@@ -1373,10 +1373,10 @@ const DentalClinicalSystem = () => {
               )}
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center mb-4">
               <Pill className="w-5 h-5 text-green-600 mr-2" />
-              <h3 className="text-lg font-bold text-gray-800">Medicamentos Actuales</h3>
+              <h3 className="text-lg font-bold text-foreground">Medicamentos Actuales</h3>
             </div>
             <div className="space-y-3">
               {isLoadingMedications ? (
@@ -1385,16 +1385,16 @@ const DentalClinicalSystem = () => {
                 medications.map((item, index) => (
                   <div key={index} className="border-l-4 border-green-200 pl-4 py-2">
                     <div className="flex justify-between items-start">
-                      <div className="font-semibold text-gray-800">{item.name}</div>
-                      <div className="text-right text-xs text-gray-500">
+                      <div className="font-semibold text-foreground">{item.name}</div>
+                      <div className="text-right text-xs text-muted-foreground">
                         <div>{item.dose}</div>
                         <div>{item.frequency}</div>
                       </div>
                     </div>
-                    <div className="text-sm text-gray-600 mt-1">
+                    <div className="text-sm text-muted-foreground mt-1">
                       {formatDate(item.since)} - {item.endDate ? formatDate(item.endDate) : 'Presente'}
                     </div>
-                    <div className="text-sm text-gray-700 mt-1">{item.reason}</div>
+                    <div className="text-sm text-foreground mt-1">{item.reason}</div>
                   </div>
                 ))
               ) : (
@@ -1405,20 +1405,20 @@ const DentalClinicalSystem = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center mb-4">
               <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2" />
-              <h3 className="text-lg font-bold text-gray-800">Alergias</h3>
+              <h3 className="text-lg font-bold text-foreground">Alergias</h3>
             </div>
             <div className="space-y-3">
               {isLoadingAllergies ? (
                 <p>Loading allergies...</p>
               ) : allergies.length > 0 ? (
                 allergies.map((item, index) => (
-                  <div key={index} className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <div key={index} className="bg-red-50/60 border border-red-200 rounded-lg p-3">
                     <div className="flex justify-between items-center">
                       <div className="font-semibold text-red-800">{item.allergen}</div>
-                      {item.snomed && <span className="text-xs font-mono text-gray-500">{item.snomed}</span>}
+                      {item.snomed && <span className="text-xs font-mono text-muted-foreground">{item.snomed}</span>}
                     </div>
                     {item.reaction && <div className="text-sm text-red-700">{item.reaction}</div>}
                   </div>
@@ -1447,7 +1447,7 @@ const DentalClinicalSystem = () => {
           <button
             key={id}
             onClick={() => setActiveView(id)}
-            className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors duration-200 whitespace-nowrap ${activeView === id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            className={`flex items-center space-x-2 py-4 px-2 border-b-2 transition-colors duration-200 whitespace-nowrap ${activeView === id ? 'border-blue-500 text-blue-600' : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
           >
             <Icon className="w-4 h-4" />
@@ -1465,7 +1465,7 @@ const DentalClinicalSystem = () => {
         <div className="flex justify-between items-center">
           <div>
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-gray-800">Historial Clinico Digital</h1>
+              <h1 className="text-2xl font-bold text-foreground">Historial Clinico Digital</h1>
               {selectedPatient && (
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold text-gray-900">{selectedPatient.name}</p>
@@ -1478,7 +1478,7 @@ const DentalClinicalSystem = () => {
             <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
               <PopoverTrigger asChild>
                 <div className="relative mt-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     value={searchQuery}
                     onChange={(e) => {
@@ -1516,15 +1516,15 @@ const DentalClinicalSystem = () => {
           <div className="flex items-center space-x-4">
             <button
               onClick={() => setShowAIChat(!showAIChat)}
-              className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
+              className="bg-purple-50/600 text-white px-4 py-2 rounded-lg hover:bg-purple-600 flex items-center space-x-2 transition-colors"
             >
               <MessageSquare className="w-4 h-4" />
               <span>Habla con el historial</span>
             </button>
             {selectedPatient && (
               <div className="text-right">
-                <div className="text-sm text-gray-500">Última visita</div>
-                <div className="font-semibold text-gray-800">{selectedPatient.lastVisit}</div>
+                <div className="text-sm text-muted-foreground">Última visita</div>
+                <div className="font-semibold text-foreground">{selectedPatient.lastVisit}</div>
               </div>
             )}
           </div>
@@ -1560,8 +1560,8 @@ const DentalClinicalSystem = () => {
       ) : (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
           <SearchCheck className="w-24 h-24 text-gray-300 mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-700">Seleccione un paciente</h2>
-          <p className="text-gray-500 mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
+          <h2 className="text-2xl font-semibold text-foreground">Seleccione un paciente</h2>
+          <p className="text-muted-foreground mt-2">Utilice la barra de búsqueda de arriba para encontrar y cargar el historial clínico de un paciente.</p>
         </div>
       )}
     </div>

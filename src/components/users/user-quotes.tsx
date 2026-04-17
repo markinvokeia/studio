@@ -33,6 +33,8 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Stethoscope, Trash2, XCircle } from 'lucide-react';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { DataCard } from '@/components/ui/data-card';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -275,6 +277,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const { activeCashSession } = useAuth();
   const { hasPermission } = usePermissions();
   const isSales = mode === 'sales';
+  const isViewportNarrow = useViewportNarrow();
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -846,6 +849,19 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               currency: t('QuoteColumns.currency'),
               exchange_rate: t('QuoteColumns.exchangeRate'),
             }}
+            isNarrow={isViewportNarrow}
+            renderCard={(quote: Quote, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
+                title={quote.doc_no}
+                subtitle={formatDateTime(quote.createdAt)}
+                badge={<Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>}
+                fields={[
+                  { label: t('QuoteColumns.total'), value: `${quote.currency || 'USD'} ${Number(quote.total).toFixed(2)}`, primary: true },
+                  { label: t('Navigation.Payments'), value: quote.payment_status || '-' },
+                  { label: t('QuoteColumns.billingStatus'), value: quote.billing_status || '-' },
+                ]}
+              />
+            )}
           />
         </CardContent>
       </Card>
@@ -868,7 +884,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             <div className="flex-none bg-card shadow-sm border-b border-border">
               {/* Título y badges principales */}
               <div className="px-6 py-4 border-b border-border/50">
-                <div className="flex items-start justify-between gap-4 pr-10">
+                <div className="flex items-start justify-between gap-4 pr-10 sm:pr-20">
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedQuote.doc_no}</SheetTitle>

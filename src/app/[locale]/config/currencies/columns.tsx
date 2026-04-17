@@ -8,11 +8,13 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import { ExchangeRateHistoryItem } from '@/lib/types';
+import { createSelectColumn } from '@/components/ui/table-select-column';
 
 export const getColumns = (
     t: (key: string) => string,
     onViewDetails?: (item: ExchangeRateHistoryItem) => void
 ): ColumnDef<ExchangeRateHistoryItem>[] => [
+    createSelectColumn<ExchangeRateHistoryItem>(),
     {
         accessorKey: 'fecha',
         header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />,

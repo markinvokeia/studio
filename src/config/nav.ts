@@ -101,7 +101,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'Pacientes',
-    href: '/users',
+    href: '/patients',
     icon: Users,
     requiredAnyPermission: [
       PATIENTS_PERMISSIONS.VIEW_MENU,
@@ -110,7 +110,7 @@ export const navItems: NavItem[] = [
       DICOM_PERMISSIONS.VIEW_MENU,
     ],
     items: [
-      { title: 'Pacientes', href: '/users', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
+      { title: 'Pacientes', href: '/patients', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
       { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
       { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
     ],
@@ -201,7 +201,7 @@ export const navItems: NavItem[] = [
       { title: 'DoctorAvailabilityExceptions', href: '/config/availability-exceptions', icon: UserX, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.AVAILABILITY_EXCEPTIONS_VIEW },
       { title: 'Currencies', href: '/config/currencies', icon: DollarSign, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CURRENCIES_VIEW_LIST },
       { title: 'Sequences', href: '/config/sequences', icon: List, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
-      { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.SEQUENCES_VIEW_LIST },
+      { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
     ],
   },
   {

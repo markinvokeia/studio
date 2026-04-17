@@ -28,10 +28,14 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertCategory, CommunicationTemplate } from '@/lib/types';
+import { DataCard } from '@/components/ui/data-card';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnDef, ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, Bold, BookCopy, Code2, Italic, List, MoreHorizontal } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
+import { AlertTriangle, Bold, BookCopy, Code2, Copy, Eye, Italic, List, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -145,12 +149,16 @@ export default function CommunicationTemplatesPage() {
     const canCreate = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_CREATE);
     const canUpdate = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_UPDATE);
     const canDelete = hasPermission(SYSTEM_PERMISSIONS.ALERT_TEMPLATES_DELETE);
+    const isNarrow = useViewportNarrow();
     const [templates, setTemplates] = React.useState<CommunicationTemplate[]>([]);
     const [categories, setCategories] = React.useState<AlertCategory[]>([]);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [templatesPagination, setTemplatesPagination] = React.useState({ total: 0, page: 1, limit: 10 });
+
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedTemplate, setSelectedTemplate] = React.useState<CommunicationTemplate | null>(null);
 
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [editingTemplate, setEditingTemplate] = React.useState<CommunicationTemplate | null>(null);
@@ -239,6 +247,10 @@ export default function CommunicationTemplatesPage() {
         }, 500);
         return () => clearTimeout(debounce);
     }, [loadData]);
+
+    const handleRowSelection = (rows: CommunicationTemplate[]) => {
+        setSelectedTemplate(rows[0] ?? null);
+    };
 
     const handleCreate = () => {
         setEditingTemplate(null);
@@ -373,45 +385,144 @@ export default function CommunicationTemplatesPage() {
         },
     ];
 
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><BookCopy className="h-5 w-5" /></div>
+                    <div className="flex flex-col text-left">
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                {canViewList ? (
+                    <DataTable
+                        columns={columns}
+                        data={templates}
+                        filterColumnId="name"
+                        filterPlaceholder={t('filterPlaceholder')}
+                        onCreate={canCreate ? handleCreate : undefined}
+                        onRefresh={loadData}
+                        isRefreshing={isRefreshing}
+                        isNarrow={isNarrow || !!selectedTemplate}
+                        renderCard={(row: CommunicationTemplate, _isSelected: boolean) => (
+                            <DataCard isSelected={_isSelected}
+                                title={row.name}
+                                subtitle={row.code}
+                                badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.type}</span>}
+                                showArrow
+                            />
+                        )}
+                        pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
+                        pagination={pagination}
+                        onPaginationChange={setPagination}
+                        columnFilters={columnFilters}
+                        onColumnFiltersChange={setColumnFilters}
+                        manualPagination={true}
+                        enableSingleRowSelection
+                        rowSelection={rowSelection}
+                        setRowSelection={setRowSelection}
+                        onRowSelectionChange={handleRowSelection}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <p className="text-muted-foreground">{t('noAccess')}</p>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = selectedTemplate ? (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><BookCopy className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base lg:text-lg truncate">{selectedTemplate.name}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{selectedTemplate.code}</p>
+                    </div>
+                    <div className="flex gap-1 flex-none">
+                        {canUpdate && (
+                            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
+                                <Pencil className="h-4 w-4 mr-1" />Editar
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedTemplate)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex-1 overflow-auto p-4">
+                <dl className="space-y-3 text-sm">
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.name')}</dt>
+                        <dd className="text-foreground">{selectedTemplate.name}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Código</dt>
+                        <dd className="text-foreground font-mono text-xs">{selectedTemplate.code}</dd>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.type')}</dt>
+                            <dd><Badge variant="secondary">{selectedTemplate.type}</Badge></dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.version')}</dt>
+                            <dd><Badge variant="outline">v{selectedTemplate.version || 1}</Badge></dd>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.category')}</dt>
+                            <dd className="text-foreground">{categories.find(c => String(c.id) === String(selectedTemplate.category_id))?.name || '-'}</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.isActive')}</dt>
+                            <dd><Badge variant={selectedTemplate.is_active ? 'success' : 'outline'}>{selectedTemplate.is_active ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                        </div>
+                    </div>
+                    {selectedTemplate.subject && (
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Asunto</dt>
+                            <dd className="text-foreground text-xs">{selectedTemplate.subject}</dd>
+                        </div>
+                    )}
+                    {selectedTemplate.default_sender && (
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Remitente</dt>
+                            <dd className="text-foreground text-xs">{selectedTemplate.default_sender}</dd>
+                        </div>
+                    )}
+                    {selectedTemplate.body_html && (
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">Cuerpo HTML</dt>
+                            <dd><pre className="text-xs whitespace-pre-wrap break-all bg-muted/50 rounded p-2 max-h-48 overflow-auto">{selectedTemplate.body_html}</pre></dd>
+                        </div>
+                    )}
+                </dl>
+            </CardContent>
+        </Card>
+    ) : <div />;
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-                <Card className="flex-1 flex flex-col min-h-0 overflow-hidden shadow-sm border-0">
-                    <CardHeader className="flex-none p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <BookCopy className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                                <CardTitle className="text-lg">{t('title')}</CardTitle>
-                                <CardDescription className="text-xs">{t('description')}</CardDescription>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                        {canViewList ? (
-                            <DataTable
-                                columns={columns}
-                                data={templates}
-                                filterColumnId="name"
-                                filterPlaceholder={t('filterPlaceholder')}
-                                onCreate={canCreate ? handleCreate : undefined}
-                                onRefresh={loadData}
-                                isRefreshing={isRefreshing}
-                                pageCount={Math.ceil(templatesPagination.total / pagination.pageSize)}
-                                pagination={pagination}
-                                onPaginationChange={setPagination}
-                                columnFilters={columnFilters}
-                                onColumnFiltersChange={setColumnFilters}
-                                manualPagination={true}
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">{t('noAccess')}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <TwoPanelLayout
+                    leftPanel={leftPanel}
+                    rightPanel={rightPanel}
+                    isRightPanelOpen={!!selectedTemplate}
+                    onBack={() => { setSelectedTemplate(null); setRowSelection({}); }}
+                    leftPanelDefaultSize={50}
+                    rightPanelDefaultSize={50}
+                />
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="max-w-4xl">

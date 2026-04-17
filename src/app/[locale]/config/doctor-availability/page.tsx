@@ -3,10 +3,13 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
     Dialog,
     DialogBody,
@@ -20,21 +23,23 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
+import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CalendarPlus, Check, ChevronsUpDown } from 'lucide-react';
+import { AlertTriangle, CalendarPlus, Check, ChevronsUpDown, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { AvailabilityRulesColumnsWrapper } from './columns';
 
 const availabilityFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
@@ -70,10 +75,8 @@ async function getAvailabilityRules(pagination: PaginationState, searchQuery: st
             search: searchQuery,
         });
         const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
-
         const rulesData = data.data || [];
         const total = Number(data.total) || 0;
-
         return {
             rules: rulesData.map((rule: any) => ({ ...rule, id: String(rule.id) })),
             total
@@ -94,7 +97,6 @@ async function getDoctors(): Promise<User[]> {
         return [];
     }
 }
-
 
 async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
     const responseData = await api.post(API_ROUTES.AVAILABILITY_RULES_UPSERT, {
@@ -120,6 +122,7 @@ async function deleteAvailabilityRule(id: string) {
 export default function DoctorAvailabilityPage() {
     const t = useTranslations('DoctorAvailabilityPage');
     const { toast } = useToast();
+    const isNarrow = useViewportNarrow();
     const [rules, setRules] = React.useState<AvailabilityRule[]>([]);
     const [doctors, setDoctors] = React.useState<User[]>([]);
     const [ruleCount, setRuleCount] = React.useState(0);
@@ -134,6 +137,8 @@ export default function DoctorAvailabilityPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+    const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedRule, setSelectedRule] = React.useState<AvailabilityRule | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityPage.validation');
     const form = useForm<AvailabilityFormValues>({
@@ -162,16 +167,12 @@ export default function DoctorAvailabilityPage() {
     }, [columnFilters]);
 
     React.useEffect(() => {
-        const debounce = setTimeout(() => {
-            loadRules();
-        }, 500);
+        const debounce = setTimeout(() => { loadRules(); }, 500);
         return () => clearTimeout(debounce);
     }, [loadRules]);
 
     React.useEffect(() => {
-        if (isDialogOpen) {
-            getDoctors().then(setDoctors);
-        }
+        if (isDialogOpen) getDoctors().then(setDoctors);
     }, [isDialogOpen]);
 
     const handleCreate = () => {
@@ -216,13 +217,13 @@ export default function DoctorAvailabilityPage() {
             toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
             setIsDeleteDialogOpen(false);
             setDeletingRule(null);
+            if (selectedRule?.id === deletingRule.id) {
+                setSelectedRule(null);
+                setRowSelection({});
+            }
             loadRules();
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('toast.errorTitle'),
-                description: getErrorMessage(error),
-            });
+            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: getErrorMessage(error) });
         }
     };
 
@@ -238,52 +239,144 @@ export default function DoctorAvailabilityPage() {
         }
     };
 
-    const availabilityColumns = AvailabilityRulesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
+    const handleRowSelection = (rows: AvailabilityRule[]) => {
+        setSelectedRule(rows[0] ?? null);
+    };
+
+    const handleBack = () => {
+        setSelectedRule(null);
+        setRowSelection({});
+    };
 
     const tColumns = useTranslations('DoctorAvailabilityColumns');
-    const columnTranslations = {
-        user_name: tColumns('doctor'),
-        recurrence: tColumns('recurrence'),
-        day_of_week: tColumns('day'),
-        start_time: tColumns('startTime'),
-        end_time: tColumns('endTime'),
-        start_date: tColumns('startDate'),
-        end_date: tColumns('endDate'),
-    };
+
+    const columns: ColumnDef<AvailabilityRule>[] = React.useMemo(() => [
+        { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
+        { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
+        { accessorKey: 'recurrence', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('recurrence')} /> },
+        { accessorKey: 'day_of_week', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('day')} /> },
+        { accessorKey: 'start_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startTime')} /> },
+        { accessorKey: 'end_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endTime')} /> },
+        { accessorKey: 'start_date', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startDate')} /> },
+        { accessorKey: 'end_date', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endDate')} /> },
+    ], [tColumns]);
+
+    const leftPanel = (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4">
+                <div className="flex items-start gap-3">
+                    <div className="header-icon-circle mt-0.5"><CalendarPlus className="h-5 w-5" /></div>
+                    <div>
+                        <CardTitle className="text-lg">{t('title')}</CardTitle>
+                        <CardDescription className="text-xs">{t('description')}</CardDescription>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 bg-card">
+                <DataTable
+                    columns={columns}
+                    data={rules}
+                    pageCount={Math.ceil(ruleCount / pagination.pageSize)}
+                    pagination={pagination}
+                    onPaginationChange={setPagination}
+                    columnFilters={columnFilters}
+                    onColumnFiltersChange={setColumnFilters}
+                    manualPagination={true}
+                    filterColumnId="user_name"
+                    filterPlaceholder={t('filterPlaceholder')}
+                    onCreate={handleCreate}
+                    onRefresh={loadRules}
+                    isRefreshing={isRefreshing}
+                    isNarrow={isNarrow || !!selectedRule}
+                    renderCard={(row: AvailabilityRule, _isSelected: boolean) => (
+                        <DataCard isSelected={_isSelected}
+                            title={row.user_name || row.user_id}
+                            subtitle={`${row.start_time} – ${row.end_time}`}
+                            badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.recurrence}</span>}
+                            showArrow
+                        />
+                    )}
+                    enableSingleRowSelection
+                    rowSelection={rowSelection}
+                    setRowSelection={setRowSelection}
+                    onRowSelectionChange={handleRowSelection}
+                    columnVisibility={{ id: false }}
+                />
+            </CardContent>
+        </Card>
+    );
+
+    const rightPanel = selectedRule ? (
+        <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+                <div className="flex items-center gap-2 min-w-0">
+                    <div className="header-icon-circle flex-none"><CalendarPlus className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                        <CardTitle className="text-base lg:text-lg truncate">{selectedRule.user_name || selectedRule.user_id}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{selectedRule.start_date} → {selectedRule.end_date || '∞'}</p>
+                    </div>
+                    <div className="flex gap-1 flex-none">
+                        <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
+                            <Pencil className="h-4 w-4 mr-1" />{t('dialog.save').replace('Guardar', 'Editar') || 'Editar'}
+                        </Button>
+                        <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedRule)}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </CardHeader>
+            <Separator />
+            <CardContent className="flex-1 overflow-auto p-4">
+                <dl className="space-y-3 text-sm">
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('doctor')}</dt>
+                        <dd className="text-foreground">{selectedRule.user_name || selectedRule.user_id || '-'}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('recurrence')}</dt>
+                        <dd><Badge variant="outline">{selectedRule.recurrence}</Badge></dd>
+                    </div>
+                    {selectedRule.day_of_week !== undefined && selectedRule.day_of_week !== null && (
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
+                            <dd className="text-foreground">{selectedRule.day_of_week}</dd>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('startTime')}</dt>
+                            <dd className="text-foreground">{selectedRule.start_time || '-'}</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('endTime')}</dt>
+                            <dd className="text-foreground">{selectedRule.end_time || '-'}</dd>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('startDate')}</dt>
+                            <dd className="text-foreground">{selectedRule.start_date || '-'}</dd>
+                        </div>
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('endDate')}</dt>
+                            <dd className="text-foreground">{selectedRule.end_date || '-'}</dd>
+                        </div>
+                    </div>
+                </dl>
+            </CardContent>
+        </Card>
+    ) : <div />;
 
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
-                <CardHeader className="flex-none p-4">
-                    <div className="flex items-start gap-3">
-                        <div className="header-icon-circle mt-0.5">
-                            <CalendarPlus className="h-5 w-5" />
-                        </div>
-                        <div className="flex flex-col text-left">
-                            <CardTitle className="text-lg">{t('title')}</CardTitle>
-                            <CardDescription className="text-xs">{t('description')}</CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 bg-card">
-                    <DataTable
-                        columns={availabilityColumns}
-                        data={rules}
-                        pageCount={Math.ceil(ruleCount / pagination.pageSize)}
-                        pagination={pagination}
-                        onPaginationChange={setPagination}
-                        columnFilters={columnFilters}
-                        onColumnFiltersChange={setColumnFilters}
-                        manualPagination={true}
-                        filterColumnId="user_name"
-                        filterPlaceholder={t('filterPlaceholder')}
-                        onCreate={handleCreate}
-                        onRefresh={loadRules}
-                        isRefreshing={isRefreshing}
-                        columnTranslations={columnTranslations}
-                    />
-                </CardContent>
-            </Card>
+            <TwoPanelLayout
+                leftPanel={leftPanel}
+                rightPanel={rightPanel}
+                isRightPanelOpen={!!selectedRule}
+                onBack={handleBack}
+                leftPanelDefaultSize={50}
+                rightPanelDefaultSize={50}
+            />
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

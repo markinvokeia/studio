@@ -544,7 +544,17 @@
     "viewPatient": "View patient",
     "viewDoctor": "View doctor",
     "viewQuote": "View quote",
-    "viewInvoice": "View invoice"
+    "viewInvoice": "View invoice",
+    "panelTabs": {
+      "info": "Info",
+      "quote": "Quote",
+      "invoices": "Invoices",
+      "payments": "Payments",
+      "openPatient": "Open patient file",
+      "openDoctor": "Open doctor profile",
+      "openQuote": "Open quote",
+      "viewPayments": "View payments"
+    }
   },
   "AppointmentsColumns": {
     "service": "Service",
@@ -763,9 +773,10 @@
       "title": "Financial Summary",
       "totalInvoiced": "Total Invoiced",
       "totalPaid": "Total Paid",
-      "currentDebt": "Receivable",
-      "availableBalance": "Credit Balance",
-      "printFinancialSummary": "Financial Summary",
+      "currentDebt": "Current Debt",
+      "availableBalance": "Available Balance",
+      "printFinancialSummary": "Print Financial Summary",
+      "print": "Print",
       "showStats": "SHOW $",
       "hideStats": "HIDE $"
     },
@@ -2313,6 +2324,10 @@
       "durationInteger": "Duration must be an integer.",
       "nameRequired": "Name is required.",
       "pricePositive": "Price must be positive."
+    },
+    "tabs": {
+      "details": "Detalles",
+      "info": "Info"
     }
   },
   "ServicesColumns": {
@@ -2395,7 +2410,8 @@
     "detailsFor": "Details for {name}",
     "tabs": {
       "summary": "Summary",
-      "notes": "Notes"
+      "notes": "Notes",
+      "details": "Detalles"
     },
     "summary": {
       "title": "Provider Summary",
@@ -2714,6 +2730,9 @@
     },
     "filters": {
       "showOnlyActive": "Show only active"
+    },
+    "tabs": {
+      "details": "Detalles"
     }
   },
   "UserLogsPage": {
@@ -3010,7 +3029,8 @@
       "messages": "Messages",
       "logs": "Logs",
       "history": "Clinic History",
-      "notes": "Notes"
+      "notes": "Notes",
+      "details": "Detalles"
     },
     "detailsFor": "Details for {name}",
     "close": "Close details",
@@ -3043,7 +3063,8 @@
     "detailsFor": "Details for {name}",
     "tabs": {
       "users": "Users",
-      "permissions": "Permissions"
+      "permissions": "Permissions",
+      "details": "Detalles"
     },
     "validation": {
       "nameRequired": "Name is required"
@@ -3163,7 +3184,8 @@
     },
     "detailsFor": "Details for {name}",
     "tabs": {
-      "users": "Users"
+      "users": "Users",
+      "details": "Detalles"
     }
   },
   "ConfigurationsPage": {
@@ -3829,7 +3851,9 @@
       "week": "Week",
       "year": "Year"
     },
-    "weekShort": "Wk"
+    "weekShort": "Wk",
+    "filterTitle": "Filter Schedule",
+    "noAppointments": "No appointments"
   },
   "AlertCategoriesPage": {
     "title": "Alert Categories",
@@ -3952,7 +3976,8 @@
       "billing": "Billing",
       "followup": "Follow-up",
       "default": "Default",
-      "patients": "Patients"
+      "patients": "Patients",
+      "dates": "Dates"
     },
     "status": {
       "pending": "Pending",
@@ -3963,6 +3988,8 @@
       "suppressed": "Suppressed"
     },
     "actions": {
+      "sendEmail": "Send Email",
+      "markCompleted": "Mark as Completed",
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
       "registerCall": "Register Call",
