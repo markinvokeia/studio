@@ -168,8 +168,8 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement> & { align?: "left" | "right" }) => (
   <div
     className={cn(
-      "flex w-full flex-col-reverse items-center border-t bg-muted/10 px-6 py-4 shrink-0 sm:flex-row sm:space-x-2",
-      align === "right" ? "sm:justify-end" : "sm:justify-start",
+      "flex w-full flex-row items-center gap-2 border-t bg-muted/10 px-6 py-4 shrink-0",
+      align === "right" ? "justify-end" : "justify-start",
       className
     )}
     {...props}
