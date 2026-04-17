@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
