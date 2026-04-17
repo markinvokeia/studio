@@ -71,7 +71,7 @@ export function normalizePaymentMethod(method: string | undefined): string {
   return method;
 }
 
-function mapApiPaymentToPayment(apiPayment: any): Payment {
+export function mapApiPaymentToPayment(apiPayment: any): Payment {
   let paymentType: 'invoice' | 'credit_note' | null = null;
   if (apiPayment.invoice_id) {
     paymentType = 'invoice';
@@ -85,7 +85,7 @@ function mapApiPaymentToPayment(apiPayment: any): Payment {
     order_id: apiPayment.order_id || '',
     order_doc_no: apiPayment.order_doc_no || 'N/A',
     invoice_doc_no: apiPayment.invoice_doc_no || 'N/A',
-    invoice_id: apiPayment.invoice_id || null,
+    invoice_id: apiPayment.invoice_id ? String(apiPayment.invoice_id) : null,
     quote_id: apiPayment.quote_id || '',
     user_name: apiPayment.user_name || 'N/A',
     userEmail: apiPayment.user_email || '',

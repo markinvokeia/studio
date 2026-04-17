@@ -20,6 +20,7 @@ import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
 import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { api } from '@/services/api';
+import { mapApiPaymentToPayment } from '@/services/payments-service';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -116,34 +117,9 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
     const data = await api.get(API_ROUTES.USER_PAYMENTS, { user_id: userId });
     const paymentsData = Array.isArray(data) ? data : (data.payments || []);
 
-    return paymentsData.filter((p: any) => p && p.id != null).map((apiPayment: any) => ({
-      id: apiPayment.id.toString(),
-      doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
-      order_id: apiPayment.order_id?.toString() ?? '',
-      order_doc_no: apiPayment.order_doc_no || `ORD-${apiPayment.order_id}`,
-      invoice_id: apiPayment.invoice_id?.toString() ?? null,
-      invoice_doc_no: apiPayment.invoice_doc_no || '',
-      quote_id: apiPayment.quote_id?.toString() ?? null,
-      user_name: apiPayment.user_name || '',
-      amount: parseFloat(apiPayment.amount),
-      method: apiPayment.method,
-      status: apiPayment.status,
-      createdAt: apiPayment.created_at,
-      updatedAt: apiPayment.updatedAt,
-      currency: apiPayment.currency,
-      payment_date: apiPayment.payment_date,
-      amount_applied: parseFloat(apiPayment.amount_applied),
-      source_amount: parseFloat(apiPayment.amount),
-      source_currency: apiPayment.currency,
-      exchange_rate: parseFloat(apiPayment.exchange_rate),
-      payment_method: apiPayment.payment_method,
-      transaction_type: apiPayment.transaction_type || 'direct_payment',
-      transaction_id: apiPayment.transaction_id,
-      reference_doc_id: apiPayment.reference_doc_id,
-      is_historical: apiPayment.is_historical || false,
-      notes: apiPayment.notes || '',
-      type: apiPayment.type || null,
-    }));
+    return paymentsData
+      .filter((p: any) => p && p.transaction_id != null)
+      .map(mapApiPaymentToPayment);
   } catch (error) {
     console.error("Failed to fetch user payments:", error);
     return [];
