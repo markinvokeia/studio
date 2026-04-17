@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -118,6 +119,7 @@ export default function MedicationsPage() {
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingMedication, setDeletingMedication] = React.useState<Medication | null>(null);
 
@@ -147,9 +149,11 @@ export default function MedicationsPage() {
     const handleRowSelection = (rows: Medication[]) => {
         const medication = rows[0] ?? null;
         setSelectedMedication(medication);
-        setIsEditing(false);
         setSubmissionError(null);
-        if (medication) form.reset(medication);
+        if (medication) {
+            setIsEditing(false);
+            form.reset(medication);
+        }
     };
 
     const handleCreate = () => {
@@ -158,6 +162,7 @@ export default function MedicationsPage() {
         setIsEditing(true);
         setSubmissionError(null);
         form.reset({ nombre_generico: '', nombre_comercial: '' });
+        setIsCreateDialogOpen(true);
     };
 
     const handleClose = () => {
@@ -183,7 +188,10 @@ export default function MedicationsPage() {
             toast({ title: selectedMedication ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
             await loadMedications();
             setIsEditing(false);
-            if (!values.id) handleClose();
+            if (!values.id) {
+                setIsCreateDialogOpen(false);
+                handleClose();
+            }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         } finally {
@@ -210,7 +218,7 @@ export default function MedicationsPage() {
         { accessorKey: 'nombre_comercial', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('commercialName')} /> },
     ];
 
-    const isRightOpen = !!selectedMedication || isEditing;
+    const isRightOpen = !!selectedMedication;
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -347,6 +355,60 @@ export default function MedicationsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
+                        setIsEditing(false);
+                        setSubmissionError(null);
+                        form.reset({ nombre_generico: '', nombre_comercial: '' });
+                    }
+                }}
+            >
+                <DialogContent maxWidth="lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('createDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('createDialog.description')}</DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <FormField control={form.control} name="nombre_generico" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.genericName')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('createDialog.genericNamePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="nombre_comercial" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.commercialName')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('createDialog.commercialNamePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </DialogBody>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
+                                    {t('createDialog.cancel')}
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t('createDialog.save')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

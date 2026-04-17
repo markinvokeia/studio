@@ -2544,6 +2544,9 @@
       "editSave": "Save Changes"
     },
     "validation": {
+      "dayRequired": "Day of week is required.",
+      "startRequired": "Start time is required.",
+      "endRequired": "End time is required.",
       "dayOfWeekRequired": "Day of week is required.",
       "startTimeRequired": "Start time is required.",
       "endTimeRequired": "End time is required."
@@ -2844,6 +2847,8 @@
       "editDescription": "Edit the availability exception for the doctor",
       "doctor": "Doctor",
       "selectDoctor": "Select a doctor",
+      "searchDoctor": "Search doctor",
+      "noDoctorFound": "No doctor found",
       "date": "Date",
       "isAvailable": "Is Available?",
       "startTime": "Start Time",

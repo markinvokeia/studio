@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -127,6 +128,7 @@ export default function MutualSocietiesPage() {
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingMutualSociety, setDeletingMutualSociety] = React.useState<MutualSociety | null>(null);
 
@@ -156,9 +158,11 @@ export default function MutualSocietiesPage() {
     const handleRowSelection = (rows: MutualSociety[]) => {
         const society = rows[0] ?? null;
         setSelectedMutualSociety(society);
-        setIsEditing(false);
         setSubmissionError(null);
-        if (society) form.reset({ id: society.id, name: society.name, description: society.description || '', code: society.code, is_active: society.is_active });
+        if (society) {
+            setIsEditing(false);
+            form.reset({ id: society.id, name: society.name, description: society.description || '', code: society.code, is_active: society.is_active });
+        }
     };
 
     const handleCreate = () => {
@@ -167,6 +171,7 @@ export default function MutualSocietiesPage() {
         setIsEditing(true);
         setSubmissionError(null);
         form.reset({ name: '', description: '', code: '', is_active: true });
+        setIsCreateDialogOpen(true);
     };
 
     const handleClose = () => {
@@ -192,7 +197,10 @@ export default function MutualSocietiesPage() {
             toast({ title: selectedMutualSociety ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
             await loadMutualSocieties();
             setIsEditing(false);
-            if (!values.id) handleClose();
+            if (!values.id) {
+                setIsCreateDialogOpen(false);
+                handleClose();
+            }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         } finally {
@@ -224,7 +232,7 @@ export default function MutualSocietiesPage() {
         },
     ];
 
-    const isRightOpen = !!selectedMutualSociety || isEditing;
+    const isRightOpen = !!selectedMutualSociety;
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -389,6 +397,73 @@ export default function MutualSocietiesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
+                        setIsEditing(false);
+                        setSubmissionError(null);
+                        form.reset({ name: '', description: '', code: '', is_active: true });
+                    }
+                }}
+            >
+                <DialogContent maxWidth="lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('createDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('createDialog.description')}</DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.name')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('createDialog.namePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="code" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.code')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('createDialog.codePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="description" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.description')}</FormLabel>
+                                        <FormControl><Textarea {...field} placeholder={t('createDialog.descriptionPlaceholder')} value={field.value || ''} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="is_active" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <FormLabel className="font-normal">{t('createDialog.isActive')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                            </DialogBody>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
+                                    {t('createDialog.cancel')}
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t('createDialog.save')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -90,6 +91,7 @@ export default function AilmentsPage() {
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingAilment, setDeletingAilment] = React.useState<Ailment | null>(null);
 
@@ -110,9 +112,11 @@ export default function AilmentsPage() {
     const handleRowSelection = (rows: Ailment[]) => {
         const ailment = rows[0] ?? null;
         setSelectedAilment(ailment);
-        setIsEditing(false);
         setSubmissionError(null);
-        if (ailment) form.reset({ ...ailment, nivel_alerta: String(ailment.nivel_alerta) });
+        if (ailment) {
+            setIsEditing(false);
+            form.reset({ ...ailment, nivel_alerta: String(ailment.nivel_alerta) });
+        }
     };
 
     const handleCreate = () => {
@@ -121,6 +125,7 @@ export default function AilmentsPage() {
         setIsEditing(true);
         setSubmissionError(null);
         form.reset({ nombre: '', categoria: '', nivel_alerta: '' });
+        setIsCreateDialogOpen(true);
     };
 
     const handleClose = () => {
@@ -146,7 +151,10 @@ export default function AilmentsPage() {
             toast({ title: selectedAilment ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
             await loadAilments();
             setIsEditing(false);
-            if (!values.id) handleClose();
+            if (!values.id) {
+                setIsCreateDialogOpen(false);
+                handleClose();
+            }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         } finally {
@@ -178,7 +186,7 @@ export default function AilmentsPage() {
         },
     ];
 
-    const isRightOpen = !!selectedAilment || isEditing;
+    const isRightOpen = !!selectedAilment;
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -325,6 +333,78 @@ export default function AilmentsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
+                        setIsEditing(false);
+                        setSubmissionError(null);
+                        form.reset({ nombre: '', categoria: '', nivel_alerta: '' });
+                    }
+                }}
+            >
+                <DialogContent maxWidth="lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('createDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('createDialog.description')}</DialogDescription>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <FormField control={form.control} name="nombre" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.name')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('createDialog.namePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="categoria" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.category')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('createDialog.categoryPlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="nivel_alerta" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.alertLevel')}</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={t('createDialog.alertLevelPlaceholder')} />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="1">{t('createDialog.level1')}</SelectItem>
+                                                <SelectItem value="2">{t('createDialog.level2')}</SelectItem>
+                                                <SelectItem value="3">{t('createDialog.level3')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </DialogBody>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
+                                    {t('createDialog.cancel')}
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t('createDialog.save')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -83,6 +84,7 @@ export default function CalendarsPage() {
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingCalendar, setDeletingCalendar] = React.useState<CalendarType | null>(null);
 
@@ -103,9 +105,11 @@ export default function CalendarsPage() {
     const handleRowSelection = (rows: CalendarType[]) => {
         const calendar = rows[0] ?? null;
         setSelectedCalendar(calendar);
-        setIsEditing(false);
         setSubmissionError(null);
-        if (calendar) form.reset({ ...calendar, color: calendar.color || '#ffffff' });
+        if (calendar) {
+            setIsEditing(false);
+            form.reset({ ...calendar, color: calendar.color || '#ffffff' });
+        }
     };
 
     const handleCreate = () => {
@@ -114,6 +118,7 @@ export default function CalendarsPage() {
         setIsEditing(true);
         setSubmissionError(null);
         form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: false });
+        setIsCreateDialogOpen(true);
     };
 
     const handleClose = () => {
@@ -139,7 +144,10 @@ export default function CalendarsPage() {
             toast({ title: selectedCalendar ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
             await loadCalendars();
             setIsEditing(false);
-            if (!values.id) handleClose();
+            if (!values.id) {
+                setIsCreateDialogOpen(false);
+                handleClose();
+            }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         } finally {
@@ -179,7 +187,7 @@ export default function CalendarsPage() {
         },
     ];
 
-    const isRightOpen = !!selectedCalendar || isEditing;
+    const isRightOpen = !!selectedCalendar;
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -340,6 +348,77 @@ export default function CalendarsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
+                        setIsEditing(false);
+                        setSubmissionError(null);
+                        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: false });
+                    }
+                }}
+            >
+                <DialogContent maxWidth="lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('dialog.createTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.name')}</FormLabel>
+                                        <FormControl><Input {...field} placeholder={t('dialog.namePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="google_calendar_id" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.googleCalendarId')}</FormLabel>
+                                        <FormControl><Input type="email" {...field} placeholder={t('dialog.googleCalendarIdPlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="color" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.color')}</FormLabel>
+                                        <FormControl>
+                                            <div className="flex items-center gap-2">
+                                                <Input type="color" className="p-1 h-10 w-14" {...field} />
+                                                <Input placeholder="#FFFFFF" {...field} />
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="is_active" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <FormLabel className="font-normal">{t('dialog.active')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                            </DialogBody>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
+                                    {t('dialog.cancel')}
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t('dialog.create')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -2498,6 +2498,9 @@
       "editSave": "Guardar Cambios"
     },
     "validation": {
+      "dayRequired": "El día de la semana es obligatorio.",
+      "startRequired": "La hora de inicio es obligatoria.",
+      "endRequired": "La hora de fin es obligatoria.",
       "dayOfWeekRequired": "El día de la semana es obligatorio.",
       "startTimeRequired": "La hora de inicio es obligatoria.",
       "endTimeRequired": "La hora de fin es obligatoria."
@@ -2798,6 +2801,8 @@
       "editDescription": "Editar la excepción de disponibilidad para el doctor",
       "doctor": "Doctor",
       "selectDoctor": "Seleccionar un doctor",
+      "searchDoctor": "Buscar doctor",
+      "noDoctorFound": "No se encontró el doctor",
       "date": "Fecha",
       "isAvailable": "¿Está Disponible?",
       "startTime": "Hora de Inicio",

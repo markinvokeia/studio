@@ -10,6 +10,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -99,6 +100,7 @@ export default function HolidaysPage() {
     const [isEditing, setIsEditing] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingHoliday, setDeletingHoliday] = React.useState<ClinicException | null>(null);
 
@@ -126,9 +128,11 @@ export default function HolidaysPage() {
     const handleRowSelection = (rows: ClinicException[]) => {
         const holiday = rows[0] ?? null;
         setSelectedHoliday(holiday);
-        setIsEditing(false);
         setSubmissionError(null);
-        if (holiday) form.reset({ ...holiday, date: formatHolidayDate(holiday.date) });
+        if (holiday) {
+            setIsEditing(false);
+            form.reset({ ...holiday, date: formatHolidayDate(holiday.date) });
+        }
     };
 
     const handleCreate = () => {
@@ -137,6 +141,7 @@ export default function HolidaysPage() {
         setIsEditing(true);
         setSubmissionError(null);
         form.reset({ date: '', is_open: false, start_time: '', end_time: '', notes: '' });
+        setIsCreateDialogOpen(true);
     };
 
     const handleClose = () => {
@@ -162,7 +167,10 @@ export default function HolidaysPage() {
             toast({ title: selectedHoliday ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle') });
             await loadHolidays();
             setIsEditing(false);
-            if (!values.id) handleClose();
+            if (!values.id) {
+                setIsCreateDialogOpen(false);
+                handleClose();
+            }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         } finally {
@@ -203,7 +211,7 @@ export default function HolidaysPage() {
         { accessorKey: 'notes', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.notes')} /> },
     ];
 
-    const isRightOpen = !!selectedHoliday || isEditing;
+    const isRightOpen = !!selectedHoliday;
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -369,6 +377,79 @@ export default function HolidaysPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
+                        setIsEditing(false);
+                        setSubmissionError(null);
+                        form.reset({ date: '', is_open: false, start_time: '', end_time: '', notes: '' });
+                    }
+                }}
+            >
+                <DialogContent maxWidth="lg">
+                    <DialogHeader>
+                        <DialogTitle>{t('createDialog.title')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="space-y-4 px-6 py-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <FormField control={form.control} name="date" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.date')}</FormLabel>
+                                        <FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="is_open" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                        <FormLabel className="font-normal">{t('createDialog.isOpen')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="start_time" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.startTime')}</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="end_time" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.endTime')}</FormLabel>
+                                        <FormControl><Input type="time" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="notes" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('createDialog.notes')}</FormLabel>
+                                        <FormControl><Textarea {...field} placeholder={t('createDialog.notesPlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </DialogBody>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" disabled={isSaving} onClick={() => setIsCreateDialogOpen(false)}>
+                                    {t('createDialog.cancel')}
+                                </Button>
+                                <Button type="submit" disabled={isSaving}>
+                                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    {t('createDialog.save')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
