@@ -789,7 +789,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             <div className="flex-none bg-card shadow-sm border-b border-border">
               {/* Título y badges principales */}
               <div className="px-6 py-4 border-b border-border/50">
-                <div className="flex items-start justify-between gap-4 pr-10">
+                <div className="flex items-start justify-between gap-4 pr-10 sm:pr-20">
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>

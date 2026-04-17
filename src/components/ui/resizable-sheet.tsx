@@ -134,19 +134,21 @@ export function ResizableSheet({
           </div>
         )}
 
-        {/* Fullscreen toggle button — positioned just before the X close button */}
-        <button
-          type="button"
-          onClick={() => setIsFullscreen((v) => !v)}
-          className={cn(
-            'absolute z-50 top-4 flex items-center justify-center w-7 h-7 rounded-lg',
-            'text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
-            side === 'right' ? 'right-12' : 'left-12'
-          )}
-          title={isFullscreen ? 'Restore' : 'Fullscreen'}
-        >
-          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-        </button>
+        {/* Fullscreen toggle button — hidden on mobile (already fullscreen) */}
+        {!isMobile && (
+          <button
+            type="button"
+            onClick={() => setIsFullscreen((v) => !v)}
+            className={cn(
+              'absolute z-50 top-4 flex items-center justify-center w-7 h-7 rounded-lg',
+              'text-muted-foreground hover:text-foreground hover:bg-muted transition-colors',
+              side === 'right' ? 'right-12' : 'left-12'
+            )}
+            title={isFullscreen ? 'Restore' : 'Fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          </button>
+        )}
 
         {/* Content wrapper */}
         <div className="flex-1 flex flex-col overflow-hidden">
