@@ -58,6 +58,18 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
+const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
+  id: undefined,
+  name: '',
+  category_id: '',
+  category: '',
+  price: 0,
+  currency: 'USD',
+  description: '',
+  color: '',
+  is_active: true,
+};
+
 async function getServices(): Promise<Service[]> {
   try {
     const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, { is_sales: 'false' });
@@ -232,8 +244,14 @@ export default function ServicesPage() {
   const [selectedService, setSelectedService] = React.useState<Service | null>(null);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-  const createForm = useForm<ServiceFormValues>({ resolver: zodResolver(serviceFormSchema(tValidation)) });
-  const detailForm = useForm<ServiceFormValues>({ resolver: zodResolver(serviceFormSchema(tValidation)) });
+  const createForm = useForm<ServiceFormValues>({
+    resolver: zodResolver(serviceFormSchema(tValidation)),
+    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+  });
+  const detailForm = useForm<ServiceFormValues>({
+    resolver: zodResolver(serviceFormSchema(tValidation)),
+    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+  });
 
   const loadServices = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -264,7 +282,7 @@ export default function ServicesPage() {
   const handleCreate = () => {
     if (!canCreateProduct) return;
     getMiscellaneousCategories().then(setCategories);
-    createForm.reset({ name: '', category_id: '', price: 0, currency: 'USD', description: '', color: '', is_active: true });
+    createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
     setCreateError(null);
     setIsCreateDialogOpen(true);
   };
