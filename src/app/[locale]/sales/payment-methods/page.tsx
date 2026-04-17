@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
@@ -84,6 +85,7 @@ export default function PaymentMethodsPage() {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingMethod, setDeletingMethod] = React.useState<PaymentMethod | null>(null);
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
     const form = useForm<PaymentMethodFormValues>({
         resolver: zodResolver(paymentMethodSchema(tValidation)),
@@ -101,9 +103,14 @@ export default function PaymentMethodsPage() {
     const handleRowSelection = (rows: PaymentMethod[]) => {
         const method = rows[0] ?? null;
         setSelectedMethod(method);
-        setIsEditing(false);
         setSubmissionError(null);
-        if (method) form.reset(method);
+
+        if (!method) {
+            return;
+        }
+
+        setIsEditing(false);
+        form.reset(method);
     };
 
     const handleCreate = () => {
@@ -112,6 +119,7 @@ export default function PaymentMethodsPage() {
         setIsEditing(true);
         setSubmissionError(null);
         form.reset({ name: '', code: '', is_cash_equivalent: false, is_active: true });
+        setIsCreateDialogOpen(true);
     };
 
     const handleClose = () => {
@@ -143,6 +151,7 @@ export default function PaymentMethodsPage() {
                 if (updated) { setSelectedMethod(updated); form.reset(updated); }
             }
             setIsEditing(false);
+            setIsCreateDialogOpen(false);
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
         } finally {
@@ -174,7 +183,7 @@ export default function PaymentMethodsPage() {
         },
     ];
 
-    const isRightOpen = !!selectedMethod || isEditing;
+    const isRightOpen = !!selectedMethod;
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -322,6 +331,81 @@ export default function PaymentMethodsPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <Dialog
+                open={isCreateDialogOpen}
+                onOpenChange={(open) => {
+                    setIsCreateDialogOpen(open);
+                    if (!open) {
+                        setIsEditing(false);
+                        setSubmissionError(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('dialog.createTitle')}</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="px-6 py-4">
+                        <Form {...form}>
+                            <form id="create-payment-method-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                {submissionError && (
+                                    <Alert variant="destructive">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
+                                        <AlertDescription>{submissionError}</AlertDescription>
+                                    </Alert>
+                                )}
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.name')}</FormLabel>
+                                        <FormControl><Input {...field} disabled={isSaving} placeholder={t('dialog.namePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="code" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.code')}</FormLabel>
+                                        <FormControl><Input {...field} disabled={isSaving} placeholder={t('dialog.codePlaceholder')} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="is_cash_equivalent" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving} /></FormControl>
+                                        <FormLabel className="font-normal">{t('dialog.isCashEquivalent')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="is_active" render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
+                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isSaving} /></FormControl>
+                                        <FormLabel className="font-normal">{t('dialog.isActive')}</FormLabel>
+                                    </FormItem>
+                                )} />
+                            </form>
+                        </Form>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                                setIsCreateDialogOpen(false);
+                                setIsEditing(false);
+                                setSubmissionError(null);
+                            }}
+                            disabled={isSaving}
+                        >
+                            {t('dialog.cancel')}
+                        </Button>
+                        <Button type="submit" form="create-payment-method-form" disabled={isSaving}>
+                            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('dialog.create')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
