@@ -1925,7 +1925,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                             <p className="text-sm text-muted-foreground">{sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'} registradas</p>
                         </div>
                     </div>
-                    <Button onClick={handleAddSession}>
+                    <Button onClick={handleAddSession} size="icon" className="sm:hidden shrink-0" aria-label={t('addSession')}>
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                    <Button onClick={handleAddSession} className="hidden sm:inline-flex">
                         <Plus className="h-4 w-4 mr-2" />
                         {t('addSession')}
                     </Button>

@@ -1683,7 +1683,7 @@ export default function UsersPage() {
                           );
                         })()}
                         {/* Tab content */}
-                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 p-3">
+                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 py-3 sm:px-3">
                           {activeTab === 'info' && (
                             <UserInfoTab
                               user={selectedUser}
