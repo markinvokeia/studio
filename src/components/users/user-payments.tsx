@@ -116,7 +116,7 @@ async function getPaymentsForUser(userId: string): Promise<Payment[]> {
     const data = await api.get(API_ROUTES.USER_PAYMENTS, { user_id: userId });
     const paymentsData = Array.isArray(data) ? data : (data.payments || []);
 
-    return paymentsData.map((apiPayment: any) => ({
+    return paymentsData.filter((p: any) => p && p.id != null).map((apiPayment: any) => ({
       id: apiPayment.id.toString(),
       doc_no: apiPayment.doc_no || `PAY-${apiPayment.id}`,
       order_id: apiPayment.order_id?.toString() ?? '',
