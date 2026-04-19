@@ -51,6 +51,7 @@ import { UserFinancialSummaryStats } from '@/components/users/user-financial-sum
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserMessages } from '@/components/users/user-messages';
+import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
@@ -67,7 +68,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { useLocale, useTranslations } from 'next-intl';
@@ -1664,6 +1665,7 @@ export default function UsersPage() {
                           const userTabs: VerticalTab[] = [
                             { id: 'info', icon: Users, label: 'Información' },
                             ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
+                            { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
                             { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
@@ -1683,7 +1685,7 @@ export default function UsersPage() {
                           );
                         })()}
                         {/* Tab content */}
-                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 py-3 sm:px-3">
+                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                           {activeTab === 'info' && (
                             <UserInfoTab
                               user={selectedUser}
@@ -1755,6 +1757,7 @@ export default function UsersPage() {
                               refreshTrigger={refreshAppointmentsTrigger}
                             />
                           )}
+                          {activeTab === 'treatment-plans' && <UserTreatmentPlans userId={selectedUser.id} userName={selectedUser.name} />}
                           {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}
                           {activeTab === 'logs' && <UserLogs userId={selectedUser.id} />}
                           {activeTab === 'notes' && <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />}

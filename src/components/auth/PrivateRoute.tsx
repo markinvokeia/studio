@@ -114,7 +114,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const effectivePathname = getEffectivePathname(pathname, locale);
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden text-foreground">
+    <div className="flex h-[100dvh] bg-background overflow-hidden text-foreground">
       <Sidebar />
       <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 min-w-0 h-full overflow-hidden")}>
         <Header />

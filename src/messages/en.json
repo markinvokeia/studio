@@ -463,7 +463,11 @@
       "loadingQuotes": "Loading quotes...",
       "loadingServices": "Loading services...",
       "selectUserFirst": "Select a patient first",
-      "notes": "Notes"
+      "notes": "Notes",
+      "workflowServiceTitle": "Workflow Service",
+      "workflowServiceDescription": "Scheduling this appointment will create a treatment plan with {steps} steps.",
+      "workflowPlanCreated": "Treatment plan created for {name} ({steps} steps)",
+      "workflowStepsLoading": "Loading steps..."
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -803,6 +807,7 @@
       "services": "Services",
       "quotes": "Quotes",
       "appointments": "Appointments",
+      "treatmentPlans": "Treat. Plans",
       "messages": "Messages",
       "preferences": "Preferences",
       "logs": "Logs",
@@ -2327,6 +2332,37 @@
       "activeDescription": "Set service active",
       "colorLabel": "Color"
     },
+    "serviceType": {
+      "label": "Workflow Service",
+      "description": "This service consists of multiple sequential appointments (treatment plan)",
+      "stepsTitle": "Treatment Steps",
+      "addStep": "Add Step",
+      "noSteps": "No steps yet. Add the first step.",
+      "stepLabel": "Step",
+      "stepName": "Step Name",
+      "stepNamePlaceholder": "e.g., Tooth extraction",
+      "offsetDays": "Days after prev.",
+      "duration": "Duration (min)",
+      "stepNotes": "Notes",
+      "stepNotesPlaceholder": "Optional notes for this step",
+      "position": "Position",
+      "stepNameRequired": "Step name is required",
+      "stepSaved": "Step saved successfully",
+      "stepSaveError": "Failed to save step",
+      "stepSaving": "Saving...",
+      "stepSaveBtn": "Save",
+      "stepCancel": "Cancel",
+      "stepDeleted": "Step deleted",
+      "stepDeleteError": "Failed to delete step",
+      "stepLoading": "Loading steps...",
+      "stepLoadError": "Failed to load steps",
+      "stepsTabDescription": "Define the sequential steps for this workflow service",
+      "offsetMinDays": "Min days",
+      "offsetMaxDays": "Max days",
+      "offsetRange": "Offset",
+      "isLabDependent": "Lab dependent",
+      "labDependent": "Lab dependent"
+    },
     "deleteDialog": {
       "cancel": "Cancel",
       "confirm": "Confirm",
@@ -2352,7 +2388,8 @@
     },
     "tabs": {
       "details": "Detalles",
-      "info": "Info"
+      "info": "Info",
+      "steps": "Steps"
     }
   },
   "ServicesColumns": {
@@ -4834,5 +4871,52 @@
     "sendError": "Error sending message. Please try again.",
     "ttsEnable": "Enable voice",
     "ttsDisable": "Mute voice"
+  },
+  "TreatmentPlans": {
+    "title": "Treatment Plans",
+    "loading": "Loading plans...",
+    "emptyState": "No treatment plans",
+    "emptyStateDescription": "Treatment plans will appear here when a workflow service appointment is created.",
+    "steps": "steps",
+    "startedAt": "Started",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "paused": "Paused"
+    },
+    "stepStatus": {
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "missed": "Missed"
+    },
+    "review": {
+      "title": "Review Treatment Plan",
+      "description": "Review and adjust the scheduled steps for {service} before confirming.",
+      "stepNamePlaceholder": "Step name",
+      "datePlaceholder": "Scheduled date",
+      "notesPlaceholder": "Notes (optional)",
+      "addStep": "Add Step",
+      "removeStep": "Remove step",
+      "confirm": "Confirm Plan",
+      "confirming": "Confirming...",
+      "cancel": "Cancel"
+    },
+    "edit": {
+      "editStep": "Edit step",
+      "deleteStep": "Delete step",
+      "addStep": "Add step",
+      "addStepTitle": "New Step #{number}",
+      "addStepConfirm": "Add Step",
+      "stepName": "Step name",
+      "scheduledDate": "Scheduled date",
+      "status": "Status",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional notes",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
   }
 }

@@ -463,7 +463,11 @@
       "loadingQuotes": "Cargando presupuestos...",
       "loadingServices": "Cargando servicios...",
       "selectUserFirst": "Seleccione un paciente primero",
-      "notes": "Notas"
+      "notes": "Notas",
+      "workflowServiceTitle": "Servicio con Flujo",
+      "workflowServiceDescription": "Agendar esta cita creará un plan de tratamiento con {steps} pasos.",
+      "workflowPlanCreated": "Plan de tratamiento creado para {name} ({steps} pasos)",
+      "workflowStepsLoading": "Cargando pasos..."
     },
     "AppointmentsColumns": {
       "service": "Servicio",
@@ -803,6 +807,7 @@
       "services": "Servicios",
       "quotes": "Presupuestos",
       "appointments": "Citas",
+      "treatmentPlans": "Planes de Trat.",
       "messages": "Mensajes",
       "preferences": "Preferencias",
       "logs": "Registros",
@@ -2291,6 +2296,37 @@
       "activeDescription": "Servicio activado",
       "colorLabel": "Color"
     },
+    "serviceType": {
+      "label": "Servicio con Flujo",
+      "description": "Este servicio comprende múltiples citas secuenciales (plan de tratamiento)",
+      "stepsTitle": "Pasos del Tratamiento",
+      "addStep": "Agregar Paso",
+      "noSteps": "Sin pasos aún. Agregue el primer paso.",
+      "stepLabel": "Paso",
+      "stepName": "Nombre del Paso",
+      "stepNamePlaceholder": "ej. Extracción dental",
+      "offsetDays": "Días desde el prev.",
+      "duration": "Duración (min)",
+      "stepNotes": "Notas",
+      "stepNotesPlaceholder": "Notas opcionales para este paso",
+      "position": "Posición",
+      "stepNameRequired": "El nombre del paso es obligatorio",
+      "stepSaved": "Paso guardado correctamente",
+      "stepSaveError": "Error al guardar el paso",
+      "stepSaving": "Guardando...",
+      "stepSaveBtn": "Guardar",
+      "stepCancel": "Cancelar",
+      "stepDeleted": "Paso eliminado",
+      "stepDeleteError": "Error al eliminar el paso",
+      "stepLoading": "Cargando pasos...",
+      "stepLoadError": "Error al cargar los pasos",
+      "stepsTabDescription": "Define los pasos secuenciales para este servicio con flujo",
+      "offsetMinDays": "Días mín.",
+      "offsetMaxDays": "Días máx.",
+      "offsetRange": "Intervalo",
+      "isLabDependent": "Depende de laboratorio",
+      "labDependent": "Dep. laboratorio"
+    },
     "deleteDialog": {
       "cancel": "Cancelar",
       "confirm": "Confirmar",
@@ -2316,7 +2352,8 @@
     },
     "tabs": {
       "details": "Detalles",
-      "info": "Info"
+      "info": "Info",
+      "steps": "Pasos"
     }
   },
   "ServicesColumns": {
@@ -4789,5 +4826,52 @@
     "sendError": "Error al enviar el mensaje. Intenta de nuevo.",
     "ttsEnable": "Activar voz",
     "ttsDisable": "Silenciar voz"
+  },
+  "TreatmentPlans": {
+    "title": "Planes de Tratamiento",
+    "loading": "Cargando planes...",
+    "emptyState": "Sin planes de tratamiento",
+    "emptyStateDescription": "Los planes de tratamiento aparecerán aquí cuando se cree una cita con un servicio de flujo.",
+    "steps": "pasos",
+    "startedAt": "Iniciado",
+    "status": {
+      "active": "Activo",
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "paused": "Pausado"
+    },
+    "stepStatus": {
+      "pending": "Pendiente",
+      "scheduled": "Agendado",
+      "completed": "Completado",
+      "cancelled": "Cancelado",
+      "missed": "Ausente"
+    },
+    "review": {
+      "title": "Revisar Plan de Tratamiento",
+      "description": "Revisa y ajusta los pasos programados para {service} antes de confirmar.",
+      "stepNamePlaceholder": "Nombre del paso",
+      "datePlaceholder": "Fecha programada",
+      "notesPlaceholder": "Notas (opcional)",
+      "addStep": "Agregar Paso",
+      "removeStep": "Eliminar paso",
+      "confirm": "Confirmar Plan",
+      "confirming": "Confirmando...",
+      "cancel": "Cancelar"
+    },
+    "edit": {
+      "editStep": "Editar paso",
+      "deleteStep": "Eliminar paso",
+      "addStep": "Agregar paso",
+      "addStepTitle": "Nuevo Paso #{number}",
+      "addStepConfirm": "Agregar Paso",
+      "stepName": "Nombre del paso",
+      "scheduledDate": "Fecha programada",
+      "status": "Estado",
+      "notes": "Notas",
+      "notesPlaceholder": "Notas opcionales",
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    }
   }
 }

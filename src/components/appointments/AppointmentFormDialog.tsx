@@ -3,6 +3,7 @@
 
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,16 +26,28 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
-import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, User as UserType } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
+import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
+import { createTreatmentSequence } from '@/services/treatment-plans';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { Check, ChevronsUpDown, FilePlus, Link2, Loader2, Stethoscope, X } from 'lucide-react';
+import { Check, ChevronsUpDown, ClipboardList, FilePlus, Link2, Loader2, Stethoscope, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+
+interface WorkflowStep {
+    id: number | string;
+    position: number;
+    step_name: string;
+    offset_min_days: number;
+    offset_max_days: number;
+    is_lab_dependent: boolean;
+    notes?: string;
+}
 
 interface AppointmentFormDialogProps {
     open: boolean;
@@ -139,6 +152,44 @@ export function AppointmentFormDialog({
     const [hasPendingSession, setHasPendingSession] = React.useState(false);
     // NEW: Pending appointment data when creating with session
     const [pendingAppointmentPayload, setPendingAppointmentPayload] = React.useState<any>(null);
+
+    // Workflow service steps
+    const [workflowSteps, setWorkflowSteps] = React.useState<WorkflowStep[]>([]);
+    const [isLoadingWorkflowSteps, setIsLoadingWorkflowSteps] = React.useState(false);
+
+    // Treatment plan review dialog
+    const [pendingSequence, setPendingSequence] = React.useState<TreatmentSequence | null>(null);
+    const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
+
+    // Fetch steps whenever the selected workflow service changes
+    React.useEffect(() => {
+        const wf = appointment.services.find(s => s.service_type === 'workflow');
+        if (!wf) { setWorkflowSteps([]); return; }
+        let cancelled = false;
+        setIsLoadingWorkflowSteps(true);
+        api.get(API_ROUTES.SERVICES_STEPS, { service_id: wf.id }).then((res: any) => {
+            if (cancelled) return;
+            const raw: any[] = Array.isArray(res) ? res
+                : Array.isArray(res?.[0]?.items) ? res[0].items
+                : Array.isArray(res?.items) ? res.items
+                : [];
+            setWorkflowSteps(
+                raw
+                    .map((s: any) => ({
+                        id: s.id,
+                        position: s.position ?? 1,
+                        step_name: s.step_name ?? '',
+                        offset_min_days: s.offset_min_days ?? 0,
+                        offset_max_days: s.offset_max_days ?? 0,
+                        is_lab_dependent: s.is_lab_dependent ?? false,
+                        notes: s.notes ?? '',
+                    }))
+                    .sort((a, b) => a.position - b.position)
+            );
+            setIsLoadingWorkflowSteps(false);
+        }).catch(() => { if (!cancelled) { setWorkflowSteps([]); setIsLoadingWorkflowSteps(false); } });
+        return () => { cancelled = true; };
+    }, [appointment.services]);
 
     // Quote items for prefilling treatments in clinic session
     const [sessionQuoteItems, setSessionQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -368,6 +419,8 @@ export function AppointmentFormDialog({
                     price: apiService.price || 0,
                     duration_minutes: apiService.duration_minutes || 0,
                     is_active: apiService.is_active,
+                    service_type: apiService.service_type || 'single',
+                    treatment_steps: apiService.treatment_steps || [],
                 })));
             } catch (error) {
                 console.error("Failed to fetch services:", error);
@@ -642,6 +695,43 @@ export function AppointmentFormDialog({
 
             if (isSuccess) {
                 toast({ title: isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
+                // For new appointments with a workflow service: open review dialog before closing
+                if (!isEditing) {
+                    const workflowService = appointment.services.find(s => s.service_type === 'workflow');
+                    const patientId = appointment.user?.id || '';
+                    if (workflowService && patientId && workflowSteps.length > 0) {
+                        const appointmentDate = appointment.date || new Date().toISOString().split('T')[0];
+                        let cumDays = 0;
+                        const builtSequence: TreatmentSequence = {
+                            id: '',
+                            patient_id: patientId,
+                            service_id: workflowService.id,
+                            service_name: workflowService.name,
+                            service_color: workflowService.color ?? null,
+                            status: 'active',
+                            started_at: appointmentDate,
+                            steps: workflowSteps.map((step, idx) => {
+                                const offsetDays = Math.round((step.offset_min_days + step.offset_max_days) / 2);
+                                cumDays += offsetDays;
+                                const d = new Date(appointmentDate);
+                                d.setDate(d.getDate() + cumDays);
+                                return {
+                                    id: `step_${Date.now()}_${idx}`,
+                                    step_number: step.position,
+                                    step_name: step.step_name,
+                                    scheduled_date: d.toISOString().split('T')[0],
+                                    status: (idx === 0 ? 'scheduled' : 'pending') as TreatmentSequenceStepStatus,
+                                    notes: step.notes,
+                                };
+                            }),
+                        };
+                        setPendingSequence(builtSequence);
+                        setIsPlanReviewOpen(true);
+                        onOpenChange(false);
+                        if (onSaveSuccess) onSaveSuccess(result, startDateTime);
+                        return;
+                    }
+                }
                 onOpenChange(false);
                 if (onSaveSuccess) onSaveSuccess(result, startDateTime);
             } else {
@@ -843,6 +933,7 @@ export function AppointmentFormDialog({
     }, [allDoctors, appointment.services, doctorServiceMap, checkDoctorAvailability]);
 
     return (
+        <>
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent maxWidth="4xl">
                 <DialogHeader>
@@ -1039,6 +1130,37 @@ export function AppointmentFormDialog({
                                             ))}
                                         </div>
                                     </div>
+                                )}
+                                {appointment.services.some(s => s.service_type === 'workflow') && (
+                                    <Alert className="mt-2 border-primary/30 bg-primary/5">
+                                        <ClipboardList className="h-4 w-4 text-primary shrink-0" />
+                                        <AlertTitle className="text-sm">{t('createDialog.workflowServiceTitle')}</AlertTitle>
+                                        <AlertDescription className="text-xs text-muted-foreground space-y-1">
+                                            {isLoadingWorkflowSteps ? (
+                                                <p className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />{t('createDialog.workflowStepsLoading')}</p>
+                                            ) : (
+                                                <>
+                                                    <p>{t('createDialog.workflowServiceDescription', { steps: workflowSteps.length })}</p>
+                                                    {workflowSteps.length > 0 && (
+                                                        <ol className="mt-1.5 space-y-1 pl-1">
+                                                            {workflowSteps.map((step) => {
+                                                                const offsetLabel = step.offset_min_days === step.offset_max_days
+                                                                    ? (step.offset_min_days > 0 ? `+${step.offset_min_days}d` : null)
+                                                                    : `+${step.offset_min_days}–${step.offset_max_days}d`;
+                                                                return (
+                                                                    <li key={step.id} className="flex items-start gap-1.5">
+                                                                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary shrink-0 mt-0.5">{step.position}</span>
+                                                                        <span className="flex-1 text-foreground/80 leading-snug">{step.step_name}</span>
+                                                                        <span className="text-muted-foreground/70 shrink-0 tabular-nums">{offsetLabel}</span>
+                                                                    </li>
+                                                                );
+                                                            })}
+                                                        </ol>
+                                                    )}
+                                                </>
+                                            )}
+                                        </AlertDescription>
+                                    </Alert>
                                 )}
                             </div>
                             <div className="space-y-2">
@@ -1279,6 +1401,29 @@ export function AppointmentFormDialog({
                 }}
             />
         </Dialog>
+
+        {/* Treatment Plan Review Dialog — shown after saving a workflow-service appointment */}
+        {pendingSequence && (
+            <TreatmentPlanReviewDialog
+                open={isPlanReviewOpen}
+                onOpenChange={(open) => {
+                    setIsPlanReviewOpen(open);
+                    if (!open) setPendingSequence(null);
+                }}
+                pendingSequence={pendingSequence}
+                onConfirm={async (seq) => {
+                    await createTreatmentSequence(seq);
+                    toast({
+                        title: t('createDialog.workflowServiceTitle'),
+                        description: t('createDialog.workflowPlanCreated', {
+                            name: seq.service_name,
+                            steps: seq.steps.length,
+                        }),
+                    });
+                }}
+            />
+        )}
+        </>
     );
 }
 

@@ -304,6 +304,16 @@ export type PaymentMethod = {
   is_active: boolean;
 }
 
+export type ServiceType = 'single' | 'workflow';
+
+export type TreatmentStep = {
+  position: number;
+  name: string;
+  offset_days_from_prev: number;
+  duration_minutes: number;
+  notes?: string;
+};
+
 export type Service = {
   id: string;
   name: string;
@@ -318,6 +328,8 @@ export type Service = {
   is_active: boolean;
   color?: string | null;
   is_sales?: boolean;
+  service_type?: ServiceType;
+  treatment_steps?: TreatmentStep[];
 };
 
 export interface UserServicesEntry {
@@ -594,6 +606,34 @@ export type PatientSession = {
   quote_id?: string;
   quote_doc_no?: string;
   appointment_id?: string;
+};
+
+export type TreatmentSequenceStepStatus = 'pending' | 'scheduled' | 'completed' | 'cancelled' | 'missed';
+
+export type TreatmentSequenceStep = {
+  id: string;
+  step_number: number;
+  step_name: string;
+  scheduled_date?: string;
+  appointment_id?: string;
+  status: TreatmentSequenceStepStatus;
+  notes?: string;
+  completed_at?: string;
+};
+
+export type TreatmentSequenceStatus = 'active' | 'completed' | 'cancelled' | 'paused';
+
+export type TreatmentSequence = {
+  id: string;
+  patient_id: string;
+  service_id: string;
+  service_name: string;
+  service_color?: string | null;
+  status: TreatmentSequenceStatus;
+  started_at: string;
+  steps: TreatmentSequenceStep[];
+  notes?: string;
+  created_at?: string;
 };
 
 export type AvailabilityRule = {
