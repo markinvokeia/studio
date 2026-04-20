@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import * as React from 'react';
 
-export default function StudiesLayout({
+export default function SharedStudiesLayout({
     children,
 }: {
     children: React.ReactNode;
@@ -25,7 +25,7 @@ export default function StudiesLayout({
         return null;
     }
 
-    const hasAccess = hasPermission(DICOM_PERMISSIONS.VIEW_STUDIES);
+    const hasAccess = hasPermission(DICOM_PERMISSIONS.VIEW_SHARED_STUDIES);
 
     if (!hasAccess) {
         return (
