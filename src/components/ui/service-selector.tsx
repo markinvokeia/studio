@@ -39,7 +39,6 @@ export function ServiceSelector({
     onValueChange,
     placeholder = 'Buscar servicio...',
     noResultsText = 'No se encontraron servicios.',
-    searchingText = 'Buscando...',
     loadingText = 'Cargando...',
     triggerText = 'Seleccionar servicio',
     className,
@@ -49,19 +48,14 @@ export function ServiceSelector({
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [services, setServices] = React.useState<Service[]>([]);
+    const [selectedServiceCache, setSelectedServiceCache] = React.useState<Service | null>(null);
     const [isLoading, setIsLoading] = React.useState(false);
 
     const noResultsMessage = noResultsText || t('noResults');
-    const searchingMessage = searchingText || t('searching');
 
     // Fetch services when search query changes (with debounce)
     React.useEffect(() => {
         const handler = setTimeout(async () => {
-            // If search is empty and we already have services, don't reload
-            if (searchQuery.length === 0 && services.length > 0) {
-                return;
-            }
-
             setIsLoading(true);
             try {
                 const result = isSales
@@ -86,10 +80,23 @@ export function ServiceSelector({
 
     // Find selected service
     const selectedService = React.useMemo(() => {
-        return services.find(s => s.id === value);
+        const serviceFromResults = services.find(s => s.id === value);
+        if (serviceFromResults) return serviceFromResults;
+        if (selectedServiceCache?.id === value) return selectedServiceCache;
+        return undefined;
+    }, [selectedServiceCache, services, value]);
+
+    React.useEffect(() => {
+        const serviceFromResults = services.find(s => s.id === value);
+        if (serviceFromResults) {
+            setSelectedServiceCache(serviceFromResults);
+        } else if (!value) {
+            setSelectedServiceCache(null);
+        }
     }, [services, value]);
 
     const handleSelect = (service: Service) => {
+        setSelectedServiceCache(service);
         onValueChange?.(service.id, service);
         setOpen(false);
         // Reset search when closing

@@ -110,7 +110,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
         mode: 'onBlur',
     });
 
-    const { fields, append, remove, update } = useFieldArray({
+    const { fields, append, remove } = useFieldArray({
         control: form.control,
         name: 'items',
     });
@@ -383,7 +383,9 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                             field.onChange(serviceId);
                                                                             if (service) {
                                                                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                                                                update(index, { ...form.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * quantity });
+                                                                                const servicePrice = Number(service.price);
+                                                                                form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
+                                                                                form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                             }
                                                                         }}
                                                                         placeholder={t('itemDialog.searchService')}

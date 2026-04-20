@@ -658,7 +658,7 @@ export default function QuotesPage() {
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
     const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)), mode: 'onBlur' });
     const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)), mode: 'onBlur' });
-    const { fields: quoteFormFields, append: appendQuoteItem, remove: removeQuoteItem, update: updateQuoteItem, replace: replaceQuoteItems } = useFieldArray({
+    const { fields: quoteFormFields, append: appendQuoteItem, remove: removeQuoteItem, replace: replaceQuoteItems } = useFieldArray({
         control: quoteForm.control,
         name: 'items',
     });
@@ -1626,7 +1626,9 @@ export default function QuotesPage() {
                                                                                 field.onChange(serviceId);
                                                                                 if (service) {
                                                                                     const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                                    updateQuoteItem(index, { ...quoteForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * quantity });
+                                                                                    const servicePrice = Number(service.price);
+                                                                                    quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
+                                                                                    quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                                 }
                                                                             }}
                                                                             placeholder={t('itemDialog.searchService')}
