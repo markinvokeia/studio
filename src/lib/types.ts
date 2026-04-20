@@ -620,6 +620,7 @@ export type TreatmentSequenceStep = {
   status: TreatmentSequenceStepStatus;
   notes?: string;
   completed_at?: string;
+  duration_minutes?: number;
 };
 
 export type TreatmentSequenceStatus = 'active' | 'completed' | 'cancelled' | 'paused';
@@ -632,9 +633,16 @@ export type TreatmentSequence = {
   service_color?: string | null;
   status: TreatmentSequenceStatus;
   started_at: string;
+  expected_end_at?: string | null;
   steps: TreatmentSequenceStep[];
   notes?: string;
   created_at?: string;
+  // Doctor / calendar info — populated when creating from appointment
+  doctor_id?: string;
+  doctor_name?: string;
+  doctor_email?: string;
+  google_calendar_id?: string | null;
+  started_by?: string;
 };
 
 export type AvailabilityRule = {

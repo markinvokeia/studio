@@ -1,4 +1,6 @@
+import { API_ROUTES } from '@/constants/routes';
 import { TreatmentSequence, TreatmentSequenceStepStatus } from '@/lib/types';
+import api from '@/services/api';
 
 // In-memory store — resets on page refresh (mock only)
 const MOCK_SEQUENCES: TreatmentSequence[] = [
@@ -81,11 +83,17 @@ const MOCK_SEQUENCES: TreatmentSequence[] = [
 ];
 
 export async function getTreatmentSequences(patientId: string): Promise<TreatmentSequence[]> {
-  // Mock: return demo sequences for every patient until a real backend is wired up
-  const patientSpecific = MOCK_SEQUENCES.filter(s => s.patient_id === patientId);
-  if (patientSpecific.length > 0) return patientSpecific;
-  // Fall back to demo sequences so the UI is always populated during development
-  return MOCK_SEQUENCES.filter(s => s.patient_id === 'demo');
+  try {
+    const res = await api.get(API_ROUTES.TREATMENT_PLANS.GET_BY_PATIENT, { patient_id: patientId });
+    const raw: TreatmentSequence[] = Array.isArray(res)
+      ? res
+      : Array.isArray(res?.[0])
+        ? res[0]
+        : [];
+    return raw;
+  } catch {
+    return [];
+  }
 }
 
 export async function createTreatmentSequence(

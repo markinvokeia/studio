@@ -1,0 +1,195 @@
+{
+  "name": "Treatment Plan - Validate Availability",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Validate Treatment Plan Availability\n\n**POST** `/webhook/treatment-plans/validate-availability`\n\n**Request body:**\n```json\n{\n  \"service_id\": 1,\n  \"doctor_id\": \"uuid\",\n  \"steps\": [\n    {\n      \"step_id\": \"step_1\",\n      \"step_name\": \"Extracción dental\",\n      \"scheduled_date\": \"2026-05-01\",\n      \"duration_minutes\": 60,\n      \"schedule_mode\": \"calendar\"\n    }\n  ]\n}\n```\n\n**Response:**\n```json\n{\n  \"results\": [\n    {\n      \"step_id\": \"step_1\",\n      \"status\": \"available\",\n      \"alternatives\": []\n    }\n  ]\n}\n```\n\nOnly steps with `schedule_mode: 'calendar'` are checked.\nConflict = doctor has ≥ 5 appointments on that date.\nAlternatives = next 5 weekdays with fewer than 5 appointments.\n\nFlow:\n- IF no calendar steps → respond immediately (all available)\n- IF calendar steps exist → query DB → build response → respond",
+        "height": 400,
+        "width": 480,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-80, 20],
+      "typeVersion": 1,
+      "id": "tp-val-note-001",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "treatment-plans/validate-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "tp-val-wh-001",
+      "name": "Webhook",
+      "webhookId": "tp-validate-availability"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse and validate input\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst { service_id, doctor_id, steps } = body;\n\nif (!doctor_id) throw new Error('doctor_id is required');\nif (!Array.isArray(steps) || steps.length === 0) throw new Error('steps array is required');\n\n// Separate calendar vs manual steps\nconst calendarSteps = steps.filter(s => s.schedule_mode === 'calendar');\nconst manualSteps   = steps.filter(s => s.schedule_mode !== 'calendar');\n\n// Pre-build the \"all available\" response for the no-calendar-steps case\nconst earlyResults = steps.map(s => ({\n  step_id: s.step_id,\n  status: 'available',\n  alternatives: []\n}));\n\nreturn [{\n  json: {\n    service_id,\n    doctor_id,\n    steps,\n    calendarSteps,\n    manualSteps,\n    hasCalendarSteps: calendarSteps.length > 0,\n    earlyResults\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "tp-val-code-parse",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-calendar-steps",
+              "leftValue": "={{ $json.hasCalendarSteps }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "id": "tp-val-if-calendar",
+      "name": "Has Calendar Steps?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ results: $json.earlyResults }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 480],
+      "id": "tp-val-respond-early",
+      "name": "Respond All Manual"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build SQL to check appointment count per date for the doctor\nconst { doctor_id, calendarSteps } = $input.first().json;\n\n// Compute the lookahead range for alternatives (7 weeks out from last step)\nconst dates = calendarSteps.map(s => new Date(s.scheduled_date));\n\nconst maxDate = new Date(Math.max(...dates.map(d => d.getTime())));\nmaxDate.setDate(maxDate.getDate() + 49);\nconst lookaheadEnd = maxDate.toISOString().split('T')[0];\n\nconst minDate = new Date(Math.min(...dates.map(d => d.getTime())));\nminDate.setDate(minDate.getDate() - 1);\nconst lookaheadStart = minDate.toISOString().split('T')[0];\n\nconst conflictSQL = `\n  SELECT\n    start_time::date::text AS appointment_date,\n    COUNT(*) AS appointment_count\n  FROM appointments\n  WHERE\n    doctor_id = '${doctor_id}'\n    AND start_time::date BETWEEN '${lookaheadStart}' AND '${lookaheadEnd}'\n    AND status NOT IN ('cancelled', 'no-show')\n  GROUP BY start_time::date\n  ORDER BY start_time::date\n`;\n\nreturn [{\n  json: {\n    ...$input.first().json,\n    lookaheadStart,\n    lookaheadEnd,\n    conflictSQL\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "id": "tp-val-code-sql",
+      "name": "Build SQL"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.conflictSQL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1340, 300],
+      "id": "tp-val-pg-conflicts",
+      "name": "Query Appointments",
+      "credentials": {
+        "postgres": {
+          "id": "clinic-postgres",
+          "name": "Clinic Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge conflict data with steps and build final response\n\n// Get appointment counts per date from Postgres output\nconst pgRows = $input.all();\nconst countByDate = {};\npgRows.forEach(item => {\n  const { appointment_date, appointment_count } = item.json;\n  if (appointment_date) {\n    countByDate[appointment_date] = parseInt(appointment_count, 10);\n  }\n});\n\n// Retrieve original step data from Parse Input node\nconst parseNode = $('Parse Input').first().json;\nconst { steps } = parseNode;\n\n// Max appointments per day before flagging as conflict\nconst CONFLICT_THRESHOLD = 5;\n\n// Dates with availability (< threshold) — used to suggest alternatives\nconst availableDateSet = new Set(\n  Object.entries(countByDate)\n    .filter(([, cnt]) => cnt < CONFLICT_THRESHOLD)\n    .map(([date]) => date)\n);\n\n// Generate next N available weekday alternatives after a given date\nfunction getAlternatives(fromDate, n = 5) {\n  const alternatives = [];\n  const d = new Date(fromDate);\n  let safety = 0;\n  while (alternatives.length < n && safety < 90) {\n    d.setDate(d.getDate() + 1);\n    safety++;\n    const day = d.getDay();\n    if (day === 0 || day === 6) continue; // skip weekends\n    const iso = d.toISOString().split('T')[0];\n    // Available if in the set OR not in countByDate at all (zero appointments)\n    if (availableDateSet.has(iso) || !(iso in countByDate)) {\n      alternatives.push(iso);\n    }\n  }\n  return alternatives;\n}\n\n// Build results for all steps\nconst results = steps.map(step => {\n  if (step.schedule_mode !== 'calendar') {\n    return { step_id: step.step_id, status: 'available', alternatives: [] };\n  }\n\n  const date = step.scheduled_date;\n  const count = countByDate[date] ?? 0;\n  const hasConflict = count >= CONFLICT_THRESHOLD;\n\n  return {\n    step_id: step.step_id,\n    status: hasConflict ? 'conflict' : 'available',\n    conflict_reason: hasConflict\n      ? `El doctor ya tiene ${count} citas agendadas para ese día`\n      : null,\n    alternatives: hasConflict ? getAlternatives(date) : []\n  };\n});\n\nreturn [{ json: { results } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "id": "tp-val-code-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 300],
+      "id": "tp-val-respond",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: $json.message || 'Internal error' }) }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 480],
+      "id": "tp-val-respond-error",
+      "name": "Respond Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Parse Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [{ "node": "Has Calendar Steps?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Calendar Steps?": {
+      "main": [
+        [{ "node": "Build SQL", "type": "main", "index": 0 }],
+        [{ "node": "Respond All Manual", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build SQL": {
+      "main": [
+        [{ "node": "Query Appointments", "type": "main", "index": 0 }]
+      ]
+    },
+    "Query Appointments": {
+      "main": [
+        [{ "node": "Build Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": ["treatment-plans", "clinic"]
+}

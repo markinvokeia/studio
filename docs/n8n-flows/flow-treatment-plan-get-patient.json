@@ -1,0 +1,85 @@
+{
+  "name": "Treatment Plan - Get by Patient",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Get Treatment Plans by Patient\n\n**GET** `/webhook/treatment-plans/patient?patient_id=uuid`\n\n**Response:** Array of TreatmentSequence\n```json\n[\n  {\n    \"id\": \"42\",\n    \"service_id\": \"5\",\n    \"service_name\": \"Implante Dental Estándar\",\n    \"service_color\": \"#6366f1\",\n    \"status\": \"active\",\n    \"started_at\": \"2025-01-15\",\n    \"expected_end_at\": \"2025-10-24\",\n    \"doctor_id\": \"uuid\",\n    \"doctor_name\": \"Dr. García\",\n    \"notes\": null,\n    \"created_at\": \"2025-01-15T10:00:00Z\",\n    \"steps\": [\n      {\n        \"id\": \"1\",\n        \"step_number\": 1,\n        \"step_name\": \"Cirugía\",\n        \"scheduled_date\": \"2025-01-15\",\n        \"appointment_id\": \"123\",\n        \"status\": \"completed\",\n        \"milestone_status\": \"done\",\n        \"notes\": null\n      }\n    ]\n  }\n]\n```\n\n**Steps logic:**\n- Template steps come from `treatment_steps` (service definition)\n- LEFT JOIN with `appointments` to get actual scheduled date + status\n- `milestone_status` mapped to UI status:\n  - done → completed\n  - waiting → scheduled\n  - alert → missed\n  - pending / null → pending\n\n**Flow: 3 nodes only**\nWebhook → Postgres (single aggregate query) → Respond",
+        "height": 500,
+        "width": 500,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-80, 20],
+      "typeVersion": 1,
+      "id": "tp-get-note-001",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "treatment-plans/patient",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "tp-get-wh-001",
+      "name": "Webhook",
+      "webhookId": "tp-get-patient"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(\n  json_agg(\n    json_build_object(\n      'id',             ts.id::text,\n      'service_id',     ts.service_id::text,\n      'service_name',   COALESCE(sc.name, 'Servicio desconocido'),\n      'service_color',  sc.color,\n      'status',         ts.status,\n      'started_at',     ts.started_at::text,\n      'expected_end_at', ts.expected_end_at::text,\n      'doctor_id',      ts.started_by::text,\n      'doctor_name',    u.name,\n      'notes',          ts.notes,\n      'created_at',     ts.created_at::text,\n      'steps', (\n        SELECT COALESCE(\n          json_agg(\n            json_build_object(\n              'id',               COALESCE(a.id::text, tt.id::text || '_tpl'),\n              'step_number',      tt.position,\n              'step_name',        tt.step_name,\n              'scheduled_date',   a.start_datetime::date::text,\n              'appointment_id',   a.id::text,\n              'status',           CASE a.milestone_status\n                                    WHEN 'done'    THEN 'completed'\n                                    WHEN 'waiting' THEN 'scheduled'\n                                    WHEN 'alert'   THEN 'missed'\n                                    ELSE 'pending'\n                                  END,\n              'milestone_status', a.milestone_status,\n              'notes',            a.notes\n            )\n            ORDER BY tt.position\n          ),\n          '[]'::json\n        )\n        FROM treatment_steps tt\n        LEFT JOIN appointments a\n          ON  a.sequence_id  = ts.id\n          AND a.step_position = tt.position\n          AND a.status NOT IN ('cancelled')\n        WHERE tt.service_id = ts.service_id\n      )\n    )\n    ORDER BY\n      CASE ts.status WHEN 'active' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END,\n      ts.started_at DESC\n  ),\n  '[]'::json\n) AS result\nFROM treatment_sequences ts\nLEFT JOIN service_catalog sc ON sc.id = ts.service_id\nLEFT JOIN users u ON u.id = ts.started_by\nWHERE ts.patient_id = '{{ $json.query.patient_id }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [680, 300],
+      "id": "tp-get-pg-001",
+      "name": "Query Treatment Plans",
+      "credentials": {
+        "postgres": {
+          "id": "clinic-postgres",
+          "name": "Clinic Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.result ?? []) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 300],
+      "id": "tp-get-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Query Treatment Plans", "type": "main", "index": 0 }]
+      ]
+    },
+    "Query Treatment Plans": {
+      "main": [
+        [{ "node": "Respond 200", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": ["treatment-plans", "clinic"]
+}
