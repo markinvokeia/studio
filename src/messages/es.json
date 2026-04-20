@@ -775,14 +775,17 @@
     "title": "Pacientes",
     "stats": {
       "title": "Resumen financiero",
+      "summaryTitle": "Resúmenes",
+      "tabFinancial": "Financiero",
+      "tabTreatment": "Tratamiento",
       "totalInvoiced": "Total Facturado",
       "totalPaid": "Total Pagado",
       "currentDebt": "Deuda Actual",
       "availableBalance": "Saldo Disponible",
       "printFinancialSummary": "Imprimir Resumen Financiero",
       "print": "Imprimir",
-      "showStats": "VER $",
-      "hideStats": "OCULTAR $"
+      "showStats": "VER",
+      "hideStats": "OCULTAR"
     },
     "financialSummaryDialog": {
       "title": "Imprimir Resumen Financiero",
@@ -4835,6 +4838,22 @@
     "emptyStateDescription": "Los planes de tratamiento aparecerán aquí cuando se cree una cita con un servicio de flujo.",
     "steps": "pasos",
     "startedAt": "Iniciado",
+    "progressLabel": "Progreso del tratamiento",
+    "milestones": "hitos",
+    "editSteps": "Editar pasos",
+    "interruptedAlert": "Paciente con tratamiento interrumpido",
+    "missedDaysAgo": "Sin reprogramar hace {days} días",
+    "contact": "Contactar",
+    "historicalTitle": "Historial",
+    "showHistorical": "Ver historial",
+    "hideHistorical": "Ocultar historial",
+    "widgetTitle": "Tratamiento en Curso",
+    "viewAll": "Ver todos →",
+    "currentStep": "Próxima Cita",
+    "missedStep": "Paso Ausente",
+    "nextStep": "Siguiente",
+    "createAppointment": "Crear Cita",
+    "more": "más",
     "status": {
       "active": "Activo",
       "completed": "Completado",
@@ -4873,6 +4892,53 @@
       "notesPlaceholder": "Notas opcionales",
       "save": "Guardar",
       "cancel": "Cancelar"
+    },
+    "wizard": {
+      "stepLabel": "Paso {current} de {total}",
+      "cancel": "Cancelar",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "create": "Crear Plan",
+      "creating": "Creando...",
+      "createSuccess": "Plan de Tratamiento Creado",
+      "createSuccessDesc": "Plan para {name} creado con {steps} pasos.",
+      "createError": "Error al Crear Plan",
+      "createErrorDesc": "Ocurrió un error inesperado. Intenta de nuevo.",
+      "available": "Disponible",
+      "conflict": "Conflicto",
+      "unchecked": "Sin verificar",
+      "step1": {
+        "title": "Pasos del Plan",
+        "desc": "Revisa y ajusta el nombre, fecha y modo de agendamiento de cada paso.",
+        "hint": "Edita los pasos generados desde la plantilla del servicio. Puedes agregar, eliminar o ajustar fechas.",
+        "stepNamePlaceholder": "Nombre del paso",
+        "scheduledDate": "Fecha programada",
+        "datePlaceholder": "Seleccionar fecha",
+        "notesPlaceholder": "Notas (opcional)",
+        "removeStep": "Eliminar paso",
+        "addStep": "Agregar Paso",
+        "scheduleModeLabel": "Agendamiento",
+        "modeCalendar": "Agregar al calendario",
+        "modeManual": "Manual (agendar después)"
+      },
+      "step2": {
+        "title": "Verificar Disponibilidad",
+        "desc": "Verificando disponibilidad para todos los pasos programados en el calendario.",
+        "checking": "Verificando disponibilidad...",
+        "allAvailable": "Todas las fechas están disponibles.",
+        "conflictsFound": "{count} fecha(s) tienen conflictos. Selecciona una alternativa.",
+        "calendarSteps": "Pasos en Calendario",
+        "manualSteps": "Pasos Manuales",
+        "selectAlternative": "Selecciona una fecha alternativa:",
+        "orPickDate": "O elige una fecha personalizada:",
+        "customDatePlaceholder": "Fecha personalizada",
+        "recheck": "Verificar de nuevo"
+      },
+      "step3": {
+        "title": "Confirmar y Crear",
+        "desc": "Revisa el plan final antes de crearlo. Los pasos en calendario generarán citas.",
+        "hint": "Los siguientes pasos serán creados. Los pasos con «Agregar al calendario» generarán citas en la agenda."
+      }
     }
   }
 }

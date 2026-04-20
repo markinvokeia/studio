@@ -31,7 +31,6 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
-import { createTreatmentSequence } from '@/services/treatment-plans';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { Check, ChevronsUpDown, ClipboardList, FilePlus, Link2, Loader2, Stethoscope, X } from 'lucide-react';
@@ -45,6 +44,7 @@ interface WorkflowStep {
     step_name: string;
     offset_min_days: number;
     offset_max_days: number;
+    duration_minutes?: number;
     is_lab_dependent: boolean;
     notes?: string;
 }
@@ -181,6 +181,7 @@ export function AppointmentFormDialog({
                         step_name: s.step_name ?? '',
                         offset_min_days: s.offset_min_days ?? 0,
                         offset_max_days: s.offset_max_days ?? 0,
+                        duration_minutes: s.duration_minutes ?? 60,
                         is_lab_dependent: s.is_lab_dependent ?? false,
                         notes: s.notes ?? '',
                     }))
@@ -710,6 +711,11 @@ export function AppointmentFormDialog({
                             service_color: workflowService.color ?? null,
                             status: 'active',
                             started_at: appointmentDate,
+                            doctor_id: appointment.doctor?.id || '',
+                            doctor_name: appointment.doctor?.name || '',
+                            doctor_email: appointment.doctor?.email || '',
+                            google_calendar_id: appointment.calendar?.google_calendar_id ?? appointment.calendar?.id ?? null,
+                            started_by: appointment.doctor?.id || '',
                             steps: workflowSteps.map((step, idx) => {
                                 const offsetDays = Math.round((step.offset_min_days + step.offset_max_days) / 2);
                                 cumDays += offsetDays;
@@ -722,6 +728,7 @@ export function AppointmentFormDialog({
                                     scheduled_date: d.toISOString().split('T')[0],
                                     status: (idx === 0 ? 'scheduled' : 'pending') as TreatmentSequenceStepStatus,
                                     notes: step.notes,
+                                    duration_minutes: step.duration_minutes ?? 60,
                                 };
                             }),
                         };
@@ -1411,16 +1418,7 @@ export function AppointmentFormDialog({
                     if (!open) setPendingSequence(null);
                 }}
                 pendingSequence={pendingSequence}
-                onConfirm={async (seq) => {
-                    await createTreatmentSequence(seq);
-                    toast({
-                        title: t('createDialog.workflowServiceTitle'),
-                        description: t('createDialog.workflowPlanCreated', {
-                            name: seq.service_name,
-                            steps: seq.steps.length,
-                        }),
-                    });
-                }}
+                onCreated={() => setPendingSequence(null)}
             />
         )}
         </>
