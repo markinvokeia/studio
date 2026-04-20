@@ -4932,11 +4932,61 @@
       "addStepConfirm": "Add Step",
       "stepName": "Step name",
       "scheduledDate": "Scheduled date",
+      "duration": "Duration (min)",
       "status": "Status",
       "notes": "Notes",
       "notesPlaceholder": "Optional notes",
       "save": "Save",
-      "cancel": "Cancel"
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "hasAppointment": "Has a scheduled appointment",
+      "insertAfter": "Insert after",
+      "insertFirst": "At the beginning (first step)",
+      "insertAfterStep": "After step {number}: {name}"
+    },
+    "cascade": {
+      "title": "Move subsequent steps?",
+      "description": "You changed the date from {from} to {to} ({direction} {days} days).",
+      "forward": "forward",
+      "backward": "backward",
+      "optionNone": "Move only this step",
+      "optionNoneDesc": "Subsequent steps keep their current dates.",
+      "optionAll": "Move all {count} subsequent steps {days} days",
+      "optionAllDesc": "Linked appointments for those steps will also be updated.",
+      "availability": "Availability after change",
+      "checking": "Checking...",
+      "available": "Available",
+      "confirm": "Confirm change"
+    },
+    "delete": {
+      "title": "Delete step",
+      "description": "You are about to delete the step \"{name}\". This action cannot be undone.",
+      "hasAppointment": "This step has an appointment scheduled for {date}.",
+      "cancelAppointment": "Also cancel the appointment",
+      "closeGap": "Move the {count} subsequent steps forward to close the gap",
+      "gapDays": "Days to close",
+      "confirm": "Delete step"
+    },
+    "statusChange": {
+      "title": "Change step status",
+      "description": "You are marking \"{name}\" as {status}.",
+      "appointmentEffect": "This step has an appointment scheduled for {date}.",
+      "appointmentCompleted": "The appointment will be marked as completed.",
+      "appointmentCancelled": "The appointment will be marked as cancelled.",
+      "appointmentMissed": "The appointment milestone will be flagged as alert.",
+      "syncAppointment": "Also update the appointment status",
+      "notifyPatient": "Notify the patient by email",
+      "confirm": "Confirm change"
+    },
+    "schedule": {
+      "title": "Schedule appointment for this step",
+      "description": "Create a calendar appointment for the step \"{name}\".",
+      "duration": "Duration (minutes)",
+      "checkAvailability": "Check availability",
+      "available": "Date is available",
+      "alternatives": "Available alternative dates",
+      "notifyPatient": "Notify the patient by email",
+      "confirm": "Create appointment"
     },
     "wizard": {
       "stepLabel": "Step {current} of {total}",

@@ -4887,11 +4887,61 @@
       "addStepConfirm": "Agregar Paso",
       "stepName": "Nombre del paso",
       "scheduledDate": "Fecha programada",
+      "duration": "Duración (min)",
       "status": "Estado",
       "notes": "Notas",
       "notesPlaceholder": "Notas opcionales",
       "save": "Guardar",
-      "cancel": "Cancelar"
+      "saving": "Guardando...",
+      "cancel": "Cancelar",
+      "hasAppointment": "Tiene cita agendada",
+      "insertAfter": "Insertar después de",
+      "insertFirst": "Al inicio (primer paso)",
+      "insertAfterStep": "Después del paso {number}: {name}"
+    },
+    "cascade": {
+      "title": "¿Mover pasos siguientes?",
+      "description": "Cambiaste la fecha de {from} a {to} ({direction} {days} días).",
+      "forward": "adelante",
+      "backward": "atrás",
+      "optionNone": "Solo mover este paso",
+      "optionNoneDesc": "Los pasos siguientes quedan con sus fechas actuales.",
+      "optionAll": "Mover los {count} pasos siguientes {days} días",
+      "optionAllDesc": "También se actualizarán las citas vinculadas a esos pasos.",
+      "availability": "Disponibilidad tras el cambio",
+      "checking": "Verificando...",
+      "available": "Disponible",
+      "confirm": "Confirmar cambio"
+    },
+    "delete": {
+      "title": "Eliminar paso",
+      "description": "Estás a punto de eliminar el paso «{name}». Esta acción no se puede deshacer.",
+      "hasAppointment": "Este paso tiene una cita agendada para el {date}.",
+      "cancelAppointment": "Cancelar también la cita",
+      "closeGap": "Mover los {count} pasos siguientes para cerrar el hueco",
+      "gapDays": "Días a cerrar",
+      "confirm": "Eliminar paso"
+    },
+    "statusChange": {
+      "title": "Cambiar estado del paso",
+      "description": "Vas a marcar «{name}» como {status}.",
+      "appointmentEffect": "Este paso tiene una cita agendada para el {date}.",
+      "appointmentCompleted": "La cita se marcará como completada.",
+      "appointmentCancelled": "La cita se marcará como cancelada.",
+      "appointmentMissed": "La cita se marcará como ausente (milestone en alerta).",
+      "syncAppointment": "Actualizar también el estado de la cita",
+      "notifyPatient": "Notificar al paciente por email",
+      "confirm": "Confirmar cambio"
+    },
+    "schedule": {
+      "title": "Agendar cita para este paso",
+      "description": "Crea una cita en el calendario para el paso «{name}».",
+      "duration": "Duración (minutos)",
+      "checkAvailability": "Verificar disponibilidad",
+      "available": "Fecha disponible",
+      "alternatives": "Fechas alternativas disponibles",
+      "notifyPatient": "Notificar al paciente por email",
+      "confirm": "Crear cita"
     },
     "wizard": {
       "stepLabel": "Paso {current} de {total}",

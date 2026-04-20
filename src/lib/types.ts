@@ -645,6 +645,78 @@ export type TreatmentSequence = {
   started_by?: string;
 };
 
+// ── Step operation types ───────────────────────────────────────────────────────
+
+/** How to handle subsequent steps when a date is shifted */
+export type StepCascadeMode = 'none' | 'shift_all' | 'shift_from_next';
+
+export type StepUpsertPayload = {
+  sequence_id: string;
+  step_id?: string;             // omit for create
+  step_number: number;
+  step_name: string;
+  scheduled_date?: string;      // ISO date
+  duration_minutes?: number;
+  notes?: string;
+  insert_after?: number;        // step_number after which to insert (for new steps)
+  cascade_mode?: StepCascadeMode;
+  cascade_days?: number;        // days to shift subsequent steps (positive = push out, negative = pull in)
+  notify_patient?: boolean;
+};
+
+export type StepDeletePayload = {
+  sequence_id: string;
+  step_id: string;
+  cascade_mode?: StepCascadeMode; // 'shift_all' = pull subsequent forward to close gap
+  cascade_days?: number;          // days to pull forward (usually the step's offset)
+  cancel_appointment?: boolean;   // cancel linked appointment if exists
+  notify_patient?: boolean;
+};
+
+export type StepStatusPayload = {
+  sequence_id: string;
+  step_id: string;
+  status: TreatmentSequenceStepStatus;
+  sync_appointment?: boolean;   // also update the linked appointment status
+  notify_patient?: boolean;
+};
+
+export type StepSchedulePayload = {
+  sequence_id: string;
+  step_id: string;
+  patient_id: string;
+  doctor_id: string;
+  scheduled_date: string;       // ISO date
+  duration_minutes: number;
+  notes?: string;
+  google_calendar_id?: string | null;
+};
+
+export type StepOperationResult = {
+  success: boolean;
+  step?: TreatmentSequenceStep;
+  affected_steps?: TreatmentSequenceStep[]; // all steps after cascade
+  appointment_id?: string;
+  sequence_completed?: boolean;
+  error?: string;
+};
+
+export type AbandonedPlan = {
+  sequence_id: string;
+  patient_id: string;
+  patient_name?: string;
+  service_name: string;
+  missed_step_name: string;
+  missed_days_ago: number;
+};
+
+export type AvailabilityResult = {
+  step_id: string;
+  status: 'available' | 'conflict';
+  conflict_reason?: string | null;
+  alternatives: string[];
+};
+
 export type AvailabilityRule = {
   id: string;
   user_id: string;

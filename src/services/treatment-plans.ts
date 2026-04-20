@@ -1,86 +1,17 @@
 import { API_ROUTES } from '@/constants/routes';
-import { TreatmentSequence, TreatmentSequenceStepStatus } from '@/lib/types';
+import type {
+  AbandonedPlan,
+  AvailabilityResult,
+  StepDeletePayload,
+  StepOperationResult,
+  StepSchedulePayload,
+  StepStatusPayload,
+  StepUpsertPayload,
+  TreatmentSequence,
+} from '@/lib/types';
 import api from '@/services/api';
 
-// In-memory store — resets on page refresh (mock only)
-const MOCK_SEQUENCES: TreatmentSequence[] = [
-  {
-    id: 'ts_001',
-    patient_id: 'demo',
-    service_id: 'srv_implant',
-    service_name: 'Implante Dental',
-    service_color: '#6366f1',
-    status: 'active',
-    started_at: '2026-03-01',
-    created_at: '2026-03-01T10:00:00Z',
-    steps: [
-      {
-        id: 'step_001_1',
-        step_number: 1,
-        step_name: 'Extracción dental',
-        scheduled_date: '2026-03-01',
-        status: 'completed',
-        completed_at: '2026-03-01T11:00:00Z',
-      },
-      {
-        id: 'step_001_2',
-        step_number: 2,
-        step_name: 'Colocación del implante',
-        scheduled_date: '2026-04-01',
-        status: 'scheduled',
-      },
-      {
-        id: 'step_001_3',
-        step_number: 3,
-        step_name: 'Colocación de corona',
-        scheduled_date: '2026-07-01',
-        status: 'pending',
-      },
-    ],
-  },
-  {
-    id: 'ts_002',
-    patient_id: 'demo',
-    service_id: 'srv_ortho',
-    service_name: 'Ortodoncia',
-    service_color: '#f59e0b',
-    status: 'active',
-    started_at: '2026-01-15',
-    created_at: '2026-01-15T09:00:00Z',
-    steps: [
-      {
-        id: 'step_002_1',
-        step_number: 1,
-        step_name: 'Evaluación inicial y moldes',
-        scheduled_date: '2026-01-15',
-        status: 'completed',
-        completed_at: '2026-01-15T10:00:00Z',
-      },
-      {
-        id: 'step_002_2',
-        step_number: 2,
-        step_name: 'Colocación de brackets',
-        scheduled_date: '2026-02-01',
-        status: 'completed',
-        completed_at: '2026-02-01T10:00:00Z',
-      },
-      {
-        id: 'step_002_3',
-        step_number: 3,
-        step_name: 'Control mensual #1',
-        scheduled_date: '2026-03-01',
-        status: 'missed',
-      },
-      {
-        id: 'step_002_4',
-        step_number: 4,
-        step_name: 'Control mensual #2',
-        scheduled_date: '2026-04-01',
-        status: 'pending',
-      },
-    ],
-  },
-];
+// ── Patient sequences ─────────────────────────────────────────────────────────
 
 export async function getTreatmentSequences(patientId: string): Promise<TreatmentSequence[]> {
   try {
@@ -99,62 +30,119 @@ export async function getTreatmentSequences(patientId: string): Promise<Treatmen
 export async function createTreatmentSequence(
   data: Omit<TreatmentSequence, 'id' | 'created_at'>
 ): Promise<TreatmentSequence> {
-  const newSeq: TreatmentSequence = {
-    ...data,
-    id: `ts_${Date.now()}`,
-    created_at: new Date().toISOString(),
-  };
-  MOCK_SEQUENCES.push(newSeq);
-  return newSeq;
+  const res = await api.post(API_ROUTES.TREATMENT_PLANS.CREATE, data);
+  return res as TreatmentSequence;
 }
 
-export async function updateSequenceStepStatus(
-  sequenceId: string,
-  stepId: string,
-  status: TreatmentSequenceStepStatus
-): Promise<void> {
-  const seq = MOCK_SEQUENCES.find(s => s.id === sequenceId);
-  if (seq) {
-    const step = seq.steps.find(s => s.id === stepId);
-    if (step) {
-      step.status = status;
-      if (status === 'completed') {
-        step.completed_at = new Date().toISOString();
-      }
-    }
+// ── Step CRUD ─────────────────────────────────────────────────────────────────
+
+/**
+ * Create or update a treatment step.
+ * When cascade_mode !== 'none' and cascade_days !== 0,
+ * subsequent steps (and their appointments) are shifted by cascade_days.
+ * Returns all steps for the sequence after the operation.
+ */
+export async function upsertTreatmentStep(
+  payload: StepUpsertPayload
+): Promise<StepOperationResult> {
+  try {
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.STEP_UPSERT, payload);
+    return res as StepOperationResult;
+  } catch (err) {
+    return { success: false, error: (err as Error).message ?? 'Unknown error' };
   }
 }
 
-export async function updateTreatmentSequenceStep(
-  sequenceId: string,
-  stepId: string,
-  patch: Partial<Pick<TreatmentSequence['steps'][number], 'step_name' | 'scheduled_date' | 'notes' | 'status'>>
-): Promise<void> {
-  const seq = MOCK_SEQUENCES.find(s => s.id === sequenceId);
-  if (seq) {
-    const step = seq.steps.find(s => s.id === stepId);
-    if (step) Object.assign(step, patch);
+/**
+ * Delete a treatment step.
+ * Optionally closes the date gap by pulling subsequent steps forward (cascade_days < 0).
+ * Optionally cancels the linked appointment.
+ */
+export async function deleteTreatmentStep(
+  payload: StepDeletePayload
+): Promise<StepOperationResult> {
+  try {
+    const res = await api.delete(API_ROUTES.TREATMENT_PLANS.STEP_DELETE, payload);
+    return res as StepOperationResult;
+  } catch (err) {
+    return { success: false, error: (err as Error).message ?? 'Unknown error' };
   }
 }
 
-export async function addTreatmentSequenceStep(
-  sequenceId: string,
-  step: Omit<TreatmentSequence['steps'][number], 'id'>
-): Promise<TreatmentSequence['steps'][number]> {
-  const seq = MOCK_SEQUENCES.find(s => s.id === sequenceId);
-  const newStep = { ...step, id: `step_${Date.now()}` };
-  if (seq) seq.steps.push(newStep);
-  return newStep;
+/**
+ * Change the status of a step.
+ * Optionally syncs the linked appointment status / milestone_status.
+ * Auto-completes the sequence if all non-cancelled steps are done.
+ */
+export async function changeStepStatus(
+  payload: StepStatusPayload
+): Promise<StepOperationResult> {
+  try {
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.STEP_STATUS, payload);
+    return res as StepOperationResult;
+  } catch (err) {
+    return { success: false, error: (err as Error).message ?? 'Unknown error' };
+  }
 }
 
-export async function deleteTreatmentSequenceStep(
-  sequenceId: string,
-  stepId: string
-): Promise<void> {
-  const seq = MOCK_SEQUENCES.find(s => s.id === sequenceId);
-  if (seq) {
-    seq.steps = seq.steps.filter(s => s.id !== stepId);
-    // Re-number remaining steps
-    seq.steps.forEach((s, i) => { s.step_number = i + 1; });
+/**
+ * Create a calendar appointment for a step that doesn't have one yet.
+ * Links the appointment back to the step (appointment_id) and sets status = 'scheduled'.
+ */
+export async function scheduleStep(
+  payload: StepSchedulePayload
+): Promise<StepOperationResult> {
+  try {
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.STEP_SCHEDULE, payload);
+    return res as StepOperationResult;
+  } catch (err) {
+    return { success: false, error: (err as Error).message ?? 'Unknown error' };
+  }
+}
+
+// ── Availability validation ───────────────────────────────────────────────────
+
+export type ValidateAvailabilityPayload = {
+  service_id?: string | number;
+  doctor_id: string;
+  steps: {
+    step_id: string;
+    step_name: string;
+    scheduled_date: string;
+    duration_minutes: number;
+    schedule_mode: 'calendar' | 'manual';
+  }[];
+};
+
+export async function validateStepsAvailability(
+  payload: ValidateAvailabilityPayload
+): Promise<{ results: AvailabilityResult[] }> {
+  try {
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.VALIDATE_AVAILABILITY, payload);
+    return res as { results: AvailabilityResult[] };
+  } catch {
+    // Fallback: mark everything as available
+    return {
+      results: payload.steps.map(s => ({ step_id: s.step_id, status: 'available', alternatives: [] })),
+    };
+  }
+}
+
+// ── Abandon check ─────────────────────────────────────────────────────────────
+
+export async function checkAbandonedPlans(opts?: {
+  patientId?: string;
+  daysOverdue?: number;
+  autoMarkMissed?: boolean;
+}): Promise<AbandonedPlan[]> {
+  try {
+    const params: Record<string, string> = {};
+    if (opts?.patientId) params.patient_id = opts.patientId;
+    if (opts?.daysOverdue != null) params.days_overdue = String(opts.daysOverdue);
+    if (opts?.autoMarkMissed) params.auto_mark_missed = 'true';
+    const res = await api.get(API_ROUTES.TREATMENT_PLANS.PLAN_ABANDON_CHECK, params);
+    return (res as { abandoned: AbandonedPlan[] }).abandoned ?? [];
+  } catch {
+    return [];
   }
 }

@@ -1,15 +1,12 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { UserFinancial } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { getTreatmentSequences } from '@/services/treatment-plans';
 import {
-    CalendarCheck,
     CheckCircle2,
-    ChevronDown,
     ChevronRight,
     Circle,
     ClipboardList,
@@ -23,7 +20,7 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import type { TreatmentSequence, TreatmentSequenceStepStatus } from '@/lib/types';
+import type { TreatmentSequence } from '@/lib/types';
 
 type SummaryTab = 'financial' | 'treatment';
 
@@ -40,16 +37,6 @@ interface UserSummaryPanelProps {
 function formatShortDate(dateStr?: string | null): string {
     if (!dateStr) return '—';
     try { return format(parseISO(dateStr), 'd LLL yyyy', { locale: es }); } catch { return dateStr; }
-}
-
-function stepStatusIcon(status: TreatmentSequenceStepStatus) {
-    switch (status) {
-        case 'completed': return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />;
-        case 'scheduled': return <CalendarCheck className="h-3.5 w-3.5 text-blue-500 shrink-0" />;
-        case 'missed': return <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />;
-        case 'cancelled': return <XCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
-        default: return <Circle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />;
-    }
 }
 
 // ─── Financial content ────────────────────────────────────────────────────────
@@ -98,6 +85,59 @@ function FinancialContent({ financialData }: { financialData?: UserFinancial | n
 
 // ─── Treatment content ────────────────────────────────────────────────────────
 
+function TreatmentMilestoneCard({
+    step,
+    isCurrent,
+}: {
+    step: TreatmentSequence['steps'][number];
+    isCurrent: boolean;
+}) {
+    const isCompleted = step.status === 'completed';
+    const isMissed = step.status === 'missed';
+
+    return (
+        <div className={cn(
+            'flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border min-w-[100px] max-w-[120px] shrink-0 select-none',
+            isCompleted && 'bg-emerald-950/60 border-emerald-700/60',
+            isCurrent && !isCompleted && 'bg-primary/10 border-primary',
+            isMissed && 'bg-destructive/10 border-destructive/50',
+            !isCompleted && !isCurrent && !isMissed && 'bg-muted/40 border-border',
+        )}>
+            {/* Number bubble + status icon */}
+            <div className="flex items-center gap-1.5">
+                <span className={cn(
+                    'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0 border',
+                    isCompleted && 'bg-emerald-700/40 border-emerald-500/40 text-emerald-300',
+                    isCurrent && !isCompleted && 'bg-primary/20 border-primary/50 text-primary',
+                    isMissed && 'bg-destructive/20 border-destructive/50 text-destructive',
+                    !isCompleted && !isCurrent && !isMissed && 'bg-muted/60 border-border text-muted-foreground',
+                )}>
+                    {step.step_number}
+                </span>
+                {isCompleted && <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />}
+                {isCurrent && !isCompleted && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
+                {isMissed && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
+            </div>
+            {/* Name */}
+            <p className={cn(
+                'text-xs font-semibold leading-tight line-clamp-2',
+                isCompleted ? 'text-emerald-100' : isCurrent ? 'text-foreground' : isMissed ? 'text-destructive' : 'text-muted-foreground',
+            )}>
+                {step.step_name}
+            </p>
+            {/* Date */}
+            {step.scheduled_date && (
+                <p className={cn(
+                    'text-[10px]',
+                    isCompleted ? 'text-emerald-400/80' : isCurrent ? 'text-primary/80' : 'text-muted-foreground/70',
+                )}>
+                    {step.scheduled_date ? format(parseISO(step.scheduled_date), 'd MMM', { locale: es }) : ''}
+                </p>
+            )}
+        </div>
+    );
+}
+
 function TreatmentContent({
     userId,
     onCreateAppointment,
@@ -110,7 +150,6 @@ function TreatmentContent({
     const t = useTranslations('TreatmentPlans');
     const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [stepsOpen, setStepsOpen] = React.useState(false);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -153,19 +192,18 @@ function TreatmentContent({
     const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
     const hasMissed = seq.steps.some(s => s.status === 'missed');
 
-    // Current = first non-completed/non-cancelled
     const currentIdx = seq.steps.findIndex(s => s.status !== 'completed' && s.status !== 'cancelled');
     const currentStep = currentIdx >= 0 ? seq.steps[currentIdx] : null;
     const nextStep = seq.steps[currentIdx + 1] ?? null;
 
     return (
-        <div className="pb-2">
-            {/* Service row */}
+        <div className="rounded-xl bg-card border border-border p-3 mb-2">
+            {/* Header: service name + badge + more link */}
             <div className="flex items-center gap-2 mb-2">
                 {seq.service_color && (
-                    <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: seq.service_color }} />
+                    <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: seq.service_color }} />
                 )}
-                <span className="text-sm font-semibold flex-1 min-w-0 truncate">{seq.service_name}</span>
+                <span className="text-sm font-bold flex-1 min-w-0 truncate">{seq.service_name}</span>
                 {active.length > 1 && onViewAll && (
                     <button type="button" onClick={onViewAll} className="text-[10px] text-primary hover:underline shrink-0">
                         +{active.length - 1} {t('more')}
@@ -174,7 +212,7 @@ function TreatmentContent({
             </div>
 
             {/* Progress bar */}
-            <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex items-center gap-2 mb-3">
                 <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                     <div
                         className={cn('h-full rounded-full transition-all', hasMissed ? 'bg-destructive/70' : 'bg-primary')}
@@ -186,33 +224,24 @@ function TreatmentContent({
                 </span>
             </div>
 
-            {/* Milestone pills - compact horizontal */}
-            <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-2.5">
-                <div className="flex gap-1">
-                    {seq.steps.map((step, idx) => {
-                        const isDone = step.status === 'completed';
-                        const isCurrent = idx === currentIdx;
-                        const isMissed = step.status === 'missed';
-                        return (
-                            <div
-                                key={step.id}
-                                className={cn(
-                                    'flex items-center gap-1 px-2 py-1 rounded-md border text-[10px] shrink-0 whitespace-nowrap',
-                                    isDone && 'bg-emerald-950/50 border-emerald-700/40 text-emerald-400',
-                                    isCurrent && !isDone && !isMissed && 'bg-primary/10 border-primary/50 text-primary font-semibold',
-                                    isMissed && 'bg-destructive/10 border-destructive/40 text-destructive',
-                                    !isDone && !isCurrent && !isMissed && 'bg-muted/30 border-border text-muted-foreground',
-                                )}
-                            >
-                                {stepStatusIcon(step.status)}
-                                <span>{step.step_number}. {step.step_name}</span>
-                            </div>
-                        );
-                    })}
+            {/* Horizontal milestone scroll */}
+            <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-3">
+                <div className="flex gap-2">
+                    {seq.steps.map((step, idx) => (
+                        <TreatmentMilestoneCard key={step.id} step={step} isCurrent={idx === currentIdx} />
+                    ))}
                 </div>
             </div>
 
-            {/* Current + next step */}
+            {/* Missed alert */}
+            {hasMissed && (
+                <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-2.5 py-1.5 mb-2">
+                    <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                    <p className="text-xs text-destructive flex-1">{t('interruptedAlert')}</p>
+                </div>
+            )}
+
+            {/* Current step block */}
             {currentStep && (
                 <div className={cn(
                     'rounded-md border px-2.5 py-2 text-xs mb-1.5',
@@ -229,8 +258,10 @@ function TreatmentContent({
                     )}
                 </div>
             )}
+
+            {/* Next step */}
             {nextStep && !hasMissed && (
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-1.5">
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mb-2">
                     <Circle className="h-2.5 w-2.5 shrink-0" />
                     <span>{t('nextStep')}: <span className="font-medium text-foreground">{nextStep.step_name}</span>
                         {nextStep.scheduled_date && <> · {formatShortDate(nextStep.scheduled_date)}</>}
@@ -238,39 +269,16 @@ function TreatmentContent({
                 </p>
             )}
 
-            {/* Expand steps editor */}
-            <Collapsible open={stepsOpen}>
+            {/* Ver todos link */}
+            {onViewAll && (
                 <button
                     type="button"
-                    className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-1"
-                    onClick={() => setStepsOpen(v => !v)}
+                    onClick={onViewAll}
+                    className="text-[11px] text-primary hover:underline flex items-center gap-0.5"
                 >
-                    {stepsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                    {t('editSteps')}
+                    {t('viewAll')} <ChevronRight className="h-3 w-3" />
                 </button>
-                <CollapsibleContent>
-                    <div className="mt-2 space-y-1.5 border-t border-border pt-2">
-                        {seq.steps.map(step => (
-                            <div key={step.id} className="flex items-center gap-2 text-xs">
-                                {stepStatusIcon(step.status)}
-                                <span className="flex-1 min-w-0 truncate font-medium">{step.step_number}. {step.step_name}</span>
-                                {step.scheduled_date && (
-                                    <span className="text-muted-foreground shrink-0">{formatShortDate(step.scheduled_date)}</span>
-                                )}
-                            </div>
-                        ))}
-                        {onViewAll && (
-                            <button
-                                type="button"
-                                onClick={onViewAll}
-                                className="text-[11px] text-primary hover:underline mt-1"
-                            >
-                                {t('viewAll')}
-                            </button>
-                        )}
-                    </div>
-                </CollapsibleContent>
-            </Collapsible>
+            )}
         </div>
     );
 }

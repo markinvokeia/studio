@@ -1,0 +1,101 @@
+{
+  "name": "Treatment Plan - Abandon Check (Overdue Steps)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Treatment Plan Abandon Check\n\n**GET** `/webhook/treatments/plan/abandon-check`\n\nQuery params:\n- `patient_id` (optional) — filter for one patient\n- `days_overdue` (optional, default 3) — flag steps overdue by at least N days\n- `auto_mark_missed` (optional, default false) — also UPDATE overdue steps to 'missed'\n\n**Response 200:**\n```json\n{\n  \"abandoned\": [\n    {\n      \"sequence_id\": \"uuid\",\n      \"patient_id\": \"uuid\",\n      \"patient_name\": \"...\",\n      \"service_name\": \"...\",\n      \"missed_step_name\": \"...\",\n      \"missed_days_ago\": 5\n    }\n  ]\n}\n```\n\n**Logic:**\n- Find active/paused sequences with steps where:\n  - status IN ('pending', 'scheduled')\n  - scheduled_date < TODAY - days_overdue\n- Optionally auto-mark those steps as 'missed'\n- Returns list for UI to render abandonment alerts",
+        "height": 380,
+        "width": 480,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-100, 20],
+      "typeVersion": 1,
+      "id": "ts-abandon-note-001",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "treatments/plan/abandon-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "ts-abandon-wh-001",
+      "name": "Webhook",
+      "webhookId": "treatments-plan-abandon-check"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.query ?? {};\nconst patientId     = query.patient_id || null;\nconst daysOverdue   = parseInt(query.days_overdue || '3', 10);\nconst autoMarkMissed = query.auto_mark_missed === 'true' || query.auto_mark_missed === true;\n\nreturn [{ json: { patientId, daysOverdue, autoMarkMissed } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "ts-abandon-parse",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "const { patientId, daysOverdue, autoMarkMissed } = $input.first().json;\n\nconst patientFilter = patientId ? `AND seq.patient_id = '${patientId}'` : '';\n\n// Find sequences with overdue steps (earliest overdue step per sequence)\nconst querySQL = `\n  SELECT DISTINCT ON (seq.id)\n    seq.id            AS sequence_id,\n    seq.patient_id,\n    seq.service_name,\n    ts.id             AS step_id,\n    ts.step_name      AS missed_step_name,\n    CURRENT_DATE - ts.scheduled_date::date AS missed_days_ago\n  FROM treatment_sequences seq\n  JOIN treatment_steps ts ON ts.sequence_id = seq.id\n  WHERE seq.status IN ('active', 'paused')\n    AND ts.status IN ('pending', 'scheduled')\n    AND ts.scheduled_date IS NOT NULL\n    AND ts.scheduled_date::date < CURRENT_DATE - INTERVAL '${daysOverdue} days'\n    ${patientFilter}\n  ORDER BY seq.id, ts.scheduled_date ASC\n`;\n\n// Auto-mark overdue steps as missed (if requested)\nconst markMissedSQL = autoMarkMissed ? `\n  UPDATE treatment_steps\n  SET status = 'missed', updated_at = NOW()\n  WHERE sequence_id IN (\n    SELECT id FROM treatment_sequences WHERE status IN ('active', 'paused') ${patientId ? `AND patient_id = '${patientId}'` : ''}\n  )\n    AND status IN ('pending', 'scheduled')\n    AND scheduled_date IS NOT NULL\n    AND scheduled_date::date < CURRENT_DATE - INTERVAL '${daysOverdue} days';\n` : '';\n\nreturn [{ json: { querySQL, markMissedSQL, patientId, daysOverdue, autoMarkMissed } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300],
+      "id": "ts-abandon-build-sql",
+      "name": "Build SQL"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.markMissedSQL + $json.querySQL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1120, 300],
+      "id": "ts-abandon-pg-query",
+      "name": "Query Overdue Steps",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\n// Filter out rows that are results of UPDATE (no sequence_id), keep SELECT rows\nconst abandoned = rows\n  .filter(r => r.json.sequence_id)\n  .map(r => ({\n    sequence_id: r.json.sequence_id,\n    patient_id: r.json.patient_id,\n    patient_name: r.json.patient_name || null,\n    service_name: r.json.service_name,\n    missed_step_name: r.json.missed_step_name,\n    missed_days_ago: parseInt(r.json.missed_days_ago, 10) || 0,\n  }));\n\nreturn [{ json: { abandoned, total: abandoned.length } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "id": "ts-abandon-build-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 300],
+      "id": "ts-abandon-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
+    "Parse Input": { "main": [[{ "node": "Build SQL", "type": "main", "index": 0 }]] },
+    "Build SQL": { "main": [[{ "node": "Query Overdue Steps", "type": "main", "index": 0 }]] },
+    "Query Overdue Steps": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
+    "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": ["treatment-plans", "clinic"]
+}

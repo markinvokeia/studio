@@ -1,0 +1,167 @@
+{
+  "name": "Treatment Step - Schedule (Create Appointment for Unscheduled Step)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Treatment Step Schedule\n\n**POST** `/webhook/treatments/step/schedule`\n\nCreates a calendar appointment for a step that doesn't have one yet,\nand links it back to the treatment step.\n\n**Request body:**\n```json\n{\n  \"sequence_id\": \"uuid\",\n  \"step_id\": \"uuid\",\n  \"patient_id\": \"uuid\",\n  \"doctor_id\": \"uuid\",\n  \"scheduled_date\": \"2026-06-01\",\n  \"duration_minutes\": 60,\n  \"notes\": \"Opcional\",\n  \"google_calendar_id\": \"calendar@group.calendar.google.com\"\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"appointment_id\": \"uuid\",\n  \"step\": { ...updated step with appointment_id }\n}\n```\n\n**Flow:**\n1. Parse & validate — step must exist and have no appointment_id\n2. Look up calendar_source_id from google_calendar_id\n3. Fetch step name and sequence info for the appointment summary\n4. INSERT appointment with sequence_id, step_position, milestone_status = 'waiting'\n5. UPDATE treatment_steps SET appointment_id, scheduled_date, status = 'scheduled'\n6. Respond",
+        "height": 400,
+        "width": 500,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-100, 20],
+      "typeVersion": 1,
+      "id": "ts-sched-note-001",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "treatments/step/schedule",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "ts-sched-wh-001",
+      "name": "Webhook",
+      "webhookId": "treatments-step-schedule"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { sequence_id, step_id, patient_id, doctor_id, scheduled_date, duration_minutes, notes, google_calendar_id } = body;\n\nif (!sequence_id) throw new Error('sequence_id is required');\nif (!step_id) throw new Error('step_id is required');\nif (!patient_id) throw new Error('patient_id is required');\nif (!doctor_id) throw new Error('doctor_id is required');\nif (!scheduled_date) throw new Error('scheduled_date is required');\nif (!duration_minutes || duration_minutes < 1) throw new Error('duration_minutes must be > 0');\n\nreturn [{ json: { sequence_id, step_id, patient_id, doctor_id, scheduled_date, duration_minutes: parseInt(duration_minutes, 10), notes: notes || null, google_calendar_id: google_calendar_id || null } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "ts-sched-parse",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ts.id, ts.step_number, ts.step_name, ts.appointment_id,\n       seq.service_name, seq.patient_id AS seq_patient_id\nFROM treatment_steps ts\nJOIN treatment_sequences seq ON seq.id = ts.sequence_id\nWHERE ts.id = '{{ $json.step_id }}' AND ts.sequence_id = '{{ $json.sequence_id }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "id": "ts-sched-pg-fetch-step",
+      "name": "Fetch Step + Sequence",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nif (rows.length === 0) throw new Error('Step not found');\nconst step = rows[0].json;\nif (step.appointment_id) throw new Error('Step already has an appointment');\n\nconst parse = $('Parse Input').first().json;\nconst { scheduled_date, duration_minutes, doctor_id, patient_id, notes, google_calendar_id, sequence_id } = parse;\n\n// Build appointment datetime strings\nconst startDt = `${scheduled_date}T09:00:00`;\nconst endDt   = (() => {\n  const d = new Date(`${scheduled_date}T09:00:00`);\n  d.setMinutes(d.getMinutes() + duration_minutes);\n  return d.toISOString().slice(0, 19);\n})();\n\nconst summary = `${step.service_name} - Paso ${step.step_number}: ${step.step_name}`;\n\n// Look up calendar_source_id\nconst calendarSourceSQL = google_calendar_id\n  ? `SELECT id AS calendar_source_id FROM calendar_sources WHERE google_calendar_id = '${google_calendar_id}' LIMIT 1`\n  : `SELECT NULL::bigint AS calendar_source_id`;\n\nreturn [{ json: {\n  ...parse,\n  step_number: step.step_number,\n  step_name: step.step_name,\n  summary,\n  startDt,\n  endDt,\n  calendarSourceSQL,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "id": "ts-sched-build",
+      "name": "Build Appointment Data"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.calendarSourceSQL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1340, 300],
+      "id": "ts-sched-pg-calendar",
+      "name": "Get Calendar Source",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const calRow = $input.all()[0]?.json;\nconst calSourceId = calRow?.calendar_source_id || null;\nconst build = $('Build Appointment Data').first().json;\n\nconst insertApptSQL = `\n  INSERT INTO appointments (\n    patient_id, assignee_id, start_datetime, end_datetime,\n    summary, notes, status, sequence_id, step_position, milestone_status, calendar_source_id\n  ) VALUES (\n    '${build.patient_id}',\n    '${build.doctor_id}',\n    '${build.startDt}',\n    '${build.endDt}',\n    '${build.summary.replace(/'/g, \"''\")}',\n    ${build.notes ? `'${build.notes.replace(/'/g, \"''\")}'` : 'NULL'},\n    'scheduled',\n    '${build.sequence_id}',\n    ${build.step_number},\n    'waiting',\n    ${calSourceId ? calSourceId : 'NULL'}\n  )\n  RETURNING id;\n`;\n\nconst updateStepSQL = `\n  UPDATE treatment_steps\n  SET\n    appointment_id = (${insertApptSQL.replace('RETURNING id;', 'RETURNING id').trim()}),\n    scheduled_date = '${build.scheduled_date}',\n    status = 'scheduled',\n    updated_at = NOW()\n  WHERE id = '${build.step_id}'\n  RETURNING id, sequence_id, step_number, step_name, scheduled_date::text, duration_minutes, status, notes, appointment_id, completed_at::text;\n`;\n\n// Simpler: run insert then update in two queries\nreturn [{ json: { ...build, calSourceId, insertApptSQL } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "id": "ts-sched-build-sql",
+      "name": "Build Insert SQL"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.insertApptSQL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1780, 300],
+      "id": "ts-sched-pg-insert-appt",
+      "name": "Insert Appointment",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const apptRow = $input.all()[0]?.json;\nconst apptId = apptRow?.id;\nif (!apptId) throw new Error('Failed to create appointment');\n\nconst build = $('Build Appointment Data').first().json;\n\nreturn [{ json: { step_id: build.step_id, appointment_id: apptId, scheduled_date: build.scheduled_date } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 300],
+      "id": "ts-sched-link",
+      "name": "Link Appointment to Step"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE treatment_steps\nSET\n  appointment_id = '{{ $json.appointment_id }}',\n  scheduled_date = '{{ $json.scheduled_date }}',\n  status = 'scheduled',\n  updated_at = NOW()\nWHERE id = '{{ $json.step_id }}'\nRETURNING id, sequence_id, step_number, step_name, scheduled_date::text, duration_minutes, status, notes, appointment_id, completed_at::text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2220, 300],
+      "id": "ts-sched-pg-link",
+      "name": "Update Step with Appointment",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst r = rows[0].json;\nreturn [{ json: {\n  success: true,\n  appointment_id: r.appointment_id,\n  step: {\n    id: r.id,\n    sequence_id: r.sequence_id,\n    step_number: r.step_number,\n    step_name: r.step_name,\n    scheduled_date: r.scheduled_date || null,\n    duration_minutes: r.duration_minutes,\n    status: r.status,\n    notes: r.notes || null,\n    appointment_id: r.appointment_id,\n    completed_at: r.completed_at || null,\n  },\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 300],
+      "id": "ts-sched-build-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2660, 300],
+      "id": "ts-sched-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
+    "Parse Input": { "main": [[{ "node": "Fetch Step + Sequence", "type": "main", "index": 0 }]] },
+    "Fetch Step + Sequence": { "main": [[{ "node": "Build Appointment Data", "type": "main", "index": 0 }]] },
+    "Build Appointment Data": { "main": [[{ "node": "Get Calendar Source", "type": "main", "index": 0 }]] },
+    "Get Calendar Source": { "main": [[{ "node": "Build Insert SQL", "type": "main", "index": 0 }]] },
+    "Build Insert SQL": { "main": [[{ "node": "Insert Appointment", "type": "main", "index": 0 }]] },
+    "Insert Appointment": { "main": [[{ "node": "Link Appointment to Step", "type": "main", "index": 0 }]] },
+    "Link Appointment to Step": { "main": [[{ "node": "Update Step with Appointment", "type": "main", "index": 0 }]] },
+    "Update Step with Appointment": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
+    "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": ["treatment-plans", "clinic"]
+}

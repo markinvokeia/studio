@@ -1,17 +1,38 @@
 'use client';
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
     Select,
     SelectContent,
@@ -19,20 +40,29 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { TreatmentSequence, TreatmentSequenceStatus, TreatmentSequenceStep, TreatmentSequenceStepStatus } from '@/lib/types';
+import type {
+    AvailabilityResult,
+    StepCascadeMode,
+    TreatmentSequence,
+    TreatmentSequenceStatus,
+    TreatmentSequenceStep,
+    TreatmentSequenceStepStatus,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
-    addTreatmentSequenceStep,
-    deleteTreatmentSequenceStep,
+    changeStepStatus,
+    deleteTreatmentStep,
     getTreatmentSequences,
-    updateSequenceStepStatus,
-    updateTreatmentSequenceStep,
+    scheduleStep,
+    upsertTreatmentStep,
+    validateStepsAvailability,
 } from '@/services/treatment-plans';
-import { format, parseISO } from 'date-fns';
+import { format, differenceInDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
     AlertTriangle,
     CalendarCheck,
+    CalendarPlus,
     CheckCircle2,
     ChevronDown,
     ChevronRight,
@@ -71,64 +101,72 @@ function sequenceStatusVariant(status: TreatmentSequenceStatus): 'default' | 'se
 
 function formatShortDate(dateStr?: string | null): string {
     if (!dateStr) return '—';
-    try {
-        return format(parseISO(dateStr), 'd MMM', { locale: es });
-    } catch { return dateStr; }
+    try { return format(parseISO(dateStr), 'd MMM', { locale: es }); } catch { return dateStr; }
 }
 
 function formatLongDate(dateStr?: string | null): string {
     if (!dateStr) return '—';
-    try {
-        return format(parseISO(dateStr), 'd LLL yyyy', { locale: es });
-    } catch { return dateStr; }
+    try { return format(parseISO(dateStr), 'd LLL yyyy', { locale: es }); } catch { return dateStr; }
+}
+
+function stepStatusIcon(status: TreatmentSequenceStepStatus, cls?: string) {
+    const c = cls ?? 'h-4 w-4 shrink-0';
+    switch (status) {
+        case 'completed': return <CheckCircle2 className={cn(c, 'text-emerald-500')} />;
+        case 'scheduled': return <CalendarCheck className={cn(c, 'text-blue-500')} />;
+        case 'missed':    return <XCircle className={cn(c, 'text-destructive')} />;
+        case 'cancelled': return <XCircle className={cn(c, 'text-muted-foreground')} />;
+        default:          return <Circle className={cn(c, 'text-muted-foreground')} />;
+    }
+}
+
+function stepStatusClass(status: TreatmentSequenceStepStatus): string {
+    switch (status) {
+        case 'completed': return 'text-emerald-600 dark:text-emerald-400';
+        case 'scheduled': return 'text-blue-600 dark:text-blue-400';
+        case 'missed':    return 'text-destructive';
+        case 'cancelled': return 'text-muted-foreground line-through';
+        default:          return 'text-muted-foreground';
+    }
 }
 
 const STEP_STATUS_OPTIONS: TreatmentSequenceStepStatus[] = ['pending', 'scheduled', 'completed', 'missed', 'cancelled'];
 
-// ─── Milestone step card (horizontal) ────────────────────────────────────────
+// ─── Milestone step card (horizontal scroll) ──────────────────────────────────
 
-function MilestoneCard({
-    step,
-    isCurrent,
-}: {
-    step: TreatmentSequenceStep;
-    isCurrent: boolean;
-}) {
+function MilestoneCard({ step, isCurrent }: { step: TreatmentSequenceStep; isCurrent: boolean }) {
     const isCompleted = step.status === 'completed';
-    const isMissed = step.status === 'missed';
+    const isMissed    = step.status === 'missed';
 
     return (
-        <div
-            className={cn(
-                'flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border min-w-[100px] max-w-[120px] shrink-0 select-none',
-                isCompleted && 'bg-emerald-950/60 border-emerald-700/60 dark:bg-emerald-950/60 dark:border-emerald-700/60',
-                isCurrent && !isCompleted && 'bg-primary/10 border-primary dark:bg-primary/10',
-                isMissed && 'bg-destructive/10 border-destructive/50',
-                !isCompleted && !isCurrent && !isMissed && 'bg-muted/40 border-border',
-            )}
-        >
-            {/* Label row */}
-            <div className="flex items-center gap-1">
+        <div className={cn(
+            'flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border min-w-[100px] max-w-[120px] shrink-0 select-none',
+            isCompleted && 'bg-emerald-950/60 border-emerald-700/60 dark:bg-emerald-950/60 dark:border-emerald-700/60',
+            isCurrent && !isCompleted && 'bg-primary/10 border-primary dark:bg-primary/10',
+            isMissed && 'bg-destructive/10 border-destructive/50',
+            !isCompleted && !isCurrent && !isMissed && 'bg-muted/40 border-border',
+        )}>
+            {/* Number bubble + status icon */}
+            <div className="flex items-center gap-1.5">
                 <span className={cn(
-                    'text-[10px] font-bold uppercase tracking-wider',
-                    isCompleted ? 'text-emerald-400' : isCurrent ? 'text-primary' : isMissed ? 'text-destructive' : 'text-muted-foreground',
+                    'flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold shrink-0 border',
+                    isCompleted && 'bg-emerald-700/40 border-emerald-500/40 text-emerald-300',
+                    isCurrent && !isCompleted && 'bg-primary/20 border-primary/50 text-primary',
+                    isMissed && 'bg-destructive/20 border-destructive/50 text-destructive',
+                    !isCompleted && !isCurrent && !isMissed && 'bg-muted/60 border-border text-muted-foreground',
                 )}>
-                    HITO {step.step_number}
+                    {step.step_number}
                 </span>
                 {isCompleted && <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />}
                 {isCurrent && !isCompleted && <ChevronRight className="h-3 w-3 text-primary shrink-0" />}
                 {isMissed && <XCircle className="h-3 w-3 text-destructive shrink-0" />}
             </div>
-
-            {/* Name */}
             <p className={cn(
                 'text-xs font-semibold leading-tight line-clamp-2',
                 isCompleted ? 'text-emerald-100' : isCurrent ? 'text-foreground' : isMissed ? 'text-destructive' : 'text-muted-foreground',
             )}>
                 {step.step_name}
             </p>
-
-            {/* Date */}
             {step.scheduled_date && (
                 <p className={cn(
                     'text-[10px]',
@@ -141,15 +179,1053 @@ function MilestoneCard({
     );
 }
 
-// ─── Active plan card (featured view) ────────────────────────────────────────
+// ─── Cascade confirmation dialog ──────────────────────────────────────────────
 
-function ActivePlanCard({
+interface CascadeDialogState {
+    open: boolean;
+    stepId: string;
+    patch: Partial<TreatmentSequenceStep>;
+    oldDate: string | null;
+    newDate: string;
+    daysDelta: number;
+    subsequentCount: number;
+    availabilityResults: AvailabilityResult[];
+    checking: boolean;
+}
+
+function CascadeDialog({
+    state,
+    onConfirm,
+    onClose,
+    t,
+}: {
+    state: CascadeDialogState;
+    onConfirm: (mode: StepCascadeMode, days: number) => void;
+    onClose: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [cascadeMode, setCascadeMode] = React.useState<'none' | 'shift_all'>('shift_all');
+
+    if (!state.open) return null;
+
+    return (
+        <AlertDialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{t('cascade.title')}</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                            <p>
+                                {t('cascade.description', {
+                                    from: formatLongDate(state.oldDate),
+                                    to: formatLongDate(state.newDate),
+                                    days: Math.abs(state.daysDelta),
+                                    direction: state.daysDelta > 0 ? t('cascade.forward') : t('cascade.backward'),
+                                })}
+                            </p>
+                            <RadioGroup value={cascadeMode} onValueChange={(v) => setCascadeMode(v as 'none' | 'shift_all')}>
+                                <div className="flex items-start gap-3 rounded-lg border p-3">
+                                    <RadioGroupItem value="none" id="cascade-none" className="mt-0.5" />
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="cascade-none" className="text-sm font-medium cursor-pointer">
+                                            {t('cascade.optionNone')}
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">{t('cascade.optionNoneDesc')}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 rounded-lg border p-3">
+                                    <RadioGroupItem value="shift_all" id="cascade-all" className="mt-0.5" />
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="cascade-all" className="text-sm font-medium cursor-pointer">
+                                            {t('cascade.optionAll', { count: state.subsequentCount, days: Math.abs(state.daysDelta) })}
+                                        </Label>
+                                        <p className="text-xs text-muted-foreground">{t('cascade.optionAllDesc')}</p>
+                                    </div>
+                                </div>
+                            </RadioGroup>
+
+                            {/* Availability results (shown when cascade mode = shift_all) */}
+                            {cascadeMode === 'shift_all' && state.availabilityResults.length > 0 && (
+                                <div className="rounded-lg border border-border p-3 space-y-1.5">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                                        {t('cascade.availability')}
+                                    </p>
+                                    {state.checking
+                                        ? <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />{t('cascade.checking')}</div>
+                                        : state.availabilityResults.map(r => (
+                                            <div key={r.step_id} className="flex items-center gap-2 text-xs">
+                                                {r.status === 'available'
+                                                    ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                                                    : <XCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+                                                <span className={r.status === 'conflict' ? 'text-destructive' : ''}>
+                                                    {r.step_id}: {r.status === 'available' ? t('cascade.available') : r.conflict_reason}
+                                                </span>
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                            )}
+                        </div>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={onClose}>{t('edit.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onConfirm(cascadeMode, state.daysDelta)}>
+                        {t('cascade.confirm')}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+// ─── Delete confirmation dialog ───────────────────────────────────────────────
+
+interface DeleteDialogState {
+    open: boolean;
+    stepId: string;
+    stepName: string;
+    stepNumber: number;
+    hasAppointment: boolean;
+    appointmentDate: string | null;
+    subsequentCount: number;
+}
+
+function DeleteDialog({
+    state,
+    onConfirm,
+    onClose,
+    t,
+}: {
+    state: DeleteDialogState;
+    onConfirm: (cancelAppt: boolean, cascade: boolean, gapDays: number) => void;
+    onClose: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [cancelAppt, setCancelAppt] = React.useState(true);
+    const [closedGap, setCloseGap] = React.useState(state.subsequentCount > 0);
+    const [gapDays, setGapDays] = React.useState(7);
+
+    if (!state.open) return null;
+
+    return (
+        <AlertDialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                    <AlertDialogTitle className="text-destructive">{t('delete.title')}</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                            <p>{t('delete.description', { name: state.stepName })}</p>
+
+                            {/* Appointment warning */}
+                            {state.hasAppointment && (
+                                <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 p-3 flex items-start gap-3">
+                                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                    <div className="space-y-2 flex-1">
+                                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                                            {t('delete.hasAppointment', { date: formatLongDate(state.appointmentDate) })}
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id="cancel-appt"
+                                                checked={cancelAppt}
+                                                onCheckedChange={(v) => setCancelAppt(!!v)}
+                                            />
+                                            <Label htmlFor="cancel-appt" className="text-xs cursor-pointer">
+                                                {t('delete.cancelAppointment')}
+                                            </Label>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Close gap option */}
+                            {state.subsequentCount > 0 && (
+                                <div className="rounded-lg border p-3 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            id="close-gap"
+                                            checked={closedGap}
+                                            onCheckedChange={(v) => setCloseGap(!!v)}
+                                        />
+                                        <Label htmlFor="close-gap" className="text-xs cursor-pointer font-medium">
+                                            {t('delete.closeGap', { count: state.subsequentCount })}
+                                        </Label>
+                                    </div>
+                                    {closedGap && (
+                                        <div className="flex items-center gap-2 ml-6">
+                                            <Label className="text-xs text-muted-foreground shrink-0">{t('delete.gapDays')}</Label>
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                value={gapDays}
+                                                onChange={e => setGapDays(parseInt(e.target.value, 10) || 7)}
+                                                className="h-7 w-20 text-xs"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={onClose}>{t('edit.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => onConfirm(cancelAppt, closedGap, closedGap ? gapDays : 0)}
+                    >
+                        {t('delete.confirm')}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+// ─── Status change confirmation dialog ───────────────────────────────────────
+
+interface StatusDialogState {
+    open: boolean;
+    stepId: string;
+    stepName: string;
+    newStatus: TreatmentSequenceStepStatus;
+    hasAppointment: boolean;
+    appointmentDate: string | null;
+}
+
+function StatusDialog({
+    state,
+    onConfirm,
+    onClose,
+    t,
+}: {
+    state: StatusDialogState;
+    onConfirm: (syncAppt: boolean, notify: boolean) => void;
+    onClose: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [syncAppt, setSyncAppt] = React.useState(true);
+    const [notify, setNotify] = React.useState(false);
+
+    if (!state.open) return null;
+
+    return (
+        <AlertDialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <AlertDialogContent className="max-w-md">
+                <AlertDialogHeader>
+                    <AlertDialogTitle>{t('statusChange.title')}</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                        <div className="space-y-3 text-sm text-muted-foreground">
+                            <p>{t('statusChange.description', { name: state.stepName, status: t(`stepStatus.${state.newStatus}`) })}</p>
+
+                            {state.hasAppointment && (
+                                <div className="rounded-lg border border-border p-3 space-y-2">
+                                    <p className="text-xs font-medium">
+                                        {t('statusChange.appointmentEffect', { date: formatLongDate(state.appointmentDate) })}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {state.newStatus === 'completed' && t('statusChange.appointmentCompleted')}
+                                        {state.newStatus === 'cancelled' && t('statusChange.appointmentCancelled')}
+                                        {state.newStatus === 'missed' && t('statusChange.appointmentMissed')}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            id="sync-appt"
+                                            checked={syncAppt}
+                                            onCheckedChange={(v) => setSyncAppt(!!v)}
+                                        />
+                                        <Label htmlFor="sync-appt" className="text-xs cursor-pointer">
+                                            {t('statusChange.syncAppointment')}
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Checkbox
+                                            id="notify-patient"
+                                            checked={notify}
+                                            onCheckedChange={(v) => setNotify(!!v)}
+                                        />
+                                        <Label htmlFor="notify-patient" className="text-xs cursor-pointer">
+                                            {t('statusChange.notifyPatient')}
+                                        </Label>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel onClick={onClose}>{t('edit.cancel')}</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onConfirm(syncAppt, notify)}>
+                        {t('statusChange.confirm')}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    );
+}
+
+// ─── Schedule step dialog (create appointment for step) ───────────────────────
+
+interface ScheduleDialogState {
+    open: boolean;
+    stepId: string;
+    stepName: string;
+    sequenceId: string;
+    defaultDoctorId: string;
+    patientId: string;
+    googleCalendarId: string | null;
+}
+
+function ScheduleStepDialog({
+    state,
+    onConfirm,
+    onClose,
+    t,
+}: {
+    state: ScheduleDialogState;
+    onConfirm: (date: string, duration: number, notify: boolean) => Promise<void>;
+    onClose: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [date, setDate] = React.useState('');
+    const [duration, setDuration] = React.useState(60);
+    const [notify, setNotify] = React.useState(true);
+    const [isSaving, setIsSaving] = React.useState(false);
+    const [availability, setAvailability] = React.useState<AvailabilityResult | null>(null);
+    const [isChecking, setIsChecking] = React.useState(false);
+
+    async function checkAvailability() {
+        if (!date || !state.defaultDoctorId) return;
+        setIsChecking(true);
+        try {
+            const res = await validateStepsAvailability({
+                doctor_id: state.defaultDoctorId,
+                steps: [{ step_id: state.stepId, step_name: state.stepName, scheduled_date: date, duration_minutes: duration, schedule_mode: 'calendar' }],
+            });
+            setAvailability(res.results[0] ?? null);
+        } finally {
+            setIsChecking(false);
+        }
+    }
+
+    if (!state.open) return null;
+
+    return (
+        <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{t('schedule.title')}</DialogTitle>
+                    <DialogDescription>
+                        {t('schedule.description', { name: state.stepName })}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                    <div>
+                        <Label className="text-xs text-muted-foreground">{t('edit.scheduledDate')}</Label>
+                        <DatePickerInput value={date} onChange={(d) => { setDate(d); setAvailability(null); }} className="mt-0.5" />
+                    </div>
+                    <div>
+                        <Label className="text-xs text-muted-foreground">{t('schedule.duration')}</Label>
+                        <Input
+                            type="number"
+                            min={15}
+                            value={duration}
+                            onChange={e => setDuration(parseInt(e.target.value, 10) || 60)}
+                            className="h-8 text-sm mt-0.5"
+                        />
+                    </div>
+
+                    {/* Availability check */}
+                    {date && state.defaultDoctorId && (
+                        <div className="space-y-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1.5 w-full"
+                                onClick={checkAvailability}
+                                disabled={isChecking}
+                            >
+                                {isChecking && <Loader2 className="h-3 w-3 animate-spin" />}
+                                {t('schedule.checkAvailability')}
+                            </Button>
+                            {availability && (
+                                <div className={cn('flex items-center gap-2 text-xs rounded-md px-2.5 py-2 border',
+                                    availability.status === 'available'
+                                        ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-600'
+                                        : 'border-destructive/30 bg-destructive/5 text-destructive',
+                                )}>
+                                    {availability.status === 'available'
+                                        ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                        : <XCircle className="h-3.5 w-3.5 shrink-0" />}
+                                    <span>
+                                        {availability.status === 'available'
+                                            ? t('schedule.available')
+                                            : availability.conflict_reason}
+                                    </span>
+                                </div>
+                            )}
+                            {availability?.alternatives && availability.alternatives.length > 0 && (
+                                <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">{t('schedule.alternatives')}:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {availability.alternatives.map(alt => (
+                                            <button
+                                                key={alt}
+                                                type="button"
+                                                onClick={() => { setDate(alt); setAvailability(null); }}
+                                                className="text-[11px] px-2 py-0.5 rounded border border-border bg-muted/40 hover:bg-muted transition-colors"
+                                            >
+                                                {formatLongDate(alt)}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="notify" checked={notify} onCheckedChange={(v) => setNotify(!!v)} />
+                        <Label htmlFor="notify" className="text-xs cursor-pointer">{t('schedule.notifyPatient')}</Label>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose}>
+                        {t('edit.cancel')}
+                    </Button>
+                    <Button
+                        size="sm"
+                        className="h-8 text-xs gap-1.5"
+                        disabled={!date || isSaving}
+                        onClick={async () => {
+                            setIsSaving(true);
+                            try { await onConfirm(date, duration, notify); }
+                            finally { setIsSaving(false); }
+                        }}
+                    >
+                        {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {t('schedule.confirm')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// ─── Step timeline (full CRUD with cascade) ───────────────────────────────────
+
+function StepTimeline({
     sequence,
     onStepsChange,
+    onSequenceStatusChange,
     t,
 }: {
     sequence: TreatmentSequence;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
+    onSequenceStatusChange?: (id: string, status: TreatmentSequenceStatus) => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [editingStepId, setEditingStepId] = React.useState<string | null>(null);
+    const [isAddingStep, setIsAddingStep] = React.useState(false);
+    const [isBusy, setIsBusy] = React.useState(false);
+
+    // Dialog state
+    const [cascadeDialog, setCascadeDialog] = React.useState<CascadeDialogState>({
+        open: false, stepId: '', patch: {}, oldDate: null, newDate: '', daysDelta: 0,
+        subsequentCount: 0, availabilityResults: [], checking: false,
+    });
+    const [deleteDialog, setDeleteDialog] = React.useState<DeleteDialogState>({
+        open: false, stepId: '', stepName: '', stepNumber: 0,
+        hasAppointment: false, appointmentDate: null, subsequentCount: 0,
+    });
+    const [statusDialog, setStatusDialog] = React.useState<StatusDialogState>({
+        open: false, stepId: '', stepName: '', newStatus: 'pending',
+        hasAppointment: false, appointmentDate: null,
+    });
+    const [scheduleDialog, setScheduleDialog] = React.useState<ScheduleDialogState>({
+        open: false, stepId: '', stepName: '', sequenceId: '',
+        defaultDoctorId: '', patientId: '', googleCalendarId: null,
+    });
+
+    // ── Save step (edit) ──────────────────────────────────────────────────────
+
+    async function handleStepSave(stepId: string, patch: Partial<TreatmentSequenceStep>) {
+        const step = sequence.steps.find(s => s.id === stepId);
+        if (!step) return;
+
+        // If date changed and there are subsequent steps → show cascade dialog
+        if (patch.scheduled_date && patch.scheduled_date !== step.scheduled_date) {
+            const hasSubsequent = sequence.steps.some(s => s.step_number > step.step_number && s.scheduled_date);
+            const daysDelta = patch.scheduled_date && step.scheduled_date
+                ? differenceInDays(parseISO(patch.scheduled_date), parseISO(step.scheduled_date))
+                : 0;
+
+            if (hasSubsequent && daysDelta !== 0) {
+                const subsequentCalendarSteps = sequence.steps
+                    .filter(s => s.step_number > step.step_number && s.scheduled_date);
+
+                setCascadeDialog({
+                    open: true,
+                    stepId,
+                    patch,
+                    oldDate: step.scheduled_date ?? null,
+                    newDate: patch.scheduled_date,
+                    daysDelta,
+                    subsequentCount: subsequentCalendarSteps.length,
+                    availabilityResults: [],
+                    checking: false,
+                });
+                return;
+            }
+        }
+
+        // Direct save without cascade
+        await executeSaveStep(stepId, patch, 'none', 0);
+    }
+
+    async function executeSaveStep(
+        stepId: string,
+        patch: Partial<TreatmentSequenceStep>,
+        cascadeMode: StepCascadeMode,
+        cascadeDays: number
+    ) {
+        const step = sequence.steps.find(s => s.id === stepId);
+        if (!step) return;
+        setIsBusy(true);
+        try {
+            const res = await upsertTreatmentStep({
+                sequence_id: sequence.id,
+                step_id: stepId,
+                step_number: step.step_number,
+                step_name: (patch.step_name ?? step.step_name),
+                scheduled_date: patch.scheduled_date ?? step.scheduled_date,
+                duration_minutes: step.duration_minutes,
+                notes: patch.notes ?? step.notes,
+                cascade_mode: cascadeMode,
+                cascade_days: cascadeDays,
+            });
+            if (res.success && res.affected_steps) {
+                onStepsChange(sequence.id, res.affected_steps);
+            } else {
+                // Optimistic update fallback
+                onStepsChange(sequence.id, sequence.steps.map(s => s.id === stepId ? { ...s, ...patch } : s));
+            }
+        } finally {
+            setIsBusy(false);
+            setEditingStepId(null);
+        }
+    }
+
+    // ── Add step ──────────────────────────────────────────────────────────────
+
+    async function handleStepAdd(newStep: Omit<TreatmentSequenceStep, 'id'>, insertAfter?: number) {
+        setIsBusy(true);
+        try {
+            const res = await upsertTreatmentStep({
+                sequence_id: sequence.id,
+                step_number: newStep.step_number,
+                step_name: newStep.step_name,
+                scheduled_date: newStep.scheduled_date,
+                duration_minutes: newStep.duration_minutes ?? 60,
+                notes: newStep.notes,
+                insert_after: insertAfter,
+                cascade_mode: 'none',
+                cascade_days: 0,
+            });
+            if (res.success && res.affected_steps) {
+                onStepsChange(sequence.id, res.affected_steps);
+            } else {
+                onStepsChange(sequence.id, [...sequence.steps, { ...newStep, id: `tmp_${Date.now()}` }]);
+            }
+        } finally {
+            setIsBusy(false);
+            setIsAddingStep(false);
+        }
+    }
+
+    // ── Delete step ───────────────────────────────────────────────────────────
+
+    function openDeleteDialog(step: TreatmentSequenceStep) {
+        const subsequent = sequence.steps.filter(s => s.step_number > step.step_number);
+        setDeleteDialog({
+            open: true,
+            stepId: step.id,
+            stepName: step.step_name,
+            stepNumber: step.step_number,
+            hasAppointment: !!step.appointment_id,
+            appointmentDate: step.scheduled_date ?? null,
+            subsequentCount: subsequent.length,
+        });
+    }
+
+    async function executeDelete(cancelAppt: boolean, doCloseGap: boolean, gapDays: number) {
+        setDeleteDialog(prev => ({ ...prev, open: false }));
+        setIsBusy(true);
+        try {
+            const res = await deleteTreatmentStep({
+                sequence_id: sequence.id,
+                step_id: deleteDialog.stepId,
+                cascade_mode: doCloseGap ? 'shift_all' : 'none',
+                cascade_days: doCloseGap ? -gapDays : 0,
+                cancel_appointment: cancelAppt,
+            });
+            if (res.success && res.affected_steps) {
+                onStepsChange(sequence.id, res.affected_steps);
+            } else {
+                onStepsChange(
+                    sequence.id,
+                    sequence.steps
+                        .filter(s => s.id !== deleteDialog.stepId)
+                        .map((s, i) => ({ ...s, step_number: i + 1 }))
+                );
+            }
+        } finally {
+            setIsBusy(false);
+        }
+    }
+
+    // ── Status change ─────────────────────────────────────────────────────────
+
+    function openStatusDialog(step: TreatmentSequenceStep, newStatus: TreatmentSequenceStepStatus) {
+        const needsConfirm = step.appointment_id && ['completed', 'cancelled', 'missed'].includes(newStatus);
+        if (!needsConfirm) {
+            executeStatusChange(step.id, newStatus, false, false);
+            return;
+        }
+        setStatusDialog({
+            open: true,
+            stepId: step.id,
+            stepName: step.step_name,
+            newStatus,
+            hasAppointment: !!step.appointment_id,
+            appointmentDate: step.scheduled_date ?? null,
+        });
+    }
+
+    async function executeStatusChange(
+        stepId: string,
+        status: TreatmentSequenceStepStatus,
+        syncAppt: boolean,
+        notify: boolean
+    ) {
+        setStatusDialog(prev => ({ ...prev, open: false }));
+        setIsBusy(true);
+        try {
+            const res = await changeStepStatus({
+                sequence_id: sequence.id,
+                step_id: stepId,
+                status,
+                sync_appointment: syncAppt,
+                notify_patient: notify,
+            });
+            if (res.success && res.step) {
+                const updated = sequence.steps.map(s => s.id === stepId ? res.step! : s);
+                onStepsChange(sequence.id, updated);
+                if (res.sequence_completed) {
+                    onSequenceStatusChange?.(sequence.id, 'completed');
+                }
+            } else {
+                onStepsChange(sequence.id, sequence.steps.map(s =>
+                    s.id === stepId
+                        ? { ...s, status, completed_at: status === 'completed' ? new Date().toISOString() : s.completed_at }
+                        : s
+                ));
+            }
+        } finally {
+            setIsBusy(false);
+        }
+    }
+
+    // ── Schedule step (create appointment) ────────────────────────────────────
+
+    function openScheduleDialog(step: TreatmentSequenceStep) {
+        setScheduleDialog({
+            open: true,
+            stepId: step.id,
+            stepName: step.step_name,
+            sequenceId: sequence.id,
+            defaultDoctorId: sequence.doctor_id ?? '',
+            patientId: sequence.patient_id,
+            googleCalendarId: sequence.google_calendar_id ?? null,
+        });
+    }
+
+    async function executeSchedule(date: string, duration: number, notify: boolean) {
+        const res = await scheduleStep({
+            sequence_id: sequence.id,
+            step_id: scheduleDialog.stepId,
+            patient_id: sequence.patient_id,
+            doctor_id: scheduleDialog.defaultDoctorId,
+            scheduled_date: date,
+            duration_minutes: duration,
+            google_calendar_id: scheduleDialog.googleCalendarId,
+        });
+        setScheduleDialog(prev => ({ ...prev, open: false }));
+        if (res.success && res.step) {
+            onStepsChange(sequence.id, sequence.steps.map(s => s.id === scheduleDialog.stepId ? res.step! : s));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+
+    return (
+        <div className="space-y-0 pt-1">
+            {isBusy && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground pb-2">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t('edit.saving')}
+                </div>
+            )}
+
+            {sequence.steps.map((step, idx) => (
+                <div key={step.id} className="flex gap-3 min-h-[2.5rem]">
+                    {/* Timeline connector */}
+                    <div className="flex flex-col items-center shrink-0 w-6">
+                        <div className="mt-0.5">{stepStatusIcon(step.status)}</div>
+                        {(idx < sequence.steps.length - 1 || isAddingStep) && (
+                            <div className="flex-1 w-px bg-border mt-1" />
+                        )}
+                    </div>
+
+                    <div className={cn('pb-3 flex-1 min-w-0', idx === sequence.steps.length - 1 && !isAddingStep && 'pb-1')}>
+                        {editingStepId === step.id ? (
+                            <StepEditor
+                                step={step}
+                                onSave={(patch) => handleStepSave(step.id, patch)}
+                                onCancel={() => setEditingStepId(null)}
+                                t={t}
+                            />
+                        ) : (
+                            <div className="flex items-start justify-between gap-2 group">
+                                <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <p className={cn('text-sm font-medium leading-tight', stepStatusClass(step.status))}>
+                                            {step.step_number}. {step.step_name}
+                                        </p>
+                                        {step.appointment_id && (
+                                            <span title={t('edit.hasAppointment')}>
+                                                <CalendarCheck className="h-3 w-3 text-blue-500 shrink-0" />
+                                            </span>
+                                        )}
+                                    </div>
+                                    {step.scheduled_date && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                            {formatLongDate(step.scheduled_date)}
+                                        </p>
+                                    )}
+                                    {step.notes && (
+                                        <p className="text-xs text-muted-foreground italic mt-0.5">{step.notes}</p>
+                                    )}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex items-center gap-0.5 shrink-0 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    {/* Schedule button — only for steps without appointment */}
+                                    {!step.appointment_id && step.status !== 'completed' && step.status !== 'cancelled' && (
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            className="h-6 w-6 text-muted-foreground hover:text-blue-500"
+                                            title={t('schedule.title')}
+                                            onClick={() => openScheduleDialog(step)}
+                                        >
+                                            <CalendarPlus className="h-3 w-3" />
+                                        </Button>
+                                    )}
+
+                                    {/* Edit button */}
+                                    <Button
+                                        variant="ghost" size="icon"
+                                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                                        title={t('edit.editStep')}
+                                        onClick={() => { setIsAddingStep(false); setEditingStepId(step.id); }}
+                                    >
+                                        <Pencil className="h-3 w-3" />
+                                    </Button>
+
+                                    {/* More menu */}
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                                                <MoreHorizontal className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-44">
+                                            {/* Status options */}
+                                            {STEP_STATUS_OPTIONS.filter(s => s !== step.status).map(status => (
+                                                <DropdownMenuItem
+                                                    key={status}
+                                                    className="text-xs gap-2"
+                                                    onSelect={() => openStatusDialog(step, status)}
+                                                >
+                                                    {stepStatusIcon(status, 'h-3 w-3')}
+                                                    {t(`stepStatus.${status}`)}
+                                                </DropdownMenuItem>
+                                            ))}
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                className="text-xs text-destructive focus:text-destructive gap-2"
+                                                onSelect={() => openDeleteDialog(step)}
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                                {t('edit.deleteStep')}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+
+            {/* Add step form / button */}
+            {isAddingStep ? (
+                <div className="flex gap-3">
+                    <div className="flex flex-col items-center shrink-0 w-6">
+                        <div className="mt-1"><Circle className="h-4 w-4 text-muted-foreground/40" /></div>
+                    </div>
+                    <div className="flex-1">
+                        <AddStepForm
+                            sequence={sequence}
+                            onAdd={handleStepAdd}
+                            onCancel={() => setIsAddingStep(false)}
+                            t={t}
+                        />
+                    </div>
+                </div>
+            ) : (
+                <Button
+                    type="button" variant="ghost" size="sm"
+                    className="w-full mt-1 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => { setEditingStepId(null); setIsAddingStep(true); }}
+                    disabled={isBusy}
+                >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    {t('edit.addStep')}
+                </Button>
+            )}
+
+            {/* Dialogs */}
+            <CascadeDialog
+                state={cascadeDialog}
+                onConfirm={(mode, days) => {
+                    setCascadeDialog(prev => ({ ...prev, open: false }));
+                    executeSaveStep(cascadeDialog.stepId, cascadeDialog.patch, mode, days);
+                }}
+                onClose={() => setCascadeDialog(prev => ({ ...prev, open: false }))}
+                t={t}
+            />
+            <DeleteDialog
+                state={deleteDialog}
+                onConfirm={executeDelete}
+                onClose={() => setDeleteDialog(prev => ({ ...prev, open: false }))}
+                t={t}
+            />
+            <StatusDialog
+                state={statusDialog}
+                onConfirm={(syncAppt, notify) => executeStatusChange(statusDialog.stepId, statusDialog.newStatus, syncAppt, notify)}
+                onClose={() => setStatusDialog(prev => ({ ...prev, open: false }))}
+                t={t}
+            />
+            <ScheduleStepDialog
+                state={scheduleDialog}
+                onConfirm={executeSchedule}
+                onClose={() => setScheduleDialog(prev => ({ ...prev, open: false }))}
+                t={t}
+            />
+        </div>
+    );
+}
+
+// ─── Inline step editor ───────────────────────────────────────────────────────
+
+function StepEditor({
+    step,
+    onSave,
+    onCancel,
+    t,
+}: {
+    step: TreatmentSequenceStep;
+    onSave: (patch: Partial<TreatmentSequenceStep>) => Promise<void>;
+    onCancel: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [stepName, setStepName] = React.useState(step.step_name);
+    const [date, setDate] = React.useState(step.scheduled_date ?? '');
+    const [notes, setNotes] = React.useState(step.notes ?? '');
+    const [status, setStatus] = React.useState<TreatmentSequenceStepStatus>(step.status);
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    async function handleSave() {
+        setIsSaving(true);
+        try {
+            await onSave({ step_name: stepName, scheduled_date: date || undefined, notes: notes || undefined, status });
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+        <div className="space-y-2 pt-1 pb-2 border rounded-md p-3 bg-muted/10">
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.stepName')}</Label>
+                <Input value={stepName} onChange={e => setStepName(e.target.value)} className="h-8 text-sm mt-0.5" />
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.scheduledDate')}</Label>
+                <DatePickerInput value={date} onChange={setDate} className="mt-0.5" />
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.status')}</Label>
+                <Select value={status} onValueChange={(v) => setStatus(v as TreatmentSequenceStepStatus)}>
+                    <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        {STEP_STATUS_OPTIONS.map(s => (
+                            <SelectItem key={s} value={s} className="text-sm">{t(`stepStatus.${s}`)}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.notes')}</Label>
+                <Input value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-sm mt-0.5 text-muted-foreground" placeholder={t('edit.notesPlaceholder')} />
+            </div>
+            <div className="flex gap-2 pt-1">
+                <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={isSaving || !stepName.trim()}>
+                    {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {t('edit.save')}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onCancel} disabled={isSaving}>
+                    {t('edit.cancel')}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Add step form ────────────────────────────────────────────────────────────
+
+function AddStepForm({
+    sequence,
+    onAdd,
+    onCancel,
+    t,
+}: {
+    sequence: TreatmentSequence;
+    onAdd: (step: Omit<TreatmentSequenceStep, 'id'>, insertAfter?: number) => Promise<void>;
+    onCancel: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [stepName, setStepName] = React.useState('');
+    const [date, setDate] = React.useState('');
+    const [notes, setNotes] = React.useState('');
+    const [duration, setDuration] = React.useState(60);
+    const [insertAfter, setInsertAfter] = React.useState<number>(sequence.steps.length); // default: append
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    async function handleAdd() {
+        if (!stepName.trim()) return;
+        setIsSaving(true);
+        try {
+            await onAdd(
+                {
+                    step_number: insertAfter + 1,
+                    step_name: stepName,
+                    scheduled_date: date || undefined,
+                    duration_minutes: duration,
+                    notes: notes || undefined,
+                    status: 'pending',
+                },
+                insertAfter
+            );
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+        <div className="border rounded-md p-3 space-y-2 mt-2 bg-muted/20">
+            <p className="text-xs font-semibold text-muted-foreground">
+                {t('edit.addStepTitle', { number: insertAfter + 1 })}
+            </p>
+
+            {/* Insert position */}
+            {sequence.steps.length > 0 && (
+                <div>
+                    <Label className="text-xs text-muted-foreground">{t('edit.insertAfter')}</Label>
+                    <Select
+                        value={String(insertAfter)}
+                        onValueChange={v => setInsertAfter(parseInt(v, 10))}
+                    >
+                        <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="0" className="text-sm">{t('edit.insertFirst')}</SelectItem>
+                            {sequence.steps.map(s => (
+                                <SelectItem key={s.id} value={String(s.step_number)} className="text-sm">
+                                    {t('edit.insertAfterStep', { number: s.step_number, name: s.step_name })}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.stepName')}</Label>
+                <Input
+                    value={stepName}
+                    onChange={e => setStepName(e.target.value)}
+                    className="h-8 text-sm mt-0.5"
+                    placeholder={t('review.stepNamePlaceholder')}
+                    autoFocus
+                />
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.scheduledDate')}</Label>
+                <DatePickerInput value={date} onChange={setDate} className="mt-0.5" />
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.duration')}</Label>
+                <Input
+                    type="number"
+                    min={15}
+                    value={duration}
+                    onChange={e => setDuration(parseInt(e.target.value, 10) || 60)}
+                    className="h-8 text-sm mt-0.5"
+                />
+            </div>
+            <div>
+                <Label className="text-xs text-muted-foreground">{t('edit.notes')}</Label>
+                <Input value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-sm mt-0.5 text-muted-foreground" placeholder={t('edit.notesPlaceholder')} />
+            </div>
+            <div className="flex gap-2 pt-1">
+                <Button size="sm" className="h-7 text-xs gap-1" onClick={handleAdd} disabled={isSaving || !stepName.trim()}>
+                    {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {t('edit.addStepConfirm')}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onCancel} disabled={isSaving}>
+                    {t('edit.cancel')}
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Active plan card ─────────────────────────────────────────────────────────
+
+function ActivePlanCard({
+    sequence,
+    onStepsChange,
+    onSequenceStatusChange,
+    t,
+}: {
+    sequence: TreatmentSequence;
+    onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
+    onSequenceStatusChange?: (id: string, status: TreatmentSequenceStatus) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [expanded, setExpanded] = React.useState(false);
@@ -157,12 +1233,8 @@ function ActivePlanCard({
     const completedCount = sequence.steps.filter(s => s.status === 'completed').length;
     const totalCount = sequence.steps.length;
     const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-
-    // Current step = first non-completed
     const currentStepIdx = sequence.steps.findIndex(s => s.status !== 'completed' && s.status !== 'cancelled');
     const hasMissed = sequence.steps.some(s => s.status === 'missed');
-
-    // Days since last missed step
     const missedStep = sequence.steps.find(s => s.status === 'missed');
     const missedDaysAgo = React.useMemo(() => {
         if (!missedStep?.scheduled_date) return null;
@@ -178,45 +1250,28 @@ function ActivePlanCard({
         <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
             {/* Card header */}
             <div className="bg-muted/30 px-4 pt-4 pb-3 space-y-2.5">
-                {/* Title row */}
                 <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                         <Stethoscope className="h-4 w-4 text-primary shrink-0" />
                         <h3 className="font-bold text-sm leading-tight truncate">{sequence.service_name}</h3>
                     </div>
-                    <Badge
-                        variant={sequenceStatusVariant(sequence.status)}
-                        className="shrink-0 gap-1 text-xs"
-                    >
-                        {sequence.status === 'active' && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                        )}
+                    <Badge variant={sequenceStatusVariant(sequence.status)} className="shrink-0 gap-1 text-xs">
+                        {sequence.status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />}
                         {t(`status.${sequence.status}`)}
                     </Badge>
                 </div>
-
-                {/* Subtitle */}
                 <p className="text-[11px] text-muted-foreground">
                     {t('startedAt')} {formatLongDate(sequence.started_at)}
                     {sequence.doctor_name && ` · ${sequence.doctor_name}`}
                     {seqIdLabel && ` · ID: ${seqIdLabel}`}
                 </p>
-
-                {/* Progress */}
                 <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">
-                            {t('progressLabel')}
-                        </span>
-                        <span className="text-[11px] font-semibold text-primary">
-                            {completedCount} / {totalCount} {t('milestones')}
-                        </span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">{t('progressLabel')}</span>
+                        <span className="text-[11px] font-semibold text-primary">{completedCount} / {totalCount} {t('milestones')}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div
-                            className="h-full rounded-full bg-primary transition-all duration-500"
-                            style={{ width: `${progress}%` }}
-                        />
+                        <div className="h-full rounded-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
                 </div>
             </div>
@@ -226,11 +1281,7 @@ function ActivePlanCard({
                 <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <div className="flex gap-2 pb-1">
                         {sequence.steps.map((step, idx) => (
-                            <MilestoneCard
-                                key={step.id}
-                                step={step}
-                                isCurrent={idx === currentStepIdx}
-                            />
+                            <MilestoneCard key={step.id} step={step} isCurrent={idx === currentStepIdx} />
                         ))}
                     </div>
                 </div>
@@ -244,9 +1295,7 @@ function ActivePlanCard({
                         <p className="text-xs font-semibold text-destructive">{t('interruptedAlert')}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">
                             {sequence.service_name}
-                            {missedDaysAgo != null && (
-                                <> — {t('missedDaysAgo', { days: missedDaysAgo })}</>
-                            )}
+                            {missedDaysAgo != null && <> — {t('missedDaysAgo', { days: missedDaysAgo })}</>}
                         </p>
                     </div>
                     <Button size="sm" variant="destructive" className="shrink-0 h-7 text-xs gap-1.5">
@@ -271,6 +1320,7 @@ function ActivePlanCard({
                         <StepTimeline
                             sequence={sequence}
                             onStepsChange={onStepsChange}
+                            onSequenceStatusChange={onSequenceStatusChange}
                             t={t}
                         />
                     </div>
@@ -312,474 +1362,16 @@ function CompactSequenceCard({
                 <span className="text-xs text-muted-foreground shrink-0">{completedCount}/{totalCount}</span>
                 {expanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
             </button>
-
-            {/* Progress bar */}
             <div className="h-0.5 bg-muted">
-                <div
-                    className="h-full bg-primary/60 transition-all"
-                    style={{ width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' }}
-                />
+                <div className="h-full bg-primary/60 transition-all" style={{ width: totalCount > 0 ? `${(completedCount / totalCount) * 100}%` : '0%' }} />
             </div>
-
             <Collapsible open={expanded}>
                 <CollapsibleContent>
                     <div className="px-3 pb-3 pt-2 border-t border-border">
-                        <StepTimeline
-                            sequence={sequence}
-                            onStepsChange={onStepsChange}
-                            t={t}
-                        />
+                        <StepTimeline sequence={sequence} onStepsChange={onStepsChange} t={t} />
                     </div>
                 </CollapsibleContent>
             </Collapsible>
-        </div>
-    );
-}
-
-// ─── Step timeline (shared editor for both card types) ────────────────────────
-
-function StepTimeline({
-    sequence,
-    onStepsChange,
-    t,
-}: {
-    sequence: TreatmentSequence;
-    onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
-    t: ReturnType<typeof useTranslations>;
-}) {
-    const [editingStepId, setEditingStepId] = React.useState<string | null>(null);
-    const [isAddingStep, setIsAddingStep] = React.useState(false);
-
-    function stepStatusIcon(status: TreatmentSequenceStepStatus) {
-        switch (status) {
-            case 'completed': return <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />;
-            case 'scheduled': return <CalendarCheck className="h-4 w-4 text-blue-500 shrink-0" />;
-            case 'missed': return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
-            case 'cancelled': return <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />;
-            default: return <Circle className="h-4 w-4 text-muted-foreground shrink-0" />;
-        }
-    }
-
-    function stepStatusClass(status: TreatmentSequenceStepStatus): string {
-        switch (status) {
-            case 'completed': return 'text-emerald-600 dark:text-emerald-400';
-            case 'scheduled': return 'text-blue-600 dark:text-blue-400';
-            case 'missed': return 'text-destructive';
-            case 'cancelled': return 'text-muted-foreground line-through';
-            default: return 'text-muted-foreground';
-        }
-    }
-
-    async function handleStepSave(stepId: string, patch: Partial<TreatmentSequenceStep>) {
-        await updateTreatmentSequenceStep(sequence.id, stepId, patch);
-        onStepsChange(sequence.id, sequence.steps.map(s => s.id === stepId ? { ...s, ...patch } : s));
-        setEditingStepId(null);
-    }
-
-    async function handleStepDelete(stepId: string) {
-        await deleteTreatmentSequenceStep(sequence.id, stepId);
-        onStepsChange(
-            sequence.id,
-            sequence.steps.filter(s => s.id !== stepId).map((s, i) => ({ ...s, step_number: i + 1 }))
-        );
-    }
-
-    async function handleStatusChange(stepId: string, status: TreatmentSequenceStepStatus) {
-        await updateSequenceStepStatus(sequence.id, stepId, status);
-        onStepsChange(sequence.id, sequence.steps.map(s =>
-            s.id === stepId ? { ...s, status, completed_at: status === 'completed' ? new Date().toISOString() : s.completed_at } : s
-        ));
-    }
-
-    async function handleStepAdd(step: Omit<TreatmentSequenceStep, 'id'>) {
-        const newStep = await addTreatmentSequenceStep(sequence.id, step);
-        onStepsChange(sequence.id, [...sequence.steps, newStep]);
-        setIsAddingStep(false);
-    }
-
-    return (
-        <div className="space-y-0 pt-1">
-            {sequence.steps.map((step, idx) => (
-                <div key={step.id} className="flex gap-3 min-h-[2.5rem]">
-                    <div className="flex flex-col items-center shrink-0 w-6">
-                        <div className="mt-0.5">{stepStatusIcon(step.status)}</div>
-                        {(idx < sequence.steps.length - 1 || isAddingStep) && (
-                            <div className="flex-1 w-px bg-border mt-1" />
-                        )}
-                    </div>
-                    <div className={cn('pb-3 flex-1 min-w-0', idx === sequence.steps.length - 1 && !isAddingStep && 'pb-1')}>
-                        {editingStepId === step.id ? (
-                            <StepEditor
-                                step={step}
-                                onSave={(patch) => handleStepSave(step.id, patch)}
-                                onCancel={() => setEditingStepId(null)}
-                                t={t}
-                            />
-                        ) : (
-                            <div className="flex items-start justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                    <p className={cn('text-sm font-medium leading-tight', stepStatusClass(step.status))}>
-                                        {step.step_number}. {step.step_name}
-                                    </p>
-                                    {step.scheduled_date && (
-                                        <p className="text-xs text-muted-foreground mt-0.5">
-                                            {formatLongDate(step.scheduled_date)}
-                                        </p>
-                                    )}
-                                    {step.notes && (
-                                        <p className="text-xs text-muted-foreground italic mt-0.5">{step.notes}</p>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-0.5 shrink-0">
-                                    <Button
-                                        variant="ghost" size="icon"
-                                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                                        onClick={() => { setIsAddingStep(false); setEditingStepId(step.id); }}
-                                    >
-                                        <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
-                                                <MoreHorizontal className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40">
-                                            {STEP_STATUS_OPTIONS.filter(s => s !== step.status).map(status => (
-                                                <DropdownMenuItem
-                                                    key={status}
-                                                    className="text-xs gap-2"
-                                                    onSelect={() => handleStatusChange(step.id, status)}
-                                                >
-                                                    {t(`stepStatus.${status}`)}
-                                                </DropdownMenuItem>
-                                            ))}
-                                            <DropdownMenuItem
-                                                className="text-xs text-destructive focus:text-destructive gap-2"
-                                                onSelect={() => handleStepDelete(step.id)}
-                                            >
-                                                <Trash2 className="h-3 w-3" />
-                                                {t('edit.deleteStep')}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            ))}
-
-            {isAddingStep ? (
-                <div className="flex gap-3">
-                    <div className="flex flex-col items-center shrink-0 w-6">
-                        <div className="mt-1"><Circle className="h-4 w-4 text-muted-foreground/40" /></div>
-                    </div>
-                    <div className="flex-1">
-                        <AddStepForm
-                            nextStepNumber={sequence.steps.length + 1}
-                            onAdd={handleStepAdd}
-                            onCancel={() => setIsAddingStep(false)}
-                            t={t}
-                        />
-                    </div>
-                </div>
-            ) : (
-                <Button
-                    type="button" variant="ghost" size="sm"
-                    className="w-full mt-1 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => { setEditingStepId(null); setIsAddingStep(true); }}
-                >
-                    <PlusCircle className="h-3.5 w-3.5" />
-                    {t('edit.addStep')}
-                </Button>
-            )}
-        </div>
-    );
-}
-
-// ─── Inline step editor ───────────────────────────────────────────────────────
-
-interface StepEditorProps {
-    step: TreatmentSequenceStep;
-    onSave: (patch: Partial<TreatmentSequenceStep>) => Promise<void>;
-    onCancel: () => void;
-    t: ReturnType<typeof useTranslations>;
-}
-
-function StepEditor({ step, onSave, onCancel, t }: StepEditorProps) {
-    const [stepName, setStepName] = React.useState(step.step_name);
-    const [date, setDate] = React.useState(step.scheduled_date ?? '');
-    const [notes, setNotes] = React.useState(step.notes ?? '');
-    const [status, setStatus] = React.useState<TreatmentSequenceStepStatus>(step.status);
-    const [isSaving, setIsSaving] = React.useState(false);
-
-    async function handleSave() {
-        setIsSaving(true);
-        try {
-            await onSave({ step_name: stepName, scheduled_date: date || undefined, notes: notes || undefined, status });
-        } finally {
-            setIsSaving(false);
-        }
-    }
-
-    return (
-        <div className="space-y-2 pt-1 pb-2">
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.stepName')}</Label>
-                <Input value={stepName} onChange={e => setStepName(e.target.value)} className="h-8 text-sm mt-0.5" />
-            </div>
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.scheduledDate')}</Label>
-                <DatePickerInput value={date} onChange={setDate} className="mt-0.5" />
-            </div>
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.status')}</Label>
-                <Select value={status} onValueChange={(v) => setStatus(v as TreatmentSequenceStepStatus)}>
-                    <SelectTrigger className="h-8 text-sm mt-0.5"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        {STEP_STATUS_OPTIONS.map(s => (
-                            <SelectItem key={s} value={s} className="text-sm">{t(`stepStatus.${s}`)}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.notes')}</Label>
-                <Input value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-sm mt-0.5 text-muted-foreground" placeholder={t('edit.notesPlaceholder')} />
-            </div>
-            <div className="flex gap-2 pt-1">
-                <Button size="sm" className="h-7 text-xs gap-1" onClick={handleSave} disabled={isSaving || !stepName.trim()}>
-                    {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {t('edit.save')}
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onCancel} disabled={isSaving}>
-                    {t('edit.cancel')}
-                </Button>
-            </div>
-        </div>
-    );
-}
-
-// ─── Add-step mini form ───────────────────────────────────────────────────────
-
-function AddStepForm({
-    nextStepNumber,
-    onAdd,
-    onCancel,
-    t,
-}: {
-    nextStepNumber: number;
-    onAdd: (step: Omit<TreatmentSequenceStep, 'id'>) => Promise<void>;
-    onCancel: () => void;
-    t: ReturnType<typeof useTranslations>;
-}) {
-    const [stepName, setStepName] = React.useState('');
-    const [date, setDate] = React.useState('');
-    const [notes, setNotes] = React.useState('');
-    const [isSaving, setIsSaving] = React.useState(false);
-
-    async function handleAdd() {
-        if (!stepName.trim()) return;
-        setIsSaving(true);
-        try {
-            await onAdd({ step_number: nextStepNumber, step_name: stepName, scheduled_date: date || undefined, notes: notes || undefined, status: 'pending' });
-        } finally { setIsSaving(false); }
-    }
-
-    return (
-        <div className="border rounded-md p-3 space-y-2 mt-2 bg-muted/20">
-            <p className="text-xs font-semibold text-muted-foreground">{t('edit.addStepTitle', { number: nextStepNumber })}</p>
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.stepName')}</Label>
-                <Input value={stepName} onChange={e => setStepName(e.target.value)} className="h-8 text-sm mt-0.5" placeholder={t('review.stepNamePlaceholder')} autoFocus />
-            </div>
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.scheduledDate')}</Label>
-                <DatePickerInput value={date} onChange={setDate} className="mt-0.5" />
-            </div>
-            <div>
-                <Label className="text-xs text-muted-foreground">{t('edit.notes')}</Label>
-                <Input value={notes} onChange={e => setNotes(e.target.value)} className="h-8 text-sm mt-0.5 text-muted-foreground" placeholder={t('edit.notesPlaceholder')} />
-            </div>
-            <div className="flex gap-2 pt-1">
-                <Button size="sm" className="h-7 text-xs gap-1" onClick={handleAdd} disabled={isSaving || !stepName.trim()}>
-                    {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {t('edit.addStepConfirm')}
-                </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onCancel} disabled={isSaving}>
-                    {t('edit.cancel')}
-                </Button>
-            </div>
-        </div>
-    );
-}
-
-// ─── Inline active treatment widget (shown on Info tab) ───────────────────────
-
-interface UserActiveTreatmentWidgetProps {
-    userId: string;
-    onViewAll?: () => void;
-    onCreateAppointment?: () => void;
-}
-
-export function UserActiveTreatmentWidget({ userId, onViewAll, onCreateAppointment }: UserActiveTreatmentWidgetProps) {
-    const t = useTranslations('TreatmentPlans');
-    const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [stepsOpen, setStepsOpen] = React.useState(false);
-
-    React.useEffect(() => {
-        let cancelled = false;
-        setIsLoading(true);
-        getTreatmentSequences(userId).then(data => {
-            if (!cancelled) { setSequences(data); setIsLoading(false); }
-        });
-        return () => { cancelled = true; };
-    }, [userId]);
-
-    function handleStepsChange(sequenceId: string, steps: TreatmentSequenceStep[]) {
-        setSequences(prev => prev.map(s => s.id === sequenceId ? { ...s, steps } : s));
-    }
-
-    const active = sequences.filter(s => s.status === 'active' || s.status === 'paused');
-
-    // Nothing loading + no active treatments → show link
-    if (!isLoading && active.length === 0) return null;
-
-    if (isLoading) {
-        return (
-            <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {t('loading')}
-            </div>
-        );
-    }
-
-    // Show only the most relevant active plan
-    const seq = active[0];
-    const completedCount = seq.steps.filter(s => s.status === 'completed').length;
-    const totalCount = seq.steps.length;
-    const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
-    const currentStepIdx = seq.steps.findIndex(s => s.status !== 'completed' && s.status !== 'cancelled');
-    const currentStep = currentStepIdx >= 0 ? seq.steps[currentStepIdx] : null;
-    const nextStep = seq.steps[currentStepIdx + 1] ?? null;
-    const hasMissed = seq.steps.some(s => s.status === 'missed');
-
-    return (
-        <div className="mb-2">
-            {/* Widget header row */}
-            <div className="flex items-center justify-between py-1.5">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-1.5">
-                    <ClipboardList className="h-3 w-3" />
-                    {t('widgetTitle')}
-                    {active.length > 1 && (
-                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{active.length}</Badge>
-                    )}
-                </span>
-                {onViewAll && (
-                    <button
-                        type="button"
-                        onClick={onViewAll}
-                        className="text-[10px] text-primary hover:underline font-medium"
-                    >
-                        {t('viewAll')}
-                    </button>
-                )}
-            </div>
-
-            <div className={cn(
-                'rounded-lg border overflow-hidden',
-                hasMissed ? 'border-destructive/40' : 'border-border',
-            )}>
-                {/* Service + status row */}
-                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-muted/20">
-                    {seq.service_color && (
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: seq.service_color }} />
-                    )}
-                    <span className="font-semibold text-sm flex-1 min-w-0 truncate">{seq.service_name}</span>
-                    <Badge variant={sequenceStatusVariant(seq.status)} className="text-xs shrink-0 gap-1">
-                        {seq.status === 'active' && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                        )}
-                        {t(`status.${seq.status}`)}
-                    </Badge>
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-1 bg-muted">
-                    <div
-                        className={cn('h-full transition-all', hasMissed ? 'bg-destructive/60' : 'bg-primary')}
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
-
-                {/* Body */}
-                <div className="px-3 py-2.5 space-y-2">
-                    {/* Progress label */}
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{t('progressLabel')}</span>
-                        <span className="font-semibold text-primary">{completedCount} / {totalCount} {t('milestones')}</span>
-                    </div>
-
-                    {/* Current step */}
-                    {currentStep && (
-                        <div className={cn(
-                            'flex items-start gap-2 rounded-md px-2.5 py-2 text-xs',
-                            hasMissed ? 'bg-destructive/10 border border-destructive/20' : 'bg-primary/5 border border-primary/15',
-                        )}>
-                            <div className="shrink-0 mt-0.5">
-                                {hasMissed
-                                    ? <XCircle className="h-3.5 w-3.5 text-destructive" />
-                                    : <ChevronRight className="h-3.5 w-3.5 text-primary" />}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">
-                                    {hasMissed ? t('missedStep') : t('currentStep')}
-                                </p>
-                                <p className={cn('font-medium leading-tight', hasMissed ? 'text-destructive' : 'text-foreground')}>
-                                    {currentStep.step_number}. {currentStep.step_name}
-                                </p>
-                                {currentStep.scheduled_date && (
-                                    <p className="text-muted-foreground mt-0.5">{formatLongDate(currentStep.scheduled_date)}</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Next step (only if current is not missed) */}
-                    {nextStep && !hasMissed && (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Circle className="h-3 w-3 shrink-0" />
-                            <span className="truncate">
-                                {t('nextStep')}: <span className="font-medium text-foreground">{nextStep.step_name}</span>
-                                {nextStep.scheduled_date && <> · {formatLongDate(nextStep.scheduled_date)}</>}
-                            </span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Expandable editor */}
-                <Collapsible open={stepsOpen}>
-                    <button
-                        type="button"
-                        className="w-full flex items-center justify-between gap-2 px-3 py-1.5 border-t border-border hover:bg-muted/30 transition-colors text-[11px] text-muted-foreground"
-                        onClick={() => setStepsOpen(v => !v)}
-                    >
-                        <span>{t('editSteps')}</span>
-                        {stepsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                    </button>
-                    <CollapsibleContent>
-                        <div className="px-3 pb-3 pt-1 border-t border-border">
-                            <StepTimeline
-                                sequence={seq}
-                                onStepsChange={handleStepsChange}
-                                t={t}
-                            />
-                        </div>
-                    </CollapsibleContent>
-                </Collapsible>
-            </div>
         </div>
     );
 }
@@ -796,16 +1388,17 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
         let cancelled = false;
         setIsLoading(true);
         getTreatmentSequences(userId).then(data => {
-            if (!cancelled) {
-                setSequences(data);
-                setIsLoading(false);
-            }
+            if (!cancelled) { setSequences(data); setIsLoading(false); }
         });
         return () => { cancelled = true; };
     }, [userId]);
 
     function handleStepsChange(sequenceId: string, steps: TreatmentSequenceStep[]) {
         setSequences(prev => prev.map(seq => seq.id === sequenceId ? { ...seq, steps } : seq));
+    }
+
+    function handleSequenceStatusChange(sequenceId: string, status: TreatmentSequenceStatus) {
+        setSequences(prev => prev.map(seq => seq.id === sequenceId ? { ...seq, status } : seq));
     }
 
     if (isLoading) {
@@ -826,12 +1419,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
                     <p className="text-xs text-muted-foreground max-w-xs">{t('emptyStateDescription')}</p>
                 </div>
                 {onCreateAppointment && (
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-xs"
-                        onClick={onCreateAppointment}
-                    >
+                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreateAppointment}>
                         <PlusCircle className="h-3.5 w-3.5" />
                         {t('createAppointment')}
                     </Button>
@@ -840,26 +1428,23 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
         );
     }
 
-    // Split active vs historical
     const active = sequences.filter(s => s.status === 'active' || s.status === 'paused');
     const historical = sequences.filter(s => s.status === 'completed' || s.status === 'cancelled');
 
     return (
         <div className="space-y-3 pb-4">
-            {/* Active / in-progress plans */}
             {active.map(seq => (
                 <ActivePlanCard
                     key={seq.id}
                     sequence={seq}
                     onStepsChange={handleStepsChange}
+                    onSequenceStatusChange={handleSequenceStatusChange}
                     t={t}
                 />
             ))}
 
-            {/* Historical plans — collapsible */}
             {historical.length > 0 && (
                 <div>
-                    {/* Toggle header — matches financial stats pattern */}
                     <div className="flex items-center justify-between py-1.5">
                         <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
                             {t('historicalTitle')} ({historical.length})
@@ -873,23 +1458,128 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
                             {showHistorical ? t('hideHistorical') : t('showHistorical')}
                         </button>
                     </div>
-
                     <Collapsible open={showHistorical}>
                         <CollapsibleContent>
                             <div className="space-y-2 pt-1">
                                 {historical.map(seq => (
-                                    <CompactSequenceCard
-                                        key={seq.id}
-                                        sequence={seq}
-                                        onStepsChange={handleStepsChange}
-                                        t={t}
-                                    />
+                                    <CompactSequenceCard key={seq.id} sequence={seq} onStepsChange={handleStepsChange} t={t} />
                                 ))}
                             </div>
                         </CollapsibleContent>
                     </Collapsible>
                 </div>
             )}
+        </div>
+    );
+}
+
+// ─── Inline active treatment widget ──────────────────────────────────────────
+
+interface UserActiveTreatmentWidgetProps {
+    userId: string;
+    onViewAll?: () => void;
+    onCreateAppointment?: () => void;
+}
+
+export function UserActiveTreatmentWidget({ userId, onViewAll, onCreateAppointment }: UserActiveTreatmentWidgetProps) {
+    const t = useTranslations('TreatmentPlans');
+    const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        setIsLoading(true);
+        getTreatmentSequences(userId).then(data => {
+            if (!cancelled) { setSequences(data); setIsLoading(false); }
+        });
+        return () => { cancelled = true; };
+    }, [userId]);
+
+    const active = sequences.filter(s => s.status === 'active' || s.status === 'paused');
+
+    if (!isLoading && active.length === 0) return null;
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {t('loading')}
+            </div>
+        );
+    }
+
+    const seq = active[0];
+    const completedCount = seq.steps.filter(s => s.status === 'completed').length;
+    const totalCount = seq.steps.length;
+    const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    const currentStepIdx = seq.steps.findIndex(s => s.status !== 'completed' && s.status !== 'cancelled');
+    const currentStep = currentStepIdx >= 0 ? seq.steps[currentStepIdx] : null;
+    const nextStep = seq.steps[currentStepIdx + 1] ?? null;
+    const hasMissed = seq.steps.some(s => s.status === 'missed');
+
+    return (
+        <div className="mb-2">
+            <div className="flex items-center justify-between py-1.5">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-1.5">
+                    <ClipboardList className="h-3 w-3" />
+                    {t('widgetTitle')}
+                    {active.length > 1 && (
+                        <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4">{active.length}</Badge>
+                    )}
+                </span>
+                {onViewAll && (
+                    <button type="button" onClick={onViewAll} className="text-[10px] text-primary hover:underline font-medium">
+                        {t('viewAll')}
+                    </button>
+                )}
+            </div>
+
+            <div className={cn('rounded-lg border overflow-hidden', hasMissed ? 'border-destructive/40' : 'border-border')}>
+                <div className="flex items-center gap-2.5 px-3 py-2.5 bg-muted/20">
+                    {seq.service_color && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: seq.service_color }} />}
+                    <span className="font-semibold text-sm flex-1 min-w-0 truncate">{seq.service_name}</span>
+                    <Badge variant={sequenceStatusVariant(seq.status)} className="text-xs shrink-0 gap-1">
+                        {seq.status === 'active' && <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />}
+                        {t(`status.${seq.status}`)}
+                    </Badge>
+                </div>
+                <div className="h-1 bg-muted">
+                    <div className={cn('h-full transition-all', hasMissed ? 'bg-destructive/60' : 'bg-primary')} style={{ width: `${progress}%` }} />
+                </div>
+                <div className="px-3 py-2.5 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{t('progressLabel')}</span>
+                        <span className="font-semibold text-primary">{completedCount} / {totalCount} {t('milestones')}</span>
+                    </div>
+                    {currentStep && (
+                        <div className={cn('flex items-start gap-2 rounded-md px-2.5 py-2 text-xs', hasMissed ? 'bg-destructive/10 border border-destructive/20' : 'bg-primary/5 border border-primary/15')}>
+                            <div className="shrink-0 mt-0.5">
+                                {hasMissed ? <XCircle className="h-3.5 w-3.5 text-destructive" /> : <ChevronRight className="h-3.5 w-3.5 text-primary" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-[11px] uppercase tracking-wide text-muted-foreground mb-0.5">
+                                    {hasMissed ? t('missedStep') : t('currentStep')}
+                                </p>
+                                <p className={cn('font-medium leading-tight', hasMissed ? 'text-destructive' : 'text-foreground')}>
+                                    {currentStep.step_number}. {currentStep.step_name}
+                                </p>
+                                {currentStep.scheduled_date && (
+                                    <p className="text-muted-foreground mt-0.5">{formatLongDate(currentStep.scheduled_date)}</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {nextStep && !hasMissed && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Circle className="h-3 w-3 shrink-0" />
+                            <span className="truncate">
+                                {t('nextStep')}: <span className="font-medium text-foreground">{nextStep.step_name}</span>
+                                {nextStep.scheduled_date && <> · {formatLongDate(nextStep.scheduled_date)}</>}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }
