@@ -93,7 +93,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         }
 
         const cals = Array.isArray(calData) ? calData : (calData.calendars || []);
-        setCalendars(cals.map((c: any) => ({ ...c, id: c.id || c.google_calendar_id })));
+        setCalendars(cals.map((c: any) => ({ ...c, id: String(c.id) })));
 
         let doctorsList: UserType[] = [];
         if (Array.isArray(docData) && docData.length > 0) {

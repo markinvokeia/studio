@@ -2708,6 +2708,7 @@
       "active": "Active",
       "create": "Create",
       "cancel": "Cancel",
+      "edit": "Edit",
       "editTitle": "Edit calendar",
       "editDescription": "Edit the calendar for the clinic",
       "save": "Save Changes"

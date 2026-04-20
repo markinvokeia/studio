@@ -467,9 +467,10 @@ export type Appointment = {
   time: string;
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'scheduled';
   created_at?: string;
-  google_calendar_id: string;
+  google_calendar_id?: string;
   googleEventId?: string;
   calendar_id?: string; // keeping legacy for a moment to avoid immediate break
+  calendar_source_id?: string;
   calendar_name?: string;
   color?: string;
   colorId?: string;
@@ -541,7 +542,7 @@ export type AppointmentAttendanceRate = {
 export type Calendar = {
   id: string;
   name: string;
-  google_calendar_id: string;
+  google_calendar_id?: string;
   is_active: boolean;
   color?: string;
 };

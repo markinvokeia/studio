@@ -22,7 +22,7 @@ async function getCalendars(): Promise<CalendarType[]> {
     const data = await api.get(API_ROUTES.CALENDARS);
     const arr = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
     return arr.map((c: any, i: number) => ({
-      id: c.id || c.google_calendar_id,
+      id: String(c.id),
       name: c.name,
       google_calendar_id: c.google_calendar_id,
       is_active: c.is_active,
@@ -35,7 +35,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getAppointmentsForDoctor(
   doctorId: string,
-  calendarGoogleIds: string[],
+  calendarSourceIds: string[],
 ): Promise<Appointment[]> {
   const now = new Date();
   const startDate = addMonths(now, -6);
@@ -48,7 +48,7 @@ async function getAppointmentsForDoctor(
       endingDateAndTime: fmt(endDate),
       doctor_id: doctorId,
     };
-    if (calendarGoogleIds.length > 0) query.calendar_ids = calendarGoogleIds.join(',');
+    if (calendarSourceIds.length > 0) query.calendar_source_ids = calendarSourceIds.join(',');
 
     const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
     let raw: any[] = [];
@@ -84,9 +84,9 @@ async function getAppointmentsForDoctor(
         time: format(dt, 'HH:mm'),
         status: a.status || 'confirmed',
         created_at: a.created_at,
-        google_calendar_id: a.google_calendar_id || '',
+        google_calendar_id: a.google_calendar_id || undefined,
         googleEventId: a.google_event_id || a.googleEventId || a.id,
-        calendar_id: a.google_calendar_id || '',
+        calendar_source_id: a.calendar_source_id != null ? String(a.calendar_source_id) : '',
         calendar_name: a.calendar_name || '',
         color: colorHex,
         colorId: colorRaw,
@@ -155,8 +155,8 @@ export function DoctorAppointments({ doctorId, refreshTrigger }: DoctorAppointme
     setIsLoading(true);
     // doctor_id is the primary filter; calendar_ids is optional for scoping
     const [cals, appts] = await Promise.all([getCalendars(), getAppointmentsForDoctor(doctorId, [])]);
-    const ids = cals.map(c => c.google_calendar_id).filter((id): id is string => !!id);
-    setAppointments(ids.length > 0 ? appts.filter(a => !a.google_calendar_id || ids.includes(a.google_calendar_id)) : appts);
+    const ids = cals.map(c => String(c.id));
+    setAppointments(ids.length > 0 ? appts.filter(a => !a.calendar_source_id || ids.includes(a.calendar_source_id)) : appts);
     setIsLoading(false);
   }, [doctorId]);
 

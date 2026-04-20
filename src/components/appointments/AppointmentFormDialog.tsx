@@ -291,7 +291,7 @@ export function AppointmentFormDialog({
                 setLinkedSession(null);
             }
             if (editingAppointment) {
-                let foundCalendar = calendars.find(c => c.google_calendar_id === editingAppointment.calendar_id);
+                let foundCalendar = calendars.find(c => String(c.id) === String(editingAppointment.calendar_source_id));
                 if (!foundCalendar) {
                     foundCalendar = calendars.find(c => c.name === editingAppointment.calendar_name);
                 }
@@ -328,7 +328,7 @@ export function AppointmentFormDialog({
                         createdAt: '',
                     } : null,
                 });
-                setOriginalCalendarId(editingAppointment.google_calendar_id || editingAppointment.calendar_id);
+                setOriginalCalendarId(editingAppointment.calendar_source_id ?? '');
                 loadLinkedSession(editingAppointment);
             } else if (initialData) {
                 setAppointment({
@@ -492,7 +492,7 @@ export function AppointmentFormDialog({
         if (doctor?.email) params.doctorEmail = doctor.email;
         if (editingAppointment) params.eventId = editingAppointment.id;
         if (attendeeEmails.length > 0) params.attendeesEmails = attendeeEmails.join(',');
-        if (calendar?.google_calendar_id) params.calendarIds = calendar.google_calendar_id;
+        if (calendar?.id) params.calendar_source_ids = String(calendar.id);
 
         try {
             const data = await api.get(API_ROUTES.APPOINTMENTS_AVAILABILITY, params);
@@ -645,7 +645,7 @@ export function AppointmentFormDialog({
         if (isEditing) {
             payload.appointment_id = editingAppointment!.id;
             payload.google_event_id = editingAppointment!.googleEventId;
-            if (originalCalendarId) payload.old_calendar_id = originalCalendarId;
+            if (originalCalendarId) payload.old_calendar_source_id = originalCalendarId;
             payload.doctor_id = doctor?.id || editingAppointment!.doctorId;
             payload.doctor_name = doctor?.name || editingAppointment!.doctorName;
             payload.doctor_email = doctor?.email || editingAppointment!.doctorEmail;
@@ -658,7 +658,7 @@ export function AppointmentFormDialog({
             payload.service_ids = services.filter(s => s.id).map(s => s.id);
             payload.service_names = services.map(s => s.name).join(', ');
             payload.notes = notes || editingAppointment!.notes || '';
-            payload.google_calendar_id = calendar?.google_calendar_id || originalCalendarId;
+            payload.calendar_source_id = calendar?.id ? String(calendar.id) : originalCalendarId;
             payload.quote_id = appointment.quote?.id || editingAppointment?.quote_id || null;
         } else {
             payload.doctor_id = doctor?.id || '';
@@ -672,7 +672,7 @@ export function AppointmentFormDialog({
             payload.service_ids = services.filter(s => s.id).map(s => s.id);
             payload.service_names = services.map(s => s.name).join(', ');
             payload.notes = notes || '';
-            payload.google_calendar_id = calendar?.google_calendar_id || '';
+            payload.calendar_source_id = calendar?.id ? String(calendar.id) : '';
             payload.quote_id = appointment.quote?.id || null;
         }
 
@@ -1323,7 +1323,7 @@ export function AppointmentFormDialog({
                 </DialogBody>
                 <DialogFooter className="flex-row justify-end gap-2 space-x-0">
                     <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
-                    <Button onClick={handleSave} disabled={isSessionDialogOpen}>{editingAppointment ? tColumns('edit') : t('createDialog.save')}</Button>
+                    <Button onClick={handleSave} disabled={isSessionDialogOpen}>{t('createDialog.save')}</Button>
                 </DialogFooter>
             </DialogContent>
 
@@ -1374,7 +1374,7 @@ export function AppointmentFormDialog({
                     service_ids: pendingAppointmentPayload.service_ids,
                     service_names: pendingAppointmentPayload.service_names,
                     notes: pendingAppointmentPayload.notes,
-                    google_calendar_id: pendingAppointmentPayload.google_calendar_id,
+                    calendar_source_id: pendingAppointmentPayload.calendar_source_id,
                     quote_id: pendingAppointmentPayload.quote_id,
                 } : undefined}
             />

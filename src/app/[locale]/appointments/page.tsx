@@ -84,7 +84,7 @@ const isWhite = (color: string | null | undefined) => {
 
 
 async function getAppointments(
-    calendarGoogleIds: string[],
+    calendarSourceIds: string[],
     startDate: Date,
     endDate: Date,
     calendars: CalendarType[],
@@ -98,22 +98,13 @@ async function getAppointments(
     }
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
-    const params = new URLSearchParams({
-        startingDateAndTime: formatDateForAPI(startDate),
-        endingDateAndTime: formatDateForAPI(endDate),
-    });
-
-    if (calendarGoogleIds.length > 0) {
-        params.append('calendar_ids', calendarGoogleIds.join(','));
-    }
-
     try {
         const query: any = {
             startingDateAndTime: formatDateForAPI(startDate),
             endingDateAndTime: formatDateForAPI(endDate),
         };
-        if (calendarGoogleIds.length > 0) {
-            query.calendar_ids = calendarGoogleIds.join(',');
+        if (calendarSourceIds.length > 0) {
+            query.calendar_source_ids = calendarSourceIds.join(',');
         }
         const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
         let appointmentsData: any[] = [];
@@ -146,8 +137,8 @@ async function getAppointments(
             }
 
             // Normalize fields prioritizing snake_case from backend
-            const calendarId = apiAppt.google_calendar_id || apiAppt.calendar_id || apiAppt.calendarId || apiAppt.organizer?.email;
-            const calendar = calendars.find(c => c.google_calendar_id === calendarId || c.id === calendarId);
+            const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
+            const calendar = calendars.find(c => String(c.id) === calendarSourceId);
 
             const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
             const doctor = doctors.find(d => String(d.id) === String(doctorId) || (apiAppt.doctor_email && d.email === apiAppt.doctor_email) || (apiAppt.doctorEmail && d.email === apiAppt.doctorEmail) || (apiAppt.doctoremail && d.email === apiAppt.doctoremail));
@@ -206,9 +197,9 @@ async function getAppointments(
                 time: format(appointmentDateTime, 'HH:mm'),
                 status: apiAppt.status || 'confirmed',
                 created_at: apiAppt.created_at || apiAppt.createdat,
-                google_calendar_id: calendarId || '',
+                google_calendar_id: apiAppt.google_calendar_id || apiAppt.googleCalendarId || undefined,
                 googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
-                calendar_id: calendarId || '',
+                calendar_source_id: calendarSourceId,
                 calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
                 color: finalColor,
                 colorId: appointmentColorId,
@@ -239,7 +230,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await api.get(API_ROUTES.CALENDARS);
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any, index: number) => ({
-            id: apiCalendar.id || apiCalendar.google_calendar_id,
+            id: String(apiCalendar.id),
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -580,12 +571,7 @@ export default function AppointmentsPage() {
         }
 
         setIsRefreshing(true);
-        const googleCalendarIds = selectedCalendarIds.map(id => {
-            const cal = calendars.find(c => c.id === id);
-            return cal?.google_calendar_id;
-        }).filter((id): id is string => !!id);
-
-        const fetchedAppointments = await getAppointments(googleCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t);
+        const fetchedAppointments = await getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t);
         setAppointments(fetchedAppointments);
 
         setIsRefreshing(false);
@@ -671,7 +657,7 @@ export default function AppointmentsPage() {
         const payload = {
             appointment_id: appointment.id,
             google_event_id: appointment.googleEventId,
-            google_calendar_id: appointment.google_calendar_id || appointment.calendar_id,
+            calendar_source_id: appointment.calendar_source_id,
             color_id: colorId
         };
 
@@ -703,7 +689,7 @@ export default function AppointmentsPage() {
             const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, {
                 appointment_id: deletingAppointment.id,
                 google_event_id: deletingAppointment.googleEventId,
-                google_calendar_id: deletingAppointment.google_calendar_id || deletingAppointment.calendar_id,
+                calendar_source_id: deletingAppointment.calendar_source_id,
             });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
@@ -755,12 +741,7 @@ export default function AppointmentsPage() {
                     start,
                     end,
                     doctorGroupId: appt.doctorId || undefined,
-                    calendarGroupId: calendars.find((calendar) =>
-                        calendar.id === appt.calendar_id ||
-                        calendar.id === appt.google_calendar_id ||
-                        calendar.google_calendar_id === appt.google_calendar_id ||
-                        calendar.google_calendar_id === appt.calendar_id
-                    )?.id || appt.calendar_id || appt.google_calendar_id || undefined,
+                    calendarGroupId: calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id))?.id || appt.calendar_source_id || undefined,
                     data: appt,
                     color: appt.color,
                     colorId: appt.colorId,

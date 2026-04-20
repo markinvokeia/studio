@@ -60,7 +60,7 @@ interface ClinicSessionDialogProps {
         service_ids: string[];
         service_names: string;
         notes?: string;
-        google_calendar_id: string;
+        calendar_source_id: string;
         quote_id?: string;
     };
 }

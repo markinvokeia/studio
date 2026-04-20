@@ -32,9 +32,10 @@ function mapRawAppointment(raw: any): Appointment {
     time: isoTime ?? raw.time ?? '',
     status: raw.status ?? 'confirmed',
     created_at: raw.created_at,
-    google_calendar_id: raw.google_calendar_id ?? raw.googleCalendarId ?? raw.calendar_id ?? '',
+    google_calendar_id: raw.google_calendar_id ?? raw.googleCalendarId ?? undefined,
     googleEventId: raw.google_event_id ?? raw.googleEventId ?? raw.id,
-    calendar_id: raw.calendar_id ?? raw.google_calendar_id ?? '',
+    calendar_id: raw.calendar_id ?? '',
+    calendar_source_id: raw.calendar_source_id != null ? String(raw.calendar_source_id) : '',
     calendar_name: raw.calendar_name ?? '',
     color: raw.color,
     colorId: raw.colorId ?? raw.color_id,
@@ -172,16 +173,16 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     channelRef.current?.postMessage(msg);
   }, []);
 
-  // Stable reference for selectedCalendarIds — avoids recreating fetchAppointments
-  // on every unrelated settings change (theme, title, etc.) that produces a new array ref.
+  // Stable reference for selectedCalendarIds (calendar_source_id values) — avoids recreating
+  // fetchAppointments on every unrelated settings change that produces a new array ref.
   const selectedCalendarIdsRef = React.useRef<string[]>(settings.selectedCalendarIds);
   React.useEffect(() => {
     selectedCalendarIdsRef.current = settings.selectedCalendarIds;
   }, [settings.selectedCalendarIds]);
 
   const fetchAppointments = React.useCallback(async () => {
-    const calendarIds = selectedCalendarIdsRef.current;
-    if (calendarIds.length === 0) return;
+    const calendarSourceIds = selectedCalendarIdsRef.current;
+    if (calendarSourceIds.length === 0) return;
     setIsLoading(true);
     try {
       const now = new Date();
@@ -190,26 +191,24 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       const endOfDay = new Date(now);
       endOfDay.setHours(23, 59, 59, 0);
 
-      // Fetch calendars first to resolve google_calendar_id values
       const calendarData = await api.get(API_ROUTES.CALENDARS);
       const allCalendars: Calendar[] = Array.isArray(calendarData) ? calendarData : [];
       setCalendars(allCalendars);
 
-      // selectedCalendarIds stores google_calendar_id values — pass them directly
       const apptData = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
         startingDateAndTime: format(startOfDay, 'yyyy-MM-dd HH:mm:ss'),
         endingDateAndTime: format(endOfDay, 'yyyy-MM-dd HH:mm:ss'),
-        calendar_ids: calendarIds.join(','),
+        calendar_source_ids: calendarSourceIds.join(','),
       });
 
       const appointments: Appointment[] = Array.isArray(apptData)
         ? apptData.map(mapRawAppointment)
         : [];
 
-      const newRooms: TVRoomState[] = calendarIds.map((googleCalId) => {
-        const cal = allCalendars.find((c) => c.google_calendar_id === googleCalId);
+      const newRooms: TVRoomState[] = calendarSourceIds.map((calendarSourceId) => {
+        const cal = allCalendars.find((c) => String(c.id) === calendarSourceId);
         const calAppts = appointments
-          .filter((a) => a.google_calendar_id === googleCalId)
+          .filter((a) => a.calendar_source_id === calendarSourceId)
           .filter((a) => a.status !== 'cancelled')
           .sort((a, b) => {
             const ta = a.time ?? a.start?.dateTime ?? '';
@@ -217,10 +216,9 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
             return ta.localeCompare(tb);
           });
 
-        // Read currentIndex from state at call time via setter callback to avoid stale closure
         return {
-          calendarId: googleCalId,
-          calendarName: cal?.name ?? googleCalId,
+          calendarId: calendarSourceId,
+          calendarName: cal?.name ?? calendarSourceId,
           calendarColor: cal?.color,
           currentIndex: 0, // will be merged below
           appointments: calAppts,

@@ -216,7 +216,7 @@ async function fetchCalendarsForAppt(): Promise<CalendarType[]> {
     const data = await api.get(API_ROUTES.CALENDARS);
     const list = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
     return list.map((c: any) => ({
-      id: c.id || c.google_calendar_id,
+      id: String(c.id),
       name: c.name,
       google_calendar_id: c.google_calendar_id,
       is_active: c.is_active,
