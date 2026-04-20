@@ -194,6 +194,7 @@ export type OrderItem = {
   completed_date?: string;
   invoiced_date?: string;
   appointment_id?: string;
+  quote_item_id?: string | number;
 };
 
 export type Invoice = {

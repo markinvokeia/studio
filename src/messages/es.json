@@ -1141,6 +1141,23 @@
   "QuotesPage": {
     "title": "Presupuestos",
     "description": "Gestione todos sus presupuestos aquí.",
+    "actions": {
+      "print": "Imprimir",
+      "sendEmail": "Enviar Correo",
+      "confirm": "Confirmar",
+      "reject": "Rechazar",
+      "invoice": "Facturar",
+      "confirmSuccess": "Presupuesto confirmado",
+      "confirmError": "Error al confirmar presupuesto",
+      "rejectSuccess": "Presupuesto rechazado",
+      "rejectError": "Error al rechazar presupuesto",
+      "printError": "Error al descargar presupuesto",
+      "emailSuccess": "Presupuesto enviado por correo",
+      "emailError": "Error al enviar presupuesto",
+      "invoiceSuccess": "Factura Creada",
+      "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
+      "invoiceError": "Error al crear la factura"
+    },
     "sendEmailDialog": {
       "title": "Enviar Presupuesto por Correo",
       "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
