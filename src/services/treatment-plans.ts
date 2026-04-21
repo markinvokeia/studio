@@ -37,16 +37,15 @@ export async function createTreatmentSequence(
 // ── Step CRUD ─────────────────────────────────────────────────────────────────
 
 /**
- * Create or update a treatment step.
- * When cascade_mode !== 'none' and cascade_days !== 0,
- * subsequent steps (and their appointments) are shifted by cascade_days.
- * Returns all steps for the sequence after the operation.
+ * Create or update a treatment_seq_steps row.
+ * seq_step_id present → UPDATE, absent → INSERT.
+ * Optionally cascades scheduled_date of subsequent steps.
  */
 export async function upsertTreatmentStep(
   payload: StepUpsertPayload
 ): Promise<StepOperationResult> {
   try {
-    const res = await api.post(API_ROUTES.TREATMENT_PLANS.STEP_UPSERT, payload);
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_UPSERT, payload);
     return res as StepOperationResult;
   } catch (err) {
     return { success: false, error: (err as Error).message ?? 'Unknown error' };
@@ -54,15 +53,14 @@ export async function upsertTreatmentStep(
 }
 
 /**
- * Delete a treatment step.
- * Optionally closes the date gap by pulling subsequent steps forward (cascade_days < 0).
- * Optionally cancels the linked appointment.
+ * Delete a treatment_seq_steps row (hard delete).
+ * Optionally cancels the linked appointment and cascades dates.
  */
 export async function deleteTreatmentStep(
   payload: StepDeletePayload
 ): Promise<StepOperationResult> {
   try {
-    const res = await api.delete(API_ROUTES.TREATMENT_PLANS.STEP_DELETE, payload);
+    const res = await api.delete(API_ROUTES.TREATMENT_PLANS.SEQUENCE_DELETE, payload);
     return res as StepOperationResult;
   } catch (err) {
     return { success: false, error: (err as Error).message ?? 'Unknown error' };
@@ -70,15 +68,15 @@ export async function deleteTreatmentStep(
 }
 
 /**
- * Change the status of a step.
- * Optionally syncs the linked appointment status / milestone_status.
- * Auto-completes the sequence if all non-cancelled steps are done.
+ * Change milestone_status on a treatment_seq_steps row.
+ * Optionally syncs the linked appointment status.
+ * Auto-completes the sequence when all steps are done.
  */
 export async function changeStepStatus(
   payload: StepStatusPayload
 ): Promise<StepOperationResult> {
   try {
-    const res = await api.post(API_ROUTES.TREATMENT_PLANS.STEP_STATUS, payload);
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_STATUS, payload);
     return res as StepOperationResult;
   } catch (err) {
     return { success: false, error: (err as Error).message ?? 'Unknown error' };
@@ -86,14 +84,14 @@ export async function changeStepStatus(
 }
 
 /**
- * Create a calendar appointment for a step that doesn't have one yet.
- * Links the appointment back to the step (appointment_id) and sets status = 'scheduled'.
+ * Create a calendar appointment for a treatment_seq_steps row that has none.
+ * Links the appointment back to the step (treatment_seq_steps.appointment_id = new id).
  */
 export async function scheduleStep(
   payload: StepSchedulePayload
 ): Promise<StepOperationResult> {
   try {
-    const res = await api.post(API_ROUTES.TREATMENT_PLANS.STEP_SCHEDULE, payload);
+    const res = await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_SCHEDULE, payload);
     return res as StepOperationResult;
   } catch (err) {
     return { success: false, error: (err as Error).message ?? 'Unknown error' };
@@ -140,7 +138,7 @@ export async function checkAbandonedPlans(opts?: {
     if (opts?.patientId) params.patient_id = opts.patientId;
     if (opts?.daysOverdue != null) params.days_overdue = String(opts.daysOverdue);
     if (opts?.autoMarkMissed) params.auto_mark_missed = 'true';
-    const res = await api.get(API_ROUTES.TREATMENT_PLANS.PLAN_ABANDON_CHECK, params);
+    const res = await api.get(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ABANDON_CHECK, params);
     return (res as { abandoned: AbandonedPlan[] }).abandoned ?? [];
   } catch {
     return [];

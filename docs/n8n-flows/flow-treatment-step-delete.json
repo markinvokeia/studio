@@ -1,36 +1,36 @@
 {
-  "name": "Treatment Step - Delete (+ Cascade)",
+  "name": "Treatment Sequences - Step Delete (treatment_seq_steps)",
   "nodes": [
     {
       "parameters": {
-        "content": "## Treatment Step Delete\n\n**DELETE** `/webhook/treatments/step/delete`\n\n**Request body:**\n```json\n{\n  \"sequence_id\": \"uuid\",\n  \"step_id\": \"uuid\",\n  \"cascade_mode\": \"shift_all\",   // \"none\" | \"shift_all\" — pull subsequent steps forward\n  \"cascade_days\": -7,             // negative = pull forward to close gap\n  \"cancel_appointment\": true,     // cancel linked appointment if exists\n  \"notify_patient\": true\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"affected_steps\": [ ...remaining steps renumbered ]\n}\n```\n\n**Flow:**\n1. Parse & validate\n2. Fetch step to check appointment_id and step_number\n3. If cancel_appointment + appointment_id → UPDATE appointment status = 'cancelled'\n4. DELETE the step\n5. Renumber subsequent steps (step_number -= 1)\n6. If cascade → shift dates for remaining steps forward/back\n7. Return all remaining steps",
-        "height": 400,
-        "width": 480,
+        "content": "## Treatment Sequences – Step Delete\n\n**DELETE** `/webhook/treatment-plans/sequences/delete`\n\nDeletes a `treatment_seq_steps` row (hard delete).\nOptionally cancels the linked appointment.\n\n**Request body:**\n```json\n{\n  \"seq_step_id\": 5,\n  \"sequence_id\": 1,\n  \"cancel_appointment\": true,\n  \"cascade_mode\": \"none\",      // none | shift_all\n  \"cascade_days\": -7,           // negative = pull forward\n  \"notify_patient\": false\n}\n```\n\n**Response 200:**\n```json\n{ \"success\": true, \"affected_steps\": [ ...remaining steps ] }\n```\n\n**Flow:**\n1. Validate\n2. Optionally cancel the linked appointment (status='cancelled')\n3. Delete the treatment_seq_steps row\n4. Optionally cascade (shift scheduled_date of subsequent steps)\n5. Auto-complete sequence if all remaining steps are done\n6. Return remaining steps",
+        "height": 440,
+        "width": 520,
         "color": 3
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [-100, 20],
       "typeVersion": 1,
-      "id": "ts-del-note-001",
+      "id": "ts-del-note",
       "name": "Flow Documentation"
     },
     {
       "parameters": {
         "httpMethod": "DELETE",
-        "path": "treatments/step/delete",
+        "path": "treatment-plans/sequences/delete",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [460, 300],
-      "id": "ts-del-wh-001",
+      "id": "ts-del-wh",
       "name": "Webhook",
-      "webhookId": "treatments-step-delete"
+      "webhookId": "treatment-sequences-delete"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { sequence_id, step_id, cascade_mode = 'none', cascade_days = 0, cancel_appointment = false, notify_patient = false } = body;\n\nif (!sequence_id) throw new Error('sequence_id is required');\nif (!step_id) throw new Error('step_id is required');\n\nconst doCascade = cascade_mode !== 'none' && cascade_days !== 0;\n\nreturn [{ json: { sequence_id, step_id, cascade_mode, cascade_days: parseInt(cascade_days, 10) || 0, cancel_appointment: !!cancel_appointment, notify_patient: !!notify_patient, doCascade } }];",
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { seq_step_id, sequence_id, cancel_appointment = false, cascade_mode = 'none', cascade_days = 0, notify_patient = false } = body;\n\nif (!seq_step_id)  throw new Error('seq_step_id is required');\nif (!sequence_id)  throw new Error('sequence_id is required');\n\nconst cascadeDays = parseInt(cascade_days, 10) || 0;\nconst doCascade   = cascade_mode === 'shift_all' && cascadeDays !== 0;\n\nreturn [{ json: {\n  seq_step_id:        parseInt(seq_step_id, 10),\n  sequence_id:        parseInt(sequence_id, 10),\n  cancel_appointment: !!cancel_appointment,\n  cascade_days:       cascadeDays,\n  cascade_mode,\n  doCascade,\n  notify_patient:     !!notify_patient,\n} }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -42,52 +42,45 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, step_number, step_name, appointment_id FROM treatment_steps WHERE id = '{{ $json.step_id }}' AND sequence_id = '{{ $json.sequence_id }}'",
+        "query": "-- Cancel linked appointment if requested\nDO $$\nDECLARE v_appt_id UUID;\nBEGIN\n  SELECT appointment_id INTO v_appt_id FROM treatment_seq_steps WHERE id = {{ $json.seq_step_id }};\n  IF {{ $json.cancel_appointment }} AND v_appt_id IS NOT NULL THEN\n    UPDATE appointments\n    SET status = 'cancelled', updated_at = NOW()\n    WHERE id = v_appt_id;\n  END IF;\nEND $$;\n\n-- Get step_position before deleting\nSELECT step_position FROM treatment_seq_steps WHERE id = {{ $json.seq_step_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [900, 300],
-      "id": "ts-del-pg-fetch",
-      "name": "Fetch Step",
+      "id": "ts-del-pg-cancel-appt",
+      "name": "Cancel Appt + Get Position",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all();\nif (rows.length === 0) throw new Error('Step not found');\n\nconst step = rows[0].json;\nconst parse = $('Parse Input').first().json;\n\nconst hasAppointment = !!step.appointment_id;\nconst shouldCancelAppt = parse.cancel_appointment && hasAppointment;\n\n// Build cancel appointment SQL\nconst cancelApptSQL = shouldCancelAppt\n  ? `UPDATE appointments SET status = 'cancelled' WHERE id = '${step.appointment_id}';`\n  : '';\n\n// Delete step SQL\nconst deleteSQL = `DELETE FROM treatment_steps WHERE id = '${step.id}';`;\n\n// Renumber: step_number -= 1 for all steps after the deleted one\nconst renumberSQL = `\n  UPDATE treatment_steps\n  SET step_number = step_number - 1\n  WHERE sequence_id = '${parse.sequence_id}'\n    AND step_number > ${step.step_number}\n`;\n\nreturn [{ json: {\n  ...parse,\n  deletedStepNumber: step.step_number,\n  appointment_id: step.appointment_id || null,\n  cancelApptSQL,\n  deleteSQL,\n  renumberSQL,\n} }];",
+        "jsCode": "const rows = $input.all().filter(r => r.json.step_position != null);\nconst step_position = rows.length > 0 ? rows[0].json.step_position : null;\nconst parse = $('Parse Input').first().json;\nreturn [{ json: { ...parse, step_position } }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1120, 300],
-      "id": "ts-del-build-sql",
-      "name": "Build SQL"
+      "id": "ts-del-extract-pos",
+      "name": "Extract Position"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.cancelApptSQL + $json.deleteSQL + $json.renumberSQL }}",
+        "query": "DELETE FROM treatment_seq_steps\nWHERE id = {{ $json.seq_step_id }}\n  AND sequence_id = {{ $json.sequence_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [1340, 300],
       "id": "ts-del-pg-delete",
-      "name": "Delete + Renumber",
+      "name": "Delete Step",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "do-cascade",
-              "leftValue": "={{ $('Build SQL').first().json.doCascade }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
-            }
-          ],
+          "conditions": [{ "id": "do-cascade", "leftValue": "={{ $('Extract Position').first().json.doCascade }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
           "combinator": "and"
         }
       },
@@ -99,60 +92,38 @@
     },
     {
       "parameters": {
-        "jsCode": "// Shift remaining steps' dates by cascade_days (negative = pull forward)\nconst d = $('Build SQL').first().json;\nconst { sequence_id, deletedStepNumber, cascade_days } = d;\n\nconst stepCascadeSQL = `\n  UPDATE treatment_steps\n  SET scheduled_date = (scheduled_date::date + INTERVAL '${cascade_days} days')::date\n  WHERE sequence_id = '${sequence_id}'\n    AND step_number >= ${deletedStepNumber}   -- already renumbered, so >= deleted means 'after'\n    AND scheduled_date IS NOT NULL\n`;\n\nconst apptCascadeSQL = `\n  UPDATE appointments\n  SET\n    start_datetime = start_datetime + INTERVAL '${cascade_days} days',\n    end_datetime   = end_datetime   + INTERVAL '${cascade_days} days'\n  WHERE sequence_id = '${sequence_id}'\n    AND step_position >= ${deletedStepNumber}\n    AND status NOT IN ('cancelled', 'completed')\n`;\n\nreturn [{ json: { sequence_id, stepCascadeSQL, apptCascadeSQL } }];",
-        "mode": "runOnceForAllItems"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1780, 180],
-      "id": "ts-del-build-cascade",
-      "name": "Build Cascade SQL"
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.stepCascadeSQL + '; ' + $json.apptCascadeSQL }}",
+        "query": "UPDATE treatment_seq_steps\nSET\n  scheduled_date = scheduled_date + INTERVAL '{{ $('Extract Position').first().json.cascade_days }} days',\n  updated_at = NOW()\nWHERE sequence_id = {{ $('Extract Position').first().json.sequence_id }}\n  AND step_position > {{ $('Extract Position').first().json.step_position }}\n  AND milestone_status NOT IN ('done', 'alert')\n  AND scheduled_date IS NOT NULL",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2000, 180],
+      "position": [1780, 160],
       "id": "ts-del-pg-cascade",
-      "name": "Cascade Dates",
+      "name": "Cascade Steps",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "// Merge from either cascade or skip path and set sequence_id for fetch\nconst parse = $('Parse Input').first().json;\nreturn [{ json: { sequence_id: parse.sequence_id } }];",
-        "mode": "runOnceForAllItems"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2220, 300],
-      "id": "ts-del-prep-fetch",
-      "name": "Prep Fetch"
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, sequence_id, step_number, step_name, scheduled_date::text, duration_minutes, status, notes, appointment_id, completed_at::text\nFROM treatment_steps\nWHERE sequence_id = '{{ $json.sequence_id }}'\nORDER BY step_number",
+        "query": "-- Auto-complete sequence if all remaining steps are done\nUPDATE treatment_sequences\nSET status = 'completed'\nWHERE id = {{ $('Extract Position').first().json.sequence_id }}\n  AND NOT EXISTS (\n    SELECT 1 FROM treatment_seq_steps\n    WHERE sequence_id = {{ $('Extract Position').first().json.sequence_id }}\n      AND milestone_status != 'done'\n  );\n\n-- Fetch remaining steps\nSELECT\n  s.id::text             AS id,\n  s.sequence_id,\n  s.step_position        AS step_number,\n  s.step_name,\n  s.scheduled_date::text AS scheduled_date,\n  s.milestone_status,\n  s.is_lab_pending,\n  s.notes,\n  s.appointment_id::text AS appointment_id,\n  s.duration_minutes,\n  CASE WHEN s.milestone_status = 'done' THEN s.updated_at::text ELSE NULL END AS completed_at\nFROM treatment_seq_steps s\nWHERE s.sequence_id = {{ $('Extract Position').first().json.sequence_id }}\nORDER BY s.step_position",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2440, 300],
-      "id": "ts-del-pg-fetch-all",
+      "position": [2000, 300],
+      "id": "ts-del-pg-fetch",
       "name": "Fetch Remaining Steps",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "const steps = $input.all().map(r => ({\n  id: r.json.id,\n  sequence_id: r.json.sequence_id,\n  step_number: r.json.step_number,\n  step_name: r.json.step_name,\n  scheduled_date: r.json.scheduled_date || null,\n  duration_minutes: r.json.duration_minutes,\n  status: r.json.status,\n  notes: r.json.notes || null,\n  appointment_id: r.json.appointment_id || null,\n  completed_at: r.json.completed_at || null,\n}));\nreturn [{ json: { success: true, affected_steps: steps } }];",
+        "jsCode": "const rows = $input.all().filter(r => r.json.id);\nconst steps = rows.map(r => ({\n  id: r.json.id,\n  step_number: r.json.step_number,\n  step_name: r.json.step_name,\n  scheduled_date: r.json.scheduled_date || null,\n  appointment_id: r.json.appointment_id || null,\n  is_lab_pending: !!r.json.is_lab_pending,\n  status: r.json.milestone_status === 'done'    ? 'completed'\n        : r.json.milestone_status === 'waiting' ? 'scheduled'\n        : r.json.milestone_status === 'alert'   ? 'missed'\n        : 'pending',\n  notes: r.json.notes || null,\n  duration_minutes: r.json.duration_minutes || null,\n  completed_at: r.json.completed_at || null,\n}));\nreturn [{ json: { success: true, affected_steps: steps } }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2660, 300],
+      "position": [2220, 300],
       "id": "ts-del-build-response",
       "name": "Build Response"
     },
@@ -164,26 +135,24 @@
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2880, 300],
+      "position": [2440, 300],
       "id": "ts-del-respond",
       "name": "Respond 200"
     }
   ],
   "connections": {
     "Webhook": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
-    "Parse Input": { "main": [[{ "node": "Fetch Step", "type": "main", "index": 0 }]] },
-    "Fetch Step": { "main": [[{ "node": "Build SQL", "type": "main", "index": 0 }]] },
-    "Build SQL": { "main": [[{ "node": "Delete + Renumber", "type": "main", "index": 0 }]] },
-    "Delete + Renumber": { "main": [[{ "node": "Do Cascade?", "type": "main", "index": 0 }]] },
+    "Parse Input": { "main": [[{ "node": "Cancel Appt + Get Position", "type": "main", "index": 0 }]] },
+    "Cancel Appt + Get Position": { "main": [[{ "node": "Extract Position", "type": "main", "index": 0 }]] },
+    "Extract Position": { "main": [[{ "node": "Delete Step", "type": "main", "index": 0 }]] },
+    "Delete Step": { "main": [[{ "node": "Do Cascade?", "type": "main", "index": 0 }]] },
     "Do Cascade?": {
       "main": [
-        [{ "node": "Build Cascade SQL", "type": "main", "index": 0 }],
-        [{ "node": "Prep Fetch", "type": "main", "index": 0 }]
+        [{ "node": "Cascade Steps", "type": "main", "index": 0 }],
+        [{ "node": "Fetch Remaining Steps", "type": "main", "index": 0 }]
       ]
     },
-    "Build Cascade SQL": { "main": [[{ "node": "Cascade Dates", "type": "main", "index": 0 }]] },
-    "Cascade Dates": { "main": [[{ "node": "Prep Fetch", "type": "main", "index": 0 }]] },
-    "Prep Fetch": { "main": [[{ "node": "Fetch Remaining Steps", "type": "main", "index": 0 }]] },
+    "Cascade Steps": { "main": [[{ "node": "Fetch Remaining Steps", "type": "main", "index": 0 }]] },
     "Fetch Remaining Steps": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
     "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
   },

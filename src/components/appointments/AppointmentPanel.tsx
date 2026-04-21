@@ -14,7 +14,7 @@ import { Appointment, Invoice, Order, PatientSession } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import {
   CalendarClock, Users, UserSquare, FileText, Receipt, Stethoscope, CreditCard,
-  Edit, Trash2, Loader2,
+  Edit, Trash2, Loader2, ClipboardList,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -152,6 +152,22 @@ export function AppointmentPanel({
                       </div>
                     )}
                   </dl>
+
+                  {/* Treatment plan link — shown when appointment is linked to a treatment_seq_steps row */}
+                  {appointment.treatment_seq_step_id != null && (
+                    <>
+                      <Separator />
+                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                          <ClipboardList className="h-3.5 w-3.5 shrink-0" />
+                          {t('treatmentSequence.title')}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {t('treatmentSequence.stepRef', { id: appointment.treatment_seq_step_id })}
+                        </p>
+                      </div>
+                    </>
+                  )}
 
                   <Separator />
 

@@ -1,36 +1,36 @@
 {
-  "name": "Treatment Step - Change Status (+ Appointment Sync)",
+  "name": "Treatment Sequences - Step Status Change",
   "nodes": [
     {
       "parameters": {
-        "content": "## Treatment Step Status Change\n\n**POST** `/webhook/treatments/step/status`\n\n**Request body:**\n```json\n{\n  \"sequence_id\": \"uuid\",\n  \"step_id\": \"uuid\",\n  \"status\": \"completed\",       // pending | scheduled | completed | cancelled | missed\n  \"sync_appointment\": true,    // also update the linked appointment\n  \"notify_patient\": true\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"step\": { ...updated step },\n  \"sequence_completed\": false  // true if all steps are done\n}\n```\n\n**Status→Appointment mapping:**\n- completed → appointment.status = 'completed', milestone_status = 'done'\n- cancelled → appointment.status = 'cancelled', milestone_status = null\n- missed    → appointment.milestone_status = 'alert' (keep appointment)\n- pending/scheduled → appointment.milestone_status = 'waiting'\n\n**Auto-complete sequence:**\nIf all non-cancelled steps are completed → UPDATE treatment_sequences SET status = 'completed'",
-        "height": 400,
-        "width": 480,
+        "content": "## Treatment Sequences – Step Status\n\n**POST** `/webhook/treatment-plans/sequences/status`\n\nUpdates `milestone_status` on the `treatment_seq_steps` row.\nOptionally also updates the linked `appointments.status`.\n\n**milestone_status values:**\n- `pending`  → initial state (no date yet)\n- `waiting`  → step is scheduled/upcoming\n- `done`     → step completed\n- `alert`    → step was missed / patient didn't show\n\n**Request body:**\n```json\n{\n  \"seq_step_id\": 5,\n  \"milestone_status\": \"done\",\n  \"appointment_status\": \"completed\",  // optional, updates appointments.status\n  \"notify_patient\": false\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"step\": { ...updated step },\n  \"sequence_completed\": false\n}\n```\n\n**Auto-complete:** If all steps have milestone_status='done',\nupdates treatment_sequences.status = 'completed'.",
+        "height": 440,
+        "width": 520,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [-100, 20],
       "typeVersion": 1,
-      "id": "ts-status-note-001",
+      "id": "ts-status-note",
       "name": "Flow Documentation"
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "treatments/step/status",
+        "path": "treatment-plans/sequences/status",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [460, 300],
-      "id": "ts-status-wh-001",
+      "id": "ts-status-wh",
       "name": "Webhook",
-      "webhookId": "treatments-step-status"
+      "webhookId": "treatment-sequences-status"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { sequence_id, step_id, status, sync_appointment = true, notify_patient = false } = body;\n\nconst VALID_STATUSES = ['pending', 'scheduled', 'completed', 'cancelled', 'missed'];\nif (!sequence_id) throw new Error('sequence_id is required');\nif (!step_id) throw new Error('step_id is required');\nif (!VALID_STATUSES.includes(status)) throw new Error(`Invalid status: ${status}`);\n\n// Map step status to appointment/milestone status\nconst apptStatusMap = {\n  completed: { appt_status: 'completed', milestone: 'done' },\n  cancelled: { appt_status: 'cancelled', milestone: null },\n  missed:    { appt_status: null,        milestone: 'alert' },\n  pending:   { appt_status: null,        milestone: 'waiting' },\n  scheduled: { appt_status: null,        milestone: 'waiting' },\n};\nconst mapping = apptStatusMap[status];\n\nreturn [{ json: { sequence_id, step_id, status, sync_appointment: !!sync_appointment, notify_patient: !!notify_patient, mapping } }];",
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { seq_step_id, milestone_status, appointment_status, notify_patient = false } = body;\n\nconst VALID_MILESTONE = ['waiting', 'done', 'alert', 'pending'];\nconst VALID_APPT_STATUS = ['scheduled', 'confirmed', 'completed', 'cancelled'];\n\nif (!seq_step_id) throw new Error('seq_step_id is required');\nif (!VALID_MILESTONE.includes(milestone_status)) throw new Error(`Invalid milestone_status: ${milestone_status}`);\nif (appointment_status && !VALID_APPT_STATUS.includes(appointment_status)) throw new Error(`Invalid appointment_status: ${appointment_status}`);\n\nreturn [{ json: {\n  seq_step_id:        parseInt(seq_step_id, 10),\n  milestone_status,\n  appointment_status: appointment_status || null,\n  notify_patient:     !!notify_patient,\n} }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -41,49 +41,38 @@
     },
     {
       "parameters": {
-        "jsCode": "const { sequence_id, step_id, status, sync_appointment, mapping } = $input.first().json;\n\n// Set completed_at for completed status\nconst completedAt = status === 'completed' ? 'NOW()' : 'NULL';\n\n// Update the step\nconst updateStepSQL = `\n  UPDATE treatment_steps\n  SET status = '${status}', completed_at = ${completedAt}, updated_at = NOW()\n  WHERE id = '${step_id}' AND sequence_id = '${sequence_id}'\n  RETURNING id, sequence_id, step_number, step_name, scheduled_date::text, duration_minutes, status, notes, appointment_id, completed_at::text;\n`;\n\n// Sync appointment if needed\nlet syncApptSQL = '';\nif (sync_appointment) {\n  if (mapping.appt_status) {\n    syncApptSQL = `\n      UPDATE appointments\n      SET status = '${mapping.appt_status}', milestone_status = ${mapping.milestone ? `'${mapping.milestone}'` : 'NULL'}\n      WHERE id = (SELECT appointment_id FROM treatment_steps WHERE id = '${step_id}' AND appointment_id IS NOT NULL);\n    `;\n  } else if (mapping.milestone) {\n    syncApptSQL = `\n      UPDATE appointments\n      SET milestone_status = '${mapping.milestone}'\n      WHERE id = (SELECT appointment_id FROM treatment_steps WHERE id = '${step_id}' AND appointment_id IS NOT NULL);\n    `;\n  }\n}\n\n// Check if all non-cancelled steps are completed → auto-complete sequence\nconst autoCompleteSQL = `\n  UPDATE treatment_sequences\n  SET status = 'completed', updated_at = NOW()\n  WHERE id = '${sequence_id}'\n    AND NOT EXISTS (\n      SELECT 1 FROM treatment_steps\n      WHERE sequence_id = '${sequence_id}'\n        AND status NOT IN ('completed', 'cancelled')\n    );\n`;\n\nreturn [{ json: { sequence_id, step_id, status, updateStepSQL, syncApptSQL, autoCompleteSQL } }];",
-        "mode": "runOnceForAllItems"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [900, 300],
-      "id": "ts-status-build-sql",
-      "name": "Build SQL"
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.updateStepSQL + $json.syncApptSQL + $json.autoCompleteSQL }}",
+        "query": "-- Update treatment_seq_steps milestone_status\nUPDATE treatment_seq_steps\nSET milestone_status = '{{ $json.milestone_status }}', updated_at = NOW()\nWHERE id = {{ $json.seq_step_id }};\n\n-- Optionally sync appointments.status\nDO $$\nDECLARE\n  v_appt_id UUID;\n  v_appt_status TEXT := '{{ $json.appointment_status }}';\nBEGIN\n  SELECT appointment_id INTO v_appt_id FROM treatment_seq_steps WHERE id = {{ $json.seq_step_id }};\n  IF v_appt_id IS NOT NULL AND v_appt_status <> '' AND v_appt_status <> 'null' THEN\n    UPDATE appointments SET status = v_appt_status, updated_at = NOW() WHERE id = v_appt_id;\n  END IF;\nEND $$;\n\n-- Auto-complete sequence if all steps are done\nUPDATE treatment_sequences ts\nSET status = 'completed'\nFROM treatment_seq_steps s\nWHERE ts.id = s.sequence_id\n  AND s.id = {{ $json.seq_step_id }}\n  AND NOT EXISTS (\n    SELECT 1 FROM treatment_seq_steps x\n    WHERE x.sequence_id = ts.id\n      AND x.milestone_status != 'done'\n  )",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1120, 300],
-      "id": "ts-status-pg-execute",
-      "name": "Execute Updates",
+      "position": [900, 300],
+      "id": "ts-status-pg-update",
+      "name": "Update Status",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  ts.id, ts.sequence_id, ts.step_number, ts.step_name,\n  ts.scheduled_date::text, ts.duration_minutes, ts.status, ts.notes,\n  ts.appointment_id, ts.completed_at::text,\n  seq.status AS sequence_status\nFROM treatment_steps ts\nJOIN treatment_sequences seq ON seq.id = ts.sequence_id\nWHERE ts.id = '{{ $('Parse Input').first().json.step_id }}'",
+        "query": "SELECT\n  s.id::text             AS id,\n  s.sequence_id,\n  s.step_position        AS step_number,\n  s.step_name,\n  s.scheduled_date::text AS scheduled_date,\n  s.milestone_status,\n  s.is_lab_pending,\n  s.notes,\n  s.appointment_id::text AS appointment_id,\n  s.duration_minutes,\n  seq.status             AS sequence_status,\n  CASE WHEN s.milestone_status = 'done' THEN s.updated_at::text ELSE NULL END AS completed_at\nFROM treatment_seq_steps s\nJOIN treatment_sequences seq ON seq.id = s.sequence_id\nWHERE s.id = {{ $('Parse Input').first().json.seq_step_id }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1340, 300],
+      "position": [1120, 300],
       "id": "ts-status-pg-fetch",
       "name": "Fetch Updated Step",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all();\nif (rows.length === 0) throw new Error('Step not found after update');\nconst r = rows[0].json;\nreturn [{ json: {\n  success: true,\n  step: {\n    id: r.id,\n    sequence_id: r.sequence_id,\n    step_number: r.step_number,\n    step_name: r.step_name,\n    scheduled_date: r.scheduled_date || null,\n    duration_minutes: r.duration_minutes,\n    status: r.status,\n    notes: r.notes || null,\n    appointment_id: r.appointment_id || null,\n    completed_at: r.completed_at || null,\n  },\n  sequence_completed: r.sequence_status === 'completed',\n} }];",
+        "jsCode": "const rows = $input.all().filter(r => r.json.id);\nif (rows.length === 0) throw new Error('Step not found after update');\nconst r = rows[0].json;\nreturn [{ json: {\n  success: true,\n  step: {\n    id: r.id,\n    step_number: r.step_number,\n    step_name: r.step_name,\n    scheduled_date: r.scheduled_date || null,\n    appointment_id: r.appointment_id || null,\n    is_lab_pending: !!r.is_lab_pending,\n    status: r.milestone_status === 'done'    ? 'completed'\n          : r.milestone_status === 'waiting' ? 'scheduled'\n          : r.milestone_status === 'alert'   ? 'missed'\n          : 'pending',\n    notes: r.notes || null,\n    completed_at: r.completed_at || null,\n  },\n  sequence_completed: r.sequence_status === 'completed',\n} }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 300],
+      "position": [1340, 300],
       "id": "ts-status-build-response",
       "name": "Build Response"
     },
@@ -95,16 +84,15 @@
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1780, 300],
+      "position": [1560, 300],
       "id": "ts-status-respond",
       "name": "Respond 200"
     }
   ],
   "connections": {
     "Webhook": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
-    "Parse Input": { "main": [[{ "node": "Build SQL", "type": "main", "index": 0 }]] },
-    "Build SQL": { "main": [[{ "node": "Execute Updates", "type": "main", "index": 0 }]] },
-    "Execute Updates": { "main": [[{ "node": "Fetch Updated Step", "type": "main", "index": 0 }]] },
+    "Parse Input": { "main": [[{ "node": "Update Status", "type": "main", "index": 0 }]] },
+    "Update Status": { "main": [[{ "node": "Fetch Updated Step", "type": "main", "index": 0 }]] },
     "Fetch Updated Step": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
     "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
   },

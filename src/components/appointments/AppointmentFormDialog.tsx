@@ -160,6 +160,7 @@ export function AppointmentFormDialog({
     // Treatment plan review dialog
     const [pendingSequence, setPendingSequence] = React.useState<TreatmentSequence | null>(null);
     const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
+    const [firstAppointmentId, setFirstAppointmentId] = React.useState<string | undefined>(undefined);
 
     // Fetch steps whenever the selected workflow service changes
     React.useEffect(() => {
@@ -732,6 +733,13 @@ export function AppointmentFormDialog({
                                 };
                             }),
                         };
+                        const apptId: string | undefined =
+                            result?.data?.id?.toString() ||
+                            result?.appointment_id?.toString() ||
+                            result?.appointmentId?.toString() ||
+                            result?.id?.toString() ||
+                            undefined;
+                        setFirstAppointmentId(apptId);
                         setPendingSequence(builtSequence);
                         setIsPlanReviewOpen(true);
                         onOpenChange(false);
@@ -1418,7 +1426,13 @@ export function AppointmentFormDialog({
                     if (!open) setPendingSequence(null);
                 }}
                 pendingSequence={pendingSequence}
-                onCreated={() => setPendingSequence(null)}
+                firstAppointmentId={firstAppointmentId}
+                onCreated={(sequence) => {
+                    setPendingSequence(null);
+                    setFirstAppointmentId(undefined);
+                    // Refresh calendar so new step appointments appear
+                    if (onSaveSuccess) onSaveSuccess(sequence, new Date());
+                }}
             />
         )}
         </>

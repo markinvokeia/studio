@@ -3,15 +3,15 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Create Treatment Plan\n\n**POST** `/webhook/treatment-plans/create`\n\n**Request body:**\n```json\n{\n  \"patient_id\": \"uuid\",\n  \"service_id\": 1,\n  \"service_name\": \"Implante Dental\",\n  \"service_color\": \"#6366f1\",\n  \"doctor_id\": \"uuid\",\n  \"doctor_name\": \"Dr. García\",\n  \"doctor_email\": \"doctor@clinic.com\",\n  \"google_calendar_id\": \"calendar_id\",\n  \"started_by\": \"uuid\",\n  \"notes\": \"optional notes\",\n  \"steps\": [\n    {\n      \"step_number\": 1,\n      \"step_name\": \"Extracción dental\",\n      \"scheduled_date\": \"2026-05-01\",\n      \"duration_minutes\": 60,\n      \"schedule_mode\": \"calendar\",\n      \"notes\": \"\"\n    }\n  ]\n}\n```\n\n**Response:**\n```json\n{\n  \"sequence_id\": 42,\n  \"status\": \"active\",\n  \"steps\": [\n    {\n      \"step_number\": 1,\n      \"step_name\": \"Extracción dental\",\n      \"appointment_id\": 123,\n      \"scheduled_date\": \"2026-05-01\",\n      \"status\": \"scheduled\"\n    }\n  ]\n}\n```\n\nAppointments table columns used:\n- patient_id, start_datetime, end_datetime\n- assignee_id (doctor), summary (step_name, NOT NULL)\n- notes, status, sequence_id, step_position\n- milestone_status, calendar_source_id (looked up by google_calendar_id)\n\nFlow:\n- All steps → Insert treatment_sequences → Prepare Appointments\n- IF calendar steps exist → Build SQL → Insert Appointments → Build Response → Respond 201\n- IF no calendar steps → Build Response (no-op rows) → Respond 201",
+        "content": "## Create Treatment Plan\n\n**POST** `/webhook/treatment-plans/create`\n\n**Request body:**\n```json\n{\n  \"patient_id\": \"uuid\",\n  \"service_id\": 1,\n  \"service_name\": \"Implante Dental\",\n  \"service_color\": \"#6366f1\",\n  \"doctor_id\": \"uuid\",\n  \"doctor_name\": \"Dr. García\",\n  \"doctor_email\": \"doctor@clinic.com\",\n  \"google_calendar_id\": \"calendar_id\",\n  \"started_by\": \"uuid\",\n  \"notes\": \"optional\",\n  \"first_appointment_id\": \"uuid\",  // appointment already created for step 1\n  \"steps\": [\n    { \"step_number\": 1, \"step_name\": \"Extracción\", \"scheduled_date\": \"2026-05-01\",\n      \"duration_minutes\": 60, \"schedule_mode\": \"calendar\", \"notes\": \"\" },\n    { \"step_number\": 2, \"step_name\": \"Implante\", \"scheduled_date\": \"2026-06-15\",\n      \"duration_minutes\": 90, \"schedule_mode\": \"calendar\", \"notes\": \"\" }\n  ]\n}\n```\n\n**Response 201:**\n```json\n{\n  \"sequence_id\": 42,\n  \"status\": \"active\",\n  \"steps\": [ { \"id\": \"5\", \"step_number\": 1, \"step_name\": \"...\", \"appointment_id\": \"uuid\", \"status\": \"scheduled\" }, ... ]\n}\n```\n\n**Flow:**\n1. Parse & validate input\n2. INSERT treatment_sequences → get sequence_id\n3. INSERT ALL steps into treatment_seq_steps (multi-row) → get id per step_position\n4. Link step 1: UPDATE appointments SET treatment_seq_step_id = step1.id\n           AND UPDATE treatment_seq_steps SET appointment_id = first_appointment_id, milestone_status='waiting'\n5. For calendar steps 2+ with a scheduled_date → INSERT appointments + link back\n6. Build and return response",
         "height": 560,
-        "width": 520,
+        "width": 540,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [-80, 20],
       "typeVersion": 1,
-      "id": "tp-create-note-001",
+      "id": "tp-create-note",
       "name": "Flow Documentation"
     },
     {
@@ -24,25 +24,25 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [460, 300],
-      "id": "tp-create-wh-001",
+      "id": "tp-create-wh",
       "name": "Webhook",
       "webhookId": "tp-create"
     },
     {
       "parameters": {
-        "jsCode": "// Parse and validate input\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst {\n  patient_id,\n  service_id,\n  service_name,\n  service_color,\n  doctor_id,\n  doctor_name,\n  doctor_email,\n  google_calendar_id,\n  started_by,\n  notes,\n  steps\n} = body;\n\nif (!patient_id) throw new Error('patient_id is required');\nif (!service_id) throw new Error('service_id is required');\nif (!doctor_id) throw new Error('doctor_id is required');\nif (!Array.isArray(steps) || steps.length === 0) throw new Error('steps array is required');\n\n// Compute date range from calendar steps\nconst calendarDates = steps\n  .filter(s => s.schedule_mode === 'calendar' && s.scheduled_date)\n  .map(s => s.scheduled_date)\n  .sort();\n\nconst expectedEndAt = calendarDates.length > 0 ? calendarDates[calendarDates.length - 1] : null;\nconst startedAt    = calendarDates.length > 0 ? calendarDates[0] : new Date().toISOString().split('T')[0];\n\nreturn [{\n  json: {\n    patient_id,\n    service_id,\n    service_name,\n    service_color: service_color ?? null,\n    doctor_id,\n    doctor_name: doctor_name ?? null,\n    doctor_email: doctor_email ?? null,\n    google_calendar_id: google_calendar_id ?? null,\n    started_by: started_by ?? doctor_id,\n    notes: notes ?? null,\n    steps,\n    startedAt,\n    expectedEndAt\n  }\n}];",
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst {\n  patient_id, service_id, service_name, service_color,\n  doctor_id, doctor_name, doctor_email, google_calendar_id,\n  started_by, notes, first_appointment_id, steps\n} = body;\n\nif (!patient_id)           throw new Error('patient_id is required');\nif (!service_id)           throw new Error('service_id is required');\nif (!doctor_id)            throw new Error('doctor_id is required');\nif (!first_appointment_id) throw new Error('first_appointment_id is required (appointment for step 1)');\nif (!Array.isArray(steps) || steps.length === 0) throw new Error('steps array is required');\n\n// Sort steps by step_number, ensure step 1 exists\nconst sortedSteps = [...steps].sort((a, b) => a.step_number - b.step_number);\nif (sortedSteps[0].step_number !== 1) throw new Error('steps must include step_number 1');\n\n// Compute date range for treatment_sequences\nconst calendarDates = sortedSteps\n  .filter(s => s.schedule_mode === 'calendar' && s.scheduled_date)\n  .map(s => s.scheduled_date)\n  .sort();\nconst startedAt    = calendarDates[0] ?? new Date().toISOString().split('T')[0];\nconst expectedEnd  = calendarDates[calendarDates.length - 1] ?? null;\n\nreturn [{ json: {\n  patient_id,\n  service_id,\n  service_name,\n  service_color: service_color ?? null,\n  doctor_id,\n  doctor_name:         doctor_name ?? null,\n  doctor_email:        doctor_email ?? null,\n  google_calendar_id:  google_calendar_id ?? null,\n  started_by:          started_by ?? doctor_id,\n  notes:               notes ?? null,\n  first_appointment_id,\n  steps:               sortedSteps,\n  startedAt,\n  expectedEnd,\n} }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [680, 300],
-      "id": "tp-create-code-parse",
+      "id": "tp-create-parse",
       "name": "Parse Input"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO treatment_sequences (\n  patient_id,\n  service_id,\n  started_by,\n  status,\n  started_at,\n  expected_end_at,\n  notes\n) VALUES (\n  '{{ $json.patient_id }}',\n  {{ $json.service_id }},\n  '{{ $json.started_by }}',\n  'active',\n  '{{ $json.startedAt }}'::date,\n  {{ $json.expectedEndAt ? `'${$json.expectedEndAt}'::date` : 'NULL' }},\n  {{ $json.notes ? `'${$json.notes.replace(/'/g, \"''\")}'` : 'NULL' }}\n)\nRETURNING id;",
+        "query": "INSERT INTO treatment_sequences (\n  patient_id, service_id, started_by, status, started_at, expected_end_at, notes\n) VALUES (\n  '{{ $json.patient_id }}',\n  {{ $json.service_id }},\n  '{{ $json.started_by }}',\n  'active',\n  '{{ $json.startedAt }}'::date,\n  {{ $json.expectedEnd ? `'${$json.expectedEnd}'::date` : 'NULL' }},\n  {{ $json.notes ? `'${$json.notes.replace(/'/g, \"''\")}'` : 'NULL' }}\n)\nRETURNING id;",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
@@ -50,62 +50,80 @@
       "position": [900, 300],
       "id": "tp-create-pg-seq",
       "name": "Insert Treatment Sequence",
-      "credentials": {
-        "postgres": {
-          "id": "clinic-postgres",
-          "name": "Clinic Postgres"
-        }
-      }
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "// Retrieve the new sequence ID and build appointment inserts for calendar steps\nconst sequenceId   = $input.first().json.id;\nconst parsed       = $('Parse Input').first().json;\nconst { doctor_id, google_calendar_id, steps } = parsed;\n\nconst calendarSteps = steps.filter(s => s.schedule_mode === 'calendar' && s.scheduled_date);\nconst manualSteps   = steps.filter(s => s.schedule_mode !== 'calendar' || !s.scheduled_date);\n\nconst appointmentInserts = calendarSteps.map(step => {\n  const startTime  = `${step.scheduled_date}T09:00:00`;\n  const durationMs = (step.duration_minutes ?? 60) * 60000;\n  const endTime    = new Date(new Date(startTime).getTime() + durationMs).toISOString().replace('T', ' ').substring(0, 19);\n  const startFmt   = startTime.replace('T', ' ');\n  return {\n    sequenceId,\n    stepNumber:       step.step_number,\n    stepName:         step.step_name,\n    scheduledDate:    step.scheduled_date,\n    startTime:        startFmt,\n    endTime:          endTime,\n    patientId:        parsed.patient_id,\n    doctorId:         doctor_id,\n    googleCalendarId: google_calendar_id,\n    notes:            step.notes ?? null\n  };\n});\n\nreturn [{\n  json: {\n    sequenceId,\n    calendarSteps,\n    manualSteps,\n    hasCalendarSteps: calendarSteps.length > 0,\n    appointmentInserts,\n    parsedPayload: parsed\n  }\n}];",
+        "jsCode": "const sequenceId = $input.first().json.id;\nconst p = $('Parse Input').first().json;\n\n// Build multi-row INSERT for ALL steps into treatment_seq_steps\nconst rows = p.steps.map(s => {\n  const dateVal  = s.scheduled_date ? `'${s.scheduled_date}'::date` : 'NULL';\n  const durVal   = s.duration_minutes ? parseInt(s.duration_minutes, 10) : 'NULL';\n  const notesVal = s.notes ? `'${s.notes.replace(/'/g, \"''\")}'` : 'NULL';\n  const nameVal  = `'${s.step_name.replace(/'/g, \"''\")}'`;\n  return `(${sequenceId}, ${s.step_number}, ${nameVal}, ${dateVal}, ${durVal}, ${notesVal})`;\n}).join(',\\n  ');\n\nconst insertStepsSQL = `\n  INSERT INTO treatment_seq_steps\n    (sequence_id, step_position, step_name, scheduled_date, duration_minutes, notes)\n  VALUES\n    ${rows}\n  RETURNING id, step_position\n`;\n\nreturn [{ json: { sequenceId, insertStepsSQL, parsed: p } }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [1120, 300],
-      "id": "tp-create-code-prep",
-      "name": "Prepare Appointments"
+      "id": "tp-create-build-steps-sql",
+      "name": "Build Steps SQL"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.insertStepsSQL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1340, 300],
+      "id": "tp-create-pg-steps",
+      "name": "Insert All Steps",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Map step_position → treatment_seq_steps.id from the INSERT RETURNING rows\nconst insertedRows = $input.all();\nconst stepIdByPosition = {};\ninsertedRows.forEach(r => {\n  if (r.json.id != null && r.json.step_position != null) {\n    stepIdByPosition[r.json.step_position] = r.json.id;\n  }\n});\n\nconst p            = $('Parse Input').first().json;\nconst sequenceId   = $('Build Steps SQL').first().json.sequenceId;\nconst step1SeqId   = stepIdByPosition[1];\n\nif (!step1SeqId) throw new Error('Could not find treatment_seq_steps.id for step 1');\n\n// Link step 1 to the existing appointment (both sides of the FK)\nconst linkStep1SQL = `\n  -- appointments gets the FK to the step\n  UPDATE appointments\n  SET treatment_seq_step_id = ${step1SeqId}, updated_at = NOW()\n  WHERE id = '${p.first_appointment_id}';\n\n  -- treatment_seq_steps gets the FK to the appointment + mark as waiting\n  UPDATE treatment_seq_steps\n  SET appointment_id   = '${p.first_appointment_id}',\n      milestone_status = 'waiting',\n      updated_at       = NOW()\n  WHERE id = ${step1SeqId};\n`;\n\n// Calendar steps 2+ that have a scheduled_date → need new appointments\nconst laterCalendarSteps = p.steps.filter(\n  s => s.step_number > 1 && s.schedule_mode === 'calendar' && s.scheduled_date\n);\n\nreturn [{ json: {\n  sequenceId,\n  stepIdByPosition,\n  step1SeqId,\n  linkStep1SQL,\n  laterCalendarSteps,\n  hasLaterSteps: laterCalendarSteps.length > 0,\n  parsed: p,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "id": "tp-create-map-ids",
+      "name": "Map Step IDs"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.linkStep1SQL }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1780, 300],
+      "id": "tp-create-pg-link1",
+      "name": "Link Step 1 to Appointment",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "has-calendar-steps",
-              "leftValue": "={{ $json.hasCalendarSteps }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ],
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [{ "id": "has-later", "leftValue": "={{ $('Map Step IDs').first().json.hasLaterSteps }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
           "combinator": "and"
         }
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 300],
-      "id": "tp-create-if-calendar",
-      "name": "Has Calendar Steps?"
+      "position": [2000, 300],
+      "id": "tp-create-if-later",
+      "name": "Has Calendar Steps 2+?"
     },
     {
       "parameters": {
-        "jsCode": "// Build INSERT using actual appointments table columns\nconst { appointmentInserts, sequenceId } = $input.first().json;\n\n// Build VALUES rows\nconst rows = appointmentInserts.map(appt => {\n  const notes   = appt.notes ? `'${appt.notes.replace(/'/g, \"''\")}'` : 'NULL';\n  const summary = `'${appt.stepName.replace(/'/g, \"''\")}'`;\n  // calendar_source_id: look up by google_calendar_id (bigint FK)\n  const calSrcId = appt.googleCalendarId\n    ? `(SELECT id FROM calendar_sources WHERE google_calendar_id = '${appt.googleCalendarId}' LIMIT 1)`\n    : 'NULL';\n  return `(\n    '${appt.patientId}',\n    '${appt.startTime}'::timestamp,\n    '${appt.endTime}'::timestamp,\n    '${appt.doctorId}',\n    ${summary},\n    ${notes},\n    'scheduled',\n    ${sequenceId},\n    ${appt.stepNumber},\n    'pending',\n    ${calSrcId}\n  )`;\n}).join(',\\n');\n\nconst insertSQL = `\n  INSERT INTO appointments (\n    patient_id,\n    start_datetime,\n    end_datetime,\n    assignee_id,\n    summary,\n    notes,\n    status,\n    sequence_id,\n    step_position,\n    milestone_status,\n    calendar_source_id\n  ) VALUES ${rows}\n  RETURNING id, step_position;\n`;\n\nreturn [{ json: { ...$input.first().json, insertSQL } }];",
+        "jsCode": "const ctx          = $('Map Step IDs').first().json;\nconst p            = ctx.parsed;\nconst stepIdByPos  = ctx.stepIdByPosition;\n\n// Build INSERT for each later calendar step\nconst rows = ctx.laterCalendarSteps.map(s => {\n  const startTime  = `${s.scheduled_date}T09:00:00`;\n  const durationMs = (s.duration_minutes ?? 60) * 60000;\n  const endTime    = new Date(new Date(startTime).getTime() + durationMs)\n                       .toISOString().replace('T', ' ').slice(0, 19);\n  const startFmt   = startTime.replace('T', ' ');\n  const notesVal   = s.notes ? `'${s.notes.replace(/'/g, \"''\")}'` : 'NULL';\n  const summaryVal = `'Paso ${s.step_number}: ${s.step_name.replace(/'/g, \"''\")} '`;\n  const calSrcId   = p.google_calendar_id\n    ? `(SELECT id FROM calendar_sources WHERE google_calendar_id = '${p.google_calendar_id}' LIMIT 1)`\n    : 'NULL';\n  const seqStepId  = stepIdByPos[s.step_number];\n  return {\n    sql: `('${p.patient_id}', '${startFmt}'::timestamp, '${endTime}'::timestamp,\n           '${p.doctor_id}', ${summaryVal}, ${notesVal}, 'scheduled',\n           ${seqStepId}, ${calSrcId})`,\n    step_number: s.step_number,\n    seqStepId,\n  };\n});\n\nconst valueRows = rows.map(r => r.sql).join(',\\n  ');\n\nconst insertSQL = `\n  WITH inserted AS (\n    INSERT INTO appointments\n      (patient_id, start_datetime, end_datetime, assignee_id, summary, notes,\n       status, treatment_seq_step_id, calendar_source_id)\n    VALUES\n      ${valueRows}\n    RETURNING id, treatment_seq_step_id\n  )\n  UPDATE treatment_seq_steps s\n  SET appointment_id   = i.id,\n      milestone_status = 'waiting',\n      updated_at       = NOW()\n  FROM inserted i\n  WHERE s.id = i.treatment_seq_step_id\n  RETURNING s.id, s.step_position, i.id::text AS appointment_id\n`;\n\nreturn [{ json: { insertSQL, stepMeta: rows } }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 200],
-      "id": "tp-create-code-sql",
-      "name": "Build Appointment SQL"
+      "position": [2220, 160],
+      "id": "tp-create-build-appt-sql",
+      "name": "Build Appointments SQL"
     },
     {
       "parameters": {
@@ -115,106 +133,69 @@
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1780, 200],
+      "position": [2440, 160],
       "id": "tp-create-pg-appts",
-      "name": "Insert Appointments",
-      "credentials": {
-        "postgres": {
-          "id": "clinic-postgres",
-          "name": "Clinic Postgres"
-        }
-      }
+      "name": "Insert Later Appointments",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "// Build final response merging appointment IDs back into steps\n\n// Collect inserted rows: may come from Postgres (id + step_position)\n// or be empty when there were no calendar steps (manual-only path)\nconst pgRows = $input.all();\nconst apptByStep = {};\npgRows.forEach(row => {\n  if (row.json.id && row.json.step_position != null) {\n    apptByStep[row.json.step_position] = row.json.id;\n  }\n});\n\n// Retrieve original data from Prepare Appointments node\nconst prepNode    = $('Prepare Appointments').first().json;\nconst { sequenceId, parsedPayload } = prepNode;\nconst allSteps    = parsedPayload.steps;\n\nconst responseSteps = allSteps.map(step => {\n  const appointmentId = apptByStep[step.step_number] ?? null;\n  return {\n    step_number:    step.step_number,\n    step_name:      step.step_name,\n    scheduled_date: step.scheduled_date ?? null,\n    schedule_mode:  step.schedule_mode,\n    appointment_id: appointmentId,\n    status:         appointmentId ? 'scheduled' : 'pending'\n  };\n});\n\nreturn [{\n  json: {\n    sequence_id:   sequenceId,\n    status:        'active',\n    service_name:  parsedPayload.service_name,\n    service_color: parsedPayload.service_color,\n    started_at:    parsedPayload.startedAt,\n    steps:         responseSteps\n  }\n}];",
+        "operation": "executeQuery",
+        "query": "SELECT\n  s.id::text             AS id,\n  s.step_position        AS step_number,\n  s.step_name,\n  s.scheduled_date::text AS scheduled_date,\n  s.milestone_status,\n  s.is_lab_pending,\n  s.notes,\n  s.appointment_id::text AS appointment_id,\n  s.duration_minutes,\n  CASE WHEN s.milestone_status = 'done' THEN s.updated_at::text ELSE NULL END AS completed_at\nFROM treatment_seq_steps s\nWHERE s.sequence_id = {{ $('Map Step IDs').first().json.sequenceId }}\nORDER BY s.step_position",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [2660, 300],
+      "id": "tp-create-pg-fetch",
+      "name": "Fetch All Steps",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().filter(r => r.json.id);\nconst ctx  = $('Map Step IDs').first().json;\nconst p    = ctx.parsed;\n\nconst steps = rows.map(r => ({\n  id:             r.json.id,\n  step_number:    r.json.step_number,\n  step_name:      r.json.step_name,\n  scheduled_date: r.json.scheduled_date || null,\n  appointment_id: r.json.appointment_id || null,\n  is_lab_pending: !!r.json.is_lab_pending,\n  status:         r.json.milestone_status === 'done'    ? 'completed'\n                : r.json.milestone_status === 'waiting' ? 'scheduled'\n                : r.json.milestone_status === 'alert'   ? 'missed'\n                : 'pending',\n  notes:          r.json.notes || null,\n  duration_minutes: r.json.duration_minutes || null,\n  completed_at:   r.json.completed_at || null,\n}));\n\nreturn [{ json: {\n  sequence_id:    ctx.sequenceId,\n  status:         'active',\n  service_name:   p.service_name,\n  service_color:  p.service_color,\n  started_at:     p.startedAt,\n  doctor_id:      p.doctor_id,\n  doctor_name:    p.doctor_name,\n  steps,\n} }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 300],
-      "id": "tp-create-code-resp",
+      "position": [2880, 300],
+      "id": "tp-create-build-resp",
       "name": "Build Response"
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
-        "options": {
-          "responseCode": 201
-        }
+        "options": { "responseCode": 201 }
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2220, 300],
+      "position": [3100, 300],
       "id": "tp-create-respond",
       "name": "Respond 201"
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ error: $json.message || 'Internal error creating treatment plan' }) }}",
-        "options": {
-          "responseCode": 500
-        }
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [2220, 480],
-      "id": "tp-create-respond-err",
-      "name": "Respond Error"
     }
   ],
   "connections": {
-    "Webhook": {
+    "Webhook":                       { "main": [[{ "node": "Parse Input",                  "type": "main", "index": 0 }]] },
+    "Parse Input":                   { "main": [[{ "node": "Insert Treatment Sequence",    "type": "main", "index": 0 }]] },
+    "Insert Treatment Sequence":     { "main": [[{ "node": "Build Steps SQL",              "type": "main", "index": 0 }]] },
+    "Build Steps SQL":               { "main": [[{ "node": "Insert All Steps",             "type": "main", "index": 0 }]] },
+    "Insert All Steps":              { "main": [[{ "node": "Map Step IDs",                 "type": "main", "index": 0 }]] },
+    "Map Step IDs":                  { "main": [[{ "node": "Link Step 1 to Appointment",   "type": "main", "index": 0 }]] },
+    "Link Step 1 to Appointment":    { "main": [[{ "node": "Has Calendar Steps 2+?",       "type": "main", "index": 0 }]] },
+    "Has Calendar Steps 2+?": {
       "main": [
-        [{ "node": "Parse Input", "type": "main", "index": 0 }]
+        [{ "node": "Build Appointments SQL",  "type": "main", "index": 0 }],
+        [{ "node": "Fetch All Steps",         "type": "main", "index": 0 }]
       ]
     },
-    "Parse Input": {
-      "main": [
-        [{ "node": "Insert Treatment Sequence", "type": "main", "index": 0 }]
-      ]
-    },
-    "Insert Treatment Sequence": {
-      "main": [
-        [{ "node": "Prepare Appointments", "type": "main", "index": 0 }]
-      ]
-    },
-    "Prepare Appointments": {
-      "main": [
-        [{ "node": "Has Calendar Steps?", "type": "main", "index": 0 }]
-      ]
-    },
-    "Has Calendar Steps?": {
-      "main": [
-        [{ "node": "Build Appointment SQL", "type": "main", "index": 0 }],
-        [{ "node": "Build Response", "type": "main", "index": 0 }]
-      ]
-    },
-    "Build Appointment SQL": {
-      "main": [
-        [{ "node": "Insert Appointments", "type": "main", "index": 0 }]
-      ]
-    },
-    "Insert Appointments": {
-      "main": [
-        [{ "node": "Build Response", "type": "main", "index": 0 }]
-      ]
-    },
-    "Build Response": {
-      "main": [
-        [{ "node": "Respond 201", "type": "main", "index": 0 }]
-      ]
-    }
+    "Build Appointments SQL":        { "main": [[{ "node": "Insert Later Appointments",    "type": "main", "index": 0 }]] },
+    "Insert Later Appointments":     { "main": [[{ "node": "Fetch All Steps",              "type": "main", "index": 0 }]] },
+    "Fetch All Steps":               { "main": [[{ "node": "Build Response",               "type": "main", "index": 0 }]] },
+    "Build Response":                { "main": [[{ "node": "Respond 201",                  "type": "main", "index": 0 }]] }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "errorWorkflow": ""
-  },
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
   "tags": ["treatment-plans", "clinic"]
 }

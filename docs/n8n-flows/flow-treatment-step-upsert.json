@@ -1,36 +1,36 @@
 {
-  "name": "Treatment Step - Upsert (Create / Edit + Cascade)",
+  "name": "Treatment Sequences - Step Upsert (Create/Update treatment_seq_steps)",
   "nodes": [
     {
       "parameters": {
-        "content": "## Treatment Step Upsert\n\n**POST** `/webhook/treatments/step/upsert`\n\n**Request body:**\n```json\n{\n  \"sequence_id\": \"uuid\",\n  \"step_id\": \"uuid\",            // omit for CREATE\n  \"step_number\": 2,\n  \"step_name\": \"Colocación del implante\",\n  \"scheduled_date\": \"2026-05-01\",\n  \"duration_minutes\": 60,\n  \"notes\": \"Opcional\",\n  \"insert_after\": 2,            // for new steps: position to insert after\n  \"cascade_mode\": \"shift_all\",  // \"none\" | \"shift_all\" | \"shift_from_next\"\n  \"cascade_days\": 7,            // days to push subsequent steps (+push / -pull)\n  \"notify_patient\": true\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"step\": { ...updated step },\n  \"affected_steps\": [ ...all steps with updated dates ]\n}\n```\n\n**Flow:**\n1. Parse & validate\n2. IF step_id exists → UPDATE existing step\n3. IF new step → INSERT, renumber subsequent steps\n4. IF cascade_days != 0 → shift subsequent step dates + linked appointments\n5. IF notify_patient → send email (TODO: wire to email node)\n6. Return all steps for the sequence",
-        "height": 500,
+        "content": "## Treatment Sequences – Step Upsert\n\n**POST** `/webhook/treatment-plans/sequences/upsert`\n\nCreates or updates a `treatment_seq_steps` row.\nDoes NOT touch `appointments` — scheduling is done via the `/schedule` endpoint.\n\n**Request body:**\n```json\n{\n  \"seq_step_id\": 5,          // omit to INSERT\n  \"sequence_id\": 1,\n  \"step_position\": 2,\n  \"step_name\": \"Colocación implante\",\n  \"scheduled_date\": \"2026-06-15\",\n  \"duration_minutes\": 90,\n  \"notes\": \"Opcional\",\n  \"is_lab_pending\": false,\n  \"cascade_mode\": \"none\",   // none | shift_all\n  \"cascade_days\": 7\n}\n```\n\n**Response 200:**\n```json\n{ \"success\": true, \"affected_steps\": [ ...all steps for the sequence ] }\n```\n\n**Cascade:** shifts scheduled_date of subsequent non-done steps by cascade_days.\n**Auto-complete:** sets sequence status='completed' when all steps are done.",
+        "height": 460,
         "width": 520,
         "color": 5
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [-100, 20],
       "typeVersion": 1,
-      "id": "ts-upsert-note-001",
+      "id": "ts-upsert-note",
       "name": "Flow Documentation"
     },
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "treatments/step/upsert",
+        "path": "treatment-plans/sequences/upsert",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [460, 300],
-      "id": "ts-upsert-wh-001",
+      "id": "ts-upsert-wh",
       "name": "Webhook",
-      "webhookId": "treatments-step-upsert"
+      "webhookId": "treatment-sequences-upsert"
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n\nconst {\n  sequence_id,\n  step_id,\n  step_number,\n  step_name,\n  scheduled_date,\n  duration_minutes,\n  notes,\n  insert_after,\n  cascade_mode = 'none',\n  cascade_days = 0,\n  notify_patient = false,\n} = body;\n\nif (!sequence_id) throw new Error('sequence_id is required');\nif (!step_name?.trim()) throw new Error('step_name is required');\nif (!step_number || step_number < 1) throw new Error('step_number must be >= 1');\n\nconst isUpdate = !!step_id;\nconst doCascade = cascade_mode !== 'none' && cascade_days !== 0;\n\nreturn [{\n  json: {\n    sequence_id,\n    step_id: step_id || null,\n    step_number,\n    step_name: step_name.trim(),\n    scheduled_date: scheduled_date || null,\n    duration_minutes: duration_minutes || 60,\n    notes: notes || null,\n    insert_after: insert_after || null,\n    cascade_mode,\n    cascade_days: parseInt(cascade_days, 10) || 0,\n    notify_patient,\n    isUpdate,\n    doCascade,\n  }\n}];",
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst { seq_step_id, sequence_id, step_position, step_name, scheduled_date, duration_minutes, notes, is_lab_pending = false, cascade_mode = 'none', cascade_days = 0 } = body;\n\nif (!sequence_id)   throw new Error('sequence_id is required');\nif (!step_position) throw new Error('step_position is required');\n\nconst isUpdate = !!seq_step_id;\nif (!isUpdate && !step_name) throw new Error('step_name is required when creating a new step');\n\nconst cascadeDays = parseInt(cascade_days, 10) || 0;\nconst doCascade   = cascade_mode === 'shift_all' && cascadeDays !== 0;\n\nreturn [{ json: {\n  seq_step_id:      seq_step_id ? parseInt(seq_step_id, 10) : null,\n  sequence_id:      parseInt(sequence_id, 10),\n  step_position:    parseInt(step_position, 10),\n  step_name:        step_name || null,\n  scheduled_date:   scheduled_date || null,\n  duration_minutes: duration_minutes ? parseInt(duration_minutes, 10) : null,\n  notes:            notes || null,\n  is_lab_pending:   !!is_lab_pending,\n  cascade_mode,\n  cascade_days:     cascadeDays,\n  doCascade,\n  isUpdate,\n} }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
@@ -43,14 +43,7 @@
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "is-update",
-              "leftValue": "={{ $json.isUpdate }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
-            }
-          ],
+          "conditions": [{ "id": "is-update", "leftValue": "={{ $json.isUpdate }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
           "combinator": "and"
         }
       },
@@ -58,41 +51,52 @@
       "typeVersion": 2,
       "position": [900, 300],
       "id": "ts-upsert-if-update",
-      "name": "Is Update?"
+      "name": "Update or Insert?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $json;\nconst nameClause  = p.step_name    ? `, step_name = '${p.step_name.replace(/'/g, \"''\")}'` : '';\nconst dateClause  = p.scheduled_date ? `, scheduled_date = '${p.scheduled_date}'` : '';\nconst durClause   = p.duration_minutes != null ? `, duration_minutes = ${p.duration_minutes}` : '';\nconst notesClause = p.notes != null   ? `, notes = '${p.notes.replace(/'/g, \"''\")}'` : '';\n\nconst updateSQL = `\n  UPDATE treatment_seq_steps\n  SET\n    is_lab_pending = ${p.is_lab_pending}\n    ${nameClause}\n    ${dateClause}\n    ${durClause}\n    ${notesClause},\n    updated_at = NOW()\n  WHERE id = ${p.seq_step_id}\n    AND sequence_id = ${p.sequence_id}\n  RETURNING id\n`;\nreturn [{ json: { ...p, updateSQL } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 160],
+      "id": "ts-upsert-build-update",
+      "name": "Build Update SQL"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE treatment_steps\nSET\n  step_name      = '{{ $json.step_name }}',\n  scheduled_date = {{ $json.scheduled_date ? `'${$json.scheduled_date}'` : 'NULL' }},\n  duration_minutes = {{ $json.duration_minutes }},\n  notes          = {{ $json.notes ? `'${$json.notes.replace(/'/g, \"''\")}'` : 'NULL' }},\n  step_number    = {{ $json.step_number }},\n  updated_at     = NOW()\nWHERE id = '{{ $json.step_id }}'\n  AND sequence_id = '{{ $json.sequence_id }}'\nRETURNING id, sequence_id, step_number, step_name, scheduled_date, duration_minutes, status, notes, appointment_id, completed_at",
+        "query": "={{ $json.updateSQL }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1120, 180],
+      "position": [1340, 160],
       "id": "ts-upsert-pg-update",
       "name": "Update Step",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "// For INSERT: first renumber steps >= insert_after+1 to make room\nconst { sequence_id, step_number, insert_after } = $input.first().json;\n\n// If inserting at a specific position, push subsequent step_numbers up\nconst insertPosition = insert_after ? insert_after + 1 : step_number;\n\nconst renumberSQL = `\n  UPDATE treatment_steps\n  SET step_number = step_number + 1\n  WHERE sequence_id = '${sequence_id}'\n    AND step_number >= ${insertPosition}\n`;\n\nconst insertSQL = `\n  INSERT INTO treatment_steps (sequence_id, step_number, step_name, scheduled_date, duration_minutes, notes, status)\n  VALUES (\n    '${sequence_id}',\n    ${insertPosition},\n    '${$input.first().json.step_name.replace(/'/g, \"''\")}',\n    ${ $input.first().json.scheduled_date ? `'${$input.first().json.scheduled_date}'` : 'NULL' },\n    ${ $input.first().json.duration_minutes || 60 },\n    ${ $input.first().json.notes ? `'${$input.first().json.notes.replace(/'/g, \"''\")}'` : 'NULL' },\n    'pending'\n  )\n  RETURNING id, sequence_id, step_number, step_name, scheduled_date, duration_minutes, status, notes, appointment_id, completed_at\n`;\n\nreturn [{ json: { ...$input.first().json, renumberSQL, insertSQL, insertPosition } }];",
+        "jsCode": "const p = $json;\nconst dateVal  = p.scheduled_date   ? `'${p.scheduled_date}'`                    : 'NULL';\nconst durVal   = p.duration_minutes  ? p.duration_minutes                          : 'NULL';\nconst notesVal = p.notes             ? `'${p.notes.replace(/'/g, \"''\")}'`         : 'NULL';\n\nconst insertSQL = `\n  INSERT INTO treatment_seq_steps\n    (sequence_id, step_position, step_name, scheduled_date, duration_minutes, notes, is_lab_pending)\n  VALUES\n    (${p.sequence_id}, ${p.step_position}, '${p.step_name.replace(/'/g, \"''\")}',\n     ${dateVal}, ${durVal}, ${notesVal}, ${p.is_lab_pending})\n  RETURNING id\n`;\nreturn [{ json: { ...p, insertSQL } }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 420],
+      "position": [1120, 440],
       "id": "ts-upsert-build-insert",
       "name": "Build Insert SQL"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.renumberSQL + '; ' + $json.insertSQL }}",
+        "query": "={{ $json.insertSQL }}",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [1340, 420],
+      "position": [1340, 440],
       "id": "ts-upsert-pg-insert",
       "name": "Insert Step",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
@@ -101,14 +105,7 @@
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "do-cascade",
-              "leftValue": "={{ $('Parse Input').first().json.doCascade }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
-            }
-          ],
+          "conditions": [{ "id": "do-cascade", "leftValue": "={{ $('Parse Input').first().json.doCascade }}", "rightValue": true, "operator": { "type": "boolean", "operation": "equals" } }],
           "combinator": "and"
         }
       },
@@ -120,60 +117,38 @@
     },
     {
       "parameters": {
-        "jsCode": "// Build cascade SQL: shift dates of subsequent steps and linked appointments\nconst parse = $('Parse Input').first().json;\nconst { sequence_id, step_number, cascade_days, cascade_mode } = parse;\n\n// Get the step_number of the just-saved step\nconst savedStepNumber = step_number;\n\n// Shift subsequent treatment_steps dates\nconst stepCascadeSQL = `\n  UPDATE treatment_steps\n  SET scheduled_date = (scheduled_date::date + INTERVAL '${cascade_days} days')::date\n  WHERE sequence_id = '${sequence_id}'\n    AND step_number > ${savedStepNumber}\n    AND scheduled_date IS NOT NULL\n`;\n\n// Shift linked appointment datetimes for subsequent steps\nconst apptCascadeSQL = `\n  UPDATE appointments\n  SET\n    start_datetime = start_datetime + INTERVAL '${cascade_days} days',\n    end_datetime   = end_datetime   + INTERVAL '${cascade_days} days'\n  WHERE sequence_id = '${sequence_id}'\n    AND step_position > ${savedStepNumber}\n    AND status NOT IN ('cancelled', 'completed')\n`;\n\nreturn [{ json: { sequence_id, stepCascadeSQL, apptCascadeSQL } }];",
-        "mode": "runOnceForAllItems"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1780, 180],
-      "id": "ts-upsert-build-cascade",
-      "name": "Build Cascade SQL"
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "={{ $json.stepCascadeSQL + '; ' + $json.apptCascadeSQL }}",
+        "query": "UPDATE treatment_seq_steps\nSET\n  scheduled_date = scheduled_date + INTERVAL '{{ $('Parse Input').first().json.cascade_days }} days',\n  updated_at = NOW()\nWHERE sequence_id = {{ $('Parse Input').first().json.sequence_id }}\n  AND step_position > {{ $('Parse Input').first().json.step_position }}\n  AND milestone_status NOT IN ('done', 'alert')\n  AND scheduled_date IS NOT NULL",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2000, 180],
+      "position": [1780, 160],
       "id": "ts-upsert-pg-cascade",
-      "name": "Cascade Dates",
+      "name": "Cascade Steps",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "// After cascade (or skip), fetch all steps for the sequence to return\nconst parse = $('Parse Input').first().json;\nreturn [{ json: { sequence_id: parse.sequence_id } }];",
-        "mode": "runOnceForAllItems"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2220, 300],
-      "id": "ts-upsert-prep-fetch",
-      "name": "Prep Fetch All Steps"
-    },
-    {
-      "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT id, sequence_id, step_number, step_name, scheduled_date::text, duration_minutes, status, notes, appointment_id, completed_at::text\nFROM treatment_steps\nWHERE sequence_id = '{{ $json.sequence_id }}'\nORDER BY step_number",
+        "query": "-- Auto-complete sequence if all steps are done\nUPDATE treatment_sequences\nSET status = 'completed'\nWHERE id = {{ $('Parse Input').first().json.sequence_id }}\n  AND NOT EXISTS (\n    SELECT 1 FROM treatment_seq_steps\n    WHERE sequence_id = {{ $('Parse Input').first().json.sequence_id }}\n      AND milestone_status != 'done'\n  );\n\n-- Fetch all steps for the sequence\nSELECT\n  s.id::text             AS id,\n  s.sequence_id,\n  s.step_position        AS step_number,\n  s.step_name,\n  s.scheduled_date::text AS scheduled_date,\n  s.milestone_status,\n  s.is_lab_pending,\n  s.notes,\n  s.appointment_id::text AS appointment_id,\n  s.duration_minutes,\n  CASE WHEN s.milestone_status = 'done' THEN s.updated_at::text ELSE NULL END AS completed_at\nFROM treatment_seq_steps s\nWHERE s.sequence_id = {{ $('Parse Input').first().json.sequence_id }}\nORDER BY s.step_position",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
-      "position": [2440, 300],
+      "position": [2000, 300],
       "id": "ts-upsert-pg-fetch",
       "name": "Fetch All Steps",
       "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
     },
     {
       "parameters": {
-        "jsCode": "const allRows = $input.all();\nconst steps = allRows.map(r => ({\n  id: r.json.id,\n  sequence_id: r.json.sequence_id,\n  step_number: r.json.step_number,\n  step_name: r.json.step_name,\n  scheduled_date: r.json.scheduled_date || null,\n  duration_minutes: r.json.duration_minutes,\n  status: r.json.status,\n  notes: r.json.notes || null,\n  appointment_id: r.json.appointment_id || null,\n  completed_at: r.json.completed_at || null,\n}));\nreturn [{ json: { success: true, affected_steps: steps } }];",
+        "jsCode": "const rows = $input.all().filter(r => r.json.id);\nconst steps = rows.map(r => ({\n  id: r.json.id,\n  step_number: r.json.step_number,\n  step_name: r.json.step_name,\n  scheduled_date: r.json.scheduled_date || null,\n  appointment_id: r.json.appointment_id || null,\n  is_lab_pending: !!r.json.is_lab_pending,\n  status: r.json.milestone_status === 'done'    ? 'completed'\n        : r.json.milestone_status === 'waiting' ? 'scheduled'\n        : r.json.milestone_status === 'alert'   ? 'missed'\n        : 'pending',\n  notes: r.json.notes || null,\n  duration_minutes: r.json.duration_minutes || null,\n  completed_at: r.json.completed_at || null,\n}));\nreturn [{ json: { success: true, affected_steps: steps } }];",
         "mode": "runOnceForAllItems"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2660, 300],
+      "position": [2220, 300],
       "id": "ts-upsert-build-response",
       "name": "Build Response"
     },
@@ -185,44 +160,31 @@
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2880, 300],
+      "position": [2440, 300],
       "id": "ts-upsert-respond",
       "name": "Respond 200"
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: false, error: $json.message || 'Internal error' }) }}",
-        "options": { "responseCode": 500 }
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [2880, 480],
-      "id": "ts-upsert-respond-error",
-      "name": "Respond Error"
     }
   ],
   "connections": {
     "Webhook": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
-    "Parse Input": { "main": [[{ "node": "Is Update?", "type": "main", "index": 0 }]] },
-    "Is Update?": {
+    "Parse Input": { "main": [[{ "node": "Update or Insert?", "type": "main", "index": 0 }]] },
+    "Update or Insert?": {
       "main": [
-        [{ "node": "Update Step", "type": "main", "index": 0 }],
+        [{ "node": "Build Update SQL", "type": "main", "index": 0 }],
         [{ "node": "Build Insert SQL", "type": "main", "index": 0 }]
       ]
     },
+    "Build Update SQL": { "main": [[{ "node": "Update Step", "type": "main", "index": 0 }]] },
     "Update Step": { "main": [[{ "node": "Do Cascade?", "type": "main", "index": 0 }]] },
     "Build Insert SQL": { "main": [[{ "node": "Insert Step", "type": "main", "index": 0 }]] },
     "Insert Step": { "main": [[{ "node": "Do Cascade?", "type": "main", "index": 0 }]] },
     "Do Cascade?": {
       "main": [
-        [{ "node": "Build Cascade SQL", "type": "main", "index": 0 }],
-        [{ "node": "Prep Fetch All Steps", "type": "main", "index": 0 }]
+        [{ "node": "Cascade Steps", "type": "main", "index": 0 }],
+        [{ "node": "Fetch All Steps", "type": "main", "index": 0 }]
       ]
     },
-    "Build Cascade SQL": { "main": [[{ "node": "Cascade Dates", "type": "main", "index": 0 }]] },
-    "Cascade Dates": { "main": [[{ "node": "Prep Fetch All Steps", "type": "main", "index": 0 }]] },
-    "Prep Fetch All Steps": { "main": [[{ "node": "Fetch All Steps", "type": "main", "index": 0 }]] },
+    "Cascade Steps": { "main": [[{ "node": "Fetch All Steps", "type": "main", "index": 0 }]] },
     "Fetch All Steps": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
     "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
   },

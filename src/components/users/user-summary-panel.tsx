@@ -85,6 +85,36 @@ function FinancialContent({ financialData }: { financialData?: UserFinancial | n
 
 // ─── Treatment content ────────────────────────────────────────────────────────
 
+type StepStatus = TreatmentSequence['steps'][number]['status'];
+
+const STATUS_PILL: Record<StepStatus, { bg: string; text: string; icon: React.ReactNode }> = {
+    completed: {
+        bg: 'bg-emerald-100 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800',
+        text: 'text-emerald-700 dark:text-emerald-300',
+        icon: <CheckCircle2 className="h-2.5 w-2.5" />,
+    },
+    scheduled: {
+        bg: 'bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-800',
+        text: 'text-blue-700 dark:text-blue-300',
+        icon: <ChevronRight className="h-2.5 w-2.5" />,
+    },
+    missed: {
+        bg: 'bg-red-100 dark:bg-red-950 border border-red-200 dark:border-red-800',
+        text: 'text-red-700 dark:text-red-300',
+        icon: <XCircle className="h-2.5 w-2.5" />,
+    },
+    cancelled: {
+        bg: 'bg-muted border border-border',
+        text: 'text-muted-foreground',
+        icon: <XCircle className="h-2.5 w-2.5" />,
+    },
+    pending: {
+        bg: 'bg-muted border border-border',
+        text: 'text-muted-foreground',
+        icon: <Circle className="h-2.5 w-2.5" />,
+    },
+};
+
 function TreatmentMilestoneCard({
     step,
     isCurrent,
@@ -92,8 +122,11 @@ function TreatmentMilestoneCard({
     step: TreatmentSequence['steps'][number];
     isCurrent: boolean;
 }) {
+    const t = useTranslations('TreatmentPlans');
     const isCompleted = step.status === 'completed';
     const isMissed = step.status === 'missed';
+    const isCancelled = step.status === 'cancelled';
+    const pill = STATUS_PILL[step.status];
 
     return (
         <div className={cn(
@@ -101,7 +134,8 @@ function TreatmentMilestoneCard({
             isCompleted && 'bg-emerald-950/60 border-emerald-700/60',
             isCurrent && !isCompleted && 'bg-primary/10 border-primary',
             isMissed && 'bg-destructive/10 border-destructive/50',
-            !isCompleted && !isCurrent && !isMissed && 'bg-muted/40 border-border',
+            isCancelled && 'opacity-50',
+            !isCompleted && !isCurrent && !isMissed && !isCancelled && 'bg-muted/40 border-border',
         )}>
             {/* Number bubble + status icon */}
             <div className="flex items-center gap-1.5">
@@ -131,9 +165,17 @@ function TreatmentMilestoneCard({
                     'text-[10px]',
                     isCompleted ? 'text-emerald-400/80' : isCurrent ? 'text-primary/80' : 'text-muted-foreground/70',
                 )}>
-                    {step.scheduled_date ? format(parseISO(step.scheduled_date), 'd MMM', { locale: es }) : ''}
+                    {format(parseISO(step.scheduled_date), 'd MMM', { locale: es })}
                 </p>
             )}
+            {/* Status pill */}
+            <span className={cn(
+                'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-semibold self-start',
+                pill.bg, pill.text,
+            )}>
+                {pill.icon}
+                {t(`stepStatus.${step.status}`)}
+            </span>
         </div>
     );
 }

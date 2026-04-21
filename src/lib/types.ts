@@ -479,6 +479,8 @@ export type Appointment = {
   services?: Service[];
   quote_id?: string; // ID del presupuesto asociado
   quote_doc_no?: string; // Número de documento del presupuesto (Doc No)
+  // Treatment plan link — set when this appointment is linked to a treatment_seq_steps row
+  treatment_seq_step_id?: number | null;
 };
 
 export type UserLog = {
@@ -612,15 +614,18 @@ export type PatientSession = {
 export type TreatmentSequenceStepStatus = 'pending' | 'scheduled' | 'completed' | 'cancelled' | 'missed';
 
 export type TreatmentSequenceStep = {
+  /** treatment_seq_steps.id (integer stored as string) */
   id: string;
   step_number: number;
   step_name: string;
   scheduled_date?: string;
+  /** appointments.id — present when this step has a calendar appointment */
   appointment_id?: string;
   status: TreatmentSequenceStepStatus;
   notes?: string;
   completed_at?: string;
   duration_minutes?: number;
+  is_lab_pending?: boolean;
 };
 
 export type TreatmentSequenceStatus = 'active' | 'completed' | 'cancelled' | 'paused';
@@ -645,48 +650,68 @@ export type TreatmentSequence = {
   started_by?: string;
 };
 
-// ── Step operation types ───────────────────────────────────────────────────────
+// ── Step operation types ──────────────────────────────────────────────────────
+//
+// A "step instance" = treatment_seq_steps row (keyed by id).
+// treatment_steps is a read-only template (per service_catalog, not per patient).
+// appointments are linked optionally via treatment_seq_steps.appointment_id.
 
 /** How to handle subsequent steps when a date is shifted */
-export type StepCascadeMode = 'none' | 'shift_all' | 'shift_from_next';
+export type StepCascadeMode = 'none' | 'shift_all';
 
+/**
+ * Create or update a treatment_seq_steps row.
+ * - seq_step_id present → UPDATE existing row
+ * - seq_step_id absent  → INSERT new row (requires sequence_id + step_position + step_name)
+ */
 export type StepUpsertPayload = {
-  sequence_id: string;
-  step_id?: string;             // omit for create
-  step_number: number;
+  seq_step_id?: number;           // treatment_seq_steps.id — omit to create
+  sequence_id: number;
+  step_position: number;
   step_name: string;
-  scheduled_date?: string;      // ISO date
+  scheduled_date?: string;
   duration_minutes?: number;
   notes?: string;
-  insert_after?: number;        // step_number after which to insert (for new steps)
+  is_lab_pending?: boolean;
   cascade_mode?: StepCascadeMode;
-  cascade_days?: number;        // days to shift subsequent steps (positive = push out, negative = pull in)
-  notify_patient?: boolean;
+  cascade_days?: number;          // days to shift subsequent steps (+push / -pull)
 };
 
+/**
+ * Delete (hard) or cancel a treatment_seq_steps row.
+ * Optionally cancels the linked appointment.
+ */
 export type StepDeletePayload = {
-  sequence_id: string;
-  step_id: string;
-  cascade_mode?: StepCascadeMode; // 'shift_all' = pull subsequent forward to close gap
-  cascade_days?: number;          // days to pull forward (usually the step's offset)
-  cancel_appointment?: boolean;   // cancel linked appointment if exists
+  seq_step_id: number;            // treatment_seq_steps.id
+  sequence_id: number;
+  cancel_appointment?: boolean;   // also cancel the linked appointment
+  cascade_mode?: StepCascadeMode;
+  cascade_days?: number;          // negative = pull subsequent forward
   notify_patient?: boolean;
 };
 
+/**
+ * Change milestone_status on a treatment_seq_steps row.
+ * Auto-completes the treatment_sequence when all steps are done.
+ */
 export type StepStatusPayload = {
-  sequence_id: string;
-  step_id: string;
-  status: TreatmentSequenceStepStatus;
-  sync_appointment?: boolean;   // also update the linked appointment status
+  seq_step_id: number;
+  milestone_status: 'waiting' | 'done' | 'alert' | 'pending';
+  appointment_status?: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
   notify_patient?: boolean;
 };
 
+/**
+ * Create a calendar appointment for a step that has none.
+ * Links the new appointment back to the treatment_seq_steps row.
+ */
 export type StepSchedulePayload = {
-  sequence_id: string;
-  step_id: string;
+  seq_step_id: number;
   patient_id: string;
   doctor_id: string;
-  scheduled_date: string;       // ISO date
+  doctor_name?: string;
+  scheduled_date: string;
+  scheduled_time: string;   // HH:mm
   duration_minutes: number;
   notes?: string;
   google_calendar_id?: string | null;
@@ -694,18 +719,22 @@ export type StepSchedulePayload = {
 
 export type StepOperationResult = {
   success: boolean;
+  /** The updated/created appointments row mapped to TreatmentSequenceStep */
   step?: TreatmentSequenceStep;
-  affected_steps?: TreatmentSequenceStep[]; // all steps after cascade
+  /** All steps for the sequence after a cascade operation */
+  affected_steps?: TreatmentSequenceStep[];
   appointment_id?: string;
   sequence_completed?: boolean;
   error?: string;
 };
 
 export type AbandonedPlan = {
-  sequence_id: string;
+  sequence_id: number;
   patient_id: string;
   patient_name?: string;
   service_name: string;
+  step_position: number;
+  seq_step_id: number;
   missed_step_name: string;
   missed_days_ago: number;
 };

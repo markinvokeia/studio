@@ -558,6 +558,10 @@
       "openDoctor": "Ver perfil del doctor",
       "openQuote": "Ver presupuesto",
       "viewPayments": "Ver pagos"
+    },
+    "treatmentSequence": {
+      "title": "Plan de Tratamiento",
+      "stepRef": "Paso del plan #{id}"
     }
   },
   "AppointmentsColumns": {
@@ -4979,7 +4983,13 @@
     "schedule": {
       "title": "Agendar cita para este paso",
       "description": "Crea una cita en el calendario para el paso «{name}».",
+      "date": "Fecha",
+      "time": "Hora",
       "duration": "Duración (minutos)",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Seleccionar doctor",
+      "calendar": "Consultorio",
+      "calendarPlaceholder": "Seleccionar consultorio",
       "checkAvailability": "Verificar disponibilidad",
       "available": "Fecha disponible",
       "alternatives": "Fechas alternativas disponibles",
@@ -5003,20 +5013,22 @@
       "step1": {
         "title": "Pasos del Plan",
         "desc": "Revisa y ajusta el nombre, fecha y modo de agendamiento de cada paso.",
-        "hint": "Edita los pasos generados desde la plantilla del servicio. Puedes agregar, eliminar o ajustar fechas.",
+        "hint": "Edita los pasos del plan. El primer paso queda asignado a la cita actual.",
         "stepNamePlaceholder": "Nombre del paso",
         "scheduledDate": "Fecha programada",
         "datePlaceholder": "Seleccionar fecha",
         "notesPlaceholder": "Notas (opcional)",
         "removeStep": "Eliminar paso",
-        "addStep": "Agregar Paso",
         "scheduleModeLabel": "Agendamiento",
         "modeCalendar": "Agregar al calendario",
-        "modeManual": "Manual (agendar después)"
+        "modeManual": "Manual (agendar después)",
+        "thisAppointment": "Esta cita",
+        "firstStepNote": "Este paso se agendará con la cita actual.",
+        "addStep": "Agregar Paso"
       },
       "step2": {
-        "title": "Verificar Disponibilidad",
-        "desc": "Verificando disponibilidad para todos los pasos programados en el calendario.",
+        "title": "Verificar y Crear",
+        "desc": "Verifica disponibilidad de las fechas. Cuando todo esté listo, crea el plan.",
         "checking": "Verificando disponibilidad...",
         "allAvailable": "Todas las fechas están disponibles.",
         "conflictsFound": "{count} fecha(s) tienen conflictos. Selecciona una alternativa.",
@@ -5026,11 +5038,6 @@
         "orPickDate": "O elige una fecha personalizada:",
         "customDatePlaceholder": "Fecha personalizada",
         "recheck": "Verificar de nuevo"
-      },
-      "step3": {
-        "title": "Confirmar y Crear",
-        "desc": "Revisa el plan final antes de crearlo. Los pasos en calendario generarán citas.",
-        "hint": "Los siguientes pasos serán creados. Los pasos con «Agregar al calendario» generarán citas en la agenda."
       }
     }
   }

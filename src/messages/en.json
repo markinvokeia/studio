@@ -558,6 +558,10 @@
       "openDoctor": "Open doctor profile",
       "openQuote": "Open quote",
       "viewPayments": "View payments"
+    },
+    "treatmentSequence": {
+      "title": "Treatment Plan",
+      "stepRef": "Plan step #{id}"
     }
   },
   "AppointmentsColumns": {
@@ -5024,7 +5028,13 @@
     "schedule": {
       "title": "Schedule appointment for this step",
       "description": "Create a calendar appointment for the step \"{name}\".",
+      "date": "Date",
+      "time": "Time",
       "duration": "Duration (minutes)",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Select a doctor",
+      "calendar": "Office / Consultorio",
+      "calendarPlaceholder": "Select a consultorio",
       "checkAvailability": "Check availability",
       "available": "Date is available",
       "alternatives": "Available alternative dates",
@@ -5048,20 +5058,22 @@
       "step1": {
         "title": "Plan Steps",
         "desc": "Review and adjust each step's name, date and scheduling mode.",
-        "hint": "Edit the steps generated from the service template. You can add, remove or reorder them.",
+        "hint": "Edit the plan steps. The first step is assigned to the current appointment.",
         "stepNamePlaceholder": "Step name",
         "scheduledDate": "Scheduled date",
         "datePlaceholder": "Pick a date",
         "notesPlaceholder": "Notes (optional)",
         "removeStep": "Remove step",
-        "addStep": "Add Step",
         "scheduleModeLabel": "Scheduling",
         "modeCalendar": "Add to calendar",
-        "modeManual": "Manual (schedule later)"
+        "modeManual": "Manual (schedule later)",
+        "thisAppointment": "This appointment",
+        "firstStepNote": "This step will be scheduled with the current appointment.",
+        "addStep": "Add Step"
       },
       "step2": {
-        "title": "Check Availability",
-        "desc": "Verifying availability for all steps scheduled in the calendar.",
+        "title": "Verify & Create",
+        "desc": "Check date availability. When everything looks good, create the plan.",
         "checking": "Checking availability...",
         "allAvailable": "All dates are available.",
         "conflictsFound": "{count} date(s) have conflicts. Please select an alternative.",
@@ -5071,11 +5083,6 @@
         "orPickDate": "Or pick a custom date:",
         "customDatePlaceholder": "Custom date",
         "recheck": "Re-check availability"
-      },
-      "step3": {
-        "title": "Confirm & Create",
-        "desc": "Review the final plan before creating it. Calendar steps will generate appointments.",
-        "hint": "The following steps will be created. Steps set to \"Add to calendar\" will generate appointment slots."
       }
     }
   }

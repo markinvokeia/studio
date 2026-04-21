@@ -74,6 +74,10 @@ interface TreatmentPlanReviewDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     pendingSequence: TreatmentSequence;
+    /** ISO date of the current appointment — displayed for the locked first step */
+    appointmentDate?: string;
+    /** ID of the appointment that triggered this plan (linked to step 1) */
+    firstAppointmentId?: string;
     /** Called once the plan is fully confirmed. Parent can close dialog. */
     onCreated?: (sequence: TreatmentSequence) => void;
 }
@@ -128,15 +132,20 @@ function AvailabilityBadge({ status }: { status: AvailabilityStatus }) {
 }
 
 // ─── Step 1: Edit steps ───────────────────────────────────────────────────────
+// The first step is always locked — it will be scheduled with the current appointment.
+// Subsequent steps are editable (date, notes, schedule mode).
 
 function Step1Edit({
     steps,
     serviceName,
+    appointmentDate,
     onStepsChange,
     t,
 }: {
     steps: EditableStep[];
     serviceName: string;
+    /** ISO date of the current appointment — used to lock the first step */
+    appointmentDate?: string;
     onStepsChange: (steps: EditableStep[]) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
@@ -145,6 +154,8 @@ function Step1Edit({
     }
 
     function remove(idx: number) {
+        // Never allow removing the first step
+        if (idx === 0) return;
         onStepsChange(
             steps
                 .filter((_, i) => i !== idx)
@@ -153,18 +164,16 @@ function Step1Edit({
     }
 
     function addStep() {
-        const lastDate = steps.length > 0 ? steps[steps.length - 1].scheduled_date : undefined;
-        onStepsChange([
-            ...steps,
-            {
-                id: `new_${Date.now()}`,
-                step_number: steps.length + 1,
-                step_name: '',
-                scheduled_date: lastDate,
-                status: 'pending',
-                scheduleMode: 'calendar',
-            },
-        ]);
+        const newStep: EditableStep = {
+            id: `step_new_${Date.now()}`,
+            step_number: steps.length + 1,
+            step_name: '',
+            scheduled_date: undefined,
+            status: 'pending',
+            duration_minutes: 60,
+            scheduleMode: 'calendar',
+        };
+        onStepsChange([...steps, newStep]);
     }
 
     return (
@@ -177,97 +186,127 @@ function Step1Edit({
                 {t('wizard.step1.hint')}
             </p>
             <div className="space-y-0">
-                {steps.map((step, idx) => (
-                    <div key={step.id} className="flex gap-3">
-                        {/* Timeline column */}
-                        <div className="flex flex-col items-center shrink-0 w-8 pt-3">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold">
-                                {step.step_number}
-                            </div>
-                            {idx < steps.length - 1 && (
-                                <div className="flex-1 w-px bg-border mt-1.5 mb-1.5 min-h-[1.5rem]" />
-                            )}
-                        </div>
-
-                        {/* Fields */}
-                        <div className="flex-1 pb-5 space-y-2.5">
-                            {/* Name + remove */}
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    placeholder={t('wizard.step1.stepNamePlaceholder')}
-                                    value={step.step_name}
-                                    onChange={e => update(idx, { step_name: e.target.value })}
-                                    className="h-9 text-sm flex-1"
-                                />
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                                    onClick={() => remove(idx)}
-                                    title={t('wizard.step1.removeStep')}
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                {steps.map((step, idx) => {
+                    const isFirst = idx === 0;
+                    return (
+                        <div key={step.id} className="flex gap-3">
+                            {/* Timeline column */}
+                            <div className="flex flex-col items-center shrink-0 w-8 pt-3">
+                                <div className={cn(
+                                    'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold',
+                                    isFirst
+                                        ? 'bg-primary border border-primary text-primary-foreground'
+                                        : 'bg-primary/10 border border-primary/20 text-primary'
+                                )}>
+                                    {step.step_number}
+                                </div>
+                                {idx < steps.length - 1 && (
+                                    <div className="flex-1 w-px bg-border mt-1.5 mb-1.5 min-h-[1.5rem]" />
+                                )}
                             </div>
 
-                            {/* Date */}
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-1 block">{t('wizard.step1.scheduledDate')}</Label>
-                                <DatePickerInput
-                                    value={step.scheduled_date}
-                                    onChange={v => update(idx, { scheduled_date: v })}
-                                    placeholder={t('wizard.step1.datePlaceholder')}
-                                />
-                            </div>
-
-                            {/* Notes */}
-                            <Input
-                                placeholder={t('wizard.step1.notesPlaceholder')}
-                                value={step.notes ?? ''}
-                                onChange={e => update(idx, { notes: e.target.value || undefined })}
-                                className="h-8 text-xs text-muted-foreground"
-                            />
-
-                            {/* Schedule mode */}
-                            <div>
-                                <Label className="text-xs text-muted-foreground mb-1.5 block">{t('wizard.step1.scheduleModeLabel')}</Label>
-                                <RadioGroup
-                                    value={step.scheduleMode}
-                                    onValueChange={(v) => update(idx, { scheduleMode: v as ScheduleMode })}
-                                    className="flex gap-4"
-                                >
-                                    <div className="flex items-center gap-1.5">
-                                        <RadioGroupItem value="calendar" id={`cal-${step.id}`} />
-                                        <Label htmlFor={`cal-${step.id}`} className="text-xs font-normal flex items-center gap-1 cursor-pointer">
-                                            <CalendarCheck className="h-3.5 w-3.5 text-primary" />
-                                            {t('wizard.step1.modeCalendar')}
-                                        </Label>
+                            {/* Fields */}
+                            <div className={cn('flex-1 pb-5 space-y-2.5', isFirst && 'pb-4')}>
+                                {isFirst ? (
+                                    /* First step — locked to current appointment */
+                                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-sm font-medium flex-1">{step.step_name}</p>
+                                            <Badge variant="default" className="text-[10px] gap-1 shrink-0">
+                                                <CalendarCheck className="h-3 w-3" />
+                                                {t('wizard.step1.thisAppointment')}
+                                            </Badge>
+                                        </div>
+                                        {appointmentDate && (
+                                            <p className="text-xs text-muted-foreground">{appointmentDate}</p>
+                                        )}
+                                        <p className="text-[10px] text-primary/70">{t('wizard.step1.firstStepNote')}</p>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <RadioGroupItem value="manual" id={`man-${step.id}`} />
-                                        <Label htmlFor={`man-${step.id}`} className="text-xs font-normal flex items-center gap-1 cursor-pointer">
-                                            <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
-                                            {t('wizard.step1.modeManual')}
-                                        </Label>
-                                    </div>
-                                </RadioGroup>
+                                ) : (
+                                    <>
+                                        {/* Name + remove */}
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                placeholder={t('wizard.step1.stepNamePlaceholder')}
+                                                value={step.step_name}
+                                                onChange={e => update(idx, { step_name: e.target.value })}
+                                                className="h-9 text-sm flex-1"
+                                            />
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                                                onClick={() => remove(idx)}
+                                                title={t('wizard.step1.removeStep')}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
+
+                                        {/* Date */}
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">{t('wizard.step1.scheduledDate')}</Label>
+                                            <DatePickerInput
+                                                value={step.scheduled_date}
+                                                onChange={v => update(idx, { scheduled_date: v })}
+                                                placeholder={t('wizard.step1.datePlaceholder')}
+                                            />
+                                        </div>
+
+                                        {/* Notes */}
+                                        <Input
+                                            placeholder={t('wizard.step1.notesPlaceholder')}
+                                            value={step.notes ?? ''}
+                                            onChange={e => update(idx, { notes: e.target.value || undefined })}
+                                            className="h-8 text-xs text-muted-foreground"
+                                        />
+
+                                        {/* Schedule mode */}
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1.5 block">{t('wizard.step1.scheduleModeLabel')}</Label>
+                                            <RadioGroup
+                                                value={step.scheduleMode}
+                                                onValueChange={(v) => update(idx, { scheduleMode: v as ScheduleMode })}
+                                                className="flex gap-4"
+                                            >
+                                                <div className="flex items-center gap-1.5">
+                                                    <RadioGroupItem value="calendar" id={`cal-${step.id}`} />
+                                                    <Label htmlFor={`cal-${step.id}`} className="text-xs font-normal flex items-center gap-1 cursor-pointer">
+                                                        <CalendarCheck className="h-3.5 w-3.5 text-primary" />
+                                                        {t('wizard.step1.modeCalendar')}
+                                                    </Label>
+                                                </div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <RadioGroupItem value="manual" id={`man-${step.id}`} />
+                                                    <Label htmlFor={`man-${step.id}`} className="text-xs font-normal flex items-center gap-1 cursor-pointer">
+                                                        <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        {t('wizard.step1.modeManual')}
+                                                    </Label>
+                                                </div>
+                                            </RadioGroup>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full gap-1.5 text-xs mt-1"
-                onClick={addStep}
-            >
-                <PlusCircle className="h-3.5 w-3.5" />
-                {t('wizard.step1.addStep')}
-            </Button>
+            {/* Add Step button */}
+            <div className="pt-2 pl-11">
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={addStep}
+                >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    {t('wizard.step1.addStep')}
+                </Button>
+            </div>
         </div>
     );
 }
@@ -425,8 +464,8 @@ function Step2Availability({
                         </div>
                     )}
 
-                    {/* Re-check button */}
-                    {conflicts.length > 0 && (
+                    {/* Re-check button — always available after first check */}
+                    {availability.length > 0 && (
                         <Button
                             type="button"
                             variant="ghost"
@@ -444,73 +483,16 @@ function Step2Availability({
     );
 }
 
-// ─── Step 3: Confirm summary ──────────────────────────────────────────────────
-
-function Step3Confirm({
-    steps,
-    availability,
-    serviceName,
-    t,
-}: {
-    steps: EditableStep[];
-    availability: StepAvailability[];
-    serviceName: string;
-    t: ReturnType<typeof useTranslations>;
-}) {
-    return (
-        <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-1">
-                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-sm font-semibold">{serviceName}</p>
-            </div>
-            <p className="text-xs text-muted-foreground">{t('wizard.step3.hint')}</p>
-
-            <div className="border rounded-lg divide-y divide-border overflow-hidden">
-                {steps.map(step => {
-                    const av = availability.find(a => a.step_id === step.id);
-                    const finalDate = step.scheduleMode === 'calendar'
-                        ? (av?.resolved_date ?? step.scheduled_date)
-                        : step.scheduled_date;
-
-                    return (
-                        <div key={step.id} className="flex items-start gap-3 p-3">
-                            {/* Step number */}
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold shrink-0 mt-0.5">
-                                {step.step_number}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium leading-tight">{step.step_name}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{finalDate ?? '—'}</p>
-                                {step.notes && (
-                                    <p className="text-xs text-muted-foreground italic mt-0.5">{step.notes}</p>
-                                )}
-                            </div>
-                            <Badge
-                                variant={step.scheduleMode === 'calendar' ? 'default' : 'outline'}
-                                className="text-xs shrink-0"
-                            >
-                                {step.scheduleMode === 'calendar' ? (
-                                    <><CalendarCheck className="h-3 w-3 mr-1" />{t('wizard.step1.modeCalendar')}</>
-                                ) : (
-                                    <><CalendarClock className="h-3 w-3 mr-1" />{t('wizard.step1.modeManual')}</>
-                                )}
-                            </Badge>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
 // ─── Main dialog ──────────────────────────────────────────────────────────────
 
-const WIZARD_STEPS = 3;
+const WIZARD_STEPS = 2;
 
 export function TreatmentPlanReviewDialog({
     open,
     onOpenChange,
     pendingSequence,
+    appointmentDate,
+    firstAppointmentId,
     onCreated,
 }: TreatmentPlanReviewDialogProps) {
     const t = useTranslations('TreatmentPlans');
@@ -593,13 +575,15 @@ export function TreatmentPlanReviewDialog({
     async function createPlan() {
         setIsCreating(true);
         try {
-            const stepsPayload = steps.map(s => {
+            // Sort by current step_number then renumber 1-based (no gaps)
+            const sortedSteps = [...steps].sort((a, b) => a.step_number - b.step_number);
+            const stepsPayload = sortedSteps.map((s, idx) => {
                 const av = availability.find(a => a.step_id === s.id);
                 const finalDate = s.scheduleMode === 'calendar'
                     ? (av?.resolved_date ?? s.scheduled_date)
                     : s.scheduled_date;
                 return {
-                    step_number: s.step_number,
+                    step_number: idx + 1,
                     step_name: s.step_name,
                     scheduled_date: finalDate,
                     duration_minutes: s.duration_minutes ?? 60,
@@ -619,6 +603,7 @@ export function TreatmentPlanReviewDialog({
                 google_calendar_id: pendingSequence.google_calendar_id ?? null,
                 started_by: pendingSequence.started_by ?? pendingSequence.doctor_id ?? '',
                 notes: pendingSequence.notes ?? null,
+                first_appointment_id: firstAppointmentId ?? null,
                 steps: stepsPayload,
             };
 
@@ -677,12 +662,11 @@ export function TreatmentPlanReviewDialog({
     // ── Navigation ───────────────────────────────────────────────────────────
     async function handleNext() {
         if (wizardStep === 0) {
-            // Move to availability step and auto-check
+            // Move to availability + create step, auto-check immediately
             setWizardStep(1);
             await checkAvailability();
-        } else if (wizardStep === 1) {
-            setWizardStep(2);
         } else {
+            // Step 1 is the final step — create the plan
             await createPlan();
         }
     }
@@ -694,22 +678,19 @@ export function TreatmentPlanReviewDialog({
     // ── Can proceed? ─────────────────────────────────────────────────────────
     const canProceed = React.useMemo(() => {
         if (wizardStep === 0) {
+            // All steps except the first must have a name; first step is always valid
             return steps.length > 0 && steps.every(s => s.step_name.trim());
         }
-        if (wizardStep === 1) {
-            if (isChecking) return false;
-            // All calendar-step conflicts must have a resolved_date
-            const conflicts = availability.filter(a => a.status === 'conflict');
-            return conflicts.every(a => a.resolved_date);
-        }
-        return true;
+        // Step 1 (availability + create): allow creating even with conflicts (user can proceed anyway)
+        if (isChecking) return false;
+        const conflicts = availability.filter(a => a.status === 'conflict');
+        return conflicts.every(a => a.resolved_date);
     }, [wizardStep, steps, availability, isChecking]);
 
     // ── Step titles / descriptions ───────────────────────────────────────────
     const stepMeta = [
         { title: t('wizard.step1.title'), desc: t('wizard.step1.desc') },
         { title: t('wizard.step2.title'), desc: t('wizard.step2.desc') },
-        { title: t('wizard.step3.title'), desc: t('wizard.step3.desc') },
     ];
 
     return (
@@ -735,6 +716,7 @@ export function TreatmentPlanReviewDialog({
                                 <Step1Edit
                                     steps={steps}
                                     serviceName={pendingSequence.service_name}
+                                    appointmentDate={appointmentDate}
                                     onStepsChange={setSteps}
                                     t={t}
                                 />
@@ -746,14 +728,6 @@ export function TreatmentPlanReviewDialog({
                                     isChecking={isChecking}
                                     onAvailabilityChange={setAvailability}
                                     onRecheck={checkAvailability}
-                                    t={t}
-                                />
-                            )}
-                            {wizardStep === 2 && (
-                                <Step3Confirm
-                                    steps={steps}
-                                    availability={availability}
-                                    serviceName={pendingSequence.service_name}
                                     t={t}
                                 />
                             )}

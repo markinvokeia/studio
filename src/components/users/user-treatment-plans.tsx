@@ -132,11 +132,67 @@ function stepStatusClass(status: TreatmentSequenceStepStatus): string {
 
 const STEP_STATUS_OPTIONS: TreatmentSequenceStepStatus[] = ['pending', 'scheduled', 'completed', 'missed', 'cancelled'];
 
+function StepStatusBadge({
+    status,
+    t,
+}: {
+    status: TreatmentSequenceStepStatus;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const label = t(`stepStatus.${status}`);
+    switch (status) {
+        case 'completed':
+            return (
+                <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <CheckCircle2 className="h-2.5 w-2.5" />
+                    {label}
+                </span>
+            );
+        case 'scheduled':
+            return (
+                <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                    <CalendarCheck className="h-2.5 w-2.5" />
+                    {label}
+                </span>
+            );
+        case 'missed':
+            return (
+                <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 border border-red-200 dark:border-red-800">
+                    <XCircle className="h-2.5 w-2.5" />
+                    {label}
+                </span>
+            );
+        case 'cancelled':
+            return (
+                <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground border border-border">
+                    <XCircle className="h-2.5 w-2.5" />
+                    {label}
+                </span>
+            );
+        default: // pending
+            return (
+                <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-muted text-muted-foreground border border-border">
+                    <Circle className="h-2.5 w-2.5" />
+                    {label}
+                </span>
+            );
+    }
+}
+
 // ─── Milestone step card (horizontal scroll) ──────────────────────────────────
 
-function MilestoneCard({ step, isCurrent }: { step: TreatmentSequenceStep; isCurrent: boolean }) {
+function MilestoneCard({ step, isCurrent, t }: { step: TreatmentSequenceStep; isCurrent: boolean; t: ReturnType<typeof useTranslations> }) {
     const isCompleted = step.status === 'completed';
     const isMissed    = step.status === 'missed';
+    const isCancelled = step.status === 'cancelled';
+
+    const statusColors: Record<TreatmentSequenceStepStatus, string> = {
+        completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300',
+        scheduled: 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300',
+        missed:    'bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300',
+        cancelled: 'bg-muted text-muted-foreground',
+        pending:   'bg-muted text-muted-foreground',
+    };
 
     return (
         <div className={cn(
@@ -144,7 +200,8 @@ function MilestoneCard({ step, isCurrent }: { step: TreatmentSequenceStep; isCur
             isCompleted && 'bg-emerald-950/60 border-emerald-700/60 dark:bg-emerald-950/60 dark:border-emerald-700/60',
             isCurrent && !isCompleted && 'bg-primary/10 border-primary dark:bg-primary/10',
             isMissed && 'bg-destructive/10 border-destructive/50',
-            !isCompleted && !isCurrent && !isMissed && 'bg-muted/40 border-border',
+            isCancelled && 'opacity-50',
+            !isCompleted && !isCurrent && !isMissed && !isCancelled && 'bg-muted/40 border-border',
         )}>
             {/* Number bubble + status icon */}
             <div className="flex items-center gap-1.5">
@@ -175,6 +232,10 @@ function MilestoneCard({ step, isCurrent }: { step: TreatmentSequenceStep; isCur
                     {formatShortDate(step.scheduled_date)}
                 </p>
             )}
+            {/* Status pill */}
+            <span className={cn('inline-block rounded-full px-1.5 py-0.5 text-[9px] font-semibold self-start', statusColors[step.status])}>
+                {t(`stepStatus.${step.status}`)}
+            </span>
         </div>
     );
 }
@@ -184,6 +245,8 @@ function MilestoneCard({ step, isCurrent }: { step: TreatmentSequenceStep; isCur
 interface CascadeDialogState {
     open: boolean;
     stepId: string;
+    stepPosition: number;
+    appointmentId: string | null;
     patch: Partial<TreatmentSequenceStep>;
     oldDate: string | null;
     newDate: string;
@@ -283,7 +346,8 @@ function CascadeDialog({
 
 interface DeleteDialogState {
     open: boolean;
-    stepId: string;
+    stepId: string;          // appointments.id
+    stepPosition: number;    // step_position (treatment_steps.position)
     stepName: string;
     stepNumber: number;
     hasAppointment: boolean;
@@ -387,7 +451,8 @@ function DeleteDialog({
 
 interface StatusDialogState {
     open: boolean;
-    stepId: string;
+    stepId: string;          // appointments.id
+    stepPosition: number;    // step_position
     stepName: string;
     newStatus: TreatmentSequenceStepStatus;
     hasAppointment: boolean;
@@ -470,11 +535,14 @@ function StatusDialog({
 interface ScheduleDialogState {
     open: boolean;
     stepId: string;
+    stepPosition: number;
     stepName: string;
     sequenceId: string;
+    defaultDate: string;
     defaultDoctorId: string;
+    defaultDoctorName: string;
     patientId: string;
-    googleCalendarId: string | null;
+    defaultGoogleCalendarId: string | null;
 }
 
 function ScheduleStepDialog({
@@ -484,23 +552,72 @@ function ScheduleStepDialog({
     t,
 }: {
     state: ScheduleDialogState;
-    onConfirm: (date: string, duration: number, notify: boolean) => Promise<void>;
+    onConfirm: (date: string, time: string, duration: number, doctorId: string, doctorName: string, googleCalendarId: string | null, notify: boolean) => Promise<void>;
     onClose: () => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [date, setDate] = React.useState('');
+    const [time, setTime] = React.useState('09:00');
     const [duration, setDuration] = React.useState(60);
+    const [doctorId, setDoctorId] = React.useState(state.defaultDoctorId);
+    const [doctorName, setDoctorName] = React.useState(state.defaultDoctorName);
+    const [googleCalendarId, setGoogleCalendarId] = React.useState<string | null>(state.defaultGoogleCalendarId);
     const [notify, setNotify] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
     const [availability, setAvailability] = React.useState<AvailabilityResult | null>(null);
     const [isChecking, setIsChecking] = React.useState(false);
+    const [doctors, setDoctors] = React.useState<{ id: string; name: string }[]>([]);
+    const [calendars, setCalendars] = React.useState<{ id: string; name: string; google_calendar_id: string | null }[]>([]);
+    const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(true);
+    const [isLoadingCalendars, setIsLoadingCalendars] = React.useState(true);
+
+    // Load doctors + calendars when dialog opens
+    React.useEffect(() => {
+        if (!state.open) return;
+        setDoctorId(state.defaultDoctorId);
+        setDoctorName(state.defaultDoctorName);
+        setGoogleCalendarId(state.defaultGoogleCalendarId);
+        setDate('');
+        setTime('09:00');
+        setAvailability(null);
+
+        import('@/services/api').then(({ default: api }) =>
+            import('@/constants/routes').then(({ API_ROUTES }) => {
+                // Doctors
+                setIsLoadingDoctors(true);
+                api.get(API_ROUTES.USERS_DOCTORS)
+                    .then((data: any) => {
+                        setDoctors((Array.isArray(data) ? data : []).map((d: any) => ({
+                            id: String(d.id),
+                            name: d.name as string,
+                        })));
+                    })
+                    .catch(() => setDoctors([]))
+                    .finally(() => setIsLoadingDoctors(false));
+
+                // Calendars
+                setIsLoadingCalendars(true);
+                api.get(API_ROUTES.CALENDARS)
+                    .then((data: any) => {
+                        const list = (Array.isArray(data) ? data : (data?.calendars ?? data?.data ?? []));
+                        setCalendars(list.map((c: any) => ({
+                            id: String(c.id),
+                            name: c.name as string,
+                            google_calendar_id: c.google_calendar_id ?? null,
+                        })));
+                    })
+                    .catch(() => setCalendars([]))
+                    .finally(() => setIsLoadingCalendars(false));
+            })
+        );
+    }, [state.open, state.defaultDoctorId, state.defaultDoctorName, state.defaultGoogleCalendarId]);
 
     async function checkAvailability() {
-        if (!date || !state.defaultDoctorId) return;
+        if (!date || !doctorId) return;
         setIsChecking(true);
         try {
             const res = await validateStepsAvailability({
-                doctor_id: state.defaultDoctorId,
+                doctor_id: doctorId,
                 steps: [{ step_id: state.stepId, step_name: state.stepName, scheduled_date: date, duration_minutes: duration, schedule_mode: 'calendar' }],
             });
             setAvailability(res.results[0] ?? null);
@@ -511,40 +628,118 @@ function ScheduleStepDialog({
 
     if (!state.open) return null;
 
+    const canSave = !!(date && time && doctorId);
+
     return (
         <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>{t('schedule.title')}</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="flex items-center gap-2">
+                        <CalendarPlus className="h-4 w-4 text-primary shrink-0" />
+                        {t('schedule.title')}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
                         {t('schedule.description', { name: state.stepName })}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4">
-                    <div>
-                        <Label className="text-xs text-muted-foreground">{t('edit.scheduledDate')}</Label>
-                        <DatePickerInput value={date} onChange={(d) => { setDate(d); setAvailability(null); }} className="mt-0.5" />
+                <div className="space-y-4 px-6 py-5 overflow-y-auto">
+                    {/* Doctor selector */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('schedule.doctor')}</Label>
+                        {isLoadingDoctors ? (
+                            <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            </div>
+                        ) : (
+                            <Select
+                                value={doctorId}
+                                onValueChange={(val) => {
+                                    setDoctorId(val);
+                                    setDoctorName(doctors.find(d => d.id === val)?.name ?? '');
+                                    setAvailability(null);
+                                }}
+                            >
+                                <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue placeholder={t('schedule.doctorPlaceholder')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {doctors.map(d => (
+                                        <SelectItem key={d.id} value={d.id} className="text-sm">
+                                            {d.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
-                    <div>
-                        <Label className="text-xs text-muted-foreground">{t('schedule.duration')}</Label>
+
+                    {/* Calendar selector */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('schedule.calendar')}</Label>
+                        {isLoadingCalendars ? (
+                            <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            </div>
+                        ) : (
+                            <Select
+                                value={googleCalendarId ?? ''}
+                                onValueChange={(val) => setGoogleCalendarId(val || null)}
+                            >
+                                <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue placeholder={t('schedule.calendarPlaceholder')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {calendars.map(c => (
+                                        <SelectItem key={c.id} value={c.google_calendar_id ?? c.id} className="text-sm">
+                                            {c.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+
+                    {/* Date + Time row */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('schedule.date')}</Label>
+                            <DatePickerInput
+                                value={date}
+                                onChange={(d) => { setDate(d); setAvailability(null); }}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('schedule.time')}</Label>
+                            <Input
+                                type="time"
+                                value={time}
+                                onChange={e => { setTime(e.target.value); setAvailability(null); }}
+                                className="h-9 text-sm"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Duration */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('schedule.duration')}</Label>
                         <Input
                             type="number"
                             min={15}
                             value={duration}
                             onChange={e => setDuration(parseInt(e.target.value, 10) || 60)}
-                            className="h-8 text-sm mt-0.5"
+                            className="h-9 text-sm"
                         />
                     </div>
 
                     {/* Availability check */}
-                    {date && state.defaultDoctorId && (
+                    {date && doctorId && (
                         <div className="space-y-2">
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-7 text-xs gap-1.5 w-full"
+                                className="h-8 text-xs gap-1.5 w-full"
                                 onClick={checkAvailability}
                                 disabled={isChecking}
                             >
@@ -587,6 +782,7 @@ function ScheduleStepDialog({
                         </div>
                     )}
 
+                    {/* Notify */}
                     <div className="flex items-center gap-2">
                         <Checkbox id="notify" checked={notify} onCheckedChange={(v) => setNotify(!!v)} />
                         <Label htmlFor="notify" className="text-xs cursor-pointer">{t('schedule.notifyPatient')}</Label>
@@ -600,10 +796,10 @@ function ScheduleStepDialog({
                     <Button
                         size="sm"
                         className="h-8 text-xs gap-1.5"
-                        disabled={!date || isSaving}
+                        disabled={!canSave || isSaving}
                         onClick={async () => {
                             setIsSaving(true);
-                            try { await onConfirm(date, duration, notify); }
+                            try { await onConfirm(date, time, duration, doctorId, doctorName, googleCalendarId, notify); }
                             finally { setIsSaving(false); }
                         }}
                     >
@@ -620,11 +816,13 @@ function ScheduleStepDialog({
 
 function StepTimeline({
     sequence,
+    patientId,
     onStepsChange,
     onSequenceStatusChange,
     t,
 }: {
     sequence: TreatmentSequence;
+    patientId: string;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
     onSequenceStatusChange?: (id: string, status: TreatmentSequenceStatus) => void;
     t: ReturnType<typeof useTranslations>;
@@ -635,20 +833,21 @@ function StepTimeline({
 
     // Dialog state
     const [cascadeDialog, setCascadeDialog] = React.useState<CascadeDialogState>({
-        open: false, stepId: '', patch: {}, oldDate: null, newDate: '', daysDelta: 0,
+        open: false, stepId: '', stepPosition: 0, appointmentId: null,
+        patch: {}, oldDate: null, newDate: '', daysDelta: 0,
         subsequentCount: 0, availabilityResults: [], checking: false,
     });
     const [deleteDialog, setDeleteDialog] = React.useState<DeleteDialogState>({
-        open: false, stepId: '', stepName: '', stepNumber: 0,
+        open: false, stepId: '', stepPosition: 0, stepName: '', stepNumber: 0,
         hasAppointment: false, appointmentDate: null, subsequentCount: 0,
     });
     const [statusDialog, setStatusDialog] = React.useState<StatusDialogState>({
-        open: false, stepId: '', stepName: '', newStatus: 'pending',
+        open: false, stepId: '', stepPosition: 0, stepName: '', newStatus: 'pending',
         hasAppointment: false, appointmentDate: null,
     });
     const [scheduleDialog, setScheduleDialog] = React.useState<ScheduleDialogState>({
-        open: false, stepId: '', stepName: '', sequenceId: '',
-        defaultDoctorId: '', patientId: '', googleCalendarId: null,
+        open: false, stepId: '', stepPosition: 0, stepName: '', sequenceId: '',
+        defaultDoctorId: '', defaultDoctorName: '', patientId: '', defaultGoogleCalendarId: null,
     });
 
     // ── Save step (edit) ──────────────────────────────────────────────────────
@@ -671,6 +870,8 @@ function StepTimeline({
                 setCascadeDialog({
                     open: true,
                     stepId,
+                    stepPosition: step.step_number,
+                    appointmentId: step.appointment_id ?? null,
                     patch,
                     oldDate: step.scheduled_date ?? null,
                     newDate: patch.scheduled_date,
@@ -698,12 +899,12 @@ function StepTimeline({
         setIsBusy(true);
         try {
             const res = await upsertTreatmentStep({
-                sequence_id: sequence.id,
-                step_id: stepId,
-                step_number: step.step_number,
-                step_name: (patch.step_name ?? step.step_name),
+                seq_step_id: Number(step.id),
+                sequence_id: Number(sequence.id),
+                step_position: step.step_number,
+                step_name: patch.step_name ?? step.step_name,
                 scheduled_date: patch.scheduled_date ?? step.scheduled_date,
-                duration_minutes: step.duration_minutes,
+                duration_minutes: patch.duration_minutes ?? step.duration_minutes ?? 60,
                 notes: patch.notes ?? step.notes,
                 cascade_mode: cascadeMode,
                 cascade_days: cascadeDays,
@@ -726,13 +927,12 @@ function StepTimeline({
         setIsBusy(true);
         try {
             const res = await upsertTreatmentStep({
-                sequence_id: sequence.id,
-                step_number: newStep.step_number,
+                sequence_id: Number(sequence.id),
+                step_position: newStep.step_number,
                 step_name: newStep.step_name,
                 scheduled_date: newStep.scheduled_date,
                 duration_minutes: newStep.duration_minutes ?? 60,
                 notes: newStep.notes,
-                insert_after: insertAfter,
                 cascade_mode: 'none',
                 cascade_days: 0,
             });
@@ -754,6 +954,7 @@ function StepTimeline({
         setDeleteDialog({
             open: true,
             stepId: step.id,
+            stepPosition: step.step_number,
             stepName: step.step_name,
             stepNumber: step.step_number,
             hasAppointment: !!step.appointment_id,
@@ -767,11 +968,11 @@ function StepTimeline({
         setIsBusy(true);
         try {
             const res = await deleteTreatmentStep({
-                sequence_id: sequence.id,
-                step_id: deleteDialog.stepId,
+                seq_step_id: Number(deleteDialog.stepId),
+                sequence_id: Number(sequence.id),
+                cancel_appointment: cancelAppt,
                 cascade_mode: doCloseGap ? 'shift_all' : 'none',
                 cascade_days: doCloseGap ? -gapDays : 0,
-                cancel_appointment: cancelAppt,
             });
             if (res.success && res.affected_steps) {
                 onStepsChange(sequence.id, res.affected_steps);
@@ -793,12 +994,13 @@ function StepTimeline({
     function openStatusDialog(step: TreatmentSequenceStep, newStatus: TreatmentSequenceStepStatus) {
         const needsConfirm = step.appointment_id && ['completed', 'cancelled', 'missed'].includes(newStatus);
         if (!needsConfirm) {
-            executeStatusChange(step.id, newStatus, false, false);
+            executeStatusChange(step.id, step.step_number, newStatus, false, false);
             return;
         }
         setStatusDialog({
             open: true,
             stepId: step.id,
+            stepPosition: step.step_number,
             stepName: step.step_name,
             newStatus,
             hasAppointment: !!step.appointment_id,
@@ -806,20 +1008,34 @@ function StepTimeline({
         });
     }
 
+    // Map UI step status to DB milestone_status
+    function toMilestoneStatus(status: TreatmentSequenceStepStatus): 'waiting' | 'done' | 'alert' | 'pending' {
+        if (status === 'completed') return 'done';
+        if (status === 'scheduled') return 'waiting';
+        if (status === 'missed') return 'alert';
+        return 'pending';
+    }
+
     async function executeStatusChange(
         stepId: string,
+        stepPosition: number,
         status: TreatmentSequenceStepStatus,
         syncAppt: boolean,
         notify: boolean
     ) {
         setStatusDialog(prev => ({ ...prev, open: false }));
         setIsBusy(true);
+        const milestoneStatus = toMilestoneStatus(status);
+        const appointmentStatus = syncAppt
+            ? status === 'completed' ? 'completed' as const
+            : status === 'cancelled' ? 'cancelled' as const
+            : undefined
+            : undefined;
         try {
             const res = await changeStepStatus({
-                sequence_id: sequence.id,
-                step_id: stepId,
-                status,
-                sync_appointment: syncAppt,
+                seq_step_id: Number(stepId),
+                milestone_status: milestoneStatus,
+                appointment_status: appointmentStatus,
                 notify_patient: notify,
             });
             if (res.success && res.step) {
@@ -846,23 +1062,26 @@ function StepTimeline({
         setScheduleDialog({
             open: true,
             stepId: step.id,
+            stepPosition: step.step_number,
             stepName: step.step_name,
             sequenceId: sequence.id,
             defaultDoctorId: sequence.doctor_id ?? '',
-            patientId: sequence.patient_id,
-            googleCalendarId: sequence.google_calendar_id ?? null,
+            defaultDoctorName: sequence.doctor_name ?? '',
+            patientId: patientId,
+            defaultGoogleCalendarId: sequence.google_calendar_id ?? null,
         });
     }
 
-    async function executeSchedule(date: string, duration: number, notify: boolean) {
+    async function executeSchedule(date: string, time: string, duration: number, doctorId: string, doctorName: string, googleCalendarId: string | null, _notify: boolean) {
         const res = await scheduleStep({
-            sequence_id: sequence.id,
-            step_id: scheduleDialog.stepId,
-            patient_id: sequence.patient_id,
-            doctor_id: scheduleDialog.defaultDoctorId,
+            seq_step_id: Number(scheduleDialog.stepId),
+            patient_id: scheduleDialog.patientId,
+            doctor_id: doctorId,
+            doctor_name: doctorName,
             scheduled_date: date,
+            scheduled_time: time,
             duration_minutes: duration,
-            google_calendar_id: scheduleDialog.googleCalendarId,
+            google_calendar_id: googleCalendarId,
         });
         setScheduleDialog(prev => ({ ...prev, open: false }));
         if (res.success && res.step) {
@@ -902,10 +1121,11 @@ function StepTimeline({
                         ) : (
                             <div className="flex items-start justify-between gap-2 group">
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-1.5">
-                                        <p className={cn('text-sm font-medium leading-tight', stepStatusClass(step.status))}>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <p className="text-sm font-medium leading-tight text-foreground">
                                             {step.step_number}. {step.step_name}
                                         </p>
+                                        <StepStatusBadge status={step.status} t={t} />
                                         {step.appointment_id && (
                                             <span title={t('edit.hasAppointment')}>
                                                 <CalendarCheck className="h-3 w-3 text-blue-500 shrink-0" />
@@ -1027,13 +1247,15 @@ function StepTimeline({
             />
             <StatusDialog
                 state={statusDialog}
-                onConfirm={(syncAppt, notify) => executeStatusChange(statusDialog.stepId, statusDialog.newStatus, syncAppt, notify)}
+                onConfirm={(syncAppt, notify) => executeStatusChange(statusDialog.stepId, statusDialog.stepPosition, statusDialog.newStatus, syncAppt, notify)}
                 onClose={() => setStatusDialog(prev => ({ ...prev, open: false }))}
                 t={t}
             />
             <ScheduleStepDialog
                 state={scheduleDialog}
-                onConfirm={executeSchedule}
+                onConfirm={(date, time, duration, doctorId, doctorName, googleCalendarId, notify) =>
+                    executeSchedule(date, time, duration, doctorId, doctorName, googleCalendarId, notify)
+                }
                 onClose={() => setScheduleDialog(prev => ({ ...prev, open: false }))}
                 t={t}
             />
@@ -1219,11 +1441,13 @@ function AddStepForm({
 
 function ActivePlanCard({
     sequence,
+    patientId,
     onStepsChange,
     onSequenceStatusChange,
     t,
 }: {
     sequence: TreatmentSequence;
+    patientId: string;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
     onSequenceStatusChange?: (id: string, status: TreatmentSequenceStatus) => void;
     t: ReturnType<typeof useTranslations>;
@@ -1236,13 +1460,13 @@ function ActivePlanCard({
     const currentStepIdx = sequence.steps.findIndex(s => s.status !== 'completed' && s.status !== 'cancelled');
     const hasMissed = sequence.steps.some(s => s.status === 'missed');
     const missedStep = sequence.steps.find(s => s.status === 'missed');
-    const missedDaysAgo = React.useMemo(() => {
+    const missedDaysAgo = (() => {
         if (!missedStep?.scheduled_date) return null;
         try {
-            const diff = Math.floor((Date.now() - parseISO(missedStep.scheduled_date).getTime()) / 86400000);
+            const diff = Math.floor((new Date().getTime() - parseISO(missedStep.scheduled_date).getTime()) / 86400000);
             return diff > 0 ? diff : null;
         } catch { return null; }
-    }, [missedStep]);
+    })();
 
     const seqIdLabel = sequence.id ? `SEQ-${String(sequence.id).padStart(4, '0')}` : '';
 
@@ -1281,7 +1505,7 @@ function ActivePlanCard({
                 <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                     <div className="flex gap-2 pb-1">
                         {sequence.steps.map((step, idx) => (
-                            <MilestoneCard key={step.id} step={step} isCurrent={idx === currentStepIdx} />
+                            <MilestoneCard key={step.id} step={step} isCurrent={idx === currentStepIdx} t={t} />
                         ))}
                     </div>
                 </div>
@@ -1319,6 +1543,7 @@ function ActivePlanCard({
                     <div className="px-4 pb-3 pt-1 border-t border-border">
                         <StepTimeline
                             sequence={sequence}
+                            patientId={patientId}
                             onStepsChange={onStepsChange}
                             onSequenceStatusChange={onSequenceStatusChange}
                             t={t}
@@ -1334,10 +1559,12 @@ function ActivePlanCard({
 
 function CompactSequenceCard({
     sequence,
+    patientId,
     onStepsChange,
     t,
 }: {
     sequence: TreatmentSequence;
+    patientId: string;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
@@ -1368,7 +1595,7 @@ function CompactSequenceCard({
             <Collapsible open={expanded}>
                 <CollapsibleContent>
                     <div className="px-3 pb-3 pt-2 border-t border-border">
-                        <StepTimeline sequence={sequence} onStepsChange={onStepsChange} t={t} />
+                        <StepTimeline sequence={sequence} patientId={patientId} onStepsChange={onStepsChange} t={t} />
                     </div>
                 </CollapsibleContent>
             </Collapsible>
@@ -1437,6 +1664,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
                 <ActivePlanCard
                     key={seq.id}
                     sequence={seq}
+                    patientId={userId}
                     onStepsChange={handleStepsChange}
                     onSequenceStatusChange={handleSequenceStatusChange}
                     t={t}
@@ -1462,7 +1690,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
                         <CollapsibleContent>
                             <div className="space-y-2 pt-1">
                                 {historical.map(seq => (
-                                    <CompactSequenceCard key={seq.id} sequence={seq} onStepsChange={handleStepsChange} t={t} />
+                                    <CompactSequenceCard key={seq.id} sequence={seq} patientId={userId} onStepsChange={handleStepsChange} t={t} />
                                 ))}
                             </div>
                         </CollapsibleContent>
