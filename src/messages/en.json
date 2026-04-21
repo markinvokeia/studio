@@ -4605,6 +4605,32 @@
       "passwordsMismatch": "Passwords do not match."
     }
   },
+  "SetFirstPasswordPage": {
+    "title": "Set Your First Password",
+    "description": "Create your password to activate your account.",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm New Password",
+    "submitButton": "Set Password",
+    "errors": {
+      "title": "Error",
+      "tokenMissing": "Security token is missing. Please use the link sent to your email.",
+      "generic": "Something went wrong. Please try again.",
+      "invalidPassword": "The password does not meet the minimum security requirements.",
+      "invalidToken": "The link has expired or is invalid. Please request a new one.",
+      "alreadySet": "Your first password has already been set. Please log in.",
+      "serverError": "Connection error with the server. Please try again later."
+    },
+    "success": {
+      "title": "Password Set",
+      "description": "Your password has been successfully set. You can now log in."
+    },
+    "validation": {
+      "newPasswordMin": "New password must be at least 8 characters.",
+      "newPasswordUpper": "New password must contain an uppercase letter.",
+      "newPasswordNumber": "New password must contain a number.",
+      "passwordsMismatch": "Passwords do not match."
+    }
+  },
   "cashSession": {
     "errors": {
       "userNotAuthenticated": "User not authenticated. Please log in.",

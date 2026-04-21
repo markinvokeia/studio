@@ -4560,6 +4560,32 @@
       "passwordsMismatch": "Las contraseñas no coinciden."
     }
   },
+  "SetFirstPasswordPage": {
+    "title": "Establecer primera contraseña",
+    "description": "Crea tu contraseña para activar tu cuenta.",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirmar nueva contraseña",
+    "submitButton": "Establecer contraseña",
+    "errors": {
+      "title": "Error",
+      "tokenMissing": "Falta el código de seguridad. Por favor, usa el enlace enviado a tu correo.",
+      "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+      "invalidPassword": "La contraseña no cumple con los requisitos mínimos de seguridad.",
+      "invalidToken": "El enlace ha expirado o no es válido. Por favor, solicita uno nuevo.",
+      "alreadySet": "Tu primera contraseña ya fue establecida. Por favor, inicia sesión.",
+      "serverError": "Error de conexión con el servidor. Inténtalo más tarde."
+    },
+    "success": {
+      "title": "Contraseña establecida",
+      "description": "Tu contraseña ha sido establecida con éxito. Ya puedes iniciar sesión."
+    },
+    "validation": {
+      "newPasswordMin": "La nueva contraseña debe tener al menos 8 caracteres.",
+      "newPasswordUpper": "La nueva contraseña debe contener una letra mayúscula.",
+      "newPasswordNumber": "La nueva contraseña debe contener un número.",
+      "passwordsMismatch": "Las contraseñas no coinciden."
+    }
+  },
   "cashSession": {
     "errors": {
       "userNotAuthenticated": "Usuario no autenticado. Por favor, inicie sesión.",
