@@ -22,6 +22,7 @@ interface StepValidateProps {
   onImportValid: () => void;
   onFixCsv: () => void;
   isImporting: boolean;
+  canExecute: boolean;
 }
 
 export function validateData(
@@ -94,7 +95,7 @@ export function validateData(
   return { valid, invalid, errors };
 }
 
-export function StepValidate({ result, onImportValid, onFixCsv, isImporting }: StepValidateProps) {
+export function StepValidate({ result, onImportValid, onFixCsv, isImporting, canExecute }: StepValidateProps) {
   const t = useTranslations('ImportPage.validate');
   const totalRecords = result.valid + result.invalid;
   const allValid = result.invalid === 0;
@@ -188,7 +189,7 @@ export function StepValidate({ result, onImportValid, onFixCsv, isImporting }: S
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {result.valid > 0 && (
+        {result.valid > 0 && canExecute && (
           <button
             type="button"
             onClick={onImportValid}

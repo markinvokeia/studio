@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Switch } from '@/components/ui/switch';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -27,10 +28,10 @@ import { MiscellaneousCategory, Service } from '@/lib/types';
 import api from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, PlusCircle, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 
@@ -44,6 +45,14 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   description: z.string().optional(),
   indications: z.string().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional().nullable(),
+  service_type: z.enum(['single', 'workflow']).default('single'),
+  treatment_steps: z.array(z.object({
+    position: z.number(),
+    name: z.string().min(1),
+    offset_days_from_prev: z.coerce.number().int().min(0),
+    duration_minutes: z.coerce.number().int().positive(),
+    notes: z.string().optional(),
+  })).optional(),
 });
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
@@ -152,7 +161,11 @@ export default function ServicesPage() {
 
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
+    defaultValues: { service_type: 'single', treatment_steps: [] },
   });
+
+  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'treatment_steps' });
+  const watchServiceType = form.watch('service_type');
 
   const loadServices = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -182,6 +195,8 @@ export default function ServicesPage() {
       description: '',
       indications: '',
       color: '#ffffff',
+      service_type: 'single',
+      treatment_steps: [],
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -199,6 +214,8 @@ export default function ServicesPage() {
       description: service.description,
       indications: service.indications,
       color: service.color || '#ffffff',
+      service_type: service.service_type || 'single',
+      treatment_steps: service.treatment_steps || [],
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -428,6 +445,121 @@ export default function ServicesPage() {
                     </FormItem>
                   )}
                 />
+
+                {/* service_type toggle */}
+                <FormField
+                  control={form.control}
+                  name="service_type"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-lg border p-3">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-sm">{t('serviceType.label')}</FormLabel>
+                        <p className="text-xs text-muted-foreground">{t('serviceType.description')}</p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value === 'workflow'}
+                          onCheckedChange={(v) => {
+                            field.onChange(v ? 'workflow' : 'single');
+                            if (!v) form.setValue('treatment_steps', []);
+                          }}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* treatment steps sub-form */}
+                {watchServiceType === 'workflow' && (
+                  <div className="space-y-3 rounded-lg border p-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium">{t('serviceType.stepsTitle')}</h4>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => append({ position: fields.length + 1, name: '', offset_days_from_prev: 0, duration_minutes: 30 })}
+                      >
+                        <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                        {t('serviceType.addStep')}
+                      </Button>
+                    </div>
+                    {fields.length === 0 && (
+                      <p className="text-xs text-muted-foreground text-center py-2">{t('serviceType.noSteps')}</p>
+                    )}
+                    {fields.map((field, index) => (
+                      <div key={field.id} className="border rounded-md p-3 space-y-2 relative bg-muted/20">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-muted-foreground">{t('serviceType.stepLabel')} {index + 1}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            onClick={() => remove(index)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name={`treatment_steps.${index}.name`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">{t('serviceType.stepName')}</FormLabel>
+                              <FormControl>
+                                <Input placeholder={t('serviceType.stepNamePlaceholder')} className="h-8 text-sm" {...f} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <FormField
+                            control={form.control}
+                            name={`treatment_steps.${index}.offset_days_from_prev`}
+                            render={({ field: f }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t('serviceType.offsetDays')}</FormLabel>
+                                <FormControl>
+                                  <Input type="number" min={0} className="h-8 text-sm" {...f} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name={`treatment_steps.${index}.duration_minutes`}
+                            render={({ field: f }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">{t('serviceType.duration')}</FormLabel>
+                                <FormControl>
+                                  <Input type="number" min={1} className="h-8 text-sm" {...f} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <FormField
+                          control={form.control}
+                          name={`treatment_steps.${index}.notes`}
+                          render={({ field: f }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs">{t('serviceType.stepNotes')}</FormLabel>
+                              <FormControl>
+                                <Input placeholder={t('serviceType.stepNotesPlaceholder')} className="h-8 text-sm" {...f} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>

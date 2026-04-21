@@ -48,9 +48,11 @@ import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
+import { UserSummaryPanel } from '@/components/users/user-summary-panel';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserMessages } from '@/components/users/user-messages';
+import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
@@ -67,7 +69,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { useLocale, useTranslations } from 'next-intl';
@@ -215,7 +217,7 @@ async function fetchCalendarsForAppt(): Promise<CalendarType[]> {
     const data = await api.get(API_ROUTES.CALENDARS);
     const list = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
     return list.map((c: any) => ({
-      id: c.id || c.google_calendar_id,
+      id: String(c.id),
       name: c.name,
       google_calendar_id: c.google_calendar_id,
       is_active: c.is_active,
@@ -1651,19 +1653,23 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserFinancialSummaryStats
+                      <UserSummaryPanel
                         financialData={userFinancialData}
+                        userId={selectedUser.id}
                         isOpen={isStatsOpen}
                         onToggle={() => setIsStatsOpen(v => !v)}
                         onPrint={handlePrintFinancialSummary}
+                        onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
+                        onViewAllTreatments={() => setActiveTab('treatment-plans')}
                       />
-                      <div className="flex flex-col flex-1 min-h-0 overflow-hidden border-t border-border">
+                      <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
                         {/* Horizontal tab strip */}
                         {(() => {
                           const isMedico = selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active);
                           const userTabs: VerticalTab[] = [
                             { id: 'info', icon: Users, label: 'Información' },
                             ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
+                            { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
                             // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
@@ -1683,7 +1689,7 @@ export default function UsersPage() {
                           );
                         })()}
                         {/* Tab content */}
-                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 py-3 sm:px-3">
+                        <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                           {activeTab === 'info' && (
                             <UserInfoTab
                               user={selectedUser}
@@ -1755,6 +1761,13 @@ export default function UsersPage() {
                             <UserAppointments
                               user={selectedUser}
                               refreshTrigger={refreshAppointmentsTrigger}
+                            />
+                          )}
+                          {activeTab === 'treatment-plans' && (
+                            <UserTreatmentPlans
+                              userId={selectedUser.id}
+                              userName={selectedUser.name}
+                              onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
                             />
                           )}
                           {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}

@@ -95,7 +95,7 @@ async function getCalendars(): Promise<CalendarType[]> {
     const data = await api.get(API_ROUTES.CALENDARS);
     const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
     return calendarsData.map((apiCalendar: any, index: number) => ({
-      id: apiCalendar.id || apiCalendar.google_calendar_id,
+      id: String(apiCalendar.id),
       name: apiCalendar.name,
       google_calendar_id: apiCalendar.google_calendar_id,
       is_active: apiCalendar.is_active,
@@ -109,7 +109,7 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getAppointmentsForUser(
   user: User | null,
-  calendarGoogleIds: string[]
+  calendarSourceIds: string[]
 ): Promise<Appointment[]> {
   if (!user || !user.id) return [];
 
@@ -125,8 +125,8 @@ async function getAppointmentsForUser(
       user_id: String(user.id),
     };
 
-    if (calendarGoogleIds.length > 0) {
-      query.calendar_ids = calendarGoogleIds.join(',');
+    if (calendarSourceIds.length > 0) {
+      query.calendar_source_ids = calendarSourceIds.join(',');
     }
 
     const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
@@ -169,7 +169,8 @@ async function getAppointmentsForUser(
         time: format(appointmentDateTime, 'HH:mm'),
         status: apiAppt.status || 'confirmed',
         created_at: apiAppt.created_at || apiAppt.createdat,
-        google_calendar_id: apiAppt.google_calendar_id || '',
+        google_calendar_id: apiAppt.google_calendar_id || undefined,
+        calendar_source_id: apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '',
         googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
         quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
         quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
@@ -271,11 +272,9 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
     if (!user) return;
     setIsLoading(true);
 
-    const googleCalendarIds = calendars
-      .map(c => c.google_calendar_id)
-      .filter((id): id is string => !!id);
+    const calendarSourceIds = calendars.map(c => String(c.id));
 
-    const fetchedAppointments = await getAppointmentsForUser(user, googleCalendarIds);
+    const fetchedAppointments = await getAppointmentsForUser(user, calendarSourceIds);
     setAppointments(fetchedAppointments);
     setIsLoading(false);
   }, [user, calendars]);

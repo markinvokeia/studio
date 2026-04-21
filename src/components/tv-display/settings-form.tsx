@@ -72,10 +72,10 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
     toast({ description: t('saved') });
   };
 
-  const toggleCalendar = (googleCalId: string, checked: boolean) => {
+  const toggleCalendar = (calendarSourceId: string, checked: boolean) => {
     const next = checked
-      ? [...settings.selectedCalendarIds, googleCalId]
-      : settings.selectedCalendarIds.filter((c) => c !== googleCalId);
+      ? [...settings.selectedCalendarIds, calendarSourceId]
+      : settings.selectedCalendarIds.filter((c) => c !== calendarSourceId);
     updateSettings({ selectedCalendarIds: next });
   };
 
@@ -115,21 +115,24 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
           <p className="text-sm text-muted-foreground">{t('noCalendars')}</p>
         ) : (
           <div className="space-y-2">
-            {calendars.map((cal) => (
-              <div key={cal.google_calendar_id} className="flex items-center gap-2">
-                <Checkbox
-                  id={`cal-${cal.google_calendar_id}`}
-                  checked={settings.selectedCalendarIds.includes(cal.google_calendar_id)}
-                  onCheckedChange={(checked) => toggleCalendar(cal.google_calendar_id, !!checked)}
-                />
-                <label htmlFor={`cal-${cal.google_calendar_id}`} className="text-sm cursor-pointer flex items-center gap-2">
-                  {cal.color && (
-                    <span className="w-3 h-3 rounded-full shrink-0" style={{ background: cal.color }} />
-                  )}
-                  {cal.name}
-                </label>
-              </div>
-            ))}
+            {calendars.map((cal) => {
+              const calendarSourceId = cal.id;
+              return (
+                <div key={calendarSourceId} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`cal-${calendarSourceId}`}
+                    checked={settings.selectedCalendarIds.includes(calendarSourceId)}
+                    onCheckedChange={(checked) => toggleCalendar(calendarSourceId, !!checked)}
+                  />
+                  <label htmlFor={`cal-${calendarSourceId}`} className="text-sm cursor-pointer flex items-center gap-2">
+                    {cal.color && (
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ background: cal.color }} />
+                    )}
+                    {cal.name}
+                  </label>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

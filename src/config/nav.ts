@@ -111,8 +111,8 @@ export const navItems: NavItem[] = [
     ],
     items: [
       { title: 'Pacientes', href: '/patients', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
-      { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
-      { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_MENU },
+      { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_STUDIES },
+      { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_SHARED_STUDIES },
     ],
   },
   {
@@ -227,7 +227,7 @@ export const navItems: NavItem[] = [
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_MENU },
       { title: 'ErrorLog', href: '/system/errors', icon: FileWarning, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_MENU },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
-      { title: 'ImportData', href: '/system/import', icon: Upload, isChidren: true },
+      { title: 'ImportData', href: '/system/import', icon: Upload, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU },
     ],
   },
 ];

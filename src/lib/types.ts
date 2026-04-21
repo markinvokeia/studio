@@ -305,6 +305,16 @@ export type PaymentMethod = {
   is_active: boolean;
 }
 
+export type ServiceType = 'single' | 'workflow';
+
+export type TreatmentStep = {
+  position: number;
+  name: string;
+  offset_days_from_prev: number;
+  duration_minutes: number;
+  notes?: string;
+};
+
 export type Service = {
   id: string;
   name: string;
@@ -319,6 +329,8 @@ export type Service = {
   is_active: boolean;
   color?: string | null;
   is_sales?: boolean;
+  service_type?: ServiceType;
+  treatment_steps?: TreatmentStep[];
 };
 
 export interface UserServicesEntry {
@@ -456,9 +468,10 @@ export type Appointment = {
   time: string;
   status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'scheduled';
   created_at?: string;
-  google_calendar_id: string;
+  google_calendar_id?: string;
   googleEventId?: string;
   calendar_id?: string; // keeping legacy for a moment to avoid immediate break
+  calendar_source_id?: string;
   calendar_name?: string;
   color?: string;
   colorId?: string;
@@ -530,7 +543,7 @@ export type AppointmentAttendanceRate = {
 export type Calendar = {
   id: string;
   name: string;
-  google_calendar_id: string;
+  google_calendar_id?: string;
   is_active: boolean;
   color?: string;
 };
@@ -595,6 +608,114 @@ export type PatientSession = {
   quote_id?: string;
   quote_doc_no?: string;
   appointment_id?: string;
+};
+
+export type TreatmentSequenceStepStatus = 'pending' | 'scheduled' | 'completed' | 'cancelled' | 'missed';
+
+export type TreatmentSequenceStep = {
+  id: string;
+  step_number: number;
+  step_name: string;
+  scheduled_date?: string;
+  appointment_id?: string;
+  status: TreatmentSequenceStepStatus;
+  notes?: string;
+  completed_at?: string;
+  duration_minutes?: number;
+};
+
+export type TreatmentSequenceStatus = 'active' | 'completed' | 'cancelled' | 'paused';
+
+export type TreatmentSequence = {
+  id: string;
+  patient_id: string;
+  service_id: string;
+  service_name: string;
+  service_color?: string | null;
+  status: TreatmentSequenceStatus;
+  started_at: string;
+  expected_end_at?: string | null;
+  steps: TreatmentSequenceStep[];
+  notes?: string;
+  created_at?: string;
+  // Doctor / calendar info — populated when creating from appointment
+  doctor_id?: string;
+  doctor_name?: string;
+  doctor_email?: string;
+  google_calendar_id?: string | null;
+  started_by?: string;
+};
+
+// ── Step operation types ───────────────────────────────────────────────────────
+
+/** How to handle subsequent steps when a date is shifted */
+export type StepCascadeMode = 'none' | 'shift_all' | 'shift_from_next';
+
+export type StepUpsertPayload = {
+  sequence_id: string;
+  step_id?: string;             // omit for create
+  step_number: number;
+  step_name: string;
+  scheduled_date?: string;      // ISO date
+  duration_minutes?: number;
+  notes?: string;
+  insert_after?: number;        // step_number after which to insert (for new steps)
+  cascade_mode?: StepCascadeMode;
+  cascade_days?: number;        // days to shift subsequent steps (positive = push out, negative = pull in)
+  notify_patient?: boolean;
+};
+
+export type StepDeletePayload = {
+  sequence_id: string;
+  step_id: string;
+  cascade_mode?: StepCascadeMode; // 'shift_all' = pull subsequent forward to close gap
+  cascade_days?: number;          // days to pull forward (usually the step's offset)
+  cancel_appointment?: boolean;   // cancel linked appointment if exists
+  notify_patient?: boolean;
+};
+
+export type StepStatusPayload = {
+  sequence_id: string;
+  step_id: string;
+  status: TreatmentSequenceStepStatus;
+  sync_appointment?: boolean;   // also update the linked appointment status
+  notify_patient?: boolean;
+};
+
+export type StepSchedulePayload = {
+  sequence_id: string;
+  step_id: string;
+  patient_id: string;
+  doctor_id: string;
+  scheduled_date: string;       // ISO date
+  duration_minutes: number;
+  notes?: string;
+  google_calendar_id?: string | null;
+};
+
+export type StepOperationResult = {
+  success: boolean;
+  step?: TreatmentSequenceStep;
+  affected_steps?: TreatmentSequenceStep[]; // all steps after cascade
+  appointment_id?: string;
+  sequence_completed?: boolean;
+  error?: string;
+};
+
+export type AbandonedPlan = {
+  sequence_id: string;
+  patient_id: string;
+  patient_name?: string;
+  service_name: string;
+  missed_step_name: string;
+  missed_days_ago: number;
+};
+
+export type AvailabilityResult = {
+  step_id: string;
+  status: 'available' | 'conflict';
+  conflict_reason?: string | null;
+  alternatives: string[];
 };
 
 export type AvailabilityRule = {

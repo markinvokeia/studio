@@ -30,9 +30,9 @@ import * as z from 'zod';
 const calendarFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     name: z.string().min(1, t('nameRequired')),
-    google_calendar_id: z.string().email(t('emailInvalid')),
+    google_calendar_id: z.union([z.literal(''), z.string().email(t('emailInvalid'))]).optional(),
     color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t('colorInvalid')).optional(),
-    is_active: z.boolean().default(false),
+    is_active: z.boolean().default(true),
 });
 
 type CalendarFormValues = z.infer<ReturnType<typeof calendarFormSchema>>;
@@ -42,7 +42,7 @@ async function getCalendars(): Promise<CalendarType[]> {
         const data = await api.get(API_ROUTES.CALENDARS);
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
         return calendarsData.map((apiCalendar: any) => ({
-            id: apiCalendar.id ? String(apiCalendar.id) : `cal_${Math.random().toString(36).substr(2, 9)}`,
+            id: String(apiCalendar.id),
             name: apiCalendar.name,
             google_calendar_id: apiCalendar.google_calendar_id,
             is_active: apiCalendar.is_active,
@@ -62,8 +62,8 @@ async function upsertCalendar(calendarData: CalendarFormValues) {
     return responseData;
 }
 
-async function deleteCalendar(id: string, googleCalendarId: string) {
-    const responseData = await api.delete(API_ROUTES.CALENDARS_DELETE, { id, google_calendar_id: googleCalendarId });
+async function deleteCalendar(id: string) {
+    const responseData = await api.delete(API_ROUTES.CALENDARS_DELETE, { id });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
         throw new Error(responseData[0]?.message || 'Failed to delete calendar');
     }
@@ -90,7 +90,7 @@ export default function CalendarsPage() {
 
     const form = useForm<CalendarFormValues>({
         resolver: zodResolver(calendarFormSchema(tValidation)),
-        defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: false },
+        defaultValues: { name: '', google_calendar_id: '', color: '#ffffff', is_active: true },
     });
 
     const loadCalendars = React.useCallback(async () => {
@@ -108,7 +108,7 @@ export default function CalendarsPage() {
         setSubmissionError(null);
         if (calendar) {
             setIsEditing(false);
-            form.reset({ ...calendar, color: calendar.color || '#ffffff' });
+            form.reset({ ...calendar, google_calendar_id: calendar.google_calendar_id || '', color: calendar.color || '#ffffff' });
         }
     };
 
@@ -117,7 +117,7 @@ export default function CalendarsPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: false });
+        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: true });
         setIsCreateDialogOpen(true);
     };
 
@@ -158,7 +158,7 @@ export default function CalendarsPage() {
     const confirmDelete = async () => {
         if (!deletingCalendar) return;
         try {
-            await deleteCalendar(deletingCalendar.id, deletingCalendar.google_calendar_id);
+            await deleteCalendar(deletingCalendar.id);
             toast({ title: t('toast.deleteSuccessTitle') });
             setIsDeleteDialogOpen(false);
             setDeletingCalendar(null);
@@ -248,7 +248,7 @@ export default function CalendarsPage() {
                         {selectedCalendar && !isEditing && (
                             <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
-                                <span className="hidden sm:inline">{t('dialog.save')}</span>
+                                <span className="hidden sm:inline">{t('dialog.edit')}</span>
                             </Button>
                         )}
                         {selectedCalendar && !isEditing && (
@@ -355,7 +355,7 @@ export default function CalendarsPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: false });
+                        form.reset({ name: '', google_calendar_id: '', color: '#ffffff', is_active: true });
                     }
                 }}
             >

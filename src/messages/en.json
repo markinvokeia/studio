@@ -463,7 +463,11 @@
       "loadingQuotes": "Loading quotes...",
       "loadingServices": "Loading services...",
       "selectUserFirst": "Select a patient first",
-      "notes": "Notes"
+      "notes": "Notes",
+      "workflowServiceTitle": "Workflow Service",
+      "workflowServiceDescription": "Scheduling this appointment will create a treatment plan with {steps} steps.",
+      "workflowPlanCreated": "Treatment plan created for {name} ({steps} steps)",
+      "workflowStepsLoading": "Loading steps..."
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -771,14 +775,17 @@
     "title": "Patients",
     "stats": {
       "title": "Financial Summary",
+      "summaryTitle": "Summaries",
+      "tabFinancial": "Financial",
+      "tabTreatment": "Treatment",
       "totalInvoiced": "Total Invoiced",
       "totalPaid": "Total Paid",
       "currentDebt": "Current Debt",
       "availableBalance": "Available Balance",
       "printFinancialSummary": "Print Financial Summary",
       "print": "Print",
-      "showStats": "SHOW $",
-      "hideStats": "HIDE $"
+      "showStats": "SHOW",
+      "hideStats": "HIDE"
     },
     "financialSummaryDialog": {
       "title": "Print Financial Summary",
@@ -803,6 +810,7 @@
       "services": "Services",
       "quotes": "Quotes",
       "appointments": "Appointments",
+      "treatmentPlans": "Treat. Plans",
       "messages": "Messages",
       "preferences": "Preferences",
       "logs": "Logs",
@@ -2331,6 +2339,37 @@
       "activeDescription": "Set service active",
       "colorLabel": "Color"
     },
+    "serviceType": {
+      "label": "Workflow Service",
+      "description": "This service consists of multiple sequential appointments (treatment plan)",
+      "stepsTitle": "Treatment Steps",
+      "addStep": "Add Step",
+      "noSteps": "No steps yet. Add the first step.",
+      "stepLabel": "Step",
+      "stepName": "Step Name",
+      "stepNamePlaceholder": "e.g., Tooth extraction",
+      "offsetDays": "Days after prev.",
+      "duration": "Duration (min)",
+      "stepNotes": "Notes",
+      "stepNotesPlaceholder": "Optional notes for this step",
+      "position": "Position",
+      "stepNameRequired": "Step name is required",
+      "stepSaved": "Step saved successfully",
+      "stepSaveError": "Failed to save step",
+      "stepSaving": "Saving...",
+      "stepSaveBtn": "Save",
+      "stepCancel": "Cancel",
+      "stepDeleted": "Step deleted",
+      "stepDeleteError": "Failed to delete step",
+      "stepLoading": "Loading steps...",
+      "stepLoadError": "Failed to load steps",
+      "stepsTabDescription": "Define the sequential steps for this workflow service",
+      "offsetMinDays": "Min days",
+      "offsetMaxDays": "Max days",
+      "offsetRange": "Offset",
+      "isLabDependent": "Lab dependent",
+      "labDependent": "Lab dependent"
+    },
     "deleteDialog": {
       "cancel": "Cancel",
       "confirm": "Confirm",
@@ -2356,7 +2395,8 @@
     },
     "tabs": {
       "details": "Detalles",
-      "info": "Info"
+      "info": "Info",
+      "steps": "Steps"
     }
   },
   "ServicesColumns": {
@@ -2675,6 +2715,7 @@
       "active": "Active",
       "create": "Create",
       "cancel": "Cancel",
+      "edit": "Edit",
       "editTitle": "Edit calendar",
       "editDescription": "Edit the calendar for the clinic",
       "save": "Save Changes"
@@ -4838,5 +4879,165 @@
     "sendError": "Error sending message. Please try again.",
     "ttsEnable": "Enable voice",
     "ttsDisable": "Mute voice"
+  },
+  "TreatmentPlans": {
+    "title": "Treatment Plans",
+    "loading": "Loading plans...",
+    "emptyState": "No treatment plans",
+    "emptyStateDescription": "Treatment plans will appear here when a workflow service appointment is created.",
+    "steps": "steps",
+    "startedAt": "Started",
+    "progressLabel": "Treatment progress",
+    "milestones": "milestones",
+    "editSteps": "Edit steps",
+    "interruptedAlert": "Patient with interrupted treatment",
+    "missedDaysAgo": "Not rescheduled for {days} days",
+    "contact": "Contact",
+    "historicalTitle": "History",
+    "showHistorical": "Show history",
+    "hideHistorical": "Hide history",
+    "widgetTitle": "Active Treatment",
+    "viewAll": "View all →",
+    "currentStep": "Next Appointment",
+    "missedStep": "Missed Step",
+    "nextStep": "Next",
+    "createAppointment": "Create Appointment",
+    "more": "more",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "paused": "Paused"
+    },
+    "stepStatus": {
+      "pending": "Pending",
+      "scheduled": "Scheduled",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "missed": "Missed"
+    },
+    "review": {
+      "title": "Review Treatment Plan",
+      "description": "Review and adjust the scheduled steps for {service} before confirming.",
+      "stepNamePlaceholder": "Step name",
+      "datePlaceholder": "Scheduled date",
+      "notesPlaceholder": "Notes (optional)",
+      "addStep": "Add Step",
+      "removeStep": "Remove step",
+      "confirm": "Confirm Plan",
+      "confirming": "Confirming...",
+      "cancel": "Cancel"
+    },
+    "edit": {
+      "editStep": "Edit step",
+      "deleteStep": "Delete step",
+      "addStep": "Add step",
+      "addStepTitle": "New Step #{number}",
+      "addStepConfirm": "Add Step",
+      "stepName": "Step name",
+      "scheduledDate": "Scheduled date",
+      "duration": "Duration (min)",
+      "status": "Status",
+      "notes": "Notes",
+      "notesPlaceholder": "Optional notes",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "hasAppointment": "Has a scheduled appointment",
+      "insertAfter": "Insert after",
+      "insertFirst": "At the beginning (first step)",
+      "insertAfterStep": "After step {number}: {name}"
+    },
+    "cascade": {
+      "title": "Move subsequent steps?",
+      "description": "You changed the date from {from} to {to} ({direction} {days} days).",
+      "forward": "forward",
+      "backward": "backward",
+      "optionNone": "Move only this step",
+      "optionNoneDesc": "Subsequent steps keep their current dates.",
+      "optionAll": "Move all {count} subsequent steps {days} days",
+      "optionAllDesc": "Linked appointments for those steps will also be updated.",
+      "availability": "Availability after change",
+      "checking": "Checking...",
+      "available": "Available",
+      "confirm": "Confirm change"
+    },
+    "delete": {
+      "title": "Delete step",
+      "description": "You are about to delete the step \"{name}\". This action cannot be undone.",
+      "hasAppointment": "This step has an appointment scheduled for {date}.",
+      "cancelAppointment": "Also cancel the appointment",
+      "closeGap": "Move the {count} subsequent steps forward to close the gap",
+      "gapDays": "Days to close",
+      "confirm": "Delete step"
+    },
+    "statusChange": {
+      "title": "Change step status",
+      "description": "You are marking \"{name}\" as {status}.",
+      "appointmentEffect": "This step has an appointment scheduled for {date}.",
+      "appointmentCompleted": "The appointment will be marked as completed.",
+      "appointmentCancelled": "The appointment will be marked as cancelled.",
+      "appointmentMissed": "The appointment milestone will be flagged as alert.",
+      "syncAppointment": "Also update the appointment status",
+      "notifyPatient": "Notify the patient by email",
+      "confirm": "Confirm change"
+    },
+    "schedule": {
+      "title": "Schedule appointment for this step",
+      "description": "Create a calendar appointment for the step \"{name}\".",
+      "duration": "Duration (minutes)",
+      "checkAvailability": "Check availability",
+      "available": "Date is available",
+      "alternatives": "Available alternative dates",
+      "notifyPatient": "Notify the patient by email",
+      "confirm": "Create appointment"
+    },
+    "wizard": {
+      "stepLabel": "Step {current} of {total}",
+      "cancel": "Cancel",
+      "back": "Back",
+      "next": "Next",
+      "create": "Create Plan",
+      "creating": "Creating...",
+      "createSuccess": "Treatment Plan Created",
+      "createSuccessDesc": "Plan for {name} created with {steps} steps.",
+      "createError": "Error Creating Plan",
+      "createErrorDesc": "An unexpected error occurred. Please try again.",
+      "available": "Available",
+      "conflict": "Conflict",
+      "unchecked": "Pending",
+      "step1": {
+        "title": "Plan Steps",
+        "desc": "Review and adjust each step's name, date and scheduling mode.",
+        "hint": "Edit the steps generated from the service template. You can add, remove or reorder them.",
+        "stepNamePlaceholder": "Step name",
+        "scheduledDate": "Scheduled date",
+        "datePlaceholder": "Pick a date",
+        "notesPlaceholder": "Notes (optional)",
+        "removeStep": "Remove step",
+        "addStep": "Add Step",
+        "scheduleModeLabel": "Scheduling",
+        "modeCalendar": "Add to calendar",
+        "modeManual": "Manual (schedule later)"
+      },
+      "step2": {
+        "title": "Check Availability",
+        "desc": "Verifying availability for all steps scheduled in the calendar.",
+        "checking": "Checking availability...",
+        "allAvailable": "All dates are available.",
+        "conflictsFound": "{count} date(s) have conflicts. Please select an alternative.",
+        "calendarSteps": "Calendar Steps",
+        "manualSteps": "Manual Steps",
+        "selectAlternative": "Select an alternative date:",
+        "orPickDate": "Or pick a custom date:",
+        "customDatePlaceholder": "Custom date",
+        "recheck": "Re-check availability"
+      },
+      "step3": {
+        "title": "Confirm & Create",
+        "desc": "Review the final plan before creating it. Calendar steps will generate appointments.",
+        "hint": "The following steps will be created. Steps set to \"Add to calendar\" will generate appointment slots."
+      }
+    }
   }
 }
