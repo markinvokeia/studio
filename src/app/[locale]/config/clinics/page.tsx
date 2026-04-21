@@ -17,7 +17,12 @@ import { Building, RefreshCw, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
-async function getClinic(): Promise<Clinic | null> {
+interface ClinicFallbacks {
+    name: string;
+    location: string;
+}
+
+async function getClinic(fallbacks: ClinicFallbacks): Promise<Clinic | null> {
     try {
         const data = await api.get(API_ROUTES.CLINIC);
         const clinicsData = Array.isArray(data) ? data : (data.clinics || data.data || data.result || []);
@@ -30,8 +35,8 @@ async function getClinic(): Promise<Clinic | null> {
 
         return {
             id: apiClinic.id ? String(apiClinic.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
-            name: apiClinic.name || 'No Name',
-            location: apiClinic.address || 'No Location',
+            name: apiClinic.name || fallbacks.name,
+            location: apiClinic.address || fallbacks.location,
             contact_email: apiClinic.email || 'no-email@example.com',
             phone_number: apiClinic.phone || '000-000-0000',
             currency: apiClinic.currency || 'USD',
@@ -71,7 +76,10 @@ export default function ClinicsPage() {
     const loadClinic = React.useCallback(async () => {
         setIsLoading(true);
         const [fetchedClinic, logoUrl] = await Promise.all([
-            getClinic(),
+            getClinic({
+                name: t('fallbacks.name'),
+                location: t('fallbacks.location'),
+            }),
             getClinicLogo()
         ]);
         setClinic(fetchedClinic);
@@ -79,7 +87,7 @@ export default function ClinicsPage() {
             setLogoPreview(logoUrl);
         }
         setIsLoading(false);
-    }, []);
+    }, [t]);
 
     React.useEffect(() => {
         loadClinic();
@@ -250,7 +258,7 @@ export default function ClinicsPage() {
                                     <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
                                         {logoPreview ? (
                                             // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={logoPreview} alt="Logo Preview" className="h-full w-full object-contain rounded-md" />
+                                            <img src={logoPreview} alt={t('logoAlt')} className="h-full w-full object-contain rounded-md" />
                                         ) : (
                                             <UploadCloud className="h-8 w-8 text-muted-foreground" />
                                         )}

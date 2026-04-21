@@ -2560,15 +2560,32 @@
     "emailLabel": "Email",
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",
+    "logoAlt": "Logo preview",
     "currencyLabel": "Currency",
     "currencyPlaceholder": "Select a currency",
+    "fallbacks": {
+      "name": "No name",
+      "location": "No location"
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Name",
+      "location": "Address",
+      "email": "Email",
+      "phone": "Phone",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
     "toast": {
       "successDesc": "Clinic Details saved successfully",
       "successTitle": "Successfull Update",
       "deleteSuccessDescription": "Details have been deleted successfully",
       "deleteSuccessTitle": "Successfully Deleted",
       "errorDesc": "There was an error and Clinic Details were not saved successfully",
-      "errorTitle": "Error Updating Details"
+      "errorTitle": "Error Updating Details",
+      "fileTooLargeTitle": "File too large",
+      "fileTooLargeDesc": "The logo must be 1 MB or smaller.",
+      "errorUnknown": "An unexpected error occurred while updating the clinic details."
     },
     "saving": "Saving",
     "noClinic": "There are no registered clinics."

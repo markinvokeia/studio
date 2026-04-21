@@ -2514,15 +2514,32 @@
     "emailLabel": "Correo Electrónico",
     "emailPlaceholder": "ej. juan.perez@ejemplo.com",
     "save": "Guardar",
+    "logoAlt": "Vista previa del logo",
     "currencyLabel": "Moneda",
     "currencyPlaceholder": "Seleccionar una moneda",
+    "fallbacks": {
+      "name": "Sin nombre",
+      "location": "Sin ubicación"
+    },
+    "columns": {
+      "id": "ID",
+      "name": "Nombre",
+      "location": "Dirección",
+      "email": "Correo Electrónico",
+      "phone": "Teléfono",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
     "toast": {
       "successDesc": "Los detalles de la clínica han sido actualizados satisfactoriamente",
       "successTitle": "Operación exitosa",
       "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
       "deleteSuccessTitle": "Eliminado Satisfactoriamente",
       "errorDesc": "Hubo un error y los detalles de la clínica no han sido actualizados satisfactoriamente",
-      "errorTitle": "Error Actualizando Detalles"
+      "errorTitle": "Error Actualizando Detalles",
+      "fileTooLargeTitle": "Archivo demasiado grande",
+      "fileTooLargeDesc": "El logo no puede superar 1 MB.",
+      "errorUnknown": "Ocurrió un error inesperado al actualizar los detalles de la clínica."
     },
     "saving": "Guardando",
     "noClinic": "No hay clínicas registradas."
