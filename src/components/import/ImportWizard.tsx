@@ -10,6 +10,8 @@ import { StepValidate, validateData, ValidationResult } from '@/components/impor
 import { StepResult, ImportResult } from '@/components/import/steps/StepResult';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -106,6 +108,8 @@ export function ImportWizard() {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
+  const canExecuteImport = hasPermission(SYSTEM_PERMISSIONS.IMPORT_DATA_EXECUTE);
 
   const schema = selectedType ? IMPORT_SCHEMAS[selectedType] : null;
 
@@ -341,6 +345,7 @@ export function ImportWizard() {
             onImportValid={handleImportValid}
             onFixCsv={handleFixCsv}
             isImporting={isImporting}
+            canExecute={canExecuteImport}
           />
         )}
 

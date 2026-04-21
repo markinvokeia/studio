@@ -227,7 +227,7 @@ export const navItems: NavItem[] = [
       { title: 'AccessLog', href: '/system/access', icon: UserCheck, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_MENU },
       { title: 'ErrorLog', href: '/system/errors', icon: FileWarning, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_MENU },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
-      { title: 'ImportData', href: '/system/import', icon: Upload, isChidren: true },
+      { title: 'ImportData', href: '/system/import', icon: Upload, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU },
     ],
   },
 ];
