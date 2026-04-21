@@ -34,7 +34,7 @@ import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Stethoscope, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Receipt, Send, Stethoscope, Trash2, XCircle } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { useTranslations } from 'next-intl';
@@ -410,6 +410,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canCompleteItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
   const canInvoiceFromOrder = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
   const canSend = canSendQuote;
+  const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
+  const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
+  const showInvoiceFromOrderButton =
+    canInvoiceFromOrder &&
+    selectedQuote?.status?.toLowerCase() === 'confirmed' &&
+    !!selectedOrderBelongsToQuote &&
+    !isLoadingOrderItems &&
+    hasServicesPendingInvoice;
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadQuotes = React.useCallback(async (silent = false) => {
@@ -506,12 +514,17 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const handleRowSelectionChange = React.useCallback((selectedRows: Quote[]) => {
     const quote = selectedRows[0] ?? null;
     setSelectedQuote(quote);
+    setOrders([]);
+    setSelectedOrder(null);
+    setOrderItems([]);
     if (!quote) {
       setIsSheetOpen(false);
       setQuoteItems([]);
+    } else if (quote.status?.toLowerCase() === 'confirmed' && isSales) {
+      loadOrders(quote.id);
     }
     onQuoteSelect?.(quote);
-  }, [onQuoteSelect]);
+  }, [isSales, loadOrders, onQuoteSelect]);
 
   const handleOpenSheet = React.useCallback((quote: Quote) => {
     setIsSheetOpen(true);
@@ -828,12 +841,15 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   };
 
   const handleInvoiceFromQuote = async () => {
-    if (!selectedOrder) return;
+    if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
     try {
       await invoiceOrder({ orderId: selectedOrder.id, userId: selectedOrder.user_id, mode: 'sales' });
       toast({ title: tQuotes('actions.invoiceSuccess'), description: tQuotes('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }) });
-      loadQuotes(true);
-      loadOrders(selectedQuote!.id);
+      await Promise.all([
+        loadQuotes(true),
+        loadOrders(selectedQuote.id),
+        loadOrderItems(selectedOrder.id),
+      ]);
     } catch (error) {
       toast({ variant: 'destructive', title: tQuotes('errors.errorTitle'), description: error instanceof Error ? error.message : tQuotes('actions.invoiceError') });
     }
@@ -868,6 +884,17 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             {t('UserQuotes.actions.reject')}
           </Button>
         </>
+      )}
+      {showInvoiceFromOrderButton && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleInvoiceFromQuote}
+        >
+          <Receipt className="h-3.5 w-3.5" />
+          {tQuotes('actions.invoice')}
+        </Button>
       )}
       {/* Determinar si hay acciones disponibles para el dropdown */}
       {((canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote)))) && (
