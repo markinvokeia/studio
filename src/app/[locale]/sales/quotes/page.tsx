@@ -1,7 +1,5 @@
 'use client';
 
-import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
-import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
@@ -50,10 +48,9 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
-import { Calendar as CalendarType, Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn, formatDateTime, toLocalISOString } from '@/lib/utils';
+import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
@@ -621,19 +618,6 @@ export default function QuotesPage() {
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
 
-    // Schedule/Complete dialog state for confirmed quotes
-    const [isQuoteItemScheduleDialogOpen, setIsQuoteItemScheduleDialogOpen] = React.useState(false);
-    const [isQuoteItemCompleteDialogOpen, setIsQuoteItemCompleteDialogOpen] = React.useState(false);
-    const [schedulingOrderItem, setSchedulingOrderItem] = React.useState<OrderItem | null>(null);
-    const [completingOrderItem, setCompletingOrderItem] = React.useState<OrderItem | null>(null);
-    // Appointment dialog supporting data
-    const [scheduleCalendars, setScheduleCalendars] = React.useState<CalendarType[]>([]);
-    const [scheduleDoctors, setScheduleDoctors] = React.useState<import('@/lib/types').User[]>([]);
-    const [scheduleAllServices, setScheduleAllServices] = React.useState<Service[]>([]);
-    const [scheduleDoctorServiceMap, setScheduleDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
-    const [scheduleCheckCalendarAvailability, setScheduleCheckCalendarAvailability] = React.useState(true);
-    const [scheduleCheckDoctorAvailability, setScheduleCheckDoctorAvailability] = React.useState(true);
-
     const [isLoadingItems, setIsLoadingItems] = React.useState(false);
     const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
     const [isLoadingOrderItems, setIsLoadingOrderItems] = React.useState(false);
@@ -801,79 +785,6 @@ export default function QuotesPage() {
             setSelectedOrder(orders[0]);
         }
     }, [selectedQuote, orders]);
-
-    // Fetch supporting data for the appointment dialog (schedule action on confirmed quotes)
-    React.useEffect(() => {
-        const fetchScheduleSupportingData = async () => {
-            try {
-                const [calData, docData, srvData, configData] = await Promise.all([
-                    api.get(API_ROUTES.CALENDARS),
-                    api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' }),
-                    getSalesServices({ limit: 100 }),
-                    api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => []),
-                ]);
-
-                if (Array.isArray(configData)) {
-                    const calConfig = configData.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
-                    const docConfig = configData.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
-                    if (calConfig) setScheduleCheckCalendarAvailability(String(calConfig.value).toLowerCase() === 'true');
-                    if (docConfig) setScheduleCheckDoctorAvailability(String(docConfig.value).toLowerCase() === 'true');
-                }
-
-                const cals = Array.isArray(calData) ? calData : (calData.calendars || []);
-                setScheduleCalendars(cals.map((c: any) => ({ ...c, id: c.id || c.google_calendar_id })));
-
-                let doctorsList: import('@/lib/types').User[] = [];
-                if (Array.isArray(docData) && docData.length > 0) {
-                    const firstElement = docData[0];
-                    if (firstElement.json && typeof firstElement.json === 'object') {
-                        doctorsList = firstElement.json.data || [];
-                    } else if (firstElement.data) {
-                        doctorsList = firstElement.data;
-                    } else {
-                        doctorsList = docData;
-                    }
-                } else if (docData?.data) {
-                    doctorsList = Array.isArray(docData.data) ? docData.data : [docData.data];
-                } else if (Array.isArray(docData)) {
-                    doctorsList = docData;
-                }
-
-                const doctorsMapped = doctorsList.map((d: any) => ({
-                    ...d,
-                    id: String(d.id),
-                    name: d.name || 'Doctor',
-                    email: d.email || '',
-                }));
-                setScheduleDoctors(doctorsMapped);
-
-                const doctorIds = doctorsMapped.map((d: any) => d.id).filter(Boolean);
-                const serviceMap = await getUsersServicesBatch(doctorIds);
-                setScheduleDoctorServiceMap(serviceMap);
-
-                const servicesList = srvData.items || [];
-                setScheduleAllServices(servicesList.map((s: any) => ({
-                    ...s,
-                    id: String(s.id),
-                    duration_minutes: s.duration_minutes || 30,
-                })));
-            } catch (error) {
-                console.error('Error fetching schedule supporting data:', error);
-            }
-        };
-        fetchScheduleSupportingData();
-    }, []);
-
-    // Build map: quote_item_id -> OrderItem (for confirmed quote items tab)
-    const orderItemsByQuoteItemId = React.useMemo<Map<string, OrderItem>>(() => {
-        const map = new Map<string, OrderItem>();
-        orderItems.forEach((item) => {
-            if (item.quote_item_id != null) {
-                map.set(String(item.quote_item_id), item);
-            }
-        });
-        return map;
-    }, [orderItems]);
 
     React.useEffect(() => {
         if (selectedInvoice) {
@@ -1238,95 +1149,6 @@ export default function QuotesPage() {
         }
     };
 
-    // Schedule/Complete handlers for confirmed quote items
-    const handleScheduleQuoteOrderItem = (orderItem: OrderItem) => {
-        setSchedulingOrderItem(orderItem);
-        setIsQuoteItemScheduleDialogOpen(true);
-    };
-
-    const handleCompleteQuoteOrderItem = (orderItem: OrderItem) => {
-        setCompletingOrderItem(orderItem);
-        setIsQuoteItemCompleteDialogOpen(true);
-    };
-
-    const handleQuoteItemAppointmentSaveSuccess = async (appointment: any, selectedDate: Date) => {
-        if (!schedulingOrderItem || !selectedOrder) return;
-        const tOIT = tRoot as any;
-        try {
-            await api.post(API_ROUTES.SALES.QUOTES_LINES_SCHEDULE, {
-                query: {
-                    action: 'schedule',
-                    order_item_id: parseInt(schedulingOrderItem.id, 10),
-                    schedule_date_time: toLocalISOString(selectedDate),
-                    user_id: selectedQuote?.user_id,
-                    appointment_id: appointment.appointment_id || appointment.appointmentId || appointment.id,
-                },
-                quote_number: selectedOrder ? parseInt(selectedOrder.quote_id ? String(selectedOrder.quote_id) : '0', 10) : 0,
-                order_item_id: parseInt(schedulingOrderItem.id, 10),
-                schedule_complete: 'schedule',
-                is_sales: true,
-            });
-            toast({ title: tOIT('OrderItemsTable.toast.scheduledTitle'), description: tOIT('OrderItemsTable.toast.updateSuccess') });
-            loadOrderItems();
-        } catch (error) {
-            toast({ variant: 'destructive', title: tOIT('OrderItemsTable.toast.error'), description: error instanceof Error ? error.message : tOIT('OrderItemsTable.toast.updateError') });
-        } finally {
-            setIsQuoteItemScheduleDialogOpen(false);
-            setSchedulingOrderItem(null);
-        }
-    };
-
-    const handleQuoteItemClinicSessionSave = async (data: ClinicSessionFormData) => {
-        if (!completingOrderItem || !selectedOrder) return;
-        const tOIT = tRoot as any;
-        try {
-            const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
-            const formData = new FormData();
-            const skipKeys = new Set(['tratamientos']);
-            (Object.keys(sessionData) as Array<keyof typeof sessionData>).forEach(key => {
-                if (skipKeys.has(key as string)) return;
-                const value = sessionData[key];
-                if (value !== undefined && value !== null) {
-                    formData.append(key, String(value));
-                }
-            });
-            formData.append('paciente_id', selectedQuote?.user_id || '');
-            if (data.sesion_id) {
-                formData.append('sesion_id', String(data.sesion_id));
-                formData.append('deleted_attachment_ids', JSON.stringify(deletedAttachmentIds || []));
-            }
-            if (sessionData.tratamientos && sessionData.tratamientos.length > 0) {
-                formData.append('tratamientos', JSON.stringify(sessionData.tratamientos));
-            }
-            if (archivos_adjuntos && archivos_adjuntos.length > 0) {
-                archivos_adjuntos.forEach((file: File) => formData.append('newly_added_files', file));
-            }
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
-
-            const completionDate = data.fecha_sesion ? new Date(data.fecha_sesion) : new Date();
-            await api.post(API_ROUTES.SALES.QUOTES_LINES_SCHEDULE, {
-                query: {
-                    action: 'complete',
-                    order_item_id: parseInt(completingOrderItem.id, 10),
-                    schedule_date_time: toLocalISOString(completionDate),
-                    user_id: selectedQuote?.user_id,
-                },
-                quote_number: selectedOrder ? parseInt(selectedOrder.quote_id ? String(selectedOrder.quote_id) : '0', 10) : 0,
-                order_item_id: parseInt(completingOrderItem.id, 10),
-                schedule_complete: 'complete',
-                is_sales: true,
-            });
-            toast({ title: tOIT('OrderItemsTable.toast.completedTitle'), description: tOIT('OrderItemsTable.toast.updateSuccess') });
-            loadOrderItems();
-        } catch (error) {
-            toast({ variant: 'destructive', title: tOIT('OrderItemsTable.toast.error'), description: error instanceof Error ? error.message : tOIT('OrderItemsTable.toast.updateError') });
-            throw error;
-        } finally {
-            setIsQuoteItemCompleteDialogOpen(false);
-            setCompletingOrderItem(null);
-        }
-    };
-
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
     const watchedQuoteExchangeRate = quoteForm.watch('exchange_rate');
@@ -1507,23 +1329,39 @@ export default function QuotesPage() {
                                         </TabsList>
                                         <div className="flex-1 min-h-0 mt-4 flex flex-col">
                                             <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                <QuoteItemsTable
-                                                    items={quoteItems}
-                                                    isLoading={isLoadingItems}
-                                                    onRefresh={loadQuoteItems}
-                                                    isRefreshing={isLoadingItems}
-                                                    canEdit={canEditQuote && canUpdateItem}
-                                                    onCreate={canAddItem ? handleCreateQuoteItem : () => { }}
-                                                    onEdit={canUpdateItem ? handleEditQuoteItem : () => { }}
-                                                    onDelete={canDeleteItem ? handleDeleteQuoteItem : () => { }}
-                                                    showToothNumber={true}
-                                                    quoteStatus={selectedQuote.status}
-                                                    orderItemsByQuoteItemId={orderItemsByQuoteItemId}
-                                                    onSchedule={handleScheduleQuoteOrderItem}
-                                                    onComplete={handleCompleteQuoteOrderItem}
-                                                    canSchedule={canScheduleItem}
-                                                    canComplete={canCompleteItem}
-                                                />
+                                                {selectedQuote.status.toLowerCase() === 'confirmed' ? (
+                                                    <OrderItemsTable
+                                                        items={orderItems}
+                                                        isLoading={isLoadingOrders || isLoadingOrderItems}
+                                                        onItemsUpdate={loadOrderItems}
+                                                        quoteId={selectedOrder?.quote_id}
+                                                        quoteDocNo={selectedOrder?.quote_doc_no}
+                                                        userId={selectedQuote.user_id}
+                                                        patient={{
+                                                            id: selectedQuote.user_id,
+                                                            name: selectedQuote.user_name || '',
+                                                            email: selectedQuote.userEmail || '',
+                                                            phone_number: '',
+                                                            is_active: true,
+                                                            avatar: '',
+                                                        }}
+                                                        isSales={true}
+                                                        canSchedule={canScheduleItem}
+                                                        canComplete={canCompleteItem}
+                                                    />
+                                                ) : (
+                                                    <QuoteItemsTable
+                                                        items={quoteItems}
+                                                        isLoading={isLoadingItems}
+                                                        onRefresh={loadQuoteItems}
+                                                        isRefreshing={isLoadingItems}
+                                                        canEdit={canEditQuote && canUpdateItem}
+                                                        onCreate={canAddItem ? handleCreateQuoteItem : () => { }}
+                                                        onEdit={canUpdateItem ? handleEditQuoteItem : () => { }}
+                                                        onDelete={canDeleteItem ? handleDeleteQuoteItem : () => { }}
+                                                        showToothNumber={true}
+                                                    />
+                                                )}
                                             </TabsContent>
                                             {/* hidden: orders tab
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
@@ -2142,39 +1980,6 @@ export default function QuotesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            {/* Schedule dialog for confirmed quote items */}
-            {isQuoteItemScheduleDialogOpen && schedulingOrderItem && selectedQuote && (
-                <AppointmentFormDialog
-                    open={isQuoteItemScheduleDialogOpen}
-                    onOpenChange={(open) => { setIsQuoteItemScheduleDialogOpen(open); if (!open) setSchedulingOrderItem(null); }}
-                    initialData={{
-                        user: {
-                            id: selectedQuote.user_id,
-                            name: selectedQuote.user_name || '',
-                            email: selectedQuote.userEmail || '',
-                            phone_number: '',
-                            is_active: true,
-                            avatar: '',
-                        },
-                    }}
-                    readOnlyFields={{ user: true }}
-                    onSaveSuccess={handleQuoteItemAppointmentSaveSuccess}
-                    calendars={scheduleCalendars}
-                    doctors={scheduleDoctors}
-                    doctorServiceMap={scheduleDoctorServiceMap}
-                    checkCalendarAvailability={scheduleCheckCalendarAvailability}
-                    checkDoctorAvailability={scheduleCheckDoctorAvailability}
-                />
-            )}
-            {/* Complete dialog for confirmed quote items */}
-            {isQuoteItemCompleteDialogOpen && completingOrderItem && selectedQuote && (
-                <ClinicSessionDialog
-                    open={isQuoteItemCompleteDialogOpen}
-                    onOpenChange={(open) => { setIsQuoteItemCompleteDialogOpen(open); if (!open) setCompletingOrderItem(null); }}
-                    onSave={handleQuoteItemClinicSessionSave}
-                    userId={selectedQuote.user_id}
-                />
-            )}
             <Dialog open={isConfirmQuoteDialogOpen} onOpenChange={setIsConfirmQuoteDialogOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>

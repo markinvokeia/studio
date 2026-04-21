@@ -7,7 +7,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
 import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
 import { UserQuotes } from '@/components/users/user-quotes';
-import { UserOrders } from '@/components/users/user-orders';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserAppointments } from '@/components/users/user-appointments';
@@ -17,7 +16,7 @@ import { api } from '@/services/api';
 import { UserFinancial, User } from '@/lib/types';
 import {
   Mail, Phone, Users,
-  Stethoscope, FileText, ShoppingCart, Receipt, CreditCard, Calendar, MessageSquare,
+  Stethoscope, FileText, Receipt, CreditCard, Calendar, MessageSquare,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -70,7 +69,6 @@ export function PatientDetailSheet({
   const tabs: VerticalTab[] = [
     { id: 'clinical-history', icon: Stethoscope, label: t('tabs.clinicalHistory') },
     { id: 'quotes', icon: FileText, label: t('tabs.quotes') },
-    { id: 'orders', icon: ShoppingCart, label: t('tabs.orders') },
     { id: 'invoices', icon: Receipt, label: t('tabs.invoices') },
     { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
     { id: 'appointments', icon: Calendar, label: t('tabs.appointments') },
@@ -134,7 +132,6 @@ export function PatientDetailSheet({
               <ClinicHistoryViewer userId={userId} userName={userName} />
             )}
             {activeTab === 'quotes' && <UserQuotes userId={userId} />}
-            {activeTab === 'orders' && <UserOrders userId={userId} patient={user} />}
             {activeTab === 'invoices' && <UserInvoices userId={userId} />}
             {activeTab === 'payments' && <UserPayments userId={userId} />}
             {activeTab === 'appointments' && <UserAppointments user={user} />}
