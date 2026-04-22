@@ -4959,6 +4959,17 @@
       "cancelled": "Cancelled",
       "paused": "Paused"
     },
+    "createSession": {      
+      "title": "Create Session Details",
+      "description": "Description",
+      "service": "Service",
+      "date": "Date",
+      "doctor": "Doctor",
+      "notes": "Notes",
+      "notesPlaceholder": "Add notes for this session",
+      "confirm": "Confirm",
+      "doctorPlaceholder": "Select doctor attending this session"
+    },
     "stepStatus": {
       "pending": "Pending",
       "scheduled": "Scheduled",

@@ -909,12 +909,17 @@ function CreateSessionFromStepDialog({
             if (notes.trim()) formData.append('notas', notes.trim());
 
             const response: any = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
-            const sesionId: number =
+            /*const sesionId: number =
                 response?.data?.id ??
                 response?.sesion_id ??
                 response?.data?.sesion_id ??
                 response?.id ??
                 null;
+                */
+            // Si response es un array, extrae el primer objeto; si no, úsalo tal cual.
+            const body = Array.isArray(response) ? response[0] : response;
+
+            const sesionId = body?.data?.id || body?.id || null;
 
             if (!sesionId) throw new Error('No sesion_id in response');
 

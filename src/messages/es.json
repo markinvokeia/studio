@@ -4927,6 +4927,17 @@
       "cancelled": "Cancelado",
       "paused": "Pausado"
     },
+    "createSession": {      
+      "title": "Crear detalles de la sesión",
+      "description": "Descripción",
+      "service": "Servicio",
+      "date": "Fecha",
+      "doctor": "Doctor",
+      "notes": "Notas",
+      "notesPlaceholder": "Agregar notas para esta sesión",
+      "confirm": "Confirmar",
+      "doctorPlaceholder": "Seleccionar doctor que atenderá esta sesión"
+    },
     "stepStatus": {
       "pending": "Pendiente",
       "scheduled": "Agendado",
