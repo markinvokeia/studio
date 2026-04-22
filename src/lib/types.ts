@@ -623,6 +623,8 @@ export type TreatmentSequenceStep = {
   scheduled_date?: string;
   /** appointments.id — present when this step has a calendar appointment */
   appointment_id?: string;
+  /** patient_sessions.sesion_id — present when a clinical session has been linked to this step */
+  sesion_id?: string | null;
   status: TreatmentSequenceStepStatus;
   notes?: string;
   completed_at?: string;
@@ -650,6 +652,18 @@ export type TreatmentSequence = {
   doctor_email?: string;
   google_calendar_id?: string | null;
   started_by?: string;
+};
+
+export type SessionPrefillData = {
+  step_id?: string;
+  service_id?: string;
+  scheduled_date?: string;
+  doctor_id?: string;
+  doctor_name?: string;
+  step_number?: number;
+  step_name?: string;
+  notes?: string;
+  appointment_id?: string;
 };
 
 // ── Step operation types ──────────────────────────────────────────────────────
@@ -716,6 +730,7 @@ export type StepSchedulePayload = {
   scheduled_time: string;   // HH:mm
   duration_minutes: number;
   notes?: string;
+  service_id?: string;
   google_calendar_id?: string | null;
 };
 

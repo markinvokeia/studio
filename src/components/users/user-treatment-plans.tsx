@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/select';
 import type {
     AvailabilityResult,
+    SessionPrefillData,
     StepCascadeMode,
     TreatmentSequence,
     TreatmentSequenceStatus,
@@ -49,6 +50,8 @@ import type {
     TreatmentSequenceStepStatus,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { API_ROUTES } from '@/constants/routes';
+import { api } from '@/services/api';
 import {
     changeStepStatus,
     deleteTreatmentStep,
@@ -63,7 +66,9 @@ import {
     AlertTriangle,
     CalendarCheck,
     CalendarPlus,
+    CalendarSearch,
     CheckCircle2,
+    ClipboardCheck,
     ChevronDown,
     ChevronRight,
     Circle,
@@ -86,6 +91,9 @@ interface UserTreatmentPlansProps {
     userId: string;
     userName?: string;
     onCreateAppointment?: () => void;
+    onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
+    onViewSession?: (sesionId: number) => void;
+    onStepCompleted?: (data: SessionPrefillData) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -543,6 +551,9 @@ interface ScheduleDialogState {
     defaultDoctorName: string;
     patientId: string;
     defaultGoogleCalendarId: string | null;
+    serviceId: string;
+    serviceName: string;
+    defaultNotes: string;
 }
 
 function ScheduleStepDialog({
@@ -552,16 +563,17 @@ function ScheduleStepDialog({
     t,
 }: {
     state: ScheduleDialogState;
-    onConfirm: (date: string, time: string, duration: number, doctorId: string, doctorName: string, googleCalendarId: string | null, notify: boolean) => Promise<void>;
+    onConfirm: (date: string, time: string, duration: number, doctorId: string, doctorName: string, googleCalendarId: string | null, notify: boolean, notes: string) => Promise<void>;
     onClose: () => void;
     t: ReturnType<typeof useTranslations>;
 }) {
-    const [date, setDate] = React.useState('');
+    const [date, setDate] = React.useState(state.defaultDate);
     const [time, setTime] = React.useState('09:00');
     const [duration, setDuration] = React.useState(60);
     const [doctorId, setDoctorId] = React.useState(state.defaultDoctorId);
     const [doctorName, setDoctorName] = React.useState(state.defaultDoctorName);
     const [googleCalendarId, setGoogleCalendarId] = React.useState<string | null>(state.defaultGoogleCalendarId);
+    const [notes, setNotes] = React.useState(state.defaultNotes);
     const [notify, setNotify] = React.useState(true);
     const [isSaving, setIsSaving] = React.useState(false);
     const [availability, setAvailability] = React.useState<AvailabilityResult | null>(null);
@@ -579,6 +591,7 @@ function ScheduleStepDialog({
         setGoogleCalendarId(state.defaultGoogleCalendarId);
         setDate(state.defaultDate);
         setTime('09:00');
+        setNotes(state.defaultNotes);
         setAvailability(null);
 
         import('@/services/api').then(({ default: api }) =>
@@ -610,7 +623,7 @@ function ScheduleStepDialog({
                     .finally(() => setIsLoadingCalendars(false));
             })
         );
-    }, [state.open, state.defaultDate, state.defaultDoctorId, state.defaultDoctorName, state.defaultGoogleCalendarId]);
+    }, [state.open, state.defaultDate, state.defaultDoctorId, state.defaultDoctorName, state.defaultGoogleCalendarId, state.defaultNotes]);
 
     async function checkAvailability() {
         if (!date || !doctorId) return;
@@ -782,6 +795,28 @@ function ScheduleStepDialog({
                         </div>
                     )}
 
+                    {/* Service (read-only) */}
+                    {state.serviceName && (
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('schedule.service')}</Label>
+                            <div className="flex items-center h-9 px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground">
+                                {state.serviceName}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Notes */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('schedule.notes')}</Label>
+                        <textarea
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            rows={3}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                            placeholder={t('schedule.notesPlaceholder')}
+                        />
+                    </div>
+
                     {/* Notify */}
                     <div className="flex items-center gap-2">
                         <Checkbox id="notify" checked={notify} onCheckedChange={(v) => setNotify(!!v)} />
@@ -799,12 +834,180 @@ function ScheduleStepDialog({
                         disabled={!canSave || isSaving}
                         onClick={async () => {
                             setIsSaving(true);
-                            try { await onConfirm(date, time, duration, doctorId, doctorName, googleCalendarId, notify); }
+                            try { await onConfirm(date, time, duration, doctorId, doctorName, googleCalendarId, notify, notes); }
                             finally { setIsSaving(false); }
                         }}
                     >
                         {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
                         {t('schedule.confirm')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+// ─── Create Session from Step dialog ──────────────────────────────────────────
+
+interface CreateSessionState {
+    open: boolean;
+    stepId: string;
+    prefill: {
+        date: string;
+        doctorId: string;
+        doctorName: string;
+        notes: string;
+        serviceId: string;
+        serviceName: string;
+    };
+}
+
+function CreateSessionFromStepDialog({
+    state,
+    patientId,
+    sequenceId,
+    onSuccess,
+    onClose,
+    t,
+}: {
+    state: CreateSessionState;
+    patientId: string;
+    sequenceId: string;
+    onSuccess: (sesionId: number, stepId: string) => void;
+    onClose: () => void;
+    t: ReturnType<typeof useTranslations>;
+}) {
+    const [date, setDate] = React.useState(state.prefill.date);
+    const [doctorId, setDoctorId] = React.useState(state.prefill.doctorId);
+    const [notes, setNotes] = React.useState(state.prefill.notes);
+    const [doctors, setDoctors] = React.useState<{ id: string; name: string }[]>([]);
+    const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(true);
+    const [isSaving, setIsSaving] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!state.open) return;
+        setDate(state.prefill.date);
+        setDoctorId(state.prefill.doctorId);
+        setNotes(state.prefill.notes);
+        setIsLoadingDoctors(true);
+        api.get(API_ROUTES.USERS_DOCTORS)
+            .then((data: any) => setDoctors((Array.isArray(data) ? data : []).map((d: any) => ({ id: String(d.id), name: d.name as string }))))
+            .catch(() => setDoctors([]))
+            .finally(() => setIsLoadingDoctors(false));
+    }, [state.open, state.prefill.date, state.prefill.doctorId, state.prefill.notes]);
+
+    if (!state.open) return null;
+
+    async function handleSave() {
+        if (!date || !patientId) return;
+        setIsSaving(true);
+        try {
+            const formData = new FormData();
+            formData.append('paciente_id', patientId);
+            formData.append('fecha', date);
+            if (doctorId) formData.append('doctor_id', doctorId);
+            if (notes.trim()) formData.append('notas', notes.trim());
+
+            const response: any = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+            const sesionId: number =
+                response?.data?.id ??
+                response?.sesion_id ??
+                response?.data?.sesion_id ??
+                response?.id ??
+                null;
+
+            if (!sesionId) throw new Error('No sesion_id in response');
+
+            await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ADD_SESSION, {
+                seq_step_id: Number(state.stepId),
+                sesion_id: sesionId,
+            });
+
+            onSuccess(sesionId, state.stepId);
+            onClose();
+        } catch (err) {
+            console.error('Failed to create session from step', err);
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    return (
+        <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Stethoscope className="h-4 w-4 text-primary shrink-0" />
+                        {t('createSession.title')}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs">
+                        {t('createSession.description')}
+                    </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 px-6 py-5 overflow-y-auto">
+                    {/* Service (read-only) */}
+                    {state.prefill.serviceName && (
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('createSession.service')}</Label>
+                            <div className="flex items-center h-9 px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground">
+                                {state.prefill.serviceName}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Date */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('createSession.date')}</Label>
+                        <DatePickerInput value={date} onChange={setDate} />
+                    </div>
+
+                    {/* Doctor */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('createSession.doctor')}</Label>
+                        {isLoadingDoctors ? (
+                            <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            </div>
+                        ) : (
+                            <Select value={doctorId} onValueChange={setDoctorId}>
+                                <SelectTrigger className="h-9 text-sm">
+                                    <SelectValue placeholder={t('createSession.doctorPlaceholder')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {doctors.map(d => (
+                                        <SelectItem key={d.id} value={d.id} className="text-sm">{d.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+
+                    {/* Notes */}
+                    <div className="space-y-1.5">
+                        <Label className="text-xs font-medium">{t('createSession.notes')}</Label>
+                        <textarea
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            rows={3}
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                            placeholder={t('createSession.notesPlaceholder')}
+                        />
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose} disabled={isSaving}>
+                        {t('edit.cancel')}
+                    </Button>
+                    <Button
+                        size="sm"
+                        className="h-8 text-xs gap-1.5"
+                        disabled={!date || isSaving}
+                        onClick={handleSave}
+                    >
+                        {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {t('createSession.confirm')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -819,12 +1022,18 @@ function StepTimeline({
     patientId,
     onStepsChange,
     onSequenceStatusChange,
+    onViewAppointment,
+    onViewSession,
+    onStepCompleted,
     t,
 }: {
     sequence: TreatmentSequence;
     patientId: string;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
     onSequenceStatusChange?: (id: string, status: TreatmentSequenceStatus) => void;
+    onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
+    onViewSession?: (sesionId: number) => void;
+    onStepCompleted?: (data: SessionPrefillData) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [editingStepId, setEditingStepId] = React.useState<string | null>(null);
@@ -847,9 +1056,36 @@ function StepTimeline({
     });
     const [scheduleDialog, setScheduleDialog] = React.useState<ScheduleDialogState>({
         open: false, stepId: '', stepPosition: 0, stepName: '', sequenceId: '',
-        defaultDate: '',
-        defaultDoctorId: '', defaultDoctorName: '', patientId: '', defaultGoogleCalendarId: null,
+        defaultDate: '', defaultDoctorId: '', defaultDoctorName: '', patientId: '', defaultGoogleCalendarId: null,
+        serviceId: '', serviceName: '', defaultNotes: '',
     });
+    const [createSessionDialog, setCreateSessionDialog] = React.useState<CreateSessionState>({
+        open: false,
+        stepId: '',
+        prefill: { date: '', doctorId: '', doctorName: '', notes: '', serviceId: '', serviceName: '' },
+    });
+
+    function openCreateSessionDialog(step: TreatmentSequenceStep) {
+        const noteParts = [step.step_name, step.notes].filter(Boolean);
+        setCreateSessionDialog({
+            open: true,
+            stepId: step.id,
+            prefill: {
+                date: step.scheduled_date ?? '',
+                doctorId: sequence.doctor_id ?? '',
+                doctorName: sequence.doctor_name ?? '',
+                notes: noteParts.join('\n'),
+                serviceId: sequence.service_id ?? '',
+                serviceName: sequence.service_name ?? '',
+            },
+        });
+    }
+
+    function handleSessionCreated(sesionId: number, stepId: string) {
+        onStepsChange(sequence.id, sequence.steps.map(s =>
+            s.id === stepId ? { ...s, sesion_id: String(sesionId) } : s
+        ));
+    }
 
     // ── Save step (edit) ──────────────────────────────────────────────────────
 
@@ -1032,6 +1268,7 @@ function StepTimeline({
             : status === 'cancelled' ? 'cancelled' as const
             : undefined
             : undefined;
+        const originalStep = sequence.steps.find(s => s.id === stepId);
         try {
             const res = await changeStepStatus({
                 seq_step_id: Number(stepId),
@@ -1039,6 +1276,7 @@ function StepTimeline({
                 appointment_status: appointmentStatus,
                 notify_patient: notify,
             });
+            const updatedStep = res.step ?? originalStep;
             if (res.success && res.step) {
                 const updated = sequence.steps.map(s => s.id === stepId ? res.step! : s);
                 onStepsChange(sequence.id, updated);
@@ -1052,6 +1290,9 @@ function StepTimeline({
                         : s
                 ));
             }
+            if (status === 'completed' && updatedStep && !updatedStep.sesion_id) {
+                openCreateSessionDialog(updatedStep);
+            }
         } finally {
             setIsBusy(false);
         }
@@ -1060,6 +1301,7 @@ function StepTimeline({
     // ── Schedule step (create appointment) ────────────────────────────────────
 
     function openScheduleDialog(step: TreatmentSequenceStep) {
+        const stepNoteParts = [step.step_name, step.notes].filter(Boolean);
         setScheduleDialog({
             open: true,
             stepId: step.id,
@@ -1071,10 +1313,13 @@ function StepTimeline({
             defaultDoctorName: sequence.doctor_name ?? '',
             patientId: patientId,
             defaultGoogleCalendarId: sequence.google_calendar_id ?? null,
+            serviceId: sequence.service_id ?? '',
+            serviceName: sequence.service_name ?? '',
+            defaultNotes: stepNoteParts.join('\n'),
         });
     }
 
-    async function executeSchedule(date: string, time: string, duration: number, doctorId: string, doctorName: string, googleCalendarId: string | null, _notify: boolean) {
+    async function executeSchedule(date: string, time: string, duration: number, doctorId: string, doctorName: string, googleCalendarId: string | null, _notify: boolean, notes: string) {
         const res = await scheduleStep({
             seq_step_id: Number(scheduleDialog.stepId),
             patient_id: scheduleDialog.patientId,
@@ -1083,6 +1328,8 @@ function StepTimeline({
             scheduled_date: date,
             scheduled_time: time,
             duration_minutes: duration,
+            notes: notes || undefined,
+            service_id: scheduleDialog.serviceId || undefined,
             google_calendar_id: googleCalendarId,
         });
         setScheduleDialog(prev => ({ ...prev, open: false }));
@@ -1155,6 +1402,42 @@ function StepTimeline({
                                             onClick={() => openScheduleDialog(step)}
                                         >
                                             <CalendarPlus className="h-3 w-3" />
+                                        </Button>
+                                    )}
+
+                                    {/* View appointment button — for steps with an appointment */}
+                                    {step.appointment_id && step.status !== 'completed' && onViewAppointment && (
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            className="h-6 w-6 text-muted-foreground hover:text-blue-500"
+                                            title={t('edit.viewAppointment')}
+                                            onClick={() => onViewAppointment(step.appointment_id!, step.scheduled_date, sequence.service_id, sequence.service_name)}
+                                        >
+                                            <CalendarSearch className="h-3 w-3" />
+                                        </Button>
+                                    )}
+
+                                    {/* Create session button — when no session linked yet and step not cancelled */}
+                                    {!step.sesion_id && step.status !== 'cancelled' && (
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            className="h-6 w-6 text-muted-foreground hover:text-emerald-600"
+                                            title={t('edit.createSession')}
+                                            onClick={() => openCreateSessionDialog(step)}
+                                        >
+                                            <Stethoscope className="h-3 w-3" />
+                                        </Button>
+                                    )}
+
+                                    {/* View/edit session button — when step has a linked session */}
+                                    {!!step.sesion_id && onViewSession && (
+                                        <Button
+                                            variant="ghost" size="icon"
+                                            className="h-6 w-6 text-muted-foreground hover:text-emerald-600"
+                                            title={t('edit.viewSession')}
+                                            onClick={() => onViewSession(Number(step.sesion_id))}
+                                        >
+                                            <ClipboardCheck className="h-3 w-3" />
                                         </Button>
                                     )}
 
@@ -1255,10 +1538,18 @@ function StepTimeline({
             />
             <ScheduleStepDialog
                 state={scheduleDialog}
-                onConfirm={(date, time, duration, doctorId, doctorName, googleCalendarId, notify) =>
-                    executeSchedule(date, time, duration, doctorId, doctorName, googleCalendarId, notify)
+                onConfirm={(date, time, duration, doctorId, doctorName, googleCalendarId, notify, notes) =>
+                    executeSchedule(date, time, duration, doctorId, doctorName, googleCalendarId, notify, notes)
                 }
                 onClose={() => setScheduleDialog(prev => ({ ...prev, open: false }))}
+                t={t}
+            />
+            <CreateSessionFromStepDialog
+                state={createSessionDialog}
+                patientId={patientId}
+                sequenceId={sequence.id}
+                onSuccess={handleSessionCreated}
+                onClose={() => setCreateSessionDialog(prev => ({ ...prev, open: false }))}
                 t={t}
             />
         </div>
@@ -1446,12 +1737,18 @@ function ActivePlanCard({
     patientId,
     onStepsChange,
     onSequenceStatusChange,
+    onViewAppointment,
+    onViewSession,
+    onStepCompleted,
     t,
 }: {
     sequence: TreatmentSequence;
     patientId: string;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
     onSequenceStatusChange?: (id: string, status: TreatmentSequenceStatus) => void;
+    onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
+    onViewSession?: (sesionId: number) => void;
+    onStepCompleted?: (data: SessionPrefillData) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [expanded, setExpanded] = React.useState(false);
@@ -1548,6 +1845,9 @@ function ActivePlanCard({
                             patientId={patientId}
                             onStepsChange={onStepsChange}
                             onSequenceStatusChange={onSequenceStatusChange}
+                            onViewAppointment={onViewAppointment}
+                            onViewSession={onViewSession}
+                            onStepCompleted={onStepCompleted}
                             t={t}
                         />
                     </div>
@@ -1563,11 +1863,17 @@ function CompactSequenceCard({
     sequence,
     patientId,
     onStepsChange,
+    onViewAppointment,
+    onViewSession,
+    onStepCompleted,
     t,
 }: {
     sequence: TreatmentSequence;
     patientId: string;
     onStepsChange: (id: string, steps: TreatmentSequenceStep[]) => void;
+    onViewAppointment?: (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => void;
+    onViewSession?: (sesionId: number) => void;
+    onStepCompleted?: (data: SessionPrefillData) => void;
     t: ReturnType<typeof useTranslations>;
 }) {
     const [expanded, setExpanded] = React.useState(false);
@@ -1597,7 +1903,9 @@ function CompactSequenceCard({
             <Collapsible open={expanded}>
                 <CollapsibleContent>
                     <div className="px-3 pb-3 pt-2 border-t border-border">
-                        <StepTimeline sequence={sequence} patientId={patientId} onStepsChange={onStepsChange} t={t} />
+                        <StepTimeline sequence={sequence} patientId={patientId} onStepsChange={onStepsChange}
+                            onViewAppointment={onViewAppointment} onViewSession={onViewSession}
+                            onStepCompleted={onStepCompleted} t={t} />
                     </div>
                 </CollapsibleContent>
             </Collapsible>
@@ -1607,7 +1915,7 @@ function CompactSequenceCard({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmentPlansProps) {
+export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointment, onViewSession, onStepCompleted }: UserTreatmentPlansProps) {
     const t = useTranslations('TreatmentPlans');
     const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -1669,6 +1977,9 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
                     patientId={userId}
                     onStepsChange={handleStepsChange}
                     onSequenceStatusChange={handleSequenceStatusChange}
+                    onViewAppointment={onViewAppointment}
+                    onViewSession={onViewSession}
+                    onStepCompleted={onStepCompleted}
                     t={t}
                 />
             ))}
@@ -1692,7 +2003,9 @@ export function UserTreatmentPlans({ userId, onCreateAppointment }: UserTreatmen
                         <CollapsibleContent>
                             <div className="space-y-2 pt-1">
                                 {historical.map(seq => (
-                                    <CompactSequenceCard key={seq.id} sequence={seq} patientId={userId} onStepsChange={handleStepsChange} t={t} />
+                                    <CompactSequenceCard key={seq.id} sequence={seq} patientId={userId}
+                                        onStepsChange={handleStepsChange} onViewAppointment={onViewAppointment}
+                                        onViewSession={onViewSession} onStepCompleted={onStepCompleted} t={t} />
                                 ))}
                             </div>
                         </CollapsibleContent>

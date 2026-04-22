@@ -335,6 +335,7 @@ export const API_ROUTES = {
         SEQUENCE_STATUS: '/treatment-plans/sequences/status',
         SEQUENCE_SCHEDULE: '/treatment-plans/sequences/schedule',
         SEQUENCE_ABANDON_CHECK: '/treatment-plans/sequences/abandon-check',
+        SEQUENCE_ADD_SESSION: '/treatment-plans/sequences/add-session',
     },
     MUTUAL_SOCIETIES: '/mutual-societies',
     MUTUAL_SOCIETIES_UPSERT: '/mutual-society',

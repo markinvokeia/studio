@@ -41,7 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
-import { PatientSession, Quote } from '@/lib/types';
+import { PatientSession, Quote, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { format, isBefore, isValid, parseISO } from 'date-fns';
@@ -90,6 +90,9 @@ interface ClinicHistoryViewerProps {
     userName?: string;
     createSessionTrigger?: number;
     createDocumentTrigger?: number;
+    sessionPrefill?: SessionPrefillData | null;
+    onSessionCreated?: (sesionId: number, stepId?: string) => void;
+    editSessionId?: number | null;
     onClinicalDataChange?: () => void;
     /** Deep-link: navigate to this view on mount (one-shot) */
     deepLinkView?: string;
@@ -97,7 +100,7 @@ interface ClinicHistoryViewerProps {
 
 type ActiveView = 'anamnesis' | 'timeline' | 'odontogram' | 'documents';
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, onClinicalDataChange, deepLinkView }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, deepLinkView }: ClinicHistoryViewerProps) {
     const t = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const [activeView, setActiveView] = React.useState<ActiveView>('anamnesis');
@@ -275,6 +278,9 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                                 onLoadSessionAttachment={getSessionAttachment}
                                 createTrigger={localSessionTrigger}
                                 onTriggerConsumed={() => setLocalSessionTrigger(0)}
+                                sessionPrefill={sessionPrefill}
+                                onSessionCreated={onSessionCreated}
+                                editSessionId={editSessionId}
                             />
                         )}
                         {activeView === 'odontogram' && (
@@ -1539,17 +1545,20 @@ interface TreatmentTimelineProps {
     doctors: { id: string; name: string }[];
     isLoadingDoctors: boolean;
     isSubmittingSession: boolean;
-    onCreateSession: (userId: string, data: any, files?: File[]) => Promise<void>;
+    onCreateSession: (userId: string, data: any, files?: File[]) => Promise<number | undefined>;
     onUpdateSession: (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[], existingAttachments?: any[]) => Promise<void>;
     onDeleteSession: (sessionId: number, userId: string) => Promise<void>;
+    onSessionCreated?: (sesionId: number, stepId?: string) => void;
+    editSessionId?: number | null;
     onFetchDoctors: () => Promise<void>;
     onRefreshAll: (userId: string) => Promise<void>;
     onLoadSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
     createTrigger?: number;
     onTriggerConsumed?: () => void;
+    sessionPrefill?: SessionPrefillData | null;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1559,6 +1568,15 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
+
+    // Open edit dialog when editSessionId is provided from outside (e.g. treatment plan step)
+    React.useEffect(() => {
+        if (!editSessionId) return;
+        const session = sessions.find(s => s.sesion_id === editSessionId);
+        if (session) {
+            handleEditSession(session);
+        }
+    }, [editSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Quote selection states
     const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
@@ -1570,6 +1588,21 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
     React.useEffect(() => {
         if (createTrigger > 0) {
             setEditingSession(null);
+            if (sessionPrefill) {
+                setSessionForm({
+                    doctor_id: sessionPrefill.doctor_id ?? '',
+                    doctor_name: sessionPrefill.doctor_name ?? '',
+                    fecha_sesion: sessionPrefill.scheduled_date ?? new Date().toISOString().split('T')[0],
+                    procedimiento_realizado: sessionPrefill.step_name
+                        ? `${sessionPrefill.step_number ? `Paso ${sessionPrefill.step_number}: ` : ''}${sessionPrefill.step_name}`
+                        : '',
+                    plan_proxima_cita: sessionPrefill.notes ?? '',
+                    fecha_proxima_cita: '',
+                    quote_id: '',
+                    appointment_id: sessionPrefill.appointment_id ?? '',
+                    step_id: sessionPrefill.step_id ?? '',
+                });
+            }
             onFetchDoctors();
             setIsSessionDialogOpen(true);
             onTriggerConsumed?.();
@@ -1585,6 +1618,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
         quote_id: '',
+        appointment_id: '',
+        step_id: '',
     });
     const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
 
@@ -1678,6 +1713,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
             plan_proxima_cita: '',
             fecha_proxima_cita: '',
             quote_id: '',
+            appointment_id: '',
+            step_id: '',
         });
         setSessionTreatments([]);
         setAttachedFiles([]);
@@ -1698,6 +1735,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
             plan_proxima_cita: session.plan_proxima_cita || '',
             fecha_proxima_cita: (session as any).fecha_proxima_cita || '',
             quote_id: (session as any).quote_id || '',
+            appointment_id: (session as any).appointment_id || '',
+            step_id: '',
         });
         setSessionTreatments((session.tratamientos || []).map(t => ({
             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
@@ -1792,7 +1831,10 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
             if (editingSession?.sesion_id) {
                 await onUpdateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds, existingAttachments);
             } else {
-                await onCreateSession(userId, dataToSave, attachedFiles);
+                const newSesionId = await onCreateSession(userId, dataToSave, attachedFiles);
+                if (newSesionId && onSessionCreated) {
+                    onSessionCreated(newSesionId, (dataToSave as any).step_id);
+                }
             }
             toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
             setIsSessionDialogOpen(false);

@@ -61,7 +61,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Calendar as CalendarType, PatientDischarge, Quote, Service, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, PatientDischarge, Quote, Service, SessionPrefillData, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -734,6 +734,7 @@ export default function UsersPage() {
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
+  const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
@@ -741,6 +742,8 @@ export default function UsersPage() {
   const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
   const [refreshAppointmentsTrigger, setRefreshAppointmentsTrigger] = React.useState(0);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
+  const [editingAppointmentForPlan, setEditingAppointmentForPlan] = React.useState<Appointment | null>(null);
+  const [editSessionId, setEditSessionId] = React.useState<number | null>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
@@ -791,6 +794,81 @@ export default function UsersPage() {
       setIsLoadingApptData(false);
     }
   }, []);
+
+  const handleViewApptFromPlan = React.useCallback(async (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => {
+    await loadApptData();
+    try {
+      // Use the scheduled_date day as the search window; fall back to ±1 year if unknown
+      const baseDate = scheduledDate ? new Date(scheduledDate) : new Date();
+      const start = new Date(baseDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(baseDate);
+      end.setHours(23, 59, 59, 999);
+      const fmt = (d: Date) => format(d, 'yyyy-MM-dd HH:mm:ss');
+
+      const calendarIds = apptCalendars.map(c => c.id).join(',');
+      const query: Record<string, string> = {
+        startingDateAndTime: fmt(start),
+        endingDateAndTime: fmt(end),
+        user_id: String(selectedUser?.id ?? ''),
+        appointment_id: appointmentId,
+      };
+      if (calendarIds) query.calendar_source_ids = calendarIds;
+
+      const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
+      let rows: any[] = Array.isArray(data) && data.length > 0 && 'json' in data[0]
+        ? data.map((r: any) => r.json)
+        : (Array.isArray(data) ? data : []);
+
+      // Find the specific appointment by id
+      const raw = rows.find((r: any) =>
+        String(r.appointment_id ?? r.id ?? '') === String(appointmentId)
+      ) ?? rows[0];
+
+      if (!raw) throw new Error('not found');
+
+      const cal = apptCalendars.find(c =>
+        String(c.id) === String(raw.calendar_source_id) ||
+        c.google_calendar_id === raw.google_calendar_id
+      );
+      const startNode = raw.start_time ?? raw.start;
+      const startStr: string = typeof startNode === 'string' ? startNode : (startNode?.dateTime ?? '');
+      const endNode = raw.end_time ?? raw.end;
+
+      const appt: Appointment = {
+        id: String(raw.appointment_id ?? raw.id ?? appointmentId),
+        patientId: String(raw.patient_id ?? raw.patientId ?? ''),
+        patientName: raw.patient_name ?? raw.patientName ?? '',
+        patientEmail: raw.patient_email ?? raw.patientEmail,
+        patientPhone: raw.patient_phone ?? raw.patientPhone,
+        doctorId: String(raw.doctor_id ?? raw.assignee_id ?? ''),
+        doctorName: raw.doctor_name ?? raw.assignee_name ?? '',
+        doctorEmail: raw.doctor_email,
+        summary: raw.summary ?? raw.service_name ?? '',
+        notes: raw.notes ?? raw.description ?? '',
+        date: startStr ? startStr.split('T')[0].replace(' ', 'T').split('T')[0] : (scheduledDate ?? ''),
+        time: startStr && startStr.includes('T') ? startStr.split('T')[1].slice(0, 5) : '',
+        status: raw.status ?? 'scheduled',
+        calendar_source_id: cal ? String(cal.id) : String(raw.calendar_source_id ?? ''),
+        google_calendar_id: raw.google_calendar_id,
+        googleEventId: raw.google_event_id ?? raw.googleEventId,
+        calendar_name: cal?.name ?? raw.calendar_name,
+        start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
+        end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
+        services: Array.isArray(raw.services) && raw.services.length > 0
+          ? raw.services.map((s: any) => ({ id: String(s.id), name: s.name ?? '' }))
+          : (serviceId ? [{ id: serviceId, name: serviceName ?? '' } as any] : []),
+        quote_id: raw.quote_id,
+        quote_doc_no: raw.quote_doc_no,
+      };
+      setEditingAppointmentForPlan(appt);
+      setIsAppointmentDialogOpen(true);
+    } catch {
+      // Fallback: open create dialog
+      setEditingAppointmentForPlan(null);
+      setIsAppointmentDialogOpen(true);
+    }
+  }, [loadApptData, apptCalendars, selectedUser]);
 
   const fetchPatientAllergies = React.useCallback(async (userId: string) => {
     try {
@@ -1712,10 +1790,23 @@ export default function UsersPage() {
                               userName={selectedUser.name}
                               createSessionTrigger={createSessionTrigger}
                               createDocumentTrigger={createDocumentTrigger}
+                              sessionPrefill={sessionPrefill}
+                              editSessionId={editSessionId}
                               deepLinkView={deepLinkView}
+                              onSessionCreated={async (sesionId, stepId) => {
+                                if (stepId) {
+                                  try {
+                                    await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ADD_SESSION, { id: stepId, sesion_id: sesionId });
+                                  } catch (e) {
+                                    console.error('Failed to link session to step', e);
+                                  }
+                                }
+                                setEditSessionId(null);
+                              }}
                               onClinicalDataChange={() => {
                                 fetchPatientAllergies(selectedUser.id);
                                 fetchPatientConditions(selectedUser.id);
+                                setSessionPrefill(null);
                               }}
                             />
                           )}
@@ -1774,6 +1865,11 @@ export default function UsersPage() {
                               userId={selectedUser.id}
                               userName={selectedUser.name}
                               onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
+                              onViewAppointment={(appointmentId, scheduledDate, serviceId, serviceName) => handleViewApptFromPlan(appointmentId, scheduledDate, serviceId, serviceName)}
+                              onViewSession={(sesionId) => {
+                                setEditSessionId(sesionId);
+                                setActiveTab('clinical-history');
+                              }}
                             />
                           )}
                           {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}
@@ -2124,8 +2220,10 @@ export default function UsersPage() {
           open={isAppointmentDialogOpen}
           onOpenChange={(open) => {
             setIsAppointmentDialogOpen(open);
+            if (!open) setEditingAppointmentForPlan(null);
           }}
-          initialData={{ user: selectedUser }}
+          editingAppointment={editingAppointmentForPlan}
+          initialData={editingAppointmentForPlan ? undefined : { user: selectedUser }}
           readOnlyFields={{ user: true }}
           calendars={apptCalendars}
           doctors={apptDoctors}
@@ -2134,7 +2232,7 @@ export default function UsersPage() {
           checkDoctorAvailability={checkDoctorAvailability}
           onSaveSuccess={() => {
             setIsAppointmentDialogOpen(false);
-            setActiveTab('appointments');
+            setEditingAppointmentForPlan(null);
             setRefreshAppointmentsTrigger(t => t + 1);
             fetchUserFinancialData(selectedUser.id);
             loadUsers();
