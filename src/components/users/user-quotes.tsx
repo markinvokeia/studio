@@ -279,6 +279,8 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
       id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
       doc_no: q.doc_no || 'N/A',
       user_id: q.user_id || 'N/A',
+      user_name: q.user_name || q.userName || q.name || '',
+      userEmail: q.userEmail || q.user_email || q.email || '',
       total: q.total || 0,
       status: q.status || 'draft',
       payment_status: q.payment_status || 'unpaid',

@@ -160,6 +160,16 @@ export function AppointmentFormDialog({
     // Treatment plan review dialog
     const [pendingSequence, setPendingSequence] = React.useState<TreatmentSequence | null>(null);
     const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
+    const [pendingWorkflowSaveResult, setPendingWorkflowSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
+    const pendingWorkflowCallbackInvokedRef = React.useRef(false);
+
+    const flushPendingWorkflowSaveSuccess = React.useCallback(() => {
+        if (pendingWorkflowCallbackInvokedRef.current) return;
+        if (pendingWorkflowSaveResult && onSaveSuccess) {
+            pendingWorkflowCallbackInvokedRef.current = true;
+            onSaveSuccess(pendingWorkflowSaveResult.result, pendingWorkflowSaveResult.startDateTime);
+        }
+    }, [pendingWorkflowSaveResult, onSaveSuccess]);
 
     // Fetch steps whenever the selected workflow service changes
     React.useEffect(() => {
@@ -733,9 +743,10 @@ export function AppointmentFormDialog({
                             }),
                         };
                         setPendingSequence(builtSequence);
+                        pendingWorkflowCallbackInvokedRef.current = false;
+                        setPendingWorkflowSaveResult({ result, startDateTime });
                         setIsPlanReviewOpen(true);
                         onOpenChange(false);
-                        if (onSaveSuccess) onSaveSuccess(result, startDateTime);
                         return;
                     }
                 }
@@ -1415,10 +1426,18 @@ export function AppointmentFormDialog({
                 open={isPlanReviewOpen}
                 onOpenChange={(open) => {
                     setIsPlanReviewOpen(open);
-                    if (!open) setPendingSequence(null);
+                    if (!open) {
+                        flushPendingWorkflowSaveSuccess();
+                        setPendingSequence(null);
+                        setPendingWorkflowSaveResult(null);
+                    }
                 }}
                 pendingSequence={pendingSequence}
-                onCreated={() => setPendingSequence(null)}
+                onCreated={() => {
+                    flushPendingWorkflowSaveSuccess();
+                    setPendingSequence(null);
+                    setPendingWorkflowSaveResult(null);
+                }}
             />
         )}
         </>
