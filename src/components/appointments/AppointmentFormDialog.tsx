@@ -159,6 +159,7 @@ export function AppointmentFormDialog({
 
     // Treatment plan review dialog
     const [pendingSequence, setPendingSequence] = React.useState<TreatmentSequence | null>(null);
+    const [firstAppointmentId, setFirstAppointmentId] = React.useState<string | undefined>(undefined);
     const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
     const [pendingWorkflowSaveResult, setPendingWorkflowSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
     const pendingWorkflowCallbackInvokedRef = React.useRef(false);
@@ -1436,13 +1437,16 @@ export function AppointmentFormDialog({
                         if (!open) {
                             flushPendingWorkflowSaveSuccess();
                             setPendingSequence(null);
+                            setFirstAppointmentId(undefined);
                             setPendingWorkflowSaveResult(null);
                         }
                     }}
                     pendingSequence={pendingSequence}
+                    firstAppointmentId={firstAppointmentId}
                     onCreated={() => {
                         flushPendingWorkflowSaveSuccess();
                         setPendingSequence(null);
+                        setFirstAppointmentId(undefined);
                         setPendingWorkflowSaveResult(null);
                     }}
                 />
