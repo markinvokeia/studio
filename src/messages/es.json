@@ -3646,7 +3646,8 @@
           "frequencyPlaceholder": "Ej. Cada 8 horas",
           "reasonPlaceholder": "Razon de la medicación",
           "startDatePlaceholder": "Seleccionar fecha de inicio",
-          "endDatePlaceholder": "Seleccionar fecha de fin"
+          "endDatePlaceholder": "Seleccionar fecha de fin",
+          "endDateBeforeStartDate": "La fecha de fin no puede ser menor que la fecha de inicio"
         },
         "allergy": {
           "addTitle": "Agregar Alergia",

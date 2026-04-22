@@ -577,7 +577,7 @@ function ScheduleStepDialog({
         setDoctorId(state.defaultDoctorId);
         setDoctorName(state.defaultDoctorName);
         setGoogleCalendarId(state.defaultGoogleCalendarId);
-        setDate('');
+        setDate(state.defaultDate);
         setTime('09:00');
         setAvailability(null);
 
@@ -610,7 +610,7 @@ function ScheduleStepDialog({
                     .finally(() => setIsLoadingCalendars(false));
             })
         );
-    }, [state.open, state.defaultDoctorId, state.defaultDoctorName, state.defaultGoogleCalendarId]);
+    }, [state.open, state.defaultDate, state.defaultDoctorId, state.defaultDoctorName, state.defaultGoogleCalendarId]);
 
     async function checkAvailability() {
         if (!date || !doctorId) return;
@@ -847,6 +847,7 @@ function StepTimeline({
     });
     const [scheduleDialog, setScheduleDialog] = React.useState<ScheduleDialogState>({
         open: false, stepId: '', stepPosition: 0, stepName: '', sequenceId: '',
+        defaultDate: '',
         defaultDoctorId: '', defaultDoctorName: '', patientId: '', defaultGoogleCalendarId: null,
     });
 
@@ -1065,6 +1066,7 @@ function StepTimeline({
             stepPosition: step.step_number,
             stepName: step.step_name,
             sequenceId: sequence.id,
+            defaultDate: step.scheduled_date ?? '',
             defaultDoctorId: sequence.doctor_id ?? '',
             defaultDoctorName: sequence.doctor_name ?? '',
             patientId: patientId,

@@ -2,7 +2,6 @@
 
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
@@ -45,7 +44,7 @@ import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, 
 import { PatientSession, Quote } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { format, isValid, parseISO } from 'date-fns';
+import { format, isBefore, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import {
     AlertTriangle,
@@ -421,17 +420,6 @@ function AnamnesisSection({
         return relationshipMap[parentesco] || parentesco;
     };
 
-    const parseDateForCalendar = (dateString: string | null | undefined): Date | undefined => {
-        if (!dateString) return undefined;
-        try {
-            const cleanDate = dateString.split('T')[0];
-            const [y, m, d] = cleanDate.split('-');
-            return new Date(Number(y), Number(m) - 1, Number(d));
-        } catch {
-            return undefined;
-        }
-    };
-
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
@@ -739,6 +727,21 @@ function AnamnesisSection({
 
     const handleSubmitMedication = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (medicationFechaInicio && medicationFechaFin) {
+            const startDate = parseISO(medicationFechaInicio);
+            const endDate = parseISO(medicationFechaFin);
+
+            if (isValid(startDate) && isValid(endDate) && isBefore(endDate, startDate)) {
+                toast({
+                    title: t('toast.error'),
+                    description: t('dialogs.medication.endDateBeforeStartDate'),
+                    variant: 'destructive'
+                });
+                return;
+            }
+        }
+
         try {
             if (editingMedicationItem?.id) {
                 await onUpdateMedication(userId, {
@@ -1320,69 +1323,21 @@ function AnamnesisSection({
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-sm font-semibold">{t('dialogs.medication.startDate')}</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full justify-start text-left font-normal h-10 border-input truncate",
-                                                    !medicationFechaInicio && "text-muted-foreground"
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                                                <span className="truncate">
-                                                    {medicationFechaInicio ? formatDate(medicationFechaInicio) : t('dialogs.medication.startDatePlaceholder')}
-                                                </span>
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                month={parseDateForCalendar(medicationFechaInicio)}
-                                                selected={parseDateForCalendar(medicationFechaInicio)}
-                                                onSelect={(date) => {
-                                                    if (!date) { setMedicationFechaInicio(''); return; }
-                                                    const year = date.getFullYear();
-                                                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                                                    const day = String(date.getDate()).padStart(2, '0');
-                                                    setMedicationFechaInicio(`${year}-${month}-${day}`);
-                                                }}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <DatePickerInput
+                                        value={medicationFechaInicio}
+                                        onChange={(value) => setMedicationFechaInicio(value || '')}
+                                        placeholder={t('dialogs.medication.startDatePlaceholder')}
+                                        className="h-10"
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-sm font-semibold">{t('dialogs.medication.endDate')}</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full justify-start text-left font-normal h-10 border-input truncate",
-                                                    !medicationFechaFin && "text-muted-foreground"
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4 shrink-0" />
-                                                <span className="truncate">
-                                                    {medicationFechaFin ? formatDate(medicationFechaFin) : t('dialogs.medication.endDatePlaceholder')}
-                                                </span>
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                month={parseDateForCalendar(medicationFechaFin)}
-                                                selected={parseDateForCalendar(medicationFechaFin)}
-                                                onSelect={(date) => {
-                                                    if (!date) { setMedicationFechaFin(''); return; }
-                                                    const year = date.getFullYear();
-                                                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                                                    const day = String(date.getDate()).padStart(2, '0');
-                                                    setMedicationFechaFin(`${year}-${month}-${day}`);
-                                                }}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                    <DatePickerInput
+                                        value={medicationFechaFin}
+                                        onChange={(value) => setMedicationFechaFin(value || '')}
+                                        placeholder={t('dialogs.medication.endDatePlaceholder')}
+                                        className="h-10"
+                                    />
                                 </div>
                             </div>
                             <div className="space-y-2">

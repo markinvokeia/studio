@@ -336,20 +336,20 @@ function isValidFormattedDate(value: string): boolean {
   return isValidDate(day, month, year)
 }
 
-function isWithinRange(date: Date): boolean {
+function isWithinRange(date: Date, disabledDays?: (date: Date) => boolean): boolean {
   const minDate = new Date('1900-01-01')
-  const maxDate = new Date()
-  maxDate.setHours(23, 59, 59, 999)
-  return date >= minDate && date <= maxDate
+  if (date < minDate) return false
+  if (disabledDays?.(date)) return false
+  return true
 }
 
-function parseFormattedDate(value: string): Date | null {
+function parseFormattedDate(value: string, disabledDays?: (date: Date) => boolean): Date | null {
   if (!isValidFormattedDate(value)) return null
   
   const [day, month, year] = value.split('/').map(Number)
   const date = new Date(year, month - 1, day)
   
-  if (!isWithinRange(date)) return null
+  if (!isWithinRange(date, disabledDays)) return null
   
   return date
 }
@@ -412,7 +412,7 @@ export function DatePickerInput({
       return
     }
     
-    const parsedDate = parseFormattedDate(inputValue)
+    const parsedDate = parseFormattedDate(inputValue, disabledDays)
     
     if (!parsedDate) {
       setError(true)
