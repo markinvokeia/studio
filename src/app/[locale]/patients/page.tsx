@@ -1672,7 +1672,7 @@ export default function UsersPage() {
                             { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
-                            { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
+                            // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
                             { id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') },
                             { id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') },
                             { id: 'appointments', icon: CalendarIcon, label: t('UsersPage.tabs.appointments') },
@@ -1727,6 +1727,7 @@ export default function UsersPage() {
                               }}
                             />
                           )}
+                          {/* hidden: orders tab
                           {activeTab === 'orders' && (
                             <UserOrders
                               userId={selectedUser.id}
@@ -1739,6 +1740,7 @@ export default function UsersPage() {
                               }}
                             />
                           )}
+                          */}
                           {activeTab === 'invoices' && (
                             <UserInvoices
                               userId={selectedUser.id}

@@ -1158,13 +1158,17 @@
       "sendEmail": "Send Email",
       "confirm": "Confirm",
       "reject": "Reject",
+      "invoice": "Invoice",
       "confirmSuccess": "Quote confirmed",
       "confirmError": "Error confirming quote",
       "rejectSuccess": "Quote rejected",
       "rejectError": "Error rejecting quote",
       "printError": "Error downloading quote",
       "emailSuccess": "Quote sent by email",
-      "emailError": "Error sending quote"
+      "emailError": "Error sending quote",
+      "invoiceSuccess": "Invoice Created",
+      "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
+      "invoiceError": "Error creating invoice"
     },
     "sendEmailDialog": {
       "title": "Send Quote by Email",

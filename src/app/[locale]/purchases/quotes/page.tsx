@@ -44,6 +44,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -211,6 +212,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,
             invoiced_date: apiItem.invoiced_date,
+            quote_item_id: apiItem.quote_item_id ? String(apiItem.quote_item_id) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
@@ -412,6 +414,7 @@ function QuotesPageContent() {
     const canUpdateQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_UPDATE);
     const canDeleteQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_DELETE);
     const canConfirmQuote = hasPermission(PURCHASES_PERMISSIONS.QUOTES_CONFIRM);
+    const canInvoice = hasPermission(PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE);
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
@@ -420,6 +423,9 @@ function QuotesPageContent() {
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+    const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
+    const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
+    const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
@@ -579,6 +585,38 @@ function QuotesPageContent() {
             setInvoiceItems([]);
         }
     }, [selectedInvoice, loadInvoiceItems]);
+
+    // Auto-select first order for invoice-ready quotes once orders are loaded
+    React.useEffect(() => {
+        if (isQuoteReadyToInvoice && orders.length > 0) {
+            setSelectedOrder(orders[0]);
+        }
+    }, [isQuoteReadyToInvoice, orders]);
+
+    const handleInvoiceFromQuote = async () => {
+        if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
+        try {
+            await invoiceOrder({
+                orderId: selectedOrder.id,
+                userId: selectedOrder.user_id,
+                mode: 'purchases',
+            });
+            toast({
+                title: t('actions.invoiceSuccess'),
+                description: t('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }),
+            });
+            loadQuotes();
+            loadOrders();
+            loadInvoices();
+            loadOrderItems();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('errors.errorTitle'),
+                description: error instanceof Error ? error.message : t('actions.invoiceError'),
+            });
+        }
+    };
 
     const loadUsersForQuoteDialog = React.useCallback(async () => {
         try {
@@ -1149,6 +1187,14 @@ function QuotesPageContent() {
                                                         onClick={() => handleDeleteQuote(selectedQuote)}
                                                     />
                                                 )}
+                                                {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
+                                                    <ActionButton
+                                                        icon={Receipt}
+                                                        label={t('actions.invoice')}
+                                                        tooltip={t('actions.invoice')}
+                                                        onClick={handleInvoiceFromQuote}
+                                                    />
+                                                )}
                                             </>
                                         }
                                         onClose={handleCloseDetails}
@@ -1158,7 +1204,7 @@ function QuotesPageContent() {
                                     <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
                                         <TabsList>
                                             <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
-                                            <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger>
+                                            {/* hidden: orders tab <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger> */}
                                             <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
                                             <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
                                             <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
@@ -1177,6 +1223,7 @@ function QuotesPageContent() {
                                                     showToothNumber={false}
                                                 />
                                             </TabsContent>
+                                            {/* hidden: orders tab
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
                                                     <div className="flex items-center justify-between mb-2 flex-none">
@@ -1225,6 +1272,7 @@ function QuotesPageContent() {
                                                     </div>
                                                 )}
                                             </TabsContent>
+                                            */}
                                             <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
                                                     <div className="flex items-center justify-between mb-2 flex-none">

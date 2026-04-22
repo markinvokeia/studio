@@ -18,6 +18,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { Order, OrderItem, Quote, User as UserType, UserDetailMode } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
+import { invoiceOrder } from '@/lib/invoice-actions';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, Eye, FileText } from 'lucide-react';
@@ -155,7 +156,9 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
 
-  // Sync selectedOrder when orders array changes
+  // Sync selectedOrder when orders array changes.
+  // selectedOrder is intentionally omitted from deps: we need the stale value
+  // to compare old vs new, otherwise the effect would re-run on every selection change.
   React.useEffect(() => {
     if (selectedOrder && orders.length > 0) {
       const updatedOrder = orders.find(o => o.id === selectedOrder.id);
@@ -171,6 +174,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
         setRowSelection({});
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders]);
 
   // Items
@@ -228,7 +232,10 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
 
   React.useEffect(() => { loadOrders(); }, [loadOrders]);
 
-  // Efecto para refrescar cuando cambia refreshTrigger
+  // Efecto para refrescar cuando cambia refreshTrigger.
+  // loadOrders is intentionally omitted: including it would cause re-runs on every
+  // selectedQuote change, defeating the purpose of the dedicated [loadOrders] effect above.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
     if (refreshTrigger && refreshTrigger > 0) {
       loadOrders(true);
@@ -263,29 +270,13 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
     if (!selectedOrder || !invoiceDate) return;
     setInvoiceSubmissionError(null);
     try {
-      const payload = {
-        order_id: selectedOrder.id,
-        is_sales: isSales,
-        query: JSON.stringify({
-          order_id: parseInt(selectedOrder.id, 10),
-          invoice_date: invoiceDate.toISOString(),
-          is_sales: isSales,
-          user_id: selectedOrder.user_id,
-          notes: invoiceNotes || '',
-        }),
-      };
-
-      const responseData = await api.post(
-        isSales ? API_ROUTES.SALES.ORDER_INVOICE : API_ROUTES.PURCHASES.ORDER_INVOICE,
-        payload
-      );
-      if (responseData.error || (responseData.code && responseData.code >= 400)) {
-        if (responseData.message) {
-          setInvoiceSubmissionError(responseData.message);
-          return;
-        }
-        throw new Error(t('OrdersPage.invoiceDialog.createError'));
-      }
+      await invoiceOrder({
+        orderId: selectedOrder.id,
+        userId: selectedOrder.user_id,
+        mode: isSales ? 'sales' : 'purchases',
+        invoiceDate,
+        notes: invoiceNotes || '',
+      });
 
       toast({
         title: t('OrdersPage.invoiceDialog.invoiceSuccess'),
