@@ -7,16 +7,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
-import { OrdersTable } from '@/components/tables/orders-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Can } from '@/components/auth/Can';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { Invoice, Order, Payment, QuoteItem } from '@/lib/types';
+import { Invoice, Payment, QuoteItem } from '@/lib/types';
 import { api } from '@/services/api';
 import { hasValidPayments } from '@/components/appointments/sheet-utils';
-import { FileText, ListChecks, ShoppingCart, Receipt, CreditCard } from 'lucide-react';
+import { FileText, ListChecks, Receipt, CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -35,26 +34,6 @@ async function fetchQuoteItems(quoteId: string): Promise<QuoteItem[]> {
       quantity: Number(a.quantity) || 0,
       total: Number(a.total) || 0,
       tooth_number: a.tooth_number ? Number(a.tooth_number) : undefined,
-    }));
-  } catch { return []; }
-}
-
-async function fetchQuoteOrders(quoteId: string): Promise<Order[]> {
-  try {
-    const data = await api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId });
-    const raw: any[] = Array.isArray(data) ? data : (data.orders || data.data || []);
-    return raw.map((a: any) => ({
-      id: String(a.id || ''),
-      doc_no: a.doc_no,
-      user_id: a.user_id,
-      quote_id: a.quote_id,
-      quote_doc_no: a.quote_doc_no,
-      user_name: a.user_name || a.name,
-      status: a.status,
-      is_invoiced: a.is_invoiced ?? false,
-      createdAt: a.created_at || a.createdAt || '',
-      updatedAt: a.updated_at || a.updatedAt || '',
-      currency: a.currency,
     }));
   } catch { return []; }
 }
@@ -159,7 +138,6 @@ export function QuoteDetailSheet({
   React.useEffect(() => { setLocalStatus(undefined); }, [quoteId]);
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
-  const [orders, setOrders] = React.useState<Order[]>([]);
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [payments, setPayments] = React.useState<Payment[]>([]);
 
@@ -169,13 +147,11 @@ export function QuoteDetailSheet({
     setIsLoading(true);
     Promise.all([
       fetchQuoteItems(quoteId),
-      fetchQuoteOrders(quoteId),
       fetchQuoteInvoices(quoteId),
       fetchQuotePayments(quoteId),
-    ]).then(([i, o, inv, p]) => {
+    ]).then(([i, inv, p]) => {
       if (!active) return;
       setItems(i);
-      setOrders(o);
       setInvoices(inv);
       setPayments(p);
       setIsLoading(false);
@@ -185,7 +161,6 @@ export function QuoteDetailSheet({
 
   const tabs: VerticalTab[] = [
     { id: 'items', icon: ListChecks, label: t('tabs.items') },
-    { id: 'orders', icon: ShoppingCart, label: t('tabs.orders') },
     { id: 'invoices', icon: Receipt, label: t('tabs.invoices') },
     { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
   ];
@@ -247,13 +222,6 @@ export function QuoteDetailSheet({
                   onCreate={() => {}}
                   onEdit={() => {}}
                   onDelete={() => {}}
-                />
-              )}
-              {activeTab === 'orders' && (
-                <OrdersTable
-                  orders={orders}
-                  isSales={true}
-                  columnsToHide={['user_name', 'quote_doc_no']}
                 />
               )}
               {activeTab === 'invoices' && (

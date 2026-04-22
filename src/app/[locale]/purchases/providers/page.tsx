@@ -938,7 +938,7 @@ function ProvidersPageContent() {
                       { id: 'info', icon: UserCircle, label: 'Información' },
                       ...(canViewServices ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                       ...(canViewQuotes ? [{ id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') }] : []),
-                      ...(canViewOrders ? [{ id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') }] : []),
+                      // hidden: orders tab ...(canViewOrders ? [{ id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') }] : []),
                       ...(canViewInvoices ? [{ id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') }] : []),
                       ...(canViewPayments ? [{ id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') }] : []),
                       { id: 'notes', icon: StickyNote, label: t('ProvidersPage.tabs.notes') },
@@ -1023,6 +1023,7 @@ function ProvidersPageContent() {
                         }}
                       />
                     )}
+                    {/* hidden: orders tab
                     {canViewOrders && activeTab === 'orders' && (
                       <UserOrders
                         userId={selectedProvider.id}
@@ -1035,6 +1036,7 @@ function ProvidersPageContent() {
                         }}
                       />
                     )}
+                    */}
                     {canViewInvoices && activeTab === 'invoices' && (
                       <UserInvoices
                         userId={selectedProvider.id}

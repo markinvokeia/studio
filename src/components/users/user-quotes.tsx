@@ -26,13 +26,15 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
-import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode } from '@/lib/types';
+import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem } from '@/lib/types';
+import { OrderItemsTable } from '@/components/tables/order-items-table';
+import { invoiceOrder } from '@/lib/invoice-actions';
 import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Send, Stethoscope, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, ChevronDown, Eye, Loader2, Pencil, Printer, Receipt, Send, Stethoscope, Trash2, XCircle } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { useTranslations } from 'next-intl';
@@ -136,6 +138,55 @@ function getClinicSessionColumns(t: (key: string) => string): ColumnDef<QuoteCli
       },
     },
   ];
+}
+
+// ── Order helpers for confirmed quotes ───────────────────────────────────────
+async function getOrdersForQuote(quoteId: string, isSales: boolean): Promise<Order[]> {
+  if (!quoteId) return [];
+  try {
+    const route = isSales ? API_ROUTES.SALES.QUOTES_ORDERS : API_ROUTES.PURCHASES.QUOTES_ORDERS;
+    const data = await api.get(route, { quote_id: quoteId, is_sales: isSales ? 'true' : 'false' });
+    const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
+    return ordersData.map((o: any) => ({
+      id: o.id ? String(o.id) : '',
+      doc_no: o.doc_no || '',
+      user_id: o.user_id,
+      quote_id: o.quote_id,
+      quote_doc_no: o.quote_doc_no || '',
+      user_name: o.user_name || o.name || '',
+      status: o.status,
+      createdAt: o.created_at || o.createdAt || new Date().toISOString(),
+      updatedAt: o.updated_at || o.updatedAt || new Date().toISOString(),
+      currency: o.currency || 'UYU',
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function getOrderItemsForOrder(orderId: string, isSales: boolean): Promise<OrderItem[]> {
+  if (!orderId) return [];
+  try {
+    const route = isSales ? API_ROUTES.SALES.ORDER_ITEMS : API_ROUTES.PURCHASES.ORDER_ITEMS;
+    const data = await api.get(route, { order_id: orderId, is_sales: isSales ? 'true' : 'false' });
+    const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
+    return itemsData.map((i: any) => ({
+      id: i.order_item_id ? String(i.order_item_id) : '',
+      service_id: i.service_id || i.id,
+      service_name: i.service_name || '',
+      unit_price: i.unit_price,
+      quantity: i.quantity,
+      total: i.total,
+      tooth_number: i.tooth_number ? Number(i.tooth_number) : undefined,
+      status: i.status || 'scheduled',
+      scheduled_date: i.scheduled_date,
+      completed_date: i.completed_date,
+      quote_item_id: i.quote_item_id != null ? String(i.quote_item_id) : undefined,
+      invoiced_date: i.invoiced_date,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 // ── Columns ───────────────────────────────────────────────────────────────────
@@ -334,6 +385,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const [clinicSessions, setClinicSessions] = React.useState<QuoteClinicSession[]>([]);
   const [isLoadingClinicSessions, setIsLoadingClinicSessions] = React.useState(false);
 
+  // Order state for confirmed quotes
+  const [orders, setOrders] = React.useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
+  const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
+  const [isLoadingOrderItems, setIsLoadingOrderItems] = React.useState(false);
+
   const columns = React.useMemo(() => getColumns(t), [t]);
   const isDraft = selectedQuote?.status?.toLowerCase() === 'draft';
   const canUpdateQuote = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
@@ -348,7 +406,23 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_UPDATE_ITEM : PURCHASES_PERMISSIONS.QUOTES_UPDATE);
   const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_DELETE_ITEM : PURCHASES_PERMISSIONS.QUOTES_DELETE);
   const canEditItems = canUpdateItem && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
+  const canScheduleItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_SCHEDULE_ITEM);
+  const canCompleteItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
+  const canInvoiceFromOrder = hasPermission(
+    isSales
+      ? SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER
+      : PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE
+  );
   const canSend = canSendQuote;
+  const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
+  const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
+  const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
+  const showInvoiceFromOrderButton =
+    canInvoiceFromOrder &&
+    isQuoteReadyToInvoice &&
+    !!selectedOrderBelongsToQuote &&
+    !isLoadingOrderItems &&
+    hasServicesPendingInvoice;
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadQuotes = React.useCallback(async (silent = false) => {
@@ -403,7 +477,33 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     }
   }, []);
 
+  const loadOrders = React.useCallback(async (quoteId: string) => {
+    setIsLoadingOrders(true);
+    setOrders(await getOrdersForQuote(quoteId, isSales));
+    setIsLoadingOrders(false);
+  }, [isSales]);
+
+  const loadOrderItems = React.useCallback(async (orderId: string) => {
+    setIsLoadingOrderItems(true);
+    setOrderItems(await getOrderItemsForOrder(orderId, isSales));
+    setIsLoadingOrderItems(false);
+  }, [isSales]);
+
   React.useEffect(() => { loadQuotes(); }, [loadQuotes]);
+
+  React.useEffect(() => {
+    if (isQuoteReadyToInvoice && orders.length > 0) {
+      setSelectedOrder(orders[0]);
+    }
+  }, [isQuoteReadyToInvoice, orders]);
+
+  React.useEffect(() => {
+    if (selectedOrder) {
+      loadOrderItems(selectedOrder.id);
+    } else {
+      setOrderItems([]);
+    }
+  }, [selectedOrder, loadOrderItems]);
 
   // Efecto para refrescar cuando cambia refreshTrigger
   React.useEffect(() => {
@@ -419,19 +519,30 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const handleRowSelectionChange = React.useCallback((selectedRows: Quote[]) => {
     const quote = selectedRows[0] ?? null;
     setSelectedQuote(quote);
+    setOrders([]);
+    setSelectedOrder(null);
+    setOrderItems([]);
     if (!quote) {
       setIsSheetOpen(false);
       setQuoteItems([]);
+    } else if (['accepted', 'confirmed'].includes(quote.status?.toLowerCase() || '')) {
+      loadOrders(quote.id);
     }
     onQuoteSelect?.(quote);
-  }, [onQuoteSelect]);
+  }, [loadOrders, onQuoteSelect]);
 
   const handleOpenSheet = React.useCallback((quote: Quote) => {
     setIsSheetOpen(true);
     loadItems(quote.id);
     loadServices();
     loadQuoteClinicSessions(quote.id);
-  }, [loadItems, loadServices, loadQuoteClinicSessions]);
+    setOrders([]);
+    setSelectedOrder(null);
+    setOrderItems([]);
+    if (['accepted', 'confirmed'].includes(quote.status?.toLowerCase() || '')) {
+      loadOrders(quote.id);
+    }
+  }, [loadItems, loadServices, loadQuoteClinicSessions, loadOrders]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
@@ -734,6 +845,21 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     }
   };
 
+  const handleInvoiceFromQuote = async () => {
+    if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
+    try {
+      await invoiceOrder({ orderId: selectedOrder.id, userId: selectedOrder.user_id, mode: isSales ? 'sales' : 'purchases' });
+      toast({ title: tQuotes('actions.invoiceSuccess'), description: tQuotes('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }) });
+      await Promise.all([
+        loadQuotes(true),
+        loadOrders(selectedQuote.id),
+        loadOrderItems(selectedOrder.id),
+      ]);
+    } catch (error) {
+      toast({ variant: 'destructive', title: tQuotes('errors.errorTitle'), description: error instanceof Error ? error.message : tQuotes('actions.invoiceError') });
+    }
+  };
+
   // ── Toolbar actions ───────────────────────────────────────────────────────────
   const toolbarActions = selectedQuote ? (
     <div className="flex items-center gap-1.5">
@@ -763,6 +889,17 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             {t('UserQuotes.actions.reject')}
           </Button>
         </>
+      )}
+      {showInvoiceFromOrderButton && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={handleInvoiceFromQuote}
+        >
+          <Receipt className="h-3.5 w-3.5" />
+          {tQuotes('actions.invoice')}
+        </Button>
       )}
       {/* Determinar si hay acciones disponibles para el dropdown */}
       {((canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote)))) && (
@@ -994,19 +1131,36 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </TabsList>
                 <div className="flex-1 min-h-0 mt-4 flex flex-col overflow-hidden">
                   <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                    <p className="text-sm font-semibold mb-2">{t('UserQuotes.items.title')}</p>
-                    <div className="flex-1 overflow-hidden">
-                      <QuoteItemsTable
-                        items={quoteItems}
-                        isLoading={isLoadingItems}
-                        canEdit={canEditItems}
-                        onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => { }}
-                        onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => { }}
-                        onDelete={canDeleteItem ? setDeletingItem : () => { }}
-                        onRefresh={() => loadItems(selectedQuote.id)}
-                        showToothNumber={isSales}
+                    {selectedQuote.status?.toLowerCase() === 'confirmed' && isSales ? (
+                      <OrderItemsTable
+                        items={orderItems}
+                        isLoading={isLoadingOrders || isLoadingOrderItems}
+                        onItemsUpdate={() => selectedOrder && loadOrderItems(selectedOrder.id)}
+                        quoteId={selectedOrder?.quote_id}
+                        quoteDocNo={selectedOrder?.quote_doc_no}
+                        userId={userId}
+                        patient={{ id: userId, name: selectedQuote.user_name || '', email: selectedQuote.userEmail || '', phone_number: '', is_active: true, avatar: '' }}
+                        isSales={true}
+                        canSchedule={canScheduleItem}
+                        canComplete={canCompleteItem}
                       />
-                    </div>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold mb-2">{t('UserQuotes.items.title')}</p>
+                        <div className="flex-1 overflow-hidden">
+                          <QuoteItemsTable
+                            items={quoteItems}
+                            isLoading={isLoadingItems}
+                            canEdit={canEditItems}
+                            onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : () => { }}
+                            onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : () => { }}
+                            onDelete={canDeleteItem ? setDeletingItem : () => { }}
+                            onRefresh={() => loadItems(selectedQuote.id)}
+                            showToothNumber={isSales}
+                          />
+                        </div>
+                      </>
+                    )}
                   </TabsContent>
                   <TabsContent value="clinic-sessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
                     <div className="flex items-center justify-between mb-2">
