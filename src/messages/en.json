@@ -4088,9 +4088,11 @@
     },
     "actions": {
       "sendEmail": "Send Email",
+      "sendEmailUnavailable": "Patient has no email",
       "markCompleted": "Mark as Completed",
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
+      "sendWhatsAppUnavailable": "Patient has no phone",
       "registerCall": "Register Call",
       "print": "Print",
       "snooze": "Snooze",
@@ -5089,6 +5091,102 @@
         "customDatePlaceholder": "Custom date",
         "recheck": "Re-check availability"
       }
+    }
+  },
+  "AlertEmailComposerDialog": {
+    "title": "Alert email",
+    "description": "Review the message and send an individual email for this alert.",
+    "to": "To",
+    "subject": "Subject",
+    "body": "Message",
+    "subjectTemplate": "Alert: {title}",
+    "subjectFallback": "Alert notification",
+    "subjectPlaceholder": "Write the subject...",
+    "bodyPlaceholder": "Write your message here...",
+    "missingEmail": "This alert has no patient email.",
+    "missingUserId": "This alert has no patient identifier to send the email.",
+    "unknownPatient": "patient",
+    "cancel": "Cancel",
+    "send": "Send email",
+    "sending": "Sending...",
+    "template": {
+      "greeting": "Hello {name},",
+      "intro": "We are contacting you regarding the following alert:",
+      "alertTitle": "Alert",
+      "summary": "Summary",
+      "alertDate": "Alert date",
+      "eventDate": "Event date",
+      "clinicName": "Clinic",
+      "closing": "Best regards."
+    },
+    "toast": {
+      "sendSuccessTitle": "Email sent",
+      "sendSuccessDescription": "The alert email was sent successfully.",
+      "sendErrorTitle": "Error sending email",
+      "sendErrorDescription": "Could not send the alert email. Please try again."
+    }
+  },
+  "AlertWhatsAppComposerDialog": {
+    "title": "Alert WhatsApp message",
+    "description": "Review the message and open it in WhatsApp.",
+    "phone": "Phone",
+    "message": "Message",
+    "messagePlaceholder": "Write your message here...",
+    "missingPhone": "This alert has no patient phone.",
+    "unknownPatient": "patient",
+    "cancel": "Cancel",
+    "open": "Open WhatsApp",
+    "opening": "Opening...",
+    "template": {
+      "greeting": "Hi {name}.",
+      "intro": "We are contacting you about this alert:",
+      "alertTitle": "Alert",
+      "summary": "Summary",
+      "alertDate": "Alert date",
+      "eventDate": "Event date",
+      "closing": "Please contact us if you need more information."
+    },
+    "toast": {
+      "openErrorTitle": "Could not open WhatsApp",
+      "openErrorDescription": "Please allow pop-ups and try again."
+    }
+  },
+  "EmailComposerDialog": {
+    "title": "New email",
+    "to": "To",
+    "subject": "Subject",
+    "subjectPlaceholder": "Write the subject...",
+    "bodyPlaceholder": "Write your message here...",
+    "cancel": "Cancel",
+    "send": "Send email",
+    "sending": "Sending...",
+    "toolbar": {
+      "bold": "Bold",
+      "italic": "Italic",
+      "underline": "Underline",
+      "list": "List",
+      "insertLink": "Insert link",
+      "linkPrompt": "Link URL:"
+    },
+    "toast": {
+      "sendSuccessTitle": "Email sent",
+      "sendSuccessDescription": "The email was sent successfully.",
+      "sendErrorTitle": "Error sending email",
+      "sendErrorDescription": "Could not send the email. Please try again."
+    }
+  },
+  "WhatsAppComposerDialog": {
+    "title": "New WhatsApp message",
+    "description": "Write a message and open it in WhatsApp.",
+    "phone": "Phone",
+    "message": "Message",
+    "messagePlaceholder": "Write your message here...",
+    "cancel": "Cancel",
+    "open": "Open WhatsApp",
+    "opening": "Opening...",
+    "toast": {
+      "openErrorTitle": "Could not open WhatsApp",
+      "openErrorDescription": "Please allow pop-ups and try again."
     }
   }
 }

@@ -308,6 +308,7 @@ export const API_ROUTES = {
     ORDER_INVOICE: '/order/invoice',
     USERS_UPSERT: '/users/upsert',
     USERS_ACTIVATE: '/users/activate',
+    USERS_SEND_EMAIL: '/users/send_email',
     ROLES_USER_ROLES: '/roles/user_roles',
     ROLE_USERS: '/role_users',
     ROLE_USERS_UPSERT: '/role_users/upsert',

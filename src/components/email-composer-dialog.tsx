@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { Bold, Italic, Underline, List, Link2, Send, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +24,8 @@ interface EmailComposerDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Pre-filled recipient email */
   to: string;
+  /** Identifier of the recipient user */
+  userId: string;
   /** Display name of the recipient */
   recipientName?: string;
 }
@@ -49,10 +53,14 @@ export function EmailComposerDialog({
   open,
   onOpenChange,
   to,
+  userId,
   recipientName,
 }: EmailComposerDialogProps) {
+  const t = useTranslations('EmailComposerDialog');
+  const { toast } = useToast();
   const [subject, setSubject] = React.useState('');
   const [clinic, setClinic] = React.useState<ClinicInfo | null>(null);
+  const [isSending, setIsSending] = React.useState(false);
   const editorRef = React.useRef<HTMLDivElement>(null);
 
   // Fetch clinic info once
@@ -94,19 +102,43 @@ export function EmailComposerDialog({
     if (editorRef.current) editorRef.current.dataset.hasContent = 'true';
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
+    if (!to || !subject || !userId || isSending) return;
+
+    setIsSending(true);
+
     const html = editorRef.current?.innerHTML || '';
-    // Convert basic HTML to plain text for mailto
-    const body = html
-      .replace(/<br\s*\/?>/gi, '%0A')
-      .replace(/<\/p>/gi, '%0A')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&nbsp;/g, ' ');
-    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${body}`;
-    window.location.href = mailto;
+
+    try {
+      const emails = to
+        .split(/[,;]+/)
+        .map((email) => email.trim())
+        .filter(Boolean);
+
+      await api.post(API_ROUTES.USERS_SEND_EMAIL, {
+        emails,
+        subject,
+        body: html,
+        user_id: userId,
+      });
+
+      toast({
+        title: t('toast.sendSuccessTitle'),
+        description: t('toast.sendSuccessDescription'),
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t('toast.sendErrorDescription');
+
+      toast({
+        variant: 'destructive',
+        title: t('toast.sendErrorTitle'),
+        description: errorMessage,
+      });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -118,7 +150,7 @@ export function EmailComposerDialog({
         <DialogHeader className="px-4 pt-4 pb-2 shrink-0">
           <DialogTitle className="text-base flex items-center gap-2">
             <Send className="h-4 w-4 text-primary" />
-            Nuevo correo
+            {t('title')}
             {recipientName && <span className="text-muted-foreground font-normal">— {recipientName}</span>}
           </DialogTitle>
         </DialogHeader>
@@ -129,7 +161,7 @@ export function EmailComposerDialog({
           {/* To / Subject */}
           <div className="px-4 py-2 space-y-2 shrink-0">
             <div className="flex items-center gap-2">
-              <Label className="w-14 shrink-0 text-xs text-muted-foreground">Para</Label>
+              <Label className="w-14 shrink-0 text-xs text-muted-foreground">{t('to')}</Label>
               <Input
                 value={to}
                 readOnly
@@ -137,12 +169,12 @@ export function EmailComposerDialog({
               />
             </div>
             <div className="flex items-center gap-2">
-              <Label htmlFor="email-subject" className="w-14 shrink-0 text-xs text-muted-foreground">Asunto</Label>
+              <Label htmlFor="email-subject" className="w-14 shrink-0 text-xs text-muted-foreground">{t('subject')}</Label>
               <Input
                 id="email-subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                placeholder="Escribe el asunto..."
+                placeholder={t('subjectPlaceholder')}
                 className="h-8 text-sm"
               />
             </div>
@@ -152,16 +184,16 @@ export function EmailComposerDialog({
 
           {/* Toolbar */}
           <div className="flex items-center gap-0.5 px-3 py-1 shrink-0 border-b border-border">
-            <ToolbarButton icon={Bold} label="Negrita" onClick={() => execCmd('bold')} />
-            <ToolbarButton icon={Italic} label="Cursiva" onClick={() => execCmd('italic')} />
-            <ToolbarButton icon={Underline} label="Subrayado" onClick={() => execCmd('underline')} />
+            <ToolbarButton icon={Bold} label={t('toolbar.bold')} onClick={() => execCmd('bold')} />
+            <ToolbarButton icon={Italic} label={t('toolbar.italic')} onClick={() => execCmd('italic')} />
+            <ToolbarButton icon={Underline} label={t('toolbar.underline')} onClick={() => execCmd('underline')} />
             <div className="w-px h-5 bg-border mx-1" />
-            <ToolbarButton icon={List} label="Lista" onClick={() => execCmd('insertUnorderedList')} />
+            <ToolbarButton icon={List} label={t('toolbar.list')} onClick={() => execCmd('insertUnorderedList')} />
             <ToolbarButton
               icon={Link2}
-              label="Insertar enlace"
+              label={t('toolbar.insertLink')}
               onClick={() => {
-                const url = window.prompt('URL del enlace:');
+                const url = window.prompt(t('toolbar.linkPrompt'));
                 if (url) execCmd('createLink', url);
               }}
             />
@@ -180,7 +212,7 @@ export function EmailComposerDialog({
                 'min-h-[200px] outline-none text-sm leading-relaxed focus:outline-none',
                 'prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:pl-4'
               )}
-              data-placeholder="Escribe tu mensaje aquí..."
+              data-placeholder={t('bodyPlaceholder')}
               style={{ whiteSpace: 'pre-wrap' }}
             />
           </div>
@@ -189,17 +221,14 @@ export function EmailComposerDialog({
         <Separator />
 
         <DialogFooter className="px-4 py-3 shrink-0 flex-row items-center justify-between sm:justify-between gap-2">
-          <p className="text-[11px] text-muted-foreground hidden sm:block">
-            Se abrirá tu aplicación de correo con el mensaje preparado.
-          </p>
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
               <X className="h-4 w-4 mr-1" />
-              Cancelar
+              {t('cancel')}
             </Button>
-            <Button size="sm" onClick={handleSend} disabled={!to || !subject}>
+            <Button size="sm" onClick={handleSend} disabled={!to || !subject || !userId || isSending}>
               <Send className="h-4 w-4 mr-1" />
-              Abrir en correo
+              {isSending ? t('sending') : t('send')}
             </Button>
           </div>
         </DialogFooter>

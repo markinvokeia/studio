@@ -22,6 +22,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
+import { AlertEmailComposerDialog } from '@/components/alerts/alert-email-composer-dialog';
+import { AlertWhatsAppComposerDialog } from '@/components/alerts/alert-whatsapp-composer-dialog';
 import { cn } from '@/lib/utils';
 import {
     AlertTriangle,
@@ -226,6 +228,10 @@ function AlertsCenterPageContent() {
     const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
     const [disabledItems, setDisabledItems] = React.useState<string[]>([]);
     const [pendingAlertIds, setPendingAlertIds] = React.useState<string[]>([]);
+    const [isAlertEmailDialogOpen, setIsAlertEmailDialogOpen] = React.useState(false);
+    const [alertForEmailComposer, setAlertForEmailComposer] = React.useState<AlertInstance | null>(null);
+    const [isAlertWhatsAppDialogOpen, setIsAlertWhatsAppDialogOpen] = React.useState(false);
+    const [alertForWhatsAppComposer, setAlertForWhatsAppComposer] = React.useState<AlertInstance | null>(null);
 
 
     const loadAlerts = async () => {
@@ -420,6 +426,26 @@ function AlertsCenterPageContent() {
             toast({ title: t('toast.addNoteFailed'), description: t('toast.addNoteFailedDescription'), variant: 'destructive' });
         }
     };
+
+    const getAlertEmail = React.useCallback((alert: AlertInstance): string => {
+        const email = alert.details_json?.patient?.email;
+        return typeof email === 'string' ? email.trim() : '';
+    }, []);
+
+    const getAlertPhone = React.useCallback((alert: AlertInstance): string => {
+        const phone = alert.details_json?.patient?.phone || alert.details_json?.patient?.phone_number;
+        return typeof phone === 'string' ? phone.trim() : '';
+    }, []);
+
+    const openAlertEmailComposer = React.useCallback((alert: AlertInstance) => {
+        setAlertForEmailComposer(alert);
+        setIsAlertEmailDialogOpen(true);
+    }, []);
+
+    const openAlertWhatsAppComposer = React.useCallback((alert: AlertInstance) => {
+        setAlertForWhatsAppComposer(alert);
+        setIsAlertWhatsAppDialogOpen(true);
+    }, []);
 
     const handleSelectAlert = (alertId: string, checked: boolean) => {
         setSelectedAlerts(prev =>
@@ -622,8 +648,25 @@ function AlertsCenterPageContent() {
                                                     </div>
                                                     {/* Row 3: action buttons — icon-only, same row */}
                                                     <div className="flex items-center gap-1 border-t border-border/50 pt-2">
+                                                        {(() => {
+                                                            const email = getAlertEmail(alert);
+                                                            const phone = getAlertPhone(alert);
+                                                            const emailEnabled = Boolean(email);
+                                                            const whatsappEnabled = Boolean(phone);
+
+                                                            return (
+                                                                <>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.SEND_EMAIL}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.sendEmail')} onClick={() => sendEmail([alert.id])}><Mail className="h-4 w-4" /></Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                title={emailEnabled ? t('actions.sendEmail') : t('actions.sendEmailUnavailable')}
+                                                                onClick={() => openAlertEmailComposer(alert)}
+                                                                disabled={!emailEnabled}
+                                                            >
+                                                                <Mail className="h-4 w-4" />
+                                                            </Button>
                                                         </Can>
                                                         <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
                                                             <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
@@ -635,7 +678,13 @@ function AlertsCenterPageContent() {
                                                             <DropdownMenuContent>
                                                                 <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
                                                                     <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem onClick={() => sendWhatsApp([alert.id])} disabled><MessageCircle className="mr-2 h-4 w-4" />{t('actions.sendWhatsApp')}</DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        onClick={() => openAlertWhatsAppComposer(alert)}
+                                                                        disabled={!whatsappEnabled}
+                                                                    >
+                                                                        <MessageCircle className="mr-2 h-4 w-4" />
+                                                                        {whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
+                                                                    </DropdownMenuItem>
                                                                 </Can>
                                                                 <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
                                                                     <DropdownMenuItem onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
@@ -655,6 +704,9 @@ function AlertsCenterPageContent() {
                                                                 </Can>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </div>
                                             </div>
@@ -892,6 +944,28 @@ function AlertsCenterPageContent() {
             </Dialog>
 
             {/* Communication Warning Dialog */}
+            <AlertEmailComposerDialog
+                open={isAlertEmailDialogOpen}
+                onOpenChange={(open) => {
+                    setIsAlertEmailDialogOpen(open);
+                    if (!open) {
+                        setAlertForEmailComposer(null);
+                    }
+                }}
+                alert={alertForEmailComposer}
+            />
+
+            <AlertWhatsAppComposerDialog
+                open={isAlertWhatsAppDialogOpen}
+                onOpenChange={(open) => {
+                    setIsAlertWhatsAppDialogOpen(open);
+                    if (!open) {
+                        setAlertForWhatsAppComposer(null);
+                    }
+                }}
+                alert={alertForWhatsAppComposer}
+            />
+
             <CommunicationWarningDialog
                 open={isWarningDialogOpen}
                 onOpenChange={setIsWarningDialogOpen}

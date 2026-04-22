@@ -4056,9 +4056,11 @@
     },
     "actions": {
       "sendEmail": "Enviar Correo",
+      "sendEmailUnavailable": "El paciente no tiene correo",
       "markCompleted": "Marcar como Completada",
       "sendSms": "Enviar SMS",
       "sendWhatsApp": "Enviar WhatsApp",
+      "sendWhatsAppUnavailable": "El paciente no tiene teléfono",
       "registerCall": "Registrar Llamada",
       "print": "Imprimir",
       "snooze": "Pausar",
@@ -5057,6 +5059,102 @@
         "customDatePlaceholder": "Fecha personalizada",
         "recheck": "Verificar de nuevo"
       }
+    }
+  },
+  "AlertEmailComposerDialog": {
+    "title": "Correo de alerta",
+    "description": "Revisa el contenido y envía un correo individual para esta alerta.",
+    "to": "Para",
+    "subject": "Asunto",
+    "body": "Mensaje",
+    "subjectTemplate": "Alerta: {title}",
+    "subjectFallback": "Notificación de alerta",
+    "subjectPlaceholder": "Escribe el asunto...",
+    "bodyPlaceholder": "Escribe tu mensaje aquí...",
+    "missingEmail": "Esta alerta no tiene correo del paciente.",
+    "missingUserId": "Esta alerta no tiene identificador de paciente para enviar el correo.",
+    "unknownPatient": "paciente",
+    "cancel": "Cancelar",
+    "send": "Enviar correo",
+    "sending": "Enviando...",
+    "template": {
+      "greeting": "Hola {name},",
+      "intro": "Nos comunicamos contigo por la siguiente alerta:",
+      "alertTitle": "Alerta",
+      "summary": "Resumen",
+      "alertDate": "Fecha de alerta",
+      "eventDate": "Fecha de evento",
+      "clinicName": "Clínica",
+      "closing": "Saludos cordiales."
+    },
+    "toast": {
+      "sendSuccessTitle": "Correo enviado",
+      "sendSuccessDescription": "El correo de alerta se envió correctamente.",
+      "sendErrorTitle": "Error al enviar correo",
+      "sendErrorDescription": "No se pudo enviar el correo de alerta. Inténtalo nuevamente."
+    }
+  },
+  "AlertWhatsAppComposerDialog": {
+    "title": "Mensaje de WhatsApp de alerta",
+    "description": "Revisa el contenido y ábrelo en WhatsApp.",
+    "phone": "Teléfono",
+    "message": "Mensaje",
+    "messagePlaceholder": "Escribe tu mensaje aquí...",
+    "missingPhone": "Esta alerta no tiene teléfono del paciente.",
+    "unknownPatient": "paciente",
+    "cancel": "Cancelar",
+    "open": "Abrir WhatsApp",
+    "opening": "Abriendo...",
+    "template": {
+      "greeting": "Hola {name}.",
+      "intro": "Nos comunicamos contigo por esta alerta:",
+      "alertTitle": "Alerta",
+      "summary": "Resumen",
+      "alertDate": "Fecha de alerta",
+      "eventDate": "Fecha de evento",
+      "closing": "Si necesitas más información, no dudes en contactarnos."
+    },
+    "toast": {
+      "openErrorTitle": "No se pudo abrir WhatsApp",
+      "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
+    }
+  },
+  "EmailComposerDialog": {
+    "title": "Nuevo correo",
+    "to": "Para",
+    "subject": "Asunto",
+    "subjectPlaceholder": "Escribe el asunto...",
+    "bodyPlaceholder": "Escribe tu mensaje aquí...",
+    "cancel": "Cancelar",
+    "send": "Enviar correo",
+    "sending": "Enviando...",
+    "toolbar": {
+      "bold": "Negrita",
+      "italic": "Cursiva",
+      "underline": "Subrayado",
+      "list": "Lista",
+      "insertLink": "Insertar enlace",
+      "linkPrompt": "URL del enlace:"
+    },
+    "toast": {
+      "sendSuccessTitle": "Correo enviado",
+      "sendSuccessDescription": "El correo se envió correctamente.",
+      "sendErrorTitle": "Error al enviar correo",
+      "sendErrorDescription": "No se pudo enviar el correo. Inténtalo nuevamente."
+    }
+  },
+  "WhatsAppComposerDialog": {
+    "title": "Nuevo mensaje de WhatsApp",
+    "description": "Escribe un mensaje y ábrelo en WhatsApp.",
+    "phone": "Teléfono",
+    "message": "Mensaje",
+    "messagePlaceholder": "Escribe tu mensaje aquí...",
+    "cancel": "Cancelar",
+    "open": "Abrir WhatsApp",
+    "opening": "Abriendo...",
+    "toast": {
+      "openErrorTitle": "No se pudo abrir WhatsApp",
+      "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
     }
   }
 }

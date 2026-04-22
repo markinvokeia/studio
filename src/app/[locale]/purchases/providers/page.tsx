@@ -59,6 +59,7 @@ import { isValidPhoneNumber } from 'libphonenumber-js';
 import { AlertTriangle, BarChart2, Briefcase, ChevronDown, CreditCard, FileText, Loader2, Mail, MapPin, Maximize2, Minimize2, Phone, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, StickyNote, ToggleLeft, UserCircle, Wrench, X } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
+import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -386,6 +387,7 @@ function ProvidersPageContent() {
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
   const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
   // Refresh triggers for tabs
@@ -883,15 +885,14 @@ function ProvidersPageContent() {
                     </button>
                   )}
                   {isValidString(selectedProvider.phone_number) && (
-                    <a
-                      href={`https://wa.me/${String(selectedProvider.phone_number).replace(/^\+/, '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setIsWhatsAppDialogOpen(true)}
                       className="flex items-center gap-1 hover:text-foreground hover:underline"
                     >
                       <WhatsAppIcon className="h-3 w-3" />
                       {selectedProvider.phone_number}
-                    </a>
+                    </button>
                   )}
                   {isValidString(selectedProvider.alternative_phone) && (
                     <span className="flex items-center gap-1">
@@ -1315,6 +1316,16 @@ function ProvidersPageContent() {
           open={isEmailDialogOpen}
           onOpenChange={setIsEmailDialogOpen}
           to={selectedProvider.email || ''}
+          userId={selectedProvider.id}
+          recipientName={selectedProvider.name}
+        />
+      )}
+
+      {selectedProvider && (
+        <WhatsAppComposerDialog
+          open={isWhatsAppDialogOpen}
+          onOpenChange={setIsWhatsAppDialogOpen}
+          phone={selectedProvider.phone_number || ''}
           recipientName={selectedProvider.name}
         />
       )}
