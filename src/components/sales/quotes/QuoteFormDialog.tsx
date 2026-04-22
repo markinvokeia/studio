@@ -268,7 +268,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                 />
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="total"
@@ -301,34 +301,33 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="exchange_rate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder={t('placeholders.exchangeRate')}
+                                                    value={field.value ? Number(field.value).toFixed(2) : ''}
+                                                    disabled={isClinicCurrency}
+                                                    onChange={(e) => {
+                                                        if (isClinicCurrency) {
+                                                            field.onChange(1);
+                                                        } else {
+                                                            field.onChange(parseFloat(e.target.value) || 0);
+                                                        }
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
-
-                            <FormField
-                                control={form.control}
-                                name="exchange_rate"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                placeholder={t('placeholders.exchangeRate')}
-                                                value={field.value ? Number(field.value).toFixed(2) : ''}
-                                                disabled={isClinicCurrency}
-                                                onChange={(e) => {
-                                                    if (isClinicCurrency) {
-                                                        field.onChange(1);
-                                                    } else {
-                                                        field.onChange(parseFloat(e.target.value) || 0);
-                                                    }
-                                                }}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
 
                             <FormField
                                 control={form.control}
