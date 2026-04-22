@@ -203,6 +203,7 @@ export type Invoice = {
   doc_no?: string;
   order_id: string;
   order_doc_no?: string;
+  quote_doc_no?: string;
   invoice_doc_no?: string;
   quote_id: string;
   user_name: string;

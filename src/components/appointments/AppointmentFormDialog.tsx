@@ -160,7 +160,16 @@ export function AppointmentFormDialog({
     // Treatment plan review dialog
     const [pendingSequence, setPendingSequence] = React.useState<TreatmentSequence | null>(null);
     const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
-    const [firstAppointmentId, setFirstAppointmentId] = React.useState<string | undefined>(undefined);
+    const [pendingWorkflowSaveResult, setPendingWorkflowSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
+    const pendingWorkflowCallbackInvokedRef = React.useRef(false);
+
+    const flushPendingWorkflowSaveSuccess = React.useCallback(() => {
+        if (pendingWorkflowCallbackInvokedRef.current) return;
+        if (pendingWorkflowSaveResult && onSaveSuccess) {
+            pendingWorkflowCallbackInvokedRef.current = true;
+            onSaveSuccess(pendingWorkflowSaveResult.result, pendingWorkflowSaveResult.startDateTime);
+        }
+    }, [pendingWorkflowSaveResult, onSaveSuccess]);
 
     // Fetch steps whenever the selected workflow service changes
     React.useEffect(() => {
@@ -172,8 +181,8 @@ export function AppointmentFormDialog({
             if (cancelled) return;
             const raw: any[] = Array.isArray(res) ? res
                 : Array.isArray(res?.[0]?.items) ? res[0].items
-                : Array.isArray(res?.items) ? res.items
-                : [];
+                    : Array.isArray(res?.items) ? res.items
+                        : [];
             setWorkflowSteps(
                 raw
                     .map((s: any) => ({
@@ -588,12 +597,12 @@ export function AppointmentFormDialog({
         }
 
         const { user, doctor, services, calendar, date, time, notes } = appointment;
-        
+
         let newErrors: string[] = [];
         if (!date) newErrors.push('date');
         if (!time) newErrors.push('time');
         if (!calendar) newErrors.push('calendar');
-        
+
         if (!isEditing) {
             if (!user) newErrors.push('user');
         }
@@ -609,7 +618,7 @@ export function AppointmentFormDialog({
             setIsSessionDialogOpen(true);
             return;
         }
-        
+
         setErrors([]);
 
         const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
@@ -741,9 +750,10 @@ export function AppointmentFormDialog({
                             undefined;
                         setFirstAppointmentId(apptId);
                         setPendingSequence(builtSequence);
+                        pendingWorkflowCallbackInvokedRef.current = false;
+                        setPendingWorkflowSaveResult({ result, startDateTime });
                         setIsPlanReviewOpen(true);
                         onOpenChange(false);
-                        if (onSaveSuccess) onSaveSuccess(result, startDateTime);
                         return;
                     }
                 }
@@ -860,7 +870,7 @@ export function AppointmentFormDialog({
 
                 // Calculate start datetime from payload for callback
                 const startDateTime = parseISO(pendingAppointmentPayload.start);
-                
+
                 setIsSessionDialogOpen(false);
                 setPendingAppointmentPayload(null);
                 setHasPendingSession(false);
@@ -924,14 +934,14 @@ export function AppointmentFormDialog({
                 if (editingAppointment) loadLinkedSession(editingAppointment);
             }
         } catch (error: any) {
-                console.error('[handleSaveSession] Error:', error);
-                const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
-                toast({ 
-                    variant: 'destructive', 
-                    title: tToasts('errorCreatingSession'), 
-                    description: errorMessage 
-                });
-            }
+            console.error('[handleSaveSession] Error:', error);
+            const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+            toast({
+                variant: 'destructive',
+                title: tToasts('errorCreatingSession'),
+                description: errorMessage
+            });
+        }
     };
 
     const filteredDoctors = React.useMemo(() => {
@@ -949,492 +959,494 @@ export function AppointmentFormDialog({
 
     return (
         <>
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent maxWidth="4xl">
-                <DialogHeader>
-                    <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
-                    <DialogDescription>{t('createDialog.description')}</DialogDescription>
-                </DialogHeader>
-                <DialogBody>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
-                                <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")} disabled={readOnlyFields?.user || isLoadingQuotes}>
-                                            {appointment.user ? appointment.user.name : t('createDialog.selectUser')}
-                                            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder={t('createDialog.searchUserPlaceholder')} onValueChange={setUserSearchQuery} />
-                                            <CommandList>
-                                                <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                                <CommandGroup>
-                                                    {userSearchResults.map(user => (
-                                                        <CommandItem key={user.id} value={user.name} onSelect={() => { setAppointment(prev => ({ ...prev, user })); setUserSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'user')); }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", appointment.user?.id === user.id ? "opacity-100" : "opacity-0")} />
-                                                            {user.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-
-                            {/* Quote Selection */}
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <Label className="flex items-center gap-1">
-                                        <Link2 className="h-3.5 w-3.5" />
-                                        {t('createDialog.quote')}
-                                    </Label>
-                                    {appointment.user && !readOnlyFields?.quote && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-6 px-2 text-xs"
-                                            onClick={() => setIsQuickQuoteOpen(true)}
-                                        >
-                                            <FilePlus className="h-3 w-3 mr-1" />
-                                            {t('createDialog.newQuote')}
-                                        </Button>
-                                    )}
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent maxWidth="4xl">
+                    <DialogHeader>
+                        <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('createDialog.description')}</DialogDescription>
+                    </DialogHeader>
+                    <DialogBody>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
+                                    <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")} disabled={readOnlyFields?.user || isLoadingQuotes}>
+                                                {appointment.user ? appointment.user.name : t('createDialog.selectUser')}
+                                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder={t('createDialog.searchUserPlaceholder')} onValueChange={setUserSearchQuery} />
+                                                <CommandList>
+                                                    <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {userSearchResults.map(user => (
+                                                            <CommandItem key={user.id} value={user.name} onSelect={() => { setAppointment(prev => ({ ...prev, user })); setUserSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'user')); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", appointment.user?.id === user.id ? "opacity-100" : "opacity-0")} />
+                                                                {user.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
                                 </div>
-                                <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className="w-full justify-start"
-                                            disabled={readOnlyFields?.quote || !appointment.user || isLoadingQuotes}
-                                        >
-                                            {isLoadingQuotes ? (
-                                                t('createDialog.loadingQuotes')
-                                            ) : appointment.quote ? (
-                                                <span className="flex items-center gap-2">
-                                                    <span className="font-medium">{appointment.quote.doc_no}</span>
-                                                    <span className="text-muted-foreground">
-                                                        {appointment.quote.createdAt && isValid(parseISO(appointment.quote.createdAt)) ? format(parseISO(appointment.quote.createdAt), 'dd/MM/yyyy') : ''}
+
+                                {/* Quote Selection */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="flex items-center gap-1">
+                                            <Link2 className="h-3.5 w-3.5" />
+                                            {t('createDialog.quote')}
+                                        </Label>
+                                        {appointment.user && !readOnlyFields?.quote && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 px-2 text-xs"
+                                                onClick={() => setIsQuickQuoteOpen(true)}
+                                            >
+                                                <FilePlus className="h-3 w-3 mr-1" />
+                                                {t('createDialog.newQuote')}
+                                            </Button>
+                                        )}
+                                    </div>
+                                    <Popover open={isQuoteSearchOpen} onOpenChange={setQuoteSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                variant="outline"
+                                                className="w-full justify-start"
+                                                disabled={readOnlyFields?.quote || !appointment.user || isLoadingQuotes}
+                                            >
+                                                {isLoadingQuotes ? (
+                                                    t('createDialog.loadingQuotes')
+                                                ) : appointment.quote ? (
+                                                    <span className="flex items-center gap-2">
+                                                        <span className="font-medium">{appointment.quote.doc_no}</span>
+                                                        <span className="text-muted-foreground">
+                                                            {appointment.quote.createdAt && isValid(parseISO(appointment.quote.createdAt)) ? format(parseISO(appointment.quote.createdAt), 'dd/MM/yyyy') : ''}
+                                                        </span>
+                                                        <span className="text-muted-foreground">
+                                                            ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || 'USD' }).format(appointment.quote.total)})
+                                                        </span>
                                                     </span>
-                                                    <span className="text-muted-foreground">
-                                                        ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || 'USD' }).format(appointment.quote.total)})
-                                                    </span>
-                                                </span>
-                                            ) : (
-                                                t('createDialog.selectQuote')
-                                            )}
-                                            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder={t('createDialog.searchQuotePlaceholder')} />
-                                            <CommandList>
-                                                <CommandEmpty>{t('createDialog.noQuotes')}</CommandEmpty>
-                                                <CommandGroup>
-                                                    <CommandItem
-                                                        onSelect={() => {
-                                                            setAppointment(prev => ({ ...prev, quote: null, services: [] }));
-                                                            setQuoteSearchOpen(false);
-                                                        }}
-                                                    >
-                                                        <Check className={cn("mr-2 h-4 w-4", !appointment.quote ? "opacity-100" : "opacity-0")} />
-                                                        {t('createDialog.noQuote')}
-                                                    </CommandItem>
-                                                    {userQuotes.map(quote => (
+                                                ) : (
+                                                    t('createDialog.selectQuote')
+                                                )}
+                                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder={t('createDialog.searchQuotePlaceholder')} />
+                                                <CommandList>
+                                                    <CommandEmpty>{t('createDialog.noQuotes')}</CommandEmpty>
+                                                    <CommandGroup>
                                                         <CommandItem
-                                                            key={quote.id}
-                                                            value={`${quote.doc_no} ${quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''}`}
-                                                            onSelect={async () => {
+                                                            onSelect={() => {
+                                                                setAppointment(prev => ({ ...prev, quote: null, services: [] }));
                                                                 setQuoteSearchOpen(false);
-                                                                setAppointment(prev => ({ ...prev, quote }));
-                                                                
-                                                                // Load services from the quote items
-                                                                setIsLoadingQuoteServices(true);
-                                                                try {
-                                                                    const quoteServices = await getServicesByQuoteId(quote.id);
-                                                                    setAppointment(prev => ({
-                                                                        ...prev,
-                                                                        services: quoteServices
-                                                                    }));
-                                                                } catch (error) {
-                                                                    console.error('Failed to load services from quote:', error);
-                                                                    toast({ variant: "destructive", title: tToasts('error'), description: tToasts('loadQuoteServicesError') });
-                                                                } finally {
-                                                                    setIsLoadingQuoteServices(false);
-                                                                }
                                                             }}
                                                         >
-                                                            <Check className={cn("mr-2 h-4 w-4", appointment.quote?.id === quote.id ? "opacity-100" : "opacity-0")} />
-                                                            <div className="flex flex-col">
-                                                                <span className="font-medium">{quote.doc_no}</span>
-                                                                <span className="text-xs text-muted-foreground">
-                                                                    {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
-                                                                </span>
-                                                            </div>
+                                                            <Check className={cn("mr-2 h-4 w-4", !appointment.quote ? "opacity-100" : "opacity-0")} />
+                                                            {t('createDialog.noQuote')}
                                                         </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                {!appointment.user && (
-                                    <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
-                                )}
-                            </div>
+                                                        {userQuotes.map(quote => (
+                                                            <CommandItem
+                                                                key={quote.id}
+                                                                value={`${quote.doc_no} ${quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''}`}
+                                                                onSelect={async () => {
+                                                                    setQuoteSearchOpen(false);
+                                                                    setAppointment(prev => ({ ...prev, quote }));
 
-                            <div className="space-y-2">
-                                <Label>{t('createDialog.serviceName')}</Label>
-                                <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
-                                            {isLoadingQuoteServices ? (
-                                                <>
-                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                                    {t('createDialog.loadingServices')}
-                                                </>
-                                            ) : appointment.services.length > 0 ? (
-                                                t('createDialog.servicesSelected', { count: appointment.services.length })
-                                            ) : (
-                                                t('createDialog.selectServices')
-                                            )}
-                                            {!isLoadingQuoteServices && <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder={t('createDialog.searchServicePlaceholder')} onValueChange={setServiceSearchQuery} />
-                                            <CommandList>
-                                                <CommandEmpty>{isSearchingServices ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                                <CommandGroup>
-                                                    {serviceSearchResults.map(service => (
-                                                        <CommandItem key={service.id} value={service.name} onSelect={() => {
-                                                            setAppointment(prev => {
-                                                                const isSelected = prev.services.some(s => s.id === service.id);
-                                                                return { ...prev, services: isSelected ? prev.services.filter(s => s.id !== service.id) : [...prev.services, service] };
-                                                            });
-                                                        }}>
-                                                            <Checkbox checked={appointment.services.some(s => s.id === service.id)} className="mr-2" />
-                                                            <span>{service.name}</span>
+                                                                    // Load services from the quote items
+                                                                    setIsLoadingQuoteServices(true);
+                                                                    try {
+                                                                        const quoteServices = await getServicesByQuoteId(quote.id);
+                                                                        setAppointment(prev => ({
+                                                                            ...prev,
+                                                                            services: quoteServices
+                                                                        }));
+                                                                    } catch (error) {
+                                                                        console.error('Failed to load services from quote:', error);
+                                                                        toast({ variant: "destructive", title: tToasts('error'), description: tToasts('loadQuoteServicesError') });
+                                                                    } finally {
+                                                                        setIsLoadingQuoteServices(false);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Check className={cn("mr-2 h-4 w-4", appointment.quote?.id === quote.id ? "opacity-100" : "opacity-0")} />
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium">{quote.doc_no}</span>
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
+                                                                    </span>
+                                                                </div>
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    {!appointment.user && (
+                                        <p className="text-xs text-muted-foreground">{t('createDialog.selectUserFirst')}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>{t('createDialog.serviceName')}</Label>
+                                    <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
+                                                {isLoadingQuoteServices ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                        {t('createDialog.loadingServices')}
+                                                    </>
+                                                ) : appointment.services.length > 0 ? (
+                                                    t('createDialog.servicesSelected', { count: appointment.services.length })
+                                                ) : (
+                                                    t('createDialog.selectServices')
+                                                )}
+                                                {!isLoadingQuoteServices && <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder={t('createDialog.searchServicePlaceholder')} onValueChange={setServiceSearchQuery} />
+                                                <CommandList>
+                                                    <CommandEmpty>{isSearchingServices ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                                    <CommandGroup>
+                                                        {serviceSearchResults.map(service => (
+                                                            <CommandItem key={service.id} value={service.name} onSelect={() => {
+                                                                setAppointment(prev => {
+                                                                    const isSelected = prev.services.some(s => s.id === service.id);
+                                                                    return { ...prev, services: isSelected ? prev.services.filter(s => s.id !== service.id) : [...prev.services, service] };
+                                                                });
+                                                            }}>
+                                                                <Checkbox checked={appointment.services.some(s => s.id === service.id)} className="mr-2" />
+                                                                <span>{service.name}</span>
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                    {appointment.services.length > 0 && (
+                                        <div className="p-2 border rounded-md mt-2">
+                                            <Label className="text-xs text-muted-foreground">{t('createDialog.selectedServices')}</Label>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {appointment.services.map(service => (
+                                                    <Badge key={service.id} variant="secondary">
+                                                        {service.name}
+                                                        {!readOnlyFields?.services && (
+                                                            <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:bg-transparent" onClick={() => setAppointment(prev => ({ ...prev, services: prev.services.filter(s => s.id !== service.id) }))}>
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {appointment.services.some(s => s.service_type === 'workflow') && (
+                                        <Alert className="mt-2 border-primary/30 bg-primary/5">
+                                            <ClipboardList className="h-4 w-4 text-primary shrink-0" />
+                                            <AlertTitle className="text-sm">{t('createDialog.workflowServiceTitle')}</AlertTitle>
+                                            <AlertDescription className="text-xs text-muted-foreground space-y-1">
+                                                {isLoadingWorkflowSteps ? (
+                                                    <p className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />{t('createDialog.workflowStepsLoading')}</p>
+                                                ) : (
+                                                    <>
+                                                        <p>{t('createDialog.workflowServiceDescription', { steps: workflowSteps.length })}</p>
+                                                        {workflowSteps.length > 0 && (
+                                                            <ol className="mt-1.5 space-y-1 pl-1">
+                                                                {workflowSteps.map((step) => {
+                                                                    const offsetLabel = step.offset_min_days === step.offset_max_days
+                                                                        ? (step.offset_min_days > 0 ? `+${step.offset_min_days}d` : null)
+                                                                        : `+${step.offset_min_days}–${step.offset_max_days}d`;
+                                                                    return (
+                                                                        <li key={step.id} className="flex items-start gap-1.5">
+                                                                            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary shrink-0 mt-0.5">{step.position}</span>
+                                                                            <span className="flex-1 text-foreground/80 leading-snug">{step.step_name}</span>
+                                                                            <span className="text-muted-foreground/70 shrink-0 tabular-nums">{offsetLabel}</span>
+                                                                        </li>
+                                                                    );
+                                                                })}
+                                                            </ol>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </AlertDescription>
+                                        </Alert>
+                                    )}
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{tColumns('doctor')}</Label>
+                                    <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className="w-full justify-start">
+                                                {appointment.doctor ? appointment.doctor.name : t('createDialog.selectDoctor')}
+                                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
+                                                <CommandList>
+                                                    <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                                    <CommandGroup>
+                                                        <CommandItem onSelect={() => { setAppointment(prev => ({ ...prev, doctor: null })); setDoctorSearchOpen(false); }}>
+                                                            <Check className={cn("mr-2 h-4 w-4", !appointment.doctor ? "opacity-100" : "opacity-0")} />
+                                                            {t('createDialog.none')}
                                                         </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                {appointment.services.length > 0 && (
-                                    <div className="p-2 border rounded-md mt-2">
-                                        <Label className="text-xs text-muted-foreground">{t('createDialog.selectedServices')}</Label>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {appointment.services.map(service => (
-                                                <Badge key={service.id} variant="secondary">
-                                                    {service.name}
-                                                    {!readOnlyFields?.services && (
-                                                        <Button variant="ghost" size="icon" className="h-4 w-4 ml-1 hover:bg-transparent" onClick={() => setAppointment(prev => ({ ...prev, services: prev.services.filter(s => s.id !== service.id) }))}>
-                                                            <X className="h-3 w-3" />
-                                                        </Button>
-                                                    )}
-                                                </Badge>
+                                                        {filteredDoctors.map(doctor => (
+                                                            <CommandItem key={doctor.id} value={doctor.name} onSelect={() => { setAppointment(prev => ({ ...prev, doctor })); setDoctorSearchOpen(false); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", appointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")} />
+                                                                {doctor.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className={errors.includes('calendar') ? "text-destructive" : ""}>{t('createDialog.calendar')}</Label>
+                                    <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
+                                        <PopoverTrigger asChild>
+                                            <Button variant="outline" className={cn("w-full justify-start", errors.includes('calendar') && "border-destructive text-destructive")}>
+                                                {appointment.calendar ? appointment.calendar.name : t('createDialog.allCalendars')}
+                                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                            <Command>
+                                                <CommandList>
+                                                    <CommandGroup>
+                                                        <CommandItem onSelect={() => { setAppointment(prev => ({ ...prev, calendar: null })); setCalendarSearchOpen(false); }}>
+                                                            <Check className={cn("mr-2 h-4 w-4", !appointment.calendar ? "opacity-100" : "opacity-0")} />
+                                                            {t('createDialog.allCalendars')}
+                                                        </CommandItem>
+                                                        {calendars.map(calendar => (
+                                                            <CommandItem key={calendar.id} value={calendar.name} onSelect={() => { setAppointment(prev => ({ ...prev, calendar })); setCalendarSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'calendar')); }}>
+                                                                <Check className={cn("mr-2 h-4 w-4", appointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")} />
+                                                                {calendar.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandGroup>
+                                                </CommandList>
+                                            </Command>
+                                        </PopoverContent>
+                                    </Popover>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
+                                    <DatePickerInput value={appointment.date} onChange={value => { setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
+                                    <Input id="time" type="time" value={appointment.time} onChange={e => { setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
+                                    <Input id="endTime" type="time" value={appointment.endTime} onChange={e => setAppointment(prev => ({ ...prev, endTime: e.target.value }))} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="notes">{t('createDialog.notes')}</Label>
+                                    <Textarea id="notes" value={appointment.notes} onChange={e => setAppointment(prev => ({ ...prev, notes: e.target.value }))} />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Clinic Session Section */}
+                        <div className="border-t px-6 pt-4 pb-2">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Stethoscope className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-sm font-medium">{t('clinicSession')}</span>
+                            </div>
+                            {editingAppointment ? (
+                                <div className="space-y-2">
+                                    {isLoadingLinkedSession ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            <span>{t('checking')}</span>
+                                        </div>
+                                    ) : linkedSession ? (
+                                        <div className="flex items-center justify-between rounded-md border p-3">
+                                            <div className="space-y-0.5">
+                                                <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
+                                                </p>
+                                            </div>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                                {t('editSession')}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
+                                            <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
+                                                {t('createSession')}
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="createSessionOnSave"
+                                        checked={createSessionOnSave}
+                                        onCheckedChange={(checked) => setCreateSessionOnSave(checked === true)}
+                                    />
+                                    <Label htmlFor="createSessionOnSave" className="text-sm font-normal cursor-pointer">
+                                        {t('createSessionOnSave')}
+                                    </Label>
+                                </div>
+                            )}
+                        </div>
+
+                        {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
+                            <div className="border-t pt-4 px-6 mb-4">
+                                <h3 className="text-lg font-medium mb-4 text-center">{t('createDialog.suggestedTimes')}</h3>
+                                <ScrollArea className="h-48">
+                                    {availabilityStatus === 'checking' ? <p>{t('checking')}</p> : (
+                                        <RadioGroup onValueChange={(value) => {
+                                            const [date, time, doctorId, calendarId] = value.split('|');
+                                            const doctor = allDoctors.find(d => d.id === doctorId);
+                                            const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
+                                            setAppointment(prev => ({ ...prev, date, time, doctor: doctor || null, calendar: calendar || null }));
+                                            setErrors(prev => prev.filter(err => !['date', 'time', 'calendar'].includes(err)));
+                                        }}>
+                                            {suggestedTimes.map((suggestion) => (
+                                                <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
+                                                    <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
+                                                    <Label htmlFor={suggestion.id} className="font-normal text-sm">
+                                                        {t('suggestionFormat', { date: suggestion.date, time: suggestion.time, doctor: suggestion.doctor.name, calendar: suggestion.calendar })}
+                                                    </Label>
+                                                </div>
                                             ))}
-                                        </div>
-                                    </div>
-                                )}
-                                {appointment.services.some(s => s.service_type === 'workflow') && (
-                                    <Alert className="mt-2 border-primary/30 bg-primary/5">
-                                        <ClipboardList className="h-4 w-4 text-primary shrink-0" />
-                                        <AlertTitle className="text-sm">{t('createDialog.workflowServiceTitle')}</AlertTitle>
-                                        <AlertDescription className="text-xs text-muted-foreground space-y-1">
-                                            {isLoadingWorkflowSteps ? (
-                                                <p className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" />{t('createDialog.workflowStepsLoading')}</p>
-                                            ) : (
-                                                <>
-                                                    <p>{t('createDialog.workflowServiceDescription', { steps: workflowSteps.length })}</p>
-                                                    {workflowSteps.length > 0 && (
-                                                        <ol className="mt-1.5 space-y-1 pl-1">
-                                                            {workflowSteps.map((step) => {
-                                                                const offsetLabel = step.offset_min_days === step.offset_max_days
-                                                                    ? (step.offset_min_days > 0 ? `+${step.offset_min_days}d` : null)
-                                                                    : `+${step.offset_min_days}–${step.offset_max_days}d`;
-                                                                return (
-                                                                    <li key={step.id} className="flex items-start gap-1.5">
-                                                                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-[9px] font-bold text-primary shrink-0 mt-0.5">{step.position}</span>
-                                                                        <span className="flex-1 text-foreground/80 leading-snug">{step.step_name}</span>
-                                                                        <span className="text-muted-foreground/70 shrink-0 tabular-nums">{offsetLabel}</span>
-                                                                    </li>
-                                                                );
-                                                            })}
-                                                        </ol>
-                                                    )}
-                                                </>
-                                            )}
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
-                            </div>
-                            <div className="space-y-2">
-                                <Label>{tColumns('doctor')}</Label>
-                                <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="w-full justify-start">
-                                            {appointment.doctor ? appointment.doctor.name : t('createDialog.selectDoctor')}
-                                            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
-                                            <CommandList>
-                                                <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                                <CommandGroup>
-                                                    <CommandItem onSelect={() => { setAppointment(prev => ({ ...prev, doctor: null })); setDoctorSearchOpen(false); }}>
-                                                        <Check className={cn("mr-2 h-4 w-4", !appointment.doctor ? "opacity-100" : "opacity-0")} />
-                                                        {t('createDialog.none')}
-                                                    </CommandItem>
-                                                    {filteredDoctors.map(doctor => (
-                                                        <CommandItem key={doctor.id} value={doctor.name} onSelect={() => { setAppointment(prev => ({ ...prev, doctor })); setDoctorSearchOpen(false); }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", appointment.doctor?.id === doctor.id ? "opacity-100" : "opacity-0")} />
-                                                            {doctor.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                            <div className="space-y-2">
-                                <Label className={errors.includes('calendar') ? "text-destructive" : ""}>{t('createDialog.calendar')}</Label>
-                                <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className={cn("w-full justify-start", errors.includes('calendar') && "border-destructive text-destructive")}>
-                                            {appointment.calendar ? appointment.calendar.name : t('createDialog.allCalendars')}
-                                            <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                        <Command>
-                                            <CommandList>
-                                                <CommandGroup>
-                                                    <CommandItem onSelect={() => { setAppointment(prev => ({ ...prev, calendar: null })); setCalendarSearchOpen(false); }}>
-                                                        <Check className={cn("mr-2 h-4 w-4", !appointment.calendar ? "opacity-100" : "opacity-0")} />
-                                                        {t('createDialog.allCalendars')}
-                                                    </CommandItem>
-                                                    {calendars.map(calendar => (
-                                                        <CommandItem key={calendar.id} value={calendar.name} onSelect={() => { setAppointment(prev => ({ ...prev, calendar })); setCalendarSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'calendar')); }}>
-                                                            <Check className={cn("mr-2 h-4 w-4", appointment.calendar?.id === calendar.id ? "opacity-100" : "opacity-0")} />
-                                                            {calendar.name}
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                            </div>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
-                                <DatePickerInput value={appointment.date} onChange={value => { setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
-                                <Input id="time" type="time" value={appointment.time} onChange={e => { setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
-                                <Input id="endTime" type="time" value={appointment.endTime} onChange={e => setAppointment(prev => ({ ...prev, endTime: e.target.value }))} />
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="notes">{t('createDialog.notes')}</Label>
-                                <Textarea id="notes" value={appointment.notes} onChange={e => setAppointment(prev => ({ ...prev, notes: e.target.value }))} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Clinic Session Section */}
-                    <div className="border-t px-6 pt-4 pb-2">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm font-medium">{t('clinicSession')}</span>
-                        </div>
-                        {editingAppointment ? (
-                            <div className="space-y-2">
-                                {isLoadingLinkedSession ? (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span>{t('checking')}</span>
-                                    </div>
-                                ) : linkedSession ? (
-                                    <div className="flex items-center justify-between rounded-md border p-3">
-                                        <div className="space-y-0.5">
-                                            <p className="text-sm font-medium">{linkedSession.procedimiento_realizado || '—'}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {linkedSession.fecha_sesion} · {linkedSession.doctor_name}
-                                            </p>
-                                        </div>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                            {t('editSession')}
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="flex items-center justify-between">
-                                        <p className="text-sm text-muted-foreground">{t('noLinkedSession')}</p>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => setIsSessionDialogOpen(true)}>
-                                            {t('createSession')}
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="createSessionOnSave"
-                                    checked={createSessionOnSave}
-                                    onCheckedChange={(checked) => setCreateSessionOnSave(checked === true)}
-                                />
-                                <Label htmlFor="createSessionOnSave" className="text-sm font-normal cursor-pointer">
-                                    {t('createSessionOnSave')}
-                                </Label>
+                                        </RadioGroup>
+                                    )}
+                                    {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
+                                        <p className="text-sm text-muted-foreground text-center pt-10">{t('noSuggestions')}</p>
+                                    )}
+                                </ScrollArea>
                             </div>
                         )}
-                    </div>
+                    </DialogBody>
+                    <DialogFooter className="flex-row justify-end gap-2 space-x-0">
+                        <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
+                        <Button onClick={handleSave} disabled={isSessionDialogOpen}>{t('createDialog.save')}</Button>
+                    </DialogFooter>
+                </DialogContent>
 
-                    {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
-                        <div className="border-t pt-4 px-6 mb-4">
-                            <h3 className="text-lg font-medium mb-4 text-center">{t('createDialog.suggestedTimes')}</h3>
-                            <ScrollArea className="h-48">
-                                {availabilityStatus === 'checking' ? <p>{t('checking')}</p> : (
-                                    <RadioGroup onValueChange={(value) => {
-                                        const [date, time, doctorId, calendarId] = value.split('|');
-                                        const doctor = allDoctors.find(d => d.id === doctorId);
-                                        const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
-                                        setAppointment(prev => ({ ...prev, date, time, doctor: doctor || null, calendar: calendar || null }));
-                                        setErrors(prev => prev.filter(err => !['date', 'time', 'calendar'].includes(err)));
-                                    }}>
-                                        {suggestedTimes.map((suggestion) => (
-                                            <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                                <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
-                                                <Label htmlFor={suggestion.id} className="font-normal text-sm">
-                                                    {t('suggestionFormat', { date: suggestion.date, time: suggestion.time, doctor: suggestion.doctor.name, calendar: suggestion.calendar })}
-                                                </Label>
-                                            </div>
-                                        ))}
-                                    </RadioGroup>
-                                )}
-                                {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
-                                    <p className="text-sm text-muted-foreground text-center pt-10">{t('noSuggestions')}</p>
-                                )}
-                            </ScrollArea>
-                        </div>
-                    )}
-                </DialogBody>
-                <DialogFooter className="flex-row justify-end gap-2 space-x-0">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
-                    <Button onClick={handleSave} disabled={isSessionDialogOpen}>{t('createDialog.save')}</Button>
-                </DialogFooter>
-            </DialogContent>
-
-            {/* Clinic Session Dialog */}
-            <ClinicSessionDialog
-                open={isSessionDialogOpen}
-                onOpenChange={(open) => {
-                    if (!open && pendingAppointmentPayload) {
-                        // If user closes the dialog when there's a pending appointment,
-                        // cancel the whole flow - don't create anything
-                        setPendingAppointmentPayload(null);
-                        setHasPendingSession(false);
+                {/* Clinic Session Dialog */}
+                <ClinicSessionDialog
+                    open={isSessionDialogOpen}
+                    onOpenChange={(open) => {
+                        if (!open && pendingAppointmentPayload) {
+                            // If user closes the dialog when there's a pending appointment,
+                            // cancel the whole flow - don't create anything
+                            setPendingAppointmentPayload(null);
+                            setHasPendingSession(false);
+                            setIsSessionDialogOpen(open);
+                            return;
+                        }
+                        if (!open && hasPendingSession) {
+                            // Prevent closing without saving session - show confirmation
+                            toast({
+                                title: tToasts('pendingSessionTitle') || 'Session pending',
+                                description: tToasts('pendingSessionDesc') || 'Please complete the clinical session before closing.',
+                                variant: 'destructive',
+                            });
+                            return;
+                        }
                         setIsSessionDialogOpen(open);
-                        return;
-                    }
-                    if (!open && hasPendingSession) {
-                        // Prevent closing without saving session - show confirmation
-                        toast({
-                            title: tToasts('pendingSessionTitle') || 'Session pending',
-                            description: tToasts('pendingSessionDesc') || 'Please complete the clinical session before closing.',
-                            variant: 'destructive',
-                        });
-                        return;
-                    }
-                    setIsSessionDialogOpen(open);
-                }}
-                existingSession={linkedSession ?? undefined}
-                showTreatments={true}
-                showAttachments={true}
-                quoteId={appointment.quote?.id || editingAppointment?.quote_id}
-                appointmentId={editingAppointment?.id || pendingSaveResult?.result?.appointment_id || pendingSaveResult?.result?.id}
-                userId={appointment.user?.id || editingAppointment?.patientId || ''}
-                onSave={handleSaveSession}
-                prefillData={{
-                    doctor_id: appointment.doctor?.id || '',
-                    doctor_name: appointment.doctor?.name || '',
-                    procedimiento_realizado: appointment.services.map(s => s.name).join(', '),
-                }}
-                prefillTreatments={prefillTreatments}
-                // NEW: Pass pending appointment data when creating together with session
-                pendingAppointmentData={pendingAppointmentPayload ? {
-                    start: pendingAppointmentPayload.start,
-                    end: pendingAppointmentPayload.end,
-                    doctor_id: pendingAppointmentPayload.doctor_id,
-                    doctor_name: pendingAppointmentPayload.doctor_name,
-                    patient_id: pendingAppointmentPayload.patient_id,
-                    patient_name: pendingAppointmentPayload.patient_name,
-                    service_ids: pendingAppointmentPayload.service_ids,
-                    service_names: pendingAppointmentPayload.service_names,
-                    notes: pendingAppointmentPayload.notes,
-                    calendar_source_id: pendingAppointmentPayload.calendar_source_id,
-                    quote_id: pendingAppointmentPayload.quote_id,
-                } : undefined}
-            />
+                    }}
+                    existingSession={linkedSession ?? undefined}
+                    showTreatments={true}
+                    showAttachments={true}
+                    quoteId={appointment.quote?.id || editingAppointment?.quote_id}
+                    appointmentId={editingAppointment?.id || pendingSaveResult?.result?.appointment_id || pendingSaveResult?.result?.id}
+                    userId={appointment.user?.id || editingAppointment?.patientId || ''}
+                    onSave={handleSaveSession}
+                    prefillData={{
+                        doctor_id: appointment.doctor?.id || '',
+                        doctor_name: appointment.doctor?.name || '',
+                        procedimiento_realizado: appointment.services.map(s => s.name).join(', '),
+                    }}
+                    prefillTreatments={prefillTreatments}
+                    // NEW: Pass pending appointment data when creating together with session
+                    pendingAppointmentData={pendingAppointmentPayload ? {
+                        start: pendingAppointmentPayload.start,
+                        end: pendingAppointmentPayload.end,
+                        doctor_id: pendingAppointmentPayload.doctor_id,
+                        doctor_name: pendingAppointmentPayload.doctor_name,
+                        patient_id: pendingAppointmentPayload.patient_id,
+                        patient_name: pendingAppointmentPayload.patient_name,
+                        service_ids: pendingAppointmentPayload.service_ids,
+                        service_names: pendingAppointmentPayload.service_names,
+                        notes: pendingAppointmentPayload.notes,
+                        calendar_source_id: pendingAppointmentPayload.calendar_source_id,
+                        quote_id: pendingAppointmentPayload.quote_id,
+                    } : undefined}
+                />
 
-            {/* Quick Quote Dialog */}
-            <QuickQuoteDialog
-                open={isQuickQuoteOpen}
-                onOpenChange={setIsQuickQuoteOpen}
-                user={appointment.user}
-                onQuoteCreated={async (quote) => {
-                    setUserQuotes(prev => [quote, ...prev]);
-                    setAppointment(prev => ({ ...prev, quote }));
+                {/* Quick Quote Dialog */}
+                <QuickQuoteDialog
+                    open={isQuickQuoteOpen}
+                    onOpenChange={setIsQuickQuoteOpen}
+                    user={appointment.user}
+                    onQuoteCreated={async (quote) => {
+                        setUserQuotes(prev => [quote, ...prev]);
+                        setAppointment(prev => ({ ...prev, quote }));
 
-                    // Pre-load services from the newly created quote
-                    setIsLoadingQuoteServices(true);
-                    try {
-                        const quoteServices = await getServicesByQuoteId(quote.id);
-                        setAppointment(prev => ({ ...prev, services: quoteServices }));
-                    } catch (error) {
-                        console.error('Failed to load services from new quote:', error);
-                    } finally {
-                        setIsLoadingQuoteServices(false);
-                    }
-                }}
-            />
-        </Dialog>
+                        // Pre-load services from the newly created quote
+                        setIsLoadingQuoteServices(true);
+                        try {
+                            const quoteServices = await getServicesByQuoteId(quote.id);
+                            setAppointment(prev => ({ ...prev, services: quoteServices }));
+                        } catch (error) {
+                            console.error('Failed to load services from new quote:', error);
+                        } finally {
+                            setIsLoadingQuoteServices(false);
+                        }
+                    }}
+                />
+            </Dialog>
 
-        {/* Treatment Plan Review Dialog — shown after saving a workflow-service appointment */}
-        {pendingSequence && (
-            <TreatmentPlanReviewDialog
-                open={isPlanReviewOpen}
-                onOpenChange={(open) => {
-                    setIsPlanReviewOpen(open);
-                    if (!open) setPendingSequence(null);
-                }}
-                pendingSequence={pendingSequence}
-                firstAppointmentId={firstAppointmentId}
-                onCreated={(sequence) => {
-                    setPendingSequence(null);
-                    setFirstAppointmentId(undefined);
-                    // Refresh calendar so new step appointments appear
-                    if (onSaveSuccess) onSaveSuccess(sequence, new Date());
-                }}
-            />
-        )}
+            {/* Treatment Plan Review Dialog — shown after saving a workflow-service appointment */}
+            {pendingSequence && (
+                <TreatmentPlanReviewDialog
+                    open={isPlanReviewOpen}
+                    onOpenChange={(open) => {
+                        setIsPlanReviewOpen(open);
+                        if (!open) {
+                            flushPendingWorkflowSaveSuccess();
+                            setPendingSequence(null);
+                            setPendingWorkflowSaveResult(null);
+                        }
+                    }}
+                    pendingSequence={pendingSequence}
+                    onCreated={() => {
+                        flushPendingWorkflowSaveSuccess();
+                        setPendingSequence(null);
+                        setPendingWorkflowSaveResult(null);
+                    }}
+                />
+            )}
         </>
     );
 }

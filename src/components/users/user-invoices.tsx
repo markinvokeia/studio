@@ -113,11 +113,11 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     cell: ({ row }) => <div className="font-medium">{row.getValue('doc_no') || `INV-${row.original.id}`}</div>,
   },
   {
-    accessorKey: 'order_doc_no',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.orderDocNo')} />,
+    accessorKey: 'quote_doc_no',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.quoteDocNo')} />,
     cell: ({ row }) => {
-      const v = row.getValue('order_doc_no') as string;
-      return <div className="font-medium">{v || (row.original.order_id ? `ORD-${row.original.order_id}` : '-')}</div>;
+      const v = row.getValue('quote_doc_no') as string;
+      return <div className="font-medium">{v || '-'}</div>;
     },
   },
   {
@@ -163,16 +163,25 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
 // ── Data fetching ─────────────────────────────────────────────────────────────
 async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
   if (!userId) return [];
+
+  const normalizeQuoteDocNo = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+    const trimmedValue = value.trim();
+    if (!trimmedValue || trimmedValue === 'N/A') return null;
+    return trimmedValue;
+  };
+
   try {
     const data = await api.get(API_ROUTES.USER_INVOICES, { user_id: userId });
     const invoicesData = Array.isArray(data) ? data : (data.invoices || data.data || []);
-    return invoicesData.map((d: any) => ({
+    const invoices = invoicesData.map((d: any) => ({
       id: d.id.toString(),
       invoice_ref: d.invoice_ref || 'N/A',
       doc_no: d.doc_no || null,
       order_id: d.order_id?.toString() ?? 'N/A',
       order_doc_no: d.order_doc_no || 'N/A',
       quote_id: d.quote_id?.toString() ?? 'N/A',
+      quote_doc_no: normalizeQuoteDocNo(d.quote_doc_no),
       user_id: d.user_id?.toString() ?? userId,
       user_name: d.user_name || '',
       type: d.type || 'invoice',
@@ -186,6 +195,36 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       is_historical: d.is_historical || false,
       due_date: d.due_date || null,
     }));
+
+    const needsQuoteFallback = invoices.some((invoice: Invoice) =>
+      !invoice.quote_doc_no && invoice.quote_id && invoice.quote_id !== 'N/A'
+    );
+
+    if (!needsQuoteFallback) {
+      return invoices;
+    }
+
+    try {
+      const quotesData = await api.get(API_ROUTES.USER_QUOTES, { user_id: userId });
+      const quotes = Array.isArray(quotesData) ? quotesData : (quotesData.user_quotes || quotesData.quotes || quotesData.data || []);
+      const quoteDocNoById = new Map<string, string>();
+
+      quotes.forEach((quote: any) => {
+        const quoteId = quote.id?.toString();
+        const quoteDocNo = normalizeQuoteDocNo(quote.quote_doc_no || quote.doc_no);
+
+        if (quoteId && quoteDocNo) {
+          quoteDocNoById.set(quoteId, quoteDocNo);
+        }
+      });
+
+      return invoices.map((invoice: Invoice) => ({
+        ...invoice,
+        quote_doc_no: invoice.quote_doc_no || (invoice.quote_id !== 'N/A' ? quoteDocNoById.get(invoice.quote_id) : undefined) || null,
+      }));
+    } catch {
+      return invoices;
+    }
   } catch (error) {
     console.error('Failed to fetch user invoices:', error);
     return [];
@@ -674,14 +713,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 }
                 fields={[
                   { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
-                  { label: t('InvoicesPage.columns.orderDocNo'), value: invoice.order_doc_no || '-' },
+                  { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
                   { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDateTime(invoice.due_date) : '-' },
                 ]}
               />
             )}
             columnTranslations={{
               doc_no: t('InvoicesPage.columns.docNo'),
-              order_doc_no: t('InvoicesPage.columns.orderDocNo'),
+              quote_doc_no: t('InvoicesPage.columns.quoteDocNo'),
               total: t('InvoicesPage.columns.total'),
               status: t('InvoicesPage.columns.status'),
               payment_status: t('InvoicesPage.columns.payment'),
@@ -738,8 +777,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Orden:</span>
-                    <span className="text-sm">{selectedInvoice.order_doc_no !== 'N/A' ? selectedInvoice.order_doc_no : '-'}</span>
+                    <span className="text-xs text-muted-foreground">{t('InvoicesPage.columns.quoteDocNo')}:</span>
+                    <span className="text-sm">{selectedInvoice.quote_doc_no || '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Creado:</span>

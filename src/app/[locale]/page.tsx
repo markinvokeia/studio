@@ -6,9 +6,8 @@ import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart'
 import { InvoiceStatusChart } from '@/components/charts/invoice-status-chart';
 import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { RecentOrdersTable } from '@/components/tables/recent-orders-table';
 import { NewPatientsTable } from '@/components/tables/new-patients-table';
-import { Quote, Order, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics, CajaSesion } from '@/lib/types';
+import { Quote, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics, CajaSesion } from '@/lib/types';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
@@ -258,25 +257,6 @@ async function getQuotes(): Promise<Quote[]> {
     }
 }
 
-async function getOrders(): Promise<Order[]> {
-    try {
-        const data = await api.get(API_ROUTES.SALES.ORDERS_ALL, { is_sales: 'True' });
-        const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
-        return ordersData.map((apiOrder: any) => ({
-            id: apiOrder.id ? String(apiOrder.id) : `ord_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiOrder.doc_no || 'N/A',
-            user_id: apiOrder.user_id,
-            user_name: apiOrder.user_name || apiOrder.name || 'No Name',
-            status: apiOrder.status,
-            createdAt: apiOrder.created_at || new Date().toISOString().split('T')[0],
-            currency: apiOrder.currency || 'N/A',
-        }));
-    } catch (error) {
-        console.error("Failed to fetch orders:", error);
-        return [];
-    }
-}
-
 async function getPatientsData(pagination: PaginationState, columnFilters: ColumnFiltersState): Promise<{ patients: User[], total: number }> {
     try {
         const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
@@ -318,7 +298,6 @@ export default function DashboardPage() {
     const canViewCharts = hasPermission(DASHBOARD_PERMISSIONS.VIEW_CHARTS);
     const canViewOperationalKpis = hasPermission(DASHBOARD_PERMISSIONS.VIEW_OPERATIONAL_KPIS);
     const canViewRecentQuotes = hasPermission(DASHBOARD_PERMISSIONS.VIEW_RECENT_QUOTES);
-    const canViewRecentOrders = hasPermission(DASHBOARD_PERMISSIONS.VIEW_RECENT_ORDERS);
     const canViewNewPatients = hasPermission(DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS);
     const canApplyFilters = hasPermission(DASHBOARD_PERMISSIONS.APPLY_FILTERS);
 
@@ -337,7 +316,6 @@ export default function DashboardPage() {
     const [isInvoiceStatusLoading, setIsInvoiceStatusLoading] = React.useState(true);
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
-    const [orders, setOrders] = React.useState<Order[]>([]);
 
     const [patients, setPatients] = React.useState<User[]>([]);
     const [patientTotal, setPatientTotal] = React.useState(0);
@@ -353,7 +331,6 @@ export default function DashboardPage() {
     });
 
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
-    const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
 
     React.useEffect(() => {
@@ -402,7 +379,6 @@ export default function DashboardPage() {
 
     React.useEffect(() => {
         getQuotes().then(setQuotes);
-        getOrders().then(setOrders);
     }, []);
 
     React.useEffect(() => {
@@ -450,12 +426,6 @@ export default function DashboardPage() {
                     onRowClick={setSelectedQuote}
                 />
             </Can>
-            <Can permission={DASHBOARD_PERMISSIONS.VIEW_RECENT_ORDERS}>
-                <RecentOrdersTable
-                    orders={orders}
-                    onRowClick={setSelectedOrder}
-                />
-            </Can>
             <Can permission={DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS}>
                 <NewPatientsTable
                     patients={patients}
@@ -485,22 +455,6 @@ export default function DashboardPage() {
                             <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.status}</Badge></dd></div>
                             <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.billingStatus')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.billing_status}</Badge></dd></div>
                             <div><dt className="text-xs text-muted-foreground">{t('Navigation.Payments')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.payment_status}</Badge></dd></div>
-                        </dl>
-                    )}
-                </SheetContent>
-            </Sheet>
-
-            <Sheet open={!!selectedOrder} onOpenChange={(open) => { if (!open) setSelectedOrder(null); }}>
-                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] overflow-y-auto">
-                    <SheetHeader className="mb-4">
-                        <SheetTitle>{t('RecentOrdersTable.title')} — {selectedOrder?.doc_no}</SheetTitle>
-                    </SheetHeader>
-                    {selectedOrder && (
-                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.name')}</dt><dd className="font-medium mt-0.5">{selectedOrder.user_name}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('OrderColumns.createdAt')}</dt><dd className="font-medium mt-0.5">{formatDateTime(selectedOrder.createdAt)}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.currency')}</dt><dd className="font-medium mt-0.5">{selectedOrder.currency}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedOrder.status}</Badge></dd></div>
                         </dl>
                     )}
                 </SheetContent>

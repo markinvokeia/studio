@@ -75,7 +75,13 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
   const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
 
+  const hasPatientName = React.useMemo(() => {
+    return Boolean(patient?.name && patient.name.trim().length > 0);
+  }, [patient?.name]);
+
   React.useEffect(() => {
+    let isCurrent = true;
+
     const fetchData = async () => {
       try {
         const [calData, docData, srvData, configData] = await Promise.all([
@@ -131,8 +137,9 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           duration_minutes: s.duration_minutes || 30
         })));
 
-        // Fetch user details for the patient if userId is provided and patient prop is not
-        if (userId && !patient) {
+        // Fetch user details for the patient if the provided patient is missing or incomplete
+        if (userId && !hasPatientName) {
+          setPatientUser(null);
           try {
             const userData = await api.get(API_ROUTES.USERS, { id: userId });
             let user: UserType | null = null;
@@ -145,6 +152,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             }
 
             if (user) {
+              if (!isCurrent) return;
               setPatientUser({
                 id: String(user.id),
                 name: user.name || 'Unknown',
@@ -157,6 +165,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           } catch (e) {
             console.error("Error fetching patient user:", e);
           }
+        } else if (hasPatientName) {
+          setPatientUser(null);
         }
       } catch (error) {
         console.error("Error fetching data for AppointmentFormDialog in OrderItemsTable:", error);
@@ -164,7 +174,23 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
     };
 
     fetchData();
-  }, [userId, isSales]);
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [userId, isSales, hasPatientName]);
+
+  const initialPatientUser = React.useMemo(() => {
+    if (hasPatientName) {
+      return patient;
+    }
+
+    if (patientUser?.name?.trim()) {
+      return patientUser;
+    }
+
+    return patient;
+  }, [patient, patientUser, hasPatientName]);
 
   const handleActionClick = (item: OrderItem, type: ActionType) => {
     setSelectedItem(item);
@@ -559,7 +585,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         open={isAppointmentDialogOpen}
         onOpenChange={setIsAppointmentDialogOpen}
         initialData={{
-          user: patient || patientUser || undefined,
+          user: initialPatientUser || undefined,
           summary: selectedItem?.service_name || '',
           description: selectedItem?.service_name || '',
           services: selectedItem ? allServices.filter(s => String(s.id) === String(selectedItem.service_id)) : [],
