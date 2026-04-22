@@ -851,7 +851,11 @@ function ScheduleStepDialog({
 
 interface CreateSessionState {
     open: boolean;
+    isEdit: boolean;         // true = editing an existing session
     stepId: string;
+    sesionId: number | null; // existing sesion_id when editing
+    appointmentId: string | null;
+    procedimiento: string;   // step_name → procedimiento_realizado
     prefill: {
         date: string;
         doctorId: string;
@@ -865,14 +869,12 @@ interface CreateSessionState {
 function CreateSessionFromStepDialog({
     state,
     patientId,
-    sequenceId,
     onSuccess,
     onClose,
     t,
 }: {
     state: CreateSessionState;
     patientId: string;
-    sequenceId: string;
     onSuccess: (sesionId: number, stepId: string) => void;
     onClose: () => void;
     t: ReturnType<typeof useTranslations>;
@@ -880,21 +882,53 @@ function CreateSessionFromStepDialog({
     const [date, setDate] = React.useState(state.prefill.date);
     const [doctorId, setDoctorId] = React.useState(state.prefill.doctorId);
     const [notes, setNotes] = React.useState(state.prefill.notes);
+    const [procedimiento, setProcedimiento] = React.useState(state.procedimiento);
     const [doctors, setDoctors] = React.useState<{ id: string; name: string }[]>([]);
     const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(true);
+    const [isLoadingSession, setIsLoadingSession] = React.useState(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
     React.useEffect(() => {
         if (!state.open) return;
-        setDate(state.prefill.date);
-        setDoctorId(state.prefill.doctorId);
-        setNotes(state.prefill.notes);
+        setProcedimiento(state.procedimiento);
+
+        // Load doctors
         setIsLoadingDoctors(true);
         api.get(API_ROUTES.USERS_DOCTORS)
             .then((data: any) => setDoctors((Array.isArray(data) ? data : []).map((d: any) => ({ id: String(d.id), name: d.name as string }))))
             .catch(() => setDoctors([]))
             .finally(() => setIsLoadingDoctors(false));
-    }, [state.open, state.prefill.date, state.prefill.doctorId, state.prefill.notes]);
+
+        if (state.isEdit && state.sesionId) {
+            // Edit mode: fetch the specific session passing both user_id and sesion_id
+            setIsLoadingSession(true);
+            api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: patientId, sesion_id: String(state.sesionId) })
+                .then((data: any) => {
+                    const list: any[] = Array.isArray(data) ? data : (data?.sesiones ?? data?.data ?? []);
+                    const session = list[0] ?? null;
+                    if (session) {
+                        setDate(session.fecha ?? session.date ?? state.prefill.date);
+                        setDoctorId(String(session.doctor_id ?? state.prefill.doctorId));
+                        setNotes(session.notas ?? session.notes ?? state.prefill.notes);
+                        setProcedimiento(session.procedimiento_realizado ?? state.procedimiento);
+                    } else {
+                        setDate(state.prefill.date);
+                        setDoctorId(state.prefill.doctorId);
+                        setNotes(state.prefill.notes);
+                    }
+                })
+                .catch(() => {
+                    setDate(state.prefill.date);
+                    setDoctorId(state.prefill.doctorId);
+                    setNotes(state.prefill.notes);
+                })
+                .finally(() => setIsLoadingSession(false));
+        } else {
+            setDate(state.prefill.date);
+            setDoctorId(state.prefill.doctorId);
+            setNotes(state.prefill.notes);
+        }
+    }, [state.open, state.isEdit, state.sesionId, state.prefill.date, state.prefill.doctorId, state.prefill.notes, state.procedimiento, patientId]);
 
     if (!state.open) return null;
 
@@ -907,35 +941,35 @@ function CreateSessionFromStepDialog({
             formData.append('fecha', date);
             if (doctorId) formData.append('doctor_id', doctorId);
             if (notes.trim()) formData.append('notas', notes.trim());
+            if (procedimiento.trim()) formData.append('procedimiento_realizado', procedimiento.trim());
+            if (state.appointmentId) formData.append('appointment_id', state.appointmentId);
+            else formData.append('appointment_id', '');
 
-            const response: any = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
-            /*const sesionId: number =
-                response?.data?.id ??
-                response?.sesion_id ??
-                response?.data?.sesion_id ??
-                response?.id ??
-                null;
-                */
-            // Si response es un array, extrae el primer objeto; si no, úsalo tal cual.
-            const body = Array.isArray(response) ? response[0] : response;
+            if (state.isEdit && state.sesionId) {
+                formData.append('sesion_id', String(state.sesionId));
+                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+                onSuccess(state.sesionId, state.stepId);
+            } else {
+                const response: any = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+                const body = Array.isArray(response) ? response[0] : response;
+                const sesionId: number = body?.data?.id ?? body?.sesion_id ?? body?.data?.sesion_id ?? body?.id ?? null;
+                if (!sesionId) throw new Error('No sesion_id in response');
 
-            const sesionId = body?.data?.id || body?.id || null;
-
-            if (!sesionId) throw new Error('No sesion_id in response');
-
-            await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ADD_SESSION, {
-                seq_step_id: Number(state.stepId),
-                sesion_id: sesionId,
-            });
-
-            onSuccess(sesionId, state.stepId);
+                await api.post(API_ROUTES.TREATMENT_PLANS.SEQUENCE_ADD_SESSION, {
+                    seq_step_id: Number(state.stepId),
+                    sesion_id: sesionId,
+                });
+                onSuccess(sesionId, state.stepId);
+            }
             onClose();
         } catch (err) {
-            console.error('Failed to create session from step', err);
+            console.error('Failed to save session from step', err);
         } finally {
             setIsSaving(false);
         }
     }
+
+    const isLoading = isLoadingSession;
 
     return (
         <Dialog open={state.open} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -943,63 +977,80 @@ function CreateSessionFromStepDialog({
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Stethoscope className="h-4 w-4 text-primary shrink-0" />
-                        {t('createSession.title')}
+                        {state.isEdit ? t('createSession.editTitle') : t('createSession.title')}
                     </DialogTitle>
                     <DialogDescription className="text-xs">
-                        {t('createSession.description')}
+                        {state.isEdit ? t('createSession.editDescription') : t('createSession.description')}
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 px-6 py-5 overflow-y-auto">
-                    {/* Service (read-only) */}
-                    {state.prefill.serviceName && (
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-medium">{t('createSession.service')}</Label>
-                            <div className="flex items-center h-9 px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground">
-                                {state.prefill.serviceName}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Date */}
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">{t('createSession.date')}</Label>
-                        <DatePickerInput value={date} onChange={setDate} />
+                {isLoading ? (
+                    <div className="flex items-center justify-center py-10">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
-
-                    {/* Doctor */}
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">{t('createSession.doctor')}</Label>
-                        {isLoadingDoctors ? (
-                            <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                    <div className="space-y-4 px-6 py-5 overflow-y-auto">
+                        {/* Service (read-only) */}
+                        {state.prefill.serviceName && (
+                            <div className="space-y-1.5">
+                                <Label className="text-xs font-medium">{t('createSession.service')}</Label>
+                                <div className="flex items-center h-9 px-3 rounded-md border bg-muted/50 text-sm text-muted-foreground">
+                                    {state.prefill.serviceName}
+                                </div>
                             </div>
-                        ) : (
-                            <Select value={doctorId} onValueChange={setDoctorId}>
-                                <SelectTrigger className="h-9 text-sm">
-                                    <SelectValue placeholder={t('createSession.doctorPlaceholder')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {doctors.map(d => (
-                                        <SelectItem key={d.id} value={d.id} className="text-sm">{d.name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
                         )}
-                    </div>
 
-                    {/* Notes */}
-                    <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">{t('createSession.notes')}</Label>
-                        <textarea
-                            value={notes}
-                            onChange={e => setNotes(e.target.value)}
-                            rows={3}
-                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                            placeholder={t('createSession.notesPlaceholder')}
-                        />
+                        {/* Procedimiento */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('createSession.procedimiento')}</Label>
+                            <Input
+                                value={procedimiento}
+                                onChange={e => setProcedimiento(e.target.value)}
+                                className="h-9 text-sm"
+                                placeholder={t('createSession.procedimientoPlaceholder')}
+                            />
+                        </div>
+
+                        {/* Date */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('createSession.date')}</Label>
+                            <DatePickerInput value={date} onChange={setDate} />
+                        </div>
+
+                        {/* Doctor */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('createSession.doctor')}</Label>
+                            {isLoadingDoctors ? (
+                                <div className="flex items-center gap-2 h-9 text-xs text-muted-foreground">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                </div>
+                            ) : (
+                                <Select value={doctorId} onValueChange={setDoctorId}>
+                                    <SelectTrigger className="h-9 text-sm">
+                                        <SelectValue placeholder={t('createSession.doctorPlaceholder')} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {doctors.map(d => (
+                                            <SelectItem key={d.id} value={d.id} className="text-sm">{d.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
+
+                        {/* Notes */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium">{t('createSession.notes')}</Label>
+                            <textarea
+                                value={notes}
+                                onChange={e => setNotes(e.target.value)}
+                                rows={3}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                                placeholder={t('createSession.notesPlaceholder')}
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 <DialogFooter>
                     <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={onClose} disabled={isSaving}>
@@ -1008,11 +1059,11 @@ function CreateSessionFromStepDialog({
                     <Button
                         size="sm"
                         className="h-8 text-xs gap-1.5"
-                        disabled={!date || isSaving}
+                        disabled={!date || isSaving || isLoading}
                         onClick={handleSave}
                     >
                         {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
-                        {t('createSession.confirm')}
+                        {state.isEdit ? t('createSession.editConfirm') : t('createSession.confirm')}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -1065,28 +1116,49 @@ function StepTimeline({
         serviceId: '', serviceName: '', defaultNotes: '',
     });
     const [createSessionDialog, setCreateSessionDialog] = React.useState<CreateSessionState>({
-        open: false,
-        stepId: '',
+        open: false, isEdit: false, stepId: '', sesionId: null, appointmentId: null, procedimiento: '',
         prefill: { date: '', doctorId: '', doctorName: '', notes: '', serviceId: '', serviceName: '' },
     });
 
     function openCreateSessionDialog(step: TreatmentSequenceStep) {
-        const noteParts = [step.step_name, step.notes].filter(Boolean);
         setCreateSessionDialog({
             open: true,
+            isEdit: false,
             stepId: step.id,
+            sesionId: null,
+            appointmentId: step.appointment_id ?? null,
+            procedimiento: step.step_name,
             prefill: {
                 date: step.scheduled_date ?? '',
                 doctorId: sequence.doctor_id ?? '',
                 doctorName: sequence.doctor_name ?? '',
-                notes: noteParts.join('\n'),
+                notes: step.notes ?? '',
                 serviceId: sequence.service_id ?? '',
                 serviceName: sequence.service_name ?? '',
             },
         });
     }
 
-    function handleSessionCreated(sesionId: number, stepId: string) {
+    function openEditSessionDialog(step: TreatmentSequenceStep) {
+        setCreateSessionDialog({
+            open: true,
+            isEdit: true,
+            stepId: step.id,
+            sesionId: Number(step.sesion_id),
+            appointmentId: step.appointment_id ?? null,
+            procedimiento: step.step_name,
+            prefill: {
+                date: step.scheduled_date ?? '',
+                doctorId: sequence.doctor_id ?? '',
+                doctorName: sequence.doctor_name ?? '',
+                notes: step.notes ?? '',
+                serviceId: sequence.service_id ?? '',
+                serviceName: sequence.service_name ?? '',
+            },
+        });
+    }
+
+    function handleSessionSaved(sesionId: number, stepId: string) {
         onStepsChange(sequence.id, sequence.steps.map(s =>
             s.id === stepId ? { ...s, sesion_id: String(sesionId) } : s
         ));
@@ -1422,7 +1494,7 @@ function StepTimeline({
                                         </Button>
                                     )}
 
-                                    {/* Create session button — when no session linked yet and step not cancelled */}
+                                    {/* Create session — only when no session linked and step not cancelled */}
                                     {!step.sesion_id && step.status !== 'cancelled' && (
                                         <Button
                                             variant="ghost" size="icon"
@@ -1434,13 +1506,13 @@ function StepTimeline({
                                         </Button>
                                     )}
 
-                                    {/* View/edit session button — when step has a linked session */}
-                                    {!!step.sesion_id && onViewSession && (
+                                    {/* Edit session — only when sesion_id is set */}
+                                    {!!step.sesion_id && (
                                         <Button
                                             variant="ghost" size="icon"
                                             className="h-6 w-6 text-muted-foreground hover:text-emerald-600"
                                             title={t('edit.viewSession')}
-                                            onClick={() => onViewSession(Number(step.sesion_id))}
+                                            onClick={() => openEditSessionDialog(step)}
                                         >
                                             <ClipboardCheck className="h-3 w-3" />
                                         </Button>
@@ -1552,8 +1624,7 @@ function StepTimeline({
             <CreateSessionFromStepDialog
                 state={createSessionDialog}
                 patientId={patientId}
-                sequenceId={sequence.id}
-                onSuccess={handleSessionCreated}
+                onSuccess={handleSessionSaved}
                 onClose={() => setCreateSessionDialog(prev => ({ ...prev, open: false }))}
                 t={t}
             />

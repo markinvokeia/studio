@@ -4927,16 +4927,21 @@
       "cancelled": "Cancelado",
       "paused": "Pausado"
     },
-    "createSession": {      
-      "title": "Crear detalles de la sesión",
-      "description": "Descripción",
+    "createSession": {
+      "title": "Crear sesión clínica",
+      "description": "Crea una sesión clínica vinculada a este paso del plan de tratamiento.",
+      "editTitle": "Editar sesión clínica",
+      "editDescription": "Modifica los datos de la sesión clínica vinculada a este paso.",
       "service": "Servicio",
+      "procedimiento": "Procedimiento realizado",
+      "procedimientoPlaceholder": "Describe el procedimiento...",
       "date": "Fecha",
       "doctor": "Doctor",
+      "doctorPlaceholder": "Seleccionar doctor",
       "notes": "Notas",
-      "notesPlaceholder": "Agregar notas para esta sesión",
-      "confirm": "Confirmar",
-      "doctorPlaceholder": "Seleccionar doctor que atenderá esta sesión"
+      "notesPlaceholder": "Notas de la sesión...",
+      "confirm": "Crear sesión",
+      "editConfirm": "Guardar cambios"
     },
     "stepStatus": {
       "pending": "Pendiente",
