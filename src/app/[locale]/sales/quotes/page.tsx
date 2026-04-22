@@ -352,7 +352,7 @@ async function deleteQuoteItem(id: string, quoteId: string, t: (key: string) => 
 async function getOrders(quoteId: string, t: (key: string) => string): Promise<Order[]> {
     if (!quoteId) return [];
     try {
-        const data = await api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId });
+        const data = await api.get(API_ROUTES.SALES.QUOTES_ORDERS, { quote_id: quoteId, is_sales: 'true' });
         const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
         return ordersData.map((apiOrder: any) => ({
             id: apiOrder.id ? String(apiOrder.id) : t('defaults.notAvailable'),
@@ -375,7 +375,7 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
 async function getOrderItems(orderId: string, t: (key: string) => string): Promise<OrderItem[]> {
     if (!orderId) return [];
     try {
-        const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId });
+        const data = await api.get(API_ROUTES.SALES.ORDER_ITEMS, { order_id: orderId, is_sales: 'true' });
         const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
         return itemsData.map((apiItem: any) => ({
             id: apiItem.order_item_id ? String(apiItem.order_item_id) : t('defaults.notAvailable'),
@@ -607,6 +607,9 @@ export default function QuotesPage() {
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+    const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
+    const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
+    const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
@@ -779,12 +782,12 @@ export default function QuotesPage() {
         }
     }, [selectedOrder, loadOrderItems]);
 
-    // Auto-select first order for confirmed quotes once orders are loaded (avoids duplicate fetch)
+    // Auto-select first order for invoice-ready quotes once orders are loaded
     React.useEffect(() => {
-        if (selectedQuote?.status.toLowerCase() === 'confirmed' && orders.length > 0) {
+        if (isQuoteReadyToInvoice && orders.length > 0) {
             setSelectedOrder(orders[0]);
         }
-    }, [selectedQuote, orders]);
+    }, [isQuoteReadyToInvoice, orders]);
 
     React.useEffect(() => {
         if (selectedInvoice) {
@@ -1125,7 +1128,7 @@ export default function QuotesPage() {
     };
 
     const handleInvoiceFromQuote = async () => {
-        if (!selectedOrder) return;
+        if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
         try {
             await invoiceOrder({
                 orderId: selectedOrder.id,
@@ -1303,7 +1306,7 @@ export default function QuotesPage() {
                                                         onClick={() => handleDeleteQuote(selectedQuote)}
                                                     />
                                                 )}
-                                                {canInvoice && selectedQuote.status.toLowerCase() === 'confirmed' && selectedOrder && (
+                                                {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
                                                     <ActionButton
                                                         icon={Receipt}
                                                         label={t('actions.invoice')}
@@ -1329,7 +1332,7 @@ export default function QuotesPage() {
                                         </TabsList>
                                         <div className="flex-1 min-h-0 mt-4 flex flex-col">
                                             <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
-                                                {selectedQuote.status.toLowerCase() === 'confirmed' ? (
+                                                {isQuoteReadyToInvoice ? (
                                                     <OrderItemsTable
                                                         items={orderItems}
                                                         isLoading={isLoadingOrders || isLoadingOrderItems}

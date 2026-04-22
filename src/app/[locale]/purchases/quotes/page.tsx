@@ -423,6 +423,9 @@ function QuotesPageContent() {
     const [orders, setOrders] = React.useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
+    const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
+    const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
+    const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
@@ -583,15 +586,15 @@ function QuotesPageContent() {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-    // Auto-select first order for confirmed quotes once orders are loaded (avoids duplicate fetch)
+    // Auto-select first order for invoice-ready quotes once orders are loaded
     React.useEffect(() => {
-        if (selectedQuote?.status.toLowerCase() === 'confirmed' && orders.length > 0) {
+        if (isQuoteReadyToInvoice && orders.length > 0) {
             setSelectedOrder(orders[0]);
         }
-    }, [selectedQuote, orders]);
+    }, [isQuoteReadyToInvoice, orders]);
 
     const handleInvoiceFromQuote = async () => {
-        if (!selectedOrder) return;
+        if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
         try {
             await invoiceOrder({
                 orderId: selectedOrder.id,
@@ -1184,7 +1187,7 @@ function QuotesPageContent() {
                                                         onClick={() => handleDeleteQuote(selectedQuote)}
                                                     />
                                                 )}
-                                                {canInvoice && selectedQuote.status.toLowerCase() === 'confirmed' && selectedOrder && (
+                                                {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
                                                     <ActionButton
                                                         icon={Receipt}
                                                         label={t('actions.invoice')}

@@ -145,7 +145,7 @@ async function getOrdersForQuote(quoteId: string, isSales: boolean): Promise<Ord
   if (!quoteId) return [];
   try {
     const route = isSales ? API_ROUTES.SALES.QUOTES_ORDERS : API_ROUTES.PURCHASES.QUOTES_ORDERS;
-    const data = await api.get(route, { quote_id: quoteId });
+    const data = await api.get(route, { quote_id: quoteId, is_sales: isSales ? 'true' : 'false' });
     const ordersData = Array.isArray(data) ? data : (data.orders || data.data || []);
     return ordersData.map((o: any) => ({
       id: o.id ? String(o.id) : '',
@@ -168,7 +168,7 @@ async function getOrderItemsForOrder(orderId: string, isSales: boolean): Promise
   if (!orderId) return [];
   try {
     const route = isSales ? API_ROUTES.SALES.ORDER_ITEMS : API_ROUTES.PURCHASES.ORDER_ITEMS;
-    const data = await api.get(route, { order_id: orderId });
+    const data = await api.get(route, { order_id: orderId, is_sales: isSales ? 'true' : 'false' });
     const itemsData = Array.isArray(data) ? data : (data.order_items || data.data || data.result || []);
     return itemsData.map((i: any) => ({
       id: i.order_item_id ? String(i.order_item_id) : '',
@@ -408,13 +408,18 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canEditItems = canUpdateItem && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
   const canScheduleItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_SCHEDULE_ITEM);
   const canCompleteItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
-  const canInvoiceFromOrder = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
+  const canInvoiceFromOrder = hasPermission(
+    isSales
+      ? SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER
+      : PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE
+  );
   const canSend = canSendQuote;
+  const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
   const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
   const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
   const showInvoiceFromOrderButton =
     canInvoiceFromOrder &&
-    selectedQuote?.status?.toLowerCase() === 'confirmed' &&
+    isQuoteReadyToInvoice &&
     !!selectedOrderBelongsToQuote &&
     !isLoadingOrderItems &&
     hasServicesPendingInvoice;
@@ -487,10 +492,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   React.useEffect(() => { loadQuotes(); }, [loadQuotes]);
 
   React.useEffect(() => {
-    if (selectedQuote?.status?.toLowerCase() === 'confirmed' && orders.length > 0) {
+    if (isQuoteReadyToInvoice && orders.length > 0) {
       setSelectedOrder(orders[0]);
     }
-  }, [selectedQuote, orders]);
+  }, [isQuoteReadyToInvoice, orders]);
 
   React.useEffect(() => {
     if (selectedOrder) {
@@ -520,11 +525,11 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     if (!quote) {
       setIsSheetOpen(false);
       setQuoteItems([]);
-    } else if (quote.status?.toLowerCase() === 'confirmed' && isSales) {
+    } else if (['accepted', 'confirmed'].includes(quote.status?.toLowerCase() || '')) {
       loadOrders(quote.id);
     }
     onQuoteSelect?.(quote);
-  }, [isSales, loadOrders, onQuoteSelect]);
+  }, [loadOrders, onQuoteSelect]);
 
   const handleOpenSheet = React.useCallback((quote: Quote) => {
     setIsSheetOpen(true);
@@ -534,10 +539,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     setOrders([]);
     setSelectedOrder(null);
     setOrderItems([]);
-    if (quote.status?.toLowerCase() === 'confirmed' && isSales) {
+    if (['accepted', 'confirmed'].includes(quote.status?.toLowerCase() || '')) {
       loadOrders(quote.id);
     }
-  }, [loadItems, loadServices, loadQuoteClinicSessions, loadOrders, isSales]);
+  }, [loadItems, loadServices, loadQuoteClinicSessions, loadOrders]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
@@ -843,7 +848,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const handleInvoiceFromQuote = async () => {
     if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
     try {
-      await invoiceOrder({ orderId: selectedOrder.id, userId: selectedOrder.user_id, mode: 'sales' });
+      await invoiceOrder({ orderId: selectedOrder.id, userId: selectedOrder.user_id, mode: isSales ? 'sales' : 'purchases' });
       toast({ title: tQuotes('actions.invoiceSuccess'), description: tQuotes('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }) });
       await Promise.all([
         loadQuotes(true),
