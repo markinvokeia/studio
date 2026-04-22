@@ -132,7 +132,7 @@ interface UseClinicHistoryReturn {
     getDocumentContent: (userId: string, docId: string) => Promise<Blob>;
 
     // Session functions with attachments
-    createSession: (userId: string, data: any, files?: File[]) => Promise<void>;
+    createSession: (userId: string, data: any, files?: File[]) => Promise<number | undefined>;
     updateSession: (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[]) => Promise<void>;
     deleteSession: (sessionId: number, userId: string) => Promise<void>;
     fetchDoctors: () => Promise<void>;
@@ -749,13 +749,15 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         return formData;
     };
 
-    const createSession = useCallback(async (userId: string, data: any, files?: File[]) => {
+    const createSession = useCallback(async (userId: string, data: any, files?: File[]): Promise<number | undefined> => {
         setIsSubmittingSession(true);
         try {
             const { archivos_adjuntos, deletedAttachmentIds, ...sessionData } = data;
             const formData = buildSessionFormData(sessionData, { paciente_id: userId }, files);
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
+            const response = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
             await fetchPatientSessions(userId);
+            // Return the new sesion_id so callers can link it to treatment steps
+            return response?.sesion_id ?? response?.data?.sesion_id ?? response?.id ?? undefined;
         } catch (error) {
             console.error("Failed to create session:", error);
             throw error;
