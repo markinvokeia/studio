@@ -4959,16 +4959,21 @@
       "cancelled": "Cancelled",
       "paused": "Paused"
     },
-    "createSession": {      
-      "title": "Create Session Details",
-      "description": "Description",
+    "createSession": {
+      "title": "Create Clinical Session",
+      "description": "Creates a clinical session linked to this treatment plan step.",
+      "editTitle": "Edit Clinical Session",
+      "editDescription": "Modify the clinical session linked to this treatment plan step.",
       "service": "Service",
+      "procedimiento": "Procedure performed",
+      "procedimientoPlaceholder": "Describe the procedure...",
       "date": "Date",
       "doctor": "Doctor",
+      "doctorPlaceholder": "Select doctor",
       "notes": "Notes",
-      "notesPlaceholder": "Add notes for this session",
-      "confirm": "Confirm",
-      "doctorPlaceholder": "Select doctor attending this session"
+      "notesPlaceholder": "Session notes...",
+      "confirm": "Create session",
+      "editConfirm": "Save changes"
     },
     "stepStatus": {
       "pending": "Pending",
