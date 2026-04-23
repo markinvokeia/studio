@@ -1,6 +1,7 @@
 ---
 name: permissions-protection
-description: Protege componentes y rutas usando el sistema de permisos basado en roles. Úsalo cuando necesitas: (1) Ocultar elementos de UI según permisos del usuario, (2) Proteger rutas/páginas para que solo usuarios con permisos específicos puedan acceder, (3) Implementar control de acceso en formularios, tablas o botones.
+description: >
+  Protege componentes y rutas usando el sistema de permisos basado en roles. Úsalo cuando necesitas: (1) Ocultar elementos de UI según permisos del usuario, (2) Proteger rutas/páginas para que solo usuarios con permisos específicos puedan acceder, (3) Implementar control de acceso en formularios, tablas o botones.
 ---
 
 # Protección de Componentes y Rutas con Permisos
