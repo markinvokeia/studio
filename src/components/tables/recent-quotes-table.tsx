@@ -19,14 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -40,7 +32,7 @@ import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { Loader2, MoreHorizontal, Printer, Send } from 'lucide-react';
+import { CheckCircle, Loader2, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
@@ -49,6 +41,77 @@ import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+interface QuoteActionsProps {
+  quote: Quote;
+  onEdit: (quote: Quote) => void;
+  onDelete: (quote: Quote) => void;
+  onQuoteActionRequest: (quote: Quote, action: 'confirm' | 'reject') => void;
+  onPrint: (quote: Quote) => void;
+  onSendEmail: (quote: Quote) => void;
+  canEdit: boolean;
+  canDelete: boolean;
+  canConfirm: boolean;
+  canReject: boolean;
+  canPrint: boolean;
+  canSendEmail: boolean;
+}
+
+function QuoteActions({
+  quote,
+  onEdit,
+  onDelete,
+  onQuoteActionRequest,
+  onPrint,
+  onSendEmail,
+  canEdit,
+  canDelete,
+  canConfirm,
+  canReject,
+  canPrint,
+  canSendEmail,
+}: QuoteActionsProps) {
+  const tQuotes = useTranslations('QuotesPage');
+  const status = (quote.status || '').toLowerCase();
+  const isDraft = status === 'draft';
+  const isPending = status === 'pending';
+
+  const actions = [
+    { icon: Printer, label: tQuotes('print'), onClick: () => onPrint(quote), disabled: false, destructive: false, visible: canPrint },
+    { icon: Send, label: tQuotes('sendEmail'), onClick: () => onSendEmail(quote), disabled: false, destructive: false, visible: canSendEmail },
+    { icon: Pencil, label: tQuotes('edit'), onClick: () => onEdit(quote), disabled: !isDraft, destructive: false, visible: canEdit },
+    { icon: CheckCircle, label: tQuotes('confirm'), onClick: () => onQuoteActionRequest(quote, 'confirm'), disabled: !isDraft && !isPending, destructive: false, visible: canConfirm },
+    { icon: XCircle, label: tQuotes('reject'), onClick: () => onQuoteActionRequest(quote, 'reject'), disabled: !isDraft && !isPending, destructive: true, visible: canReject },
+    { icon: Trash2, label: tQuotes('delete'), onClick: () => onDelete(quote), disabled: !isDraft, destructive: true, visible: canDelete },
+  ].filter((action) => action.visible);
+
+  if (actions.length === 0) return null;
+
+  return (
+    <div className="flex items-center gap-1">
+      {actions.map(({ icon: Icon, label, onClick, disabled, destructive }) => (
+        <button
+          key={label}
+          type="button"
+          title={label}
+          aria-label={label}
+          disabled={disabled}
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick();
+          }}
+          className={cn(
+            'flex min-w-[44px] flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35',
+            destructive && 'hover:bg-destructive/10 hover:text-destructive',
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          <span className="max-w-[48px] truncate text-[9px] font-medium leading-tight">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 const getColumns = (
   t: (key: string) => string,
   onEdit: (quote: Quote) => void,
@@ -56,8 +119,10 @@ const getColumns = (
   onQuoteActionRequest: (quote: Quote, action: 'confirm' | 'reject') => void,
   onPrint: (quote: Quote) => void,
   onSendEmail: (quote: Quote) => void,
-  isCompact: boolean = false
-): ColumnDef<Quote>[] => [
+  isCompact: boolean = false,
+  actionPermissions: QuoteActionPermissions,
+): ColumnDef<Quote>[] => {
+  const columns: ColumnDef<Quote>[] = [
     {
       id: 'select',
       header: () => null,
@@ -237,52 +302,26 @@ const getColumns = (
     {
       id: 'actions',
       cell: ({ row }) => {
-        const t = useTranslations('UserColumns');
-        const tQuotes = useTranslations('QuotesPage');
         const quote = row.original;
-        const status = (quote.status || '').toLowerCase();
-        const isDraft = status === 'draft';
-        const isPending = status === 'pending';
 
         return (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{tQuotes('itemDialog.actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrint(quote); }}>
-                <Printer className="mr-2 h-4 w-4" />
-                <span>{tQuotes('print')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSendEmail(quote); }}>
-                <Send className="mr-2 h-4 w-4" />
-                <span>{tQuotes('sendEmail')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(quote); }} disabled={!isDraft}>
-                {tQuotes('edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(quote); }} className="text-destructive" disabled={!isDraft}>
-                {tQuotes('delete')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteActionRequest(quote, 'confirm'); }} disabled={!isDraft && !isPending}>
-                {tQuotes('confirm')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteActionRequest(quote, 'reject'); }} className="text-destructive" disabled={!isDraft && !isPending}>
-                {tQuotes('reject')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <QuoteActions
+            quote={quote}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onQuoteActionRequest={onQuoteActionRequest}
+            onPrint={onPrint}
+            onSendEmail={onSendEmail}
+            {...actionPermissions}
+          />
         );
       },
       enableHiding: false,
+      size: 300,
     },
   ];
+  return columns.filter((column) => !isCompact || column.id !== 'actions');
+};
 
 
 interface RecentQuotesTableProps {
@@ -305,6 +344,21 @@ interface RecentQuotesTableProps {
   isSendingEmail?: boolean;
   setIsSendingEmail?: (sending: boolean) => void;
   isSales?: boolean;
+  canEditQuote?: boolean;
+  canDeleteQuote?: boolean;
+  canConfirmQuote?: boolean;
+  canRejectQuote?: boolean;
+  canPrintQuote?: boolean;
+  canSendQuoteEmail?: boolean;
+}
+
+interface QuoteActionPermissions {
+  canEdit: boolean;
+  canDelete: boolean;
+  canConfirm: boolean;
+  canReject: boolean;
+  canPrint: boolean;
+  canSendEmail: boolean;
 }
 
 export function RecentQuotesTable({
@@ -327,6 +381,12 @@ export function RecentQuotesTable({
   isSendingEmail = false,
   setIsSendingEmail,
   isSales = false,
+  canEditQuote = false,
+  canDeleteQuote = false,
+  canConfirmQuote = false,
+  canRejectQuote = false,
+  canPrintQuote = true,
+  canSendQuoteEmail = true,
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
@@ -342,7 +402,7 @@ export function RecentQuotesTable({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-  const handlePrintQuote = async (quote: Quote) => {
+  const handlePrintQuote = React.useCallback(async (quote: Quote) => {
     const fileName = getDocumentFileName(quote, 'quote');
     toast({
       title: t('QuotesPage.generatingPdf'),
@@ -372,7 +432,7 @@ export function RecentQuotesTable({
         description: error instanceof Error ? error.message : t('QuotesPage.couldNotPrint'),
       });
     }
-  };
+  }, [t, toast]);
 
   const handleSendEmailClick = (quote: Quote) => {
     setSelectedQuoteForEmail(quote);
@@ -455,7 +515,19 @@ export function RecentQuotesTable({
     setIsWarningDialogOpen(false);
   };
 
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, handleSendEmailClick, isCompact), [t, onEdit, onDelete, onQuoteActionRequest, isCompact]);
+  const actionPermissions = React.useMemo<QuoteActionPermissions>(() => ({
+    canEdit: canEditQuote,
+    canDelete: canDeleteQuote,
+    canConfirm: canConfirmQuote,
+    canReject: canRejectQuote,
+    canPrint: canPrintQuote,
+    canSendEmail: canSendQuoteEmail,
+  }), [canEditQuote, canDeleteQuote, canConfirmQuote, canRejectQuote, canPrintQuote, canSendQuoteEmail]);
+
+  const columns = React.useMemo(
+    () => getColumns(t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, handleSendEmailClick, isCompact, actionPermissions),
+    [t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, isCompact, actionPermissions],
+  );
 
   const table = useReactTable({
     data: quotes,
@@ -540,12 +612,23 @@ export function RecentQuotesTable({
             <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
               {table.getRowModel().rows.length > 0
                 ? table.getRowModel().rows.map((row) => (
-                    <DataCard
+                  <DataCard
                       key={row.id}
                       title={row.original.doc_no || String(row.original.id)}
                       subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
                       isSelected={row.getIsSelected()}
                       showArrow={!!(onRowClick || onRowSelectionChange)}
+                      actions={!isCompact ? (
+                        <QuoteActions
+                          quote={row.original}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onQuoteActionRequest={onQuoteActionRequest}
+                          onPrint={handlePrintQuote}
+                          onSendEmail={handleSendEmailClick}
+                          {...actionPermissions}
+                        />
+                      ) : undefined}
                       onClick={() => {
                         table.toggleAllPageRowsSelected(false);
                         row.toggleSelected(true);

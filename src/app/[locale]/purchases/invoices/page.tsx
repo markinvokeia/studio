@@ -8,15 +8,18 @@ import { CreditNotesTable } from '@/components/tables/credit-notes-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
+import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { ServiceSelector } from '@/components/ui/service-selector';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
@@ -24,11 +27,11 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
-import { getDocumentFileName } from '@/lib/utils';
+import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { Check, File, FileUp, Loader2, PlusCircle, Receipt, RefreshCw, Send, Trash2, X } from 'lucide-react';
+import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -172,6 +175,7 @@ export default function InvoicesPage() {
 
 function InvoicesPageContent() {
     const t = useTranslations('InvoicesPage');
+    const tStatus = useTranslations('InvoicesPage.status');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
@@ -187,6 +191,7 @@ function InvoicesPageContent() {
     const canAddItem = hasPermission(PURCHASES_PERMISSIONS.INVOICES_ADD_ITEM);
     const canUpdateItem = hasPermission(PURCHASES_PERMISSIONS.INVOICES_UPDATE_ITEM);
     const canDeleteItem = hasPermission(PURCHASES_PERMISSIONS.INVOICES_DELETE_ITEM);
+    const canCreatePayment = hasPermission(PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
@@ -221,6 +226,10 @@ function InvoicesPageContent() {
     const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
     const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
     const [invoiceType, setInvoiceType] = React.useState('all');
+    const [activeTab, setActiveTab] = React.useState('items');
+    const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+    const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
+    const [invoiceForPayment, setInvoiceForPayment] = React.useState<Invoice | null>(null);
 
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(invoiceItemSchema),
@@ -283,13 +292,36 @@ function InvoicesPageContent() {
 
     const handleRowSelectionChange = (selectedRows: Invoice[]) => {
         const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
+        if (invoice?.id !== selectedInvoice?.id) {
+            setActiveTab('items');
+        }
         setSelectedInvoice(invoice);
     };
 
     const handleCloseDetails = () => {
         setSelectedInvoice(null);
         setRowSelection({});
+        setIsRightExpanded(false);
     };
+
+    const invoiceTabs = React.useMemo<VerticalTab[]>(() => {
+        const tabs: VerticalTab[] = [
+            { id: 'items', icon: FileText, label: t('tabs.items') },
+            { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
+            { id: 'notes', icon: StickyNote, label: t('tabs.notes') },
+        ];
+        if (selectedInvoice?.type === 'credit_note') {
+            tabs.push({ id: 'allocations', icon: Link2, label: t('tabs.allocations') });
+        } else {
+            tabs.push({ id: 'creditNotes', icon: FileMinus, label: t('tabs.creditNotes') });
+        }
+        return tabs;
+    }, [t, selectedInvoice?.type]);
+
+    const selectedInvoiceStatus = selectedInvoice?.status?.toLowerCase() ?? '';
+    const selectedPaymentStatus = selectedInvoice?.payment_status?.toLowerCase() ?? 'unpaid';
+    const canAddPaymentAction = canCreatePayment && selectedInvoiceStatus === 'booked' && selectedPaymentStatus !== 'paid';
+    const canConfirmAction = canConfirmInvoice && selectedInvoiceStatus === 'draft';
 
     const handlePrintInvoice = async (invoice: Invoice) => {
         const fileName = getDocumentFileName(invoice, 'invoice');
@@ -559,6 +591,7 @@ function InvoicesPageContent() {
                 <TwoPanelLayout
                     isRightPanelOpen={!!selectedInvoice}
                     onBack={handleCloseDetails}
+                    forceRightOnly={isRightExpanded}
                     leftPanel={
                         <InvoicesTable
                             invoices={invoices}
@@ -594,37 +627,92 @@ function InvoicesPageContent() {
                     rightPanel={
                         selectedInvoice && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
-                                <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                                        <div className="header-icon-circle mt-0.5">
-                                            <Receipt className="h-5 w-5" />
-                                        </div>
-                                        <div className="min-w-0 flex-1 flex flex-col text-left">
-                                            <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedInvoice.user_name })}</CardTitle>
-                                            <CardDescription className="text-xs">{t('invoiceId')}: {selectedInvoice.doc_no || selectedInvoice.id}</CardDescription>
+                                <CardHeader className="flex-none border-b border-border bg-card p-0 shadow-sm">
+                                    <div className="border-b border-border/50 px-6 py-4">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div>
+                                                    <h2 className="text-2xl font-bold text-card-foreground">
+                                                        {selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}
+                                                    </h2>
+                                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                                        {selectedInvoice.type === 'credit_note' ? t('creditNote') : t('invoice')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="ml-auto flex shrink-0 items-start justify-end gap-1.5 self-start">
+                                                <Badge variant={(['confirmed', 'posted', 'booked'].includes(selectedInvoiceStatus) ? 'success' : selectedInvoiceStatus === 'draft' ? 'secondary' : 'outline') as 'success' | 'secondary' | 'outline'} className="capitalize">
+                                                    {tStatus(selectedInvoiceStatus)}
+                                                </Badge>
+                                                <Badge variant={(selectedPaymentStatus === 'paid' ? 'success' : selectedPaymentStatus === 'partially_paid' ? 'info' : 'outline') as 'success' | 'info' | 'outline'} className="capitalize">
+                                                    {tStatus(selectedPaymentStatus)}
+                                                </Badge>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" title={isRightExpanded ? 'Restaurar' : 'Expandir'} aria-label={isRightExpanded ? 'Restaurar' : 'Expandir'} onClick={() => setIsRightExpanded(v => !v)}>
+                                                    {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" title={t('close')} aria-label={t('close')} onClick={handleCloseDetails}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                        <X className="h-5 w-5" />
-                                        <span className="sr-only">{t('close')}</span>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
-                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                        <TabsList>
-                                            <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
-                                            <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
-                                            <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
-                                            {selectedInvoice?.type === 'credit_note' ? (
-                                                <TabsTrigger value="allocations" className="text-xs">{t('tabs.allocations')}</TabsTrigger>
-                                            ) : (
-                                                <TabsTrigger value="creditNotes" className="text-xs">{t('tabs.creditNotes')}</TabsTrigger>
+                                    <div className="px-6 py-3">
+                                        <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.total')}:</span>
+                                                <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.provider')}:</span>
+                                                <span className="text-sm">{selectedInvoice.user_name || '-'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.createdAt')}:</span>
+                                                <span className="text-sm">{formatDateTime(selectedInvoice.createdAt)}</span>
+                                            </div>
+                                            {selectedInvoice.notes && (
+                                                <div className="flex items-center gap-2 w-full mt-1">
+                                                    <span className="text-xs text-muted-foreground">{t('tabs.notes')}:</span>
+                                                    <span className="text-sm text-muted-foreground italic">{selectedInvoice.notes}</span>
+                                                </div>
                                             )}
-                                        </TabsList>
-                                        <div className="flex-1 min-h-0 mt-3 flex flex-col overflow-hidden">
-                                            <TabsContent value="items" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                                                <div className="flex items-center justify-between mb-2 flex-none">
-                                                    <h4 className="text-sm font-semibold">{t('InvoiceItemsTable.title', { id: selectedInvoice.id })}</h4>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                    {canConfirmAction && (
+                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleConfirmInvoiceClick(selectedInvoice)}>
+                                            <CheckCircle className="h-3.5 w-3.5" />
+                                            {t('confirmInvoiceDialog.confirm')}
+                                        </Button>
+                                    )}
+                                    {canAddPaymentAction && (
+                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setInvoiceForPayment(selectedInvoice); setIsPaymentDialogOpen(true); }}>
+                                            <CreditCard className="h-3.5 w-3.5" />
+                                            {t('paymentDialog.add')}
+                                        </Button>
+                                    )}
+                                    {(canConfirmAction || canAddPaymentAction) && <Separator orientation="vertical" className="h-6 mx-1" />}
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintInvoice(selectedInvoice)}>
+                                        <Printer className="h-3.5 w-3.5" />
+                                        {t('actions.print')}
+                                    </Button>
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedInvoice)}>
+                                        <Send className="h-3.5 w-3.5" />
+                                        {t('actions.sendEmail')}
+                                    </Button>
+                                </div>
+                                <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
+                                    <VerticalTabStrip
+                                        tabs={invoiceTabs}
+                                        activeTabId={activeTab}
+                                        onTabClick={(tab) => setActiveTab(tab.id)}
+                                    />
+                                    <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
+                                        {activeTab === 'items' && (
+                                            <div className="m-0 h-full flex flex-col">
+                                                <div className="flex items-center justify-between mb-2 flex-none px-3">
+                                                    <h4 className="text-sm font-semibold">{t('InvoiceItemsTable.title')}</h4>
                                                     <div className="flex items-center gap-2">
                                                         {canEditItems && (
                                                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleCreateItem}>
@@ -645,48 +733,53 @@ function InvoicesPageContent() {
                                                         onDelete={canEditItems && canDeleteItem ? handleDeleteItem : undefined}
                                                     />
                                                 </div>
-                                            </TabsContent>
-                                            <TabsContent value="payments" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                                            </div>
+                                        )}
+                                        {activeTab === 'payments' && (
+                                            <div className="m-0 h-full flex flex-col">
                                                 <PaymentsTable
                                                     payments={payments}
                                                     isLoading={isLoadingPayments}
                                                     onRefresh={loadPayments}
                                                     isRefreshing={isLoadingPayments}
                                                 />
-                                            </TabsContent>
-                                            {selectedInvoice?.type === 'credit_note' ? (
-                                                <TabsContent value="allocations" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold">{t('AllocationsTable.title')}</h4>
-                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadAllocations} disabled={isLoadingAllocations}>
-                                                            <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
-                                                        </Button>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0 overflow-auto">
-                                                        <AllocationsTable allocations={allocations} isLoading={isLoadingAllocations} />
-                                                    </div>
-                                                </TabsContent>
-                                            ) : (
-                                                <TabsContent value="creditNotes" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
-                                                    <CreditNotesTable
-                                                        creditNotes={creditNotes}
-                                                        isLoading={isLoadingCreditNotes}
-                                                        onRefresh={loadCreditNotes}
-                                                        isRefreshing={isLoadingCreditNotes}
-                                                        onPrint={handlePrintInvoice}
-                                                        onSendEmail={handleSendEmailClick}
-                                                    />
-                                                </TabsContent>
-                                            )}
-                                            <TabsContent value="notes" className="m-0 flex-1 min-h-0 p-4">
+                                            </div>
+                                        )}
+                                        {activeTab === 'allocations' && selectedInvoice?.type === 'credit_note' && (
+                                            <div className="m-0 h-full flex flex-col px-3">
+                                                <div className="flex items-center justify-between mb-2 flex-none">
+                                                    <h4 className="text-sm font-semibold">{t('AllocationsTable.title')}</h4>
+                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadAllocations} disabled={isLoadingAllocations}>
+                                                        <RefreshCw className={`h-4 w-4 ${isLoadingAllocations ? 'animate-spin' : ''}`} />
+                                                    </Button>
+                                                </div>
+                                                <div className="flex-1 min-h-0 overflow-auto">
+                                                    <AllocationsTable allocations={allocations} isLoading={isLoadingAllocations} />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {activeTab === 'creditNotes' && selectedInvoice?.type !== 'credit_note' && (
+                                            <div className="m-0 h-full flex flex-col">
+                                                <CreditNotesTable
+                                                    creditNotes={creditNotes}
+                                                    isLoading={isLoadingCreditNotes}
+                                                    onRefresh={loadCreditNotes}
+                                                    isRefreshing={isLoadingCreditNotes}
+                                                    onPrint={handlePrintInvoice}
+                                                    onSendEmail={handleSendEmailClick}
+                                                />
+                                            </div>
+                                        )}
+                                        {activeTab === 'notes' && (
+                                            <div className="m-0 h-full p-4">
                                                 {selectedInvoice?.notes ? (
                                                     <div className="whitespace-pre-wrap text-sm">{selectedInvoice.notes}</div>
                                                 ) : (
                                                     <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                                 )}
-                                            </TabsContent>
-                                        </div>
-                                    </Tabs>
+                                            </div>
+                                        )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         )
@@ -822,6 +915,13 @@ function InvoicesPageContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <InvoicePaymentDialog
+                isOpen={isPaymentDialogOpen}
+                onClose={() => { setIsPaymentDialogOpen(false); setInvoiceForPayment(null); }}
+                invoice={invoiceForPayment}
+                isSales={false}
+                onSuccess={() => { loadInvoices(); loadPayments(); }}
+            />
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -838,7 +938,6 @@ function InvoicesPageContent() {
                     <AlertDialogFooter>
                         <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('confirmInvoiceDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleConfirmInvoice}>{t('confirmInvoiceDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

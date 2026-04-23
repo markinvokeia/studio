@@ -137,6 +137,8 @@ export function DataTableToolbar<TData>({
               </TooltipProvider>
             </div>
           )}
+          {/* Extra buttons — desktop only (inline) */}
+          {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
           {onRefresh && (
             <Button
               variant="outline"
@@ -179,10 +181,8 @@ export function DataTableToolbar<TData>({
                     </DropdownMenuCheckboxItem>
                   );
                 })}
-            </DropdownMenuContent>
+              </DropdownMenuContent>
           </DropdownMenu>
-          {/* Extra buttons — desktop only (inline) */}
-          {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
         </div>
       </div>
       {/* Row 2 — mobile only: extra action buttons */}

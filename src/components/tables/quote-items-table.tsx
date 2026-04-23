@@ -27,6 +27,7 @@ interface QuoteItemsTableProps {
   onRowSelectionChange?: (selectedRows: QuoteItem[]) => void;
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  extraButtons?: React.ReactNode;
 }
 
 const getColumns = (
@@ -154,7 +155,7 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const columns = getColumns(
@@ -197,6 +198,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRowSelectionChange={onRowSelectionChange}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
+          extraButtons={extraButtons}
           columnTranslations={{
             id: t('id'),
             service_name: t('service'),
