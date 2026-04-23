@@ -8,10 +8,11 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DetailHeader } from '@/components/ui/detail-header';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
@@ -20,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -31,13 +32,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
-import { cn, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -121,6 +122,8 @@ export default function PaymentsPage() {
     const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
     const [selectedPaymentForEdit, setSelectedPaymentForEdit] = React.useState<Payment | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+    const [activeTab, setActiveTab] = React.useState('allocations');
+    const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
@@ -153,6 +156,9 @@ export default function PaymentsPage() {
         const payment = selectedRows.length > 0 ? selectedRows[0] : null;
 
         if (payment) {
+            if (payment.id !== selectedPayment?.id) {
+                setActiveTab('allocations');
+            }
             setSelectedPayment(payment);
             if (!payment.invoice_id) {
                 loadPaymentAllocations(payment.id);
@@ -164,12 +170,14 @@ export default function PaymentsPage() {
             setSelectedPayment(null);
             setPaymentAllocations([]);
         }
-    }, [loadPaymentAllocations]);
+    }, [loadPaymentAllocations, selectedPayment?.id]);
 
     const handleCloseDetails = React.useCallback(() => {
         setSelectedPayment(null);
         setPaymentAllocations([]);
         setRowSelection({});
+        setActiveTab('allocations');
+        setIsRightExpanded(false);
     }, []);
 
     React.useEffect(() => {
@@ -359,6 +367,11 @@ export default function PaymentsPage() {
         setIsConfirmPrepaidOpen(true);
     };
 
+    const paymentTabs = React.useMemo<VerticalTab[]>(() => [
+        { id: 'allocations', icon: CreditCard, label: t('tabs.allocations') },
+        { id: 'notes', icon: AlertTriangle, label: t('tabs.notes') },
+    ], [t]);
+
     const handleConfirmPrepaid = async () => {
         if (!prepaidData || !user) return;
 
@@ -416,6 +429,7 @@ export default function PaymentsPage() {
             <TwoPanelLayout
                 isRightPanelOpen={!!selectedPayment}
                 onBack={handleCloseDetails}
+                forceRightOnly={isRightExpanded}
                 leftPanel={
                     <PaymentsTable
                         payments={payments}
@@ -443,29 +457,65 @@ export default function PaymentsPage() {
                 rightPanel={
                     selectedPayment && (
                         <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
-                            <CardHeader className="flex flex-row items-start justify-between flex-none p-4">
-                                <div className="flex items-start gap-3 min-w-0 flex-1">
-                                    <div className="header-icon-circle mt-0.5">
-                                        <CreditCard className="h-5 w-5" />
-                                    </div>
-                                    <div className="flex flex-col truncate text-left">
-                                        <CardTitle className="text-lg lg:text-xl truncate">{t('detailsFor', { name: selectedPayment.user_name })}</CardTitle>
-                                        <CardDescription className="text-xs">{t('prepaidId')}: {selectedPayment.doc_no || selectedPayment.id}</CardDescription>
-                                    </div>
-                                </div>
-                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                    <X className="h-5 w-5" />
-                                    <span className="sr-only">{t('close')}</span>
-                                </Button>
+                            <CardHeader className="flex-none px-6 py-4 border-b border-border/50">
+                                <DetailHeader
+                                    icon={CreditCard}
+                                    title={t('detailsFor', { name: selectedPayment.user_name })}
+                                    subtitle={`${t('prepaidId')}: ${selectedPayment.doc_no || selectedPayment.id}`}
+                                    fields={[
+                                        {
+                                            label: t('columns.amount_applied'),
+                                            value: (
+                                                <span className="text-sm font-semibold">
+                                                    {new Intl.NumberFormat('en-US', {
+                                                        style: 'currency',
+                                                        currency: selectedPayment.currency || selectedPayment.source_currency || 'USD',
+                                                    }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}
+                                                </span>
+                                            ),
+                                        },
+                                        {
+                                            label: t('columns.method'),
+                                            value: (
+                                                <span className="text-sm">
+                                                    {selectedPayment.payment_method || selectedPayment.method || 'N/A'}
+                                                </span>
+                                            ),
+                                        },
+                                        {
+                                            label: t('columns.date'),
+                                            value: (
+                                                <span className="text-sm">
+                                                    {formatDateTime(selectedPayment.payment_date || selectedPayment.createdAt)}
+                                                </span>
+                                            ),
+                                        },
+                                    ]}
+                                    headerActions={
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            title={isRightExpanded ? 'Restaurar' : 'Expandir'}
+                                            aria-label={isRightExpanded ? 'Restaurar' : 'Expandir'}
+                                            onClick={() => setIsRightExpanded((value) => !value)}
+                                            className="shrink-0"
+                                        >
+                                            {isRightExpanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                                        </Button>
+                                    }
+                                    onClose={handleCloseDetails}
+                                />
                             </CardHeader>
-                            <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
-                                <Tabs defaultValue="allocations" className="flex-1 flex flex-col min-h-0">
-                                    <TabsList>
-                                        <TabsTrigger value="allocations" className="text-xs">{t('tabs.allocations')}</TabsTrigger>
-                                        <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
-                                    </TabsList>
-                                    <div className="flex-1 min-h-0 mt-4 flex flex-col overflow-hidden">
-                                        <TabsContent value="allocations" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                            <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
+                                <VerticalTabStrip
+                                    tabs={paymentTabs}
+                                    activeTabId={activeTab}
+                                    onTabClick={(tab) => setActiveTab(tab.id)}
+                                />
+                                <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
+                                    {activeTab === 'allocations' && (
+                                        <div className="m-0 h-full flex flex-col px-3">
                                             <div className="flex items-center justify-between mb-2 flex-none">
                                                 <h4 className="text-sm font-semibold">{t('PaymentAllocationsTable.title')}</h4>
                                                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => loadPaymentAllocations(selectedPayment.id)} disabled={isLoadingAllocations}>
@@ -478,16 +528,18 @@ export default function PaymentsPage() {
                                                     isLoading={isLoadingAllocations}
                                                 />
                                             </div>
-                                        </TabsContent>
-                                        <TabsContent value="notes" className="m-0 flex-1 min-h-0 p-4">
-                                            {selectedPayment?.notes ? (
+                                        </div>
+                                    )}
+                                    {activeTab === 'notes' && (
+                                        <div className="m-0 h-full p-4">
+                                            {selectedPayment.notes ? (
                                                 <div className="whitespace-pre-wrap text-sm">{selectedPayment.notes}</div>
                                             ) : (
                                                 <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                             )}
-                                        </TabsContent>
-                                    </div>
-                                </Tabs>
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     )
