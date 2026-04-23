@@ -15,7 +15,7 @@ import { ActionButton } from '@/components/ui/action-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DetailHeader } from '@/components/ui/detail-header';
 import {
@@ -30,6 +30,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import {
     Select,
     SelectContent,
@@ -38,8 +39,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -49,12 +50,12 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Stethoscope, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Receipt, RefreshCw, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -575,6 +576,7 @@ async function getClinic(): Promise<Clinic | null> {
 export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
+    const tInvoiceStatus = useTranslations('InvoicesPage.status');
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
@@ -613,9 +615,12 @@ export default function QuotesPage() {
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+    const [invoiceRowSelection, setInvoiceRowSelection] = React.useState<RowSelectionState>({});
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
     const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+    const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
     const [quoteAppointments, setQuoteAppointments] = React.useState<QuoteAppointment[]>([]);
     const [quoteClinicSessions, setQuoteClinicSessions] = React.useState<QuoteClinicSession[]>([]);
 
@@ -643,6 +648,8 @@ export default function QuotesPage() {
     const [isDeleteQuoteItemDialogOpen, setIsDeleteQuoteItemDialogOpen] = React.useState(false);
     const [quoteItemSubmissionError, setQuoteItemSubmissionError] = React.useState<string | null>(null);
     const [isSubmittingQuoteItem, setIsSubmittingQuoteItem] = React.useState(false);
+    const [selectedQuoteItem, setSelectedQuoteItem] = React.useState<QuoteItem | null>(null);
+    const [quoteItemRowSelection, setQuoteItemRowSelection] = React.useState<RowSelectionState>({});
 
     const [allUsers, setAllUsers] = React.useState<User[]>([]);
     const [userSearchTerm, setUserSearchTerm] = React.useState('');
@@ -654,6 +661,8 @@ export default function QuotesPage() {
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [activeTab, setActiveTab] = React.useState('items');
+    const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
     const [isConfirmQuoteDialogOpen, setIsConfirmQuoteDialogOpen] = React.useState(false);
     const [confirmingQuote, setConfirmingQuote] = React.useState<Quote | null>(null);
@@ -772,6 +781,12 @@ export default function QuotesPage() {
             setQuoteAppointments([]);
             setQuoteClinicSessions([]);
         }
+        setSelectedInvoice(null);
+        setInvoiceRowSelection({});
+        setSelectedPayment(null);
+        setPaymentRowSelection({});
+        setSelectedQuoteItem(null);
+        setQuoteItemRowSelection({});
     }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments, loadQuoteAppointments, loadQuoteClinicSessions]);
 
     React.useEffect(() => {
@@ -1109,6 +1124,9 @@ export default function QuotesPage() {
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
+        if (quote?.id !== selectedQuote?.id) {
+            setActiveTab('items');
+        }
         setSelectedQuote(quote);
     };
 
@@ -1122,9 +1140,30 @@ export default function QuotesPage() {
         setSelectedInvoice(invoice);
     };
 
+    const handleQuoteItemSelectionChange = (selectedRows: QuoteItem[]) => {
+        const item = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedQuoteItem(item);
+    };
+
+    const handlePaymentSelectionChange = (selectedRows: Payment[]) => {
+        const payment = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedPayment(payment);
+    };
+
+    const closeInvoiceDetails = () => {
+        setSelectedInvoice(null);
+        setInvoiceRowSelection({});
+    };
+
+    const closePaymentDetails = () => {
+        setSelectedPayment(null);
+        setPaymentRowSelection({});
+    };
+
     const handleCloseDetails = () => {
         setSelectedQuote(null);
         setRowSelection({});
+        setIsRightExpanded(false);
     };
 
     const handleInvoiceFromQuote = async () => {
@@ -1171,12 +1210,40 @@ export default function QuotesPage() {
         }
     }, [isClinicCurrency, watchedQuoteExchangeRate, quoteForm, getSessionExchangeRate]);
 
+    const quoteTabs = React.useMemo<VerticalTab[]>(() => [
+        { id: 'items', icon: FileText, label: t('tabs.items') },
+        // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('tabs.orders') },
+        { id: 'invoices', icon: Receipt, label: t('tabs.invoices') },
+        { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
+        { id: 'notes', icon: StickyNote, label: t('tabs.notes') },
+        { id: 'appointments', icon: CalendarDays, label: t('tabs.appointments') },
+        { id: 'clinicSessions', icon: Stethoscope, label: t('tabs.clinicSessions') },
+    ], [t]);
+
+    const quoteItemToolbarActions = selectedQuoteItem && canEditQuote && (canUpdateItem || canDeleteItem) ? (
+        <div className="flex items-center gap-1.5">
+            {canUpdateItem && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuoteItem(selectedQuoteItem)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    {t('edit')}
+                </Button>
+            )}
+            {canDeleteItem && (
+                <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleDeleteQuoteItem(selectedQuoteItem)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t('delete')}
+                </Button>
+            )}
+        </div>
+    ) : null;
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <TwoPanelLayout
                     isRightPanelOpen={!!selectedQuote}
                     onBack={handleCloseDetails}
+                    forceRightOnly={isRightExpanded}
                     leftPanel={
                         <RecentQuotesTable
                             quotes={quotes}
@@ -1197,12 +1264,18 @@ export default function QuotesPage() {
                             isSendingEmail={isSendingEmail}
                             setIsSendingEmail={setIsSendingEmail}
                             isSales={true}
+                            canEditQuote={canUpdateQuote}
+                            canDeleteQuote={canDeleteQuote}
+                            canConfirmQuote={canConfirmQuote}
+                            canRejectQuote={canRejectQuote}
+                            canPrintQuote={canPrint}
+                            canSendQuoteEmail={canSendEmail}
                         />
                     }
                     rightPanel={
                         selectedQuote && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
-                                <CardHeader className="flex-none p-4">
+                                <CardHeader className="flex-none px-6 py-4 border-b border-border/50">
                                     <DetailHeader
                                         icon={FileText}
                                         title={t('detailsFor', { name: selectedQuote.user_name })}
@@ -1270,68 +1343,82 @@ export default function QuotesPage() {
                                                     selectedQuote.payment_status === 'partially_paid' ? 'info' : 'outline',
                                             },
                                         ]}
-                                        actions={
-                                            <>
-                                                {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                    <ActionButton
-                                                        icon={Pencil}
-                                                        label={t('edit')}
-                                                        tooltip={t('editTooltip') || t('edit')}
-                                                        onClick={() => handleEditQuote(selectedQuote)}
-                                                    />
-                                                )}
-                                                {(canConfirmQuote || canRejectQuote) && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                    <>
-                                                        <ActionButton
-                                                            icon={CheckCircle}
-                                                            label={t('confirm')}
-                                                            tooltip={t('confirmTooltip') || t('confirm')}
-                                                            onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
-                                                        />
-                                                        <ActionButton
-                                                            icon={XCircle}
-                                                            label={t('reject')}
-                                                            tooltip={t('rejectTooltip') || t('reject')}
-                                                            destructive
-                                                            onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
-                                                        />
-                                                    </>
-                                                )}
-                                                {canDeleteQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                    <ActionButton
-                                                        icon={Trash2}
-                                                        label={t('delete')}
-                                                        tooltip={t('deleteTooltip') || t('delete')}
-                                                        destructive
-                                                        onClick={() => handleDeleteQuote(selectedQuote)}
-                                                    />
-                                                )}
-                                                {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
-                                                    <ActionButton
-                                                        icon={Receipt}
-                                                        label={t('actions.invoice')}
-                                                        tooltip={t('actions.invoice')}
-                                                        onClick={handleInvoiceFromQuote}
-                                                    />
-                                                )}
-                                            </>
+                                        headerActions={
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                title={isRightExpanded ? 'Restaurar' : 'Expandir'}
+                                                aria-label={isRightExpanded ? 'Restaurar' : 'Expandir'}
+                                                onClick={() => setIsRightExpanded(v => !v)}
+                                                className="shrink-0"
+                                            >
+                                                {isRightExpanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                                            </Button>
                                         }
                                         onClose={handleCloseDetails}
                                     />
                                 </CardHeader>
-                                <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0 bg-card">
-                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                        <TabsList>
-                                            <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
-                                            {/* hidden: orders tab <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger> */}
-                                            <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
-                                            <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
-                                            <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
-                                            <TabsTrigger value="appointments" className="text-xs">{t('tabs.appointments')}</TabsTrigger>
-                                            <TabsTrigger value="clinicSessions" className="text-xs">{t('tabs.clinicSessions')}</TabsTrigger>
-                                        </TabsList>
-                                        <div className="flex-1 min-h-0 mt-4 flex flex-col">
-                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                    {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuote(selectedQuote)}>
+                                            <Pencil className="h-3.5 w-3.5" />
+                                            {t('edit')}
+                                        </Button>
+                                    )}
+                                    {(canConfirmQuote || canRejectQuote) && selectedQuote.status.toLowerCase() === 'draft' && (
+                                        <>
+                                            {canConfirmQuote && (
+                                                <Button
+                                                    variant="default"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 bg-green-600 text-xs text-white hover:bg-green-700"
+                                                    onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
+                                                >
+                                                    <CheckCircle className="h-3.5 w-3.5" />
+                                                    {t('confirm')}
+                                                </Button>
+                                            )}
+                                            {canRejectQuote && (
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 text-xs text-white"
+                                                    onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
+                                                >
+                                                    <XCircle className="h-3.5 w-3.5" />
+                                                    {t('reject')}
+                                                </Button>
+                                            )}
+                                        </>
+                                    )}
+                                    {canDeleteQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="h-8 gap-1.5 text-xs text-white"
+                                            onClick={() => handleDeleteQuote(selectedQuote)}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            {t('delete')}
+                                        </Button>
+                                    )}
+                                    {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceFromQuote}>
+                                            <Receipt className="h-3.5 w-3.5" />
+                                            {t('actions.invoice')}
+                                        </Button>
+                                    )}
+                                </div>
+                                <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
+                                    <VerticalTabStrip
+                                        tabs={quoteTabs}
+                                        activeTabId={activeTab}
+                                        onTabClick={(tab) => setActiveTab(tab.id)}
+                                    />
+                                    <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
+                                            {activeTab === 'items' && (
+                                            <div className="m-0 h-full flex flex-col">
                                                 {isQuoteReadyToInvoice ? (
                                                     <OrderItemsTable
                                                         items={orderItems}
@@ -1363,9 +1450,14 @@ export default function QuotesPage() {
                                                         onEdit={canUpdateItem ? handleEditQuoteItem : () => { }}
                                                         onDelete={canDeleteItem ? handleDeleteQuoteItem : () => { }}
                                                         showToothNumber={true}
+                                                        onRowSelectionChange={handleQuoteItemSelectionChange}
+                                                        rowSelection={quoteItemRowSelection}
+                                                        setRowSelection={setQuoteItemRowSelection}
+                                                        extraButtons={quoteItemToolbarActions}
                                                     />
                                                 )}
-                                            </TabsContent>
+                                            </div>
+                                            )}
                                             {/* hidden: orders tab
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
@@ -1415,73 +1507,128 @@ export default function QuotesPage() {
                                                 )}
                                             </TabsContent>
                                             */}
-                                            <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px]">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <Receipt className="h-4 w-4" />
-                                                            {t('tabs.invoices')}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0">
-                                                        <InvoicesTable
-                                                            invoices={invoices}
-                                                            isLoading={isLoadingInvoices}
-                                                            onRowSelectionChange={handleInvoiceSelectionChange}
-                                                            onRefresh={loadInvoices}
-                                                            isRefreshing={isLoadingInvoices}
-                                                            isCompact={true}
-                                                            canCreate={false}
-                                                            columnTranslations={{
-                                                                doc_no: tRoot('InvoicesPage.columns.docNo'),
-                                                                user_name: tRoot('InvoicesPage.columns.userName'),
-                                                                total: tRoot('InvoicesPage.columns.total'),
-                                                                currency: tRoot('InvoicesPage.columns.currency'),
-                                                                status: tRoot('InvoicesPage.columns.status'),
-                                                                type: tRoot('InvoicesPage.columns.type'),
-                                                                payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
-                                                                paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
-                                                                createdAt: tRoot('InvoicesPage.columns.createdAt'),
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                {selectedInvoice && (
-                                                    <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold">{tRoot('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
-                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                            </Button>
+                                            {activeTab === 'invoices' && (
+                                            <div className="relative m-0 h-full overflow-hidden flex flex-col">
+                                                <InvoicesTable
+                                                    invoices={invoices}
+                                                    isLoading={isLoadingInvoices}
+                                                    onRowSelectionChange={handleInvoiceSelectionChange}
+                                                    onRefresh={loadInvoices}
+                                                    isRefreshing={isLoadingInvoices}
+                                                    rowSelection={invoiceRowSelection}
+                                                    setRowSelection={setInvoiceRowSelection}
+                                                    isCompact={true}
+                                                    canCreate={false}
+                                                    columnTranslations={{
+                                                        doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                        user_name: tRoot('InvoicesPage.columns.userName'),
+                                                        total: tRoot('InvoicesPage.columns.total'),
+                                                        currency: tRoot('InvoicesPage.columns.currency'),
+                                                        status: tRoot('InvoicesPage.columns.status'),
+                                                        type: tRoot('InvoicesPage.columns.type'),
+                                                        payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                        paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                        createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                    }}
+                                                />
+                                                <ResizableSheet
+                                                    open={!!selectedInvoice}
+                                                    onOpenChange={(open) => { if (!open) closeInvoiceDetails(); }}
+                                                    defaultWidth={720}
+                                                    minWidth={560}
+                                                    maxWidth={1100}
+                                                    storageKey="sales-quotes-invoice-detail-width"
+                                                >
+                                                    {selectedInvoice && (
+                                                        <div className="flex h-full flex-col overflow-hidden bg-card">
+                                                            <SheetHeader className="border-b border-border px-6 py-4 text-left">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="header-icon-circle mt-0.5"><Receipt className="h-5 w-5" /></div>
+                                                                    <div className="min-w-0">
+                                                                        <SheetTitle className="truncate text-2xl font-bold">{selectedInvoice.doc_no || selectedInvoice.id}</SheetTitle>
+                                                                        <SheetDescription className="truncate text-sm">{selectedInvoice.user_name}</SheetDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </SheetHeader>
+                                                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.status')}</p><Badge variant="outline" className="capitalize">{tInvoiceStatus(selectedInvoice.status.toLowerCase())}</Badge></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.paymentStatus')}</p><Badge variant="secondary" className="capitalize">{selectedInvoice.payment_status ? tInvoiceStatus(selectedInvoice.payment_status.toLowerCase()) : ''}</Badge></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDateTime(selectedInvoice.createdAt)}</p></div>
+                                                                </div>
+                                                                {selectedInvoice.notes && <div className="rounded-lg border border-border p-3 text-sm whitespace-pre-wrap">{selectedInvoice.notes}</div>}
+                                                                <div className="flex items-center justify-end">
+                                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                                    </Button>
+                                                                </div>
+                                                                <div className="min-h-[320px]">
+                                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                                    </div>
-                                                )}
-                                            </TabsContent>
-                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                    )}
+                                                </ResizableSheet>
+                                            </div>
+                                            )}
+                                            {activeTab === 'payments' && (
+                                            <div className="relative m-0 h-full flex flex-col overflow-hidden">
                                                 <PaymentsTable
                                                     payments={payments}
                                                     isLoading={isLoadingPayments}
                                                     onRefresh={loadPayments}
                                                     isRefreshing={isLoadingPayments}
                                                     columnsToHide={['quote_id', 'order_id', 'user_name']}
+                                                    onRowSelectionChange={handlePaymentSelectionChange}
+                                                    rowSelection={paymentRowSelection}
+                                                    setRowSelection={setPaymentRowSelection}
                                                 />
-                                            </TabsContent>
-                                            <TabsContent value="notes" className="m-0 h-full p-4">
+                                                <ResizableSheet
+                                                    open={!!selectedPayment}
+                                                    onOpenChange={(open) => { if (!open) closePaymentDetails(); }}
+                                                    defaultWidth={640}
+                                                    minWidth={520}
+                                                    maxWidth={960}
+                                                    storageKey="sales-quotes-payment-detail-width"
+                                                >
+                                                    {selectedPayment && (
+                                                        <div className="flex h-full flex-col overflow-hidden bg-card">
+                                                            <SheetHeader className="border-b border-border px-6 py-4 text-left">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="header-icon-circle mt-0.5"><CreditCard className="h-5 w-5" /></div>
+                                                                    <div className="min-w-0">
+                                                                        <SheetTitle className="truncate text-2xl font-bold">{selectedPayment.doc_no || selectedPayment.id}</SheetTitle>
+                                                                        <SheetDescription className="truncate text-sm">{selectedPayment.user_name}</SheetDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </SheetHeader>
+                                                            <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 text-sm">
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{selectedPayment.payment_date}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.transaction_type')}</p><Badge variant="secondary" className="capitalize">{selectedPayment.transaction_type}</Badge></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>
+                                                                {selectedPayment.notes && <div className="col-span-2 rounded-lg border border-border p-3 whitespace-pre-wrap">{selectedPayment.notes}</div>}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </ResizableSheet>
+                                            </div>
+                                            )}
+                                            {activeTab === 'notes' && (
+                                            <div className="m-0 h-full p-4">
                                                 {selectedQuote?.notes ? (
                                                     <div className="whitespace-pre-wrap text-sm">{selectedQuote.notes}</div>
                                                 ) : (
                                                     <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                                 )}
-                                            </TabsContent>
-                                            <TabsContent value="appointments" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                            </div>
+                                            )}
+                                            {activeTab === 'appointments' && (
+                                            <div className="m-0 h-full overflow-y-auto flex flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <CalendarDays className="h-4 w-4" />
-                                                            {t('tabs.appointments')}
-                                                        </h4>
-                                                    </div>
                                                     <div className="flex-1 min-h-0">
                                                         <DataTable
                                                             columns={getAppointmentColumns(t, (key) => tRoot(`AppointmentStatus.${key}`))}
@@ -1491,15 +1638,11 @@ export default function QuotesPage() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </TabsContent>
-                                            <TabsContent value="clinicSessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
+                                            </div>
+                                            )}
+                                            {activeTab === 'clinicSessions' && (
+                                            <div className="m-0 h-full overflow-y-auto flex flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <Stethoscope className="h-4 w-4" />
-                                                            {t('tabs.clinicSessions')}
-                                                        </h4>
-                                                    </div>
                                                     <div className="flex-1 min-h-0">
                                                         <DataTable
                                                             columns={getClinicSessionColumns(t)}
@@ -1509,9 +1652,9 @@ export default function QuotesPage() {
                                                         />
                                                     </div>
                                                 </div>
-                                            </TabsContent>
-                                        </div>
-                                    </Tabs>
+                                            </div>
+                                            )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         )
