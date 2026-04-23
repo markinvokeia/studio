@@ -7,7 +7,7 @@ import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } fro
 
 import { Skeleton } from '@/components/ui/skeleton';
 
-import type { CalendarEvent } from './calendar-types';
+import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { CalendarEventChip } from './calendar-event';
 
 interface CalendarMonthViewProps {
@@ -18,7 +18,7 @@ interface CalendarMonthViewProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarMonthView({

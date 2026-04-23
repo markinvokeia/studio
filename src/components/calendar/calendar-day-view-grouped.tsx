@@ -6,7 +6,7 @@ import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
 
 import { GROUPED_COLUMN_MIN_WIDTH, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
-import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarView } from './calendar-types';
+import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDayAndGroup,
   generateTimeSlots,
@@ -31,7 +31,7 @@ interface CalendarDayViewGroupedProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarDayViewGrouped({
@@ -66,7 +66,7 @@ export function CalendarDayViewGrouped({
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  const handleSlotClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -74,7 +74,8 @@ export function CalendarDayViewGrouped({
       const hour = Math.floor(y / 60);
       const minute = Math.floor((y % 60) / 15) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
-      onSlotClick(clickedDate);
+      const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
+      onSlotClick(clickedDate, context);
     }
   };
 
@@ -149,7 +150,7 @@ export function CalendarDayViewGrouped({
                   <div
                     key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
                     className="day-column"
-                    onClick={(e) => handleSlotClick(day, e)}
+                    onClick={(e) => handleSlotClick(day, col, e)}
                   >
                     <TimeSlotDividers keyPrefix={col.id} />
                     {eventsWithLayout.map((event) => (

@@ -26,6 +26,13 @@ export interface CalendarGroupingColumn {
   color?: string;
 }
 
+export interface CalendarSlotClickContext {
+  groupBy: Exclude<CalendarGroupBy, 'none'>;
+  value: string;
+}
+
+export type CalendarSlotClickHandler = (date: Date, context?: CalendarSlotClickContext) => void;
+
 export interface CalendarProps {
   events?: CalendarEvent[];
   onDateChange?: (range: { start: Date; end: Date }) => void;
@@ -36,7 +43,7 @@ export interface CalendarProps {
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];
   onEventColorChange: (event: any, colorId: string) => void;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
   onEventContextMenu?: (event: any) => React.ReactNode;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;

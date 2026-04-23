@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from 'date-fns';
 import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } from 'date-fns';
 
-import type { CalendarEvent } from './calendar-types';
+import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
 
 interface CalendarMonthViewMobileProps {
@@ -14,7 +14,7 @@ interface CalendarMonthViewMobileProps {
   events: CalendarEvent[];
   dateLocale: Locale;
   onEventClick: (data: any) => void;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarMonthViewMobile({

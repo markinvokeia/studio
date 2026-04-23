@@ -57,6 +57,7 @@ interface AppointmentFormDialogProps {
         user?: UserType | null;
         services?: Service[];
         doctor?: UserType | null;
+        calendar?: CalendarType | null;
         date?: string;
         time?: string;
         summary?: string;
@@ -347,7 +348,7 @@ export function AppointmentFormDialog({
                     user: initialData.user || null,
                     services: initialData.services || [],
                     doctor: initialData.doctor || null,
-                    calendar: null,
+                    calendar: initialData.calendar || null,
                     date: initialData.date || format(new Date(), 'yyyy-MM-dd'),
                     time: initialData.time || format(new Date(), 'HH:mm'),
                     endTime: '',

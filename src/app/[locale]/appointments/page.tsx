@@ -341,16 +341,35 @@ export default function AppointmentsPage() {
         setCreateOpen(true);
     };
 
-    const [slotInitialData, setSlotInitialData] = React.useState<{ date: string; time: string; summary?: string } | null>(null);
+    const [slotInitialData, setSlotInitialData] = React.useState<{
+        date: string;
+        time: string;
+        summary?: string;
+        doctor?: UserType | null;
+        calendar?: CalendarType | null;
+    } | null>(null);
 
-    const handleSlotClick = React.useCallback((date: Date) => {
+    const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar'; value: string }) => {
         setEditingAppointment(null);
-        setSlotInitialData({
+        const base: {
+            date: string;
+            time: string;
+            doctor?: UserType | null;
+            calendar?: CalendarType | null;
+        } = {
             date: format(date, 'yyyy-MM-dd'),
             time: format(date, 'HH:mm'),
-        });
+        };
+        if (context?.groupBy === 'doctor') {
+            const doctor = doctors.find(d => String(d.id) === String(context.value));
+            if (doctor) base.doctor = doctor;
+        } else if (context?.groupBy === 'calendar') {
+            const calendar = calendars.find(c => String(c.id) === String(context.value));
+            if (calendar) base.calendar = calendar;
+        }
+        setSlotInitialData(base);
         setCreateOpen(true);
-    }, []);
+    }, [doctors, calendars]);
 
 
     React.useEffect(() => {

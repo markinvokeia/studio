@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
 
-import type { CalendarEvent, CalendarView } from './calendar-types';
+import type { CalendarEvent, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
   generateTimeSlots,
@@ -27,7 +27,7 @@ interface CalendarDayViewProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarDayView({

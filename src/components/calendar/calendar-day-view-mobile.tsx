@@ -13,7 +13,7 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 
-import type { CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarView } from './calendar-types';
+import type { CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
   filterEventsByDayAndGroup,
@@ -37,7 +37,7 @@ interface CalendarDayViewMobileProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarDayViewMobile({
@@ -97,7 +97,7 @@ export function CalendarDayViewMobile({
     return () => { api.off('select', onSelect); };
   }, [api]);
 
-  const handleSlotClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSlotClick = (day: Date, column: CalendarGroupingColumn | null, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -105,7 +105,8 @@ export function CalendarDayViewMobile({
       const hour = Math.floor(y / 60);
       const minute = Math.floor((y % 60) / 15) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
-      onSlotClick(clickedDate);
+      const context = column && groupBy !== 'none' ? { groupBy, value: column.value } : undefined;
+      onSlotClick(clickedDate, context);
     }
   };
 
@@ -200,7 +201,7 @@ export function CalendarDayViewMobile({
                     >
                       <div
                         className="relative h-full border-r border-border/50"
-                        onClick={(e) => handleSlotClick(slide.day, e)}
+                        onClick={(e) => handleSlotClick(slide.day, slide.column, e)}
                       >
                         <TimeSlotDividers keyPrefix={slide.key} />
                         {slide.events.map((event) => (
