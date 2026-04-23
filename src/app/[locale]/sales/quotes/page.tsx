@@ -704,6 +704,22 @@ export default function QuotesPage() {
     }, [loadQuotes]);
 
     React.useEffect(() => {
+        if (!selectedQuote) return;
+
+        const refreshedSelectedQuote = quotes.find((quote) => quote.id === selectedQuote.id) || null;
+
+        if (!refreshedSelectedQuote) {
+            setSelectedQuote(null);
+            setRowSelection({});
+            return;
+        }
+
+        if (refreshedSelectedQuote !== selectedQuote) {
+            setSelectedQuote(refreshedSelectedQuote);
+        }
+    }, [quotes, selectedQuote]);
+
+    React.useEffect(() => {
         getClinic().then(setClinic);
     }, []);
 

@@ -17,6 +17,7 @@ import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, Dia
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Separator } from '@/components/ui/separator';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
@@ -176,6 +177,8 @@ export default function InvoicesPage() {
 function InvoicesPageContent() {
     const t = useTranslations('InvoicesPage');
     const tStatus = useTranslations('InvoicesPage.status');
+    const tPayments = useTranslations('PaymentsPage.columns');
+    const tPaymentTransactionType = useTranslations('PaymentsPage.transactionType');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
 
@@ -196,6 +199,8 @@ function InvoicesPageContent() {
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+    const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
     const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
     const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
     const [emailRecipients, setEmailRecipients] = React.useState('');
@@ -294,14 +299,28 @@ function InvoicesPageContent() {
         const invoice = selectedRows.length > 0 ? selectedRows[0] : null;
         if (invoice?.id !== selectedInvoice?.id) {
             setActiveTab('items');
+            setSelectedPayment(null);
+            setPaymentRowSelection({});
         }
         setSelectedInvoice(invoice);
     };
 
     const handleCloseDetails = () => {
         setSelectedInvoice(null);
+        setSelectedPayment(null);
         setRowSelection({});
+        setPaymentRowSelection({});
         setIsRightExpanded(false);
+    };
+
+    const handlePaymentSelectionChange = (selectedRows: Payment[]) => {
+        const payment = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedPayment(payment);
+    };
+
+    const closePaymentDetails = () => {
+        setSelectedPayment(null);
+        setPaymentRowSelection({});
     };
 
     const invoiceTabs = React.useMemo<VerticalTab[]>(() => {
@@ -630,23 +649,17 @@ function InvoicesPageContent() {
                                 <CardHeader className="flex-none border-b border-border bg-card p-0 shadow-sm">
                                     <div className="border-b border-border/50 px-6 py-4">
                                         <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-center gap-3">
-                                                <div>
-                                                    <h2 className="text-2xl font-bold text-card-foreground">
+                                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                                                <div className="min-w-0">
+                                                    <h2 className="truncate text-xl font-bold text-card-foreground sm:text-2xl">
                                                         {selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}
                                                     </h2>
-                                                    <p className="mt-0.5 text-sm text-muted-foreground">
+                                                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
                                                         {selectedInvoice.type === 'credit_note' ? t('creditNote') : t('invoice')}
                                                     </p>
                                                 </div>
                                             </div>
                                             <div className="ml-auto flex shrink-0 items-start justify-end gap-1.5 self-start">
-                                                <Badge variant={(['confirmed', 'posted', 'booked'].includes(selectedInvoiceStatus) ? 'success' : selectedInvoiceStatus === 'draft' ? 'secondary' : 'outline') as 'success' | 'secondary' | 'outline'} className="capitalize">
-                                                    {tStatus(selectedInvoiceStatus)}
-                                                </Badge>
-                                                <Badge variant={(selectedPaymentStatus === 'paid' ? 'success' : selectedPaymentStatus === 'partially_paid' ? 'info' : 'outline') as 'success' | 'info' | 'outline'} className="capitalize">
-                                                    {tStatus(selectedPaymentStatus)}
-                                                </Badge>
                                                 <Button variant="ghost" size="icon" className="h-8 w-8" title={isRightExpanded ? 'Restaurar' : 'Expandir'} aria-label={isRightExpanded ? 'Restaurar' : 'Expandir'} onClick={() => setIsRightExpanded(v => !v)}>
                                                     {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                                                 </Button>
@@ -658,6 +671,18 @@ function InvoicesPageContent() {
                                     </div>
                                     <div className="px-6 py-3">
                                         <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.status')}:</span>
+                                                <Badge variant={(['confirmed', 'posted', 'booked'].includes(selectedInvoiceStatus) ? 'success' : selectedInvoiceStatus === 'draft' ? 'secondary' : 'outline') as 'success' | 'secondary' | 'outline'} className="capitalize">
+                                                    {tStatus(selectedInvoiceStatus)}
+                                                </Badge>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.payment')}:</span>
+                                                <Badge variant={(selectedPaymentStatus === 'paid' ? 'success' : selectedPaymentStatus === 'partially_paid' ? 'info' : 'outline') as 'success' | 'info' | 'outline'} className="capitalize">
+                                                    {tStatus(selectedPaymentStatus)}
+                                                </Badge>
+                                            </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.total')}:</span>
                                                 <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
@@ -742,7 +767,43 @@ function InvoicesPageContent() {
                                                     isLoading={isLoadingPayments}
                                                     onRefresh={loadPayments}
                                                     isRefreshing={isLoadingPayments}
+                                                    onRowSelectionChange={handlePaymentSelectionChange}
+                                                    rowSelection={paymentRowSelection}
+                                                    setRowSelection={setPaymentRowSelection}
                                                 />
+                                                <ResizableSheet
+                                                    open={!!selectedPayment}
+                                                    onOpenChange={(open) => { if (!open) closePaymentDetails(); }}
+                                                    storageKey="purchase-invoice-payment-details-width"
+                                                    defaultWidth={560}
+                                                    minWidth={320}
+                                                    maxWidth={900}
+                                                >
+                                                    {selectedPayment && (
+                                                        <div className="flex h-full flex-col bg-background">
+                                                            <SheetHeader className="border-b px-6 py-5">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="header-icon-circle mt-0.5">
+                                                                        <CreditCard className="h-5 w-5" />
+                                                                    </div>
+                                                                    <div className="min-w-0 flex-1">
+                                                                        <SheetTitle className="truncate text-2xl font-bold">{selectedPayment.doc_no || selectedPayment.id}</SheetTitle>
+                                                                        <SheetDescription className="truncate text-sm">{selectedPayment.user_name}</SheetDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </SheetHeader>
+                                                            <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDateTime(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('transaction_type')}</p><Badge variant="secondary" className="capitalize">{tPaymentTransactionType(selectedPayment.transaction_type || 'direct_payment')}</Badge></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>
+                                                                {selectedPayment.notes && <div className="rounded-lg border border-border p-3 whitespace-pre-wrap sm:col-span-2">{selectedPayment.notes}</div>}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </ResizableSheet>
                                             </div>
                                         )}
                                         {activeTab === 'allocations' && selectedInvoice?.type === 'credit_note' && (
