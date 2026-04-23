@@ -42,7 +42,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'patients',
     labelKey: 'patients',
     icon: Users,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1TIMzfYgl4qjU7cepyuzbEiSb-kiwBT28/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/1fFHMDphpqCiKoT0EFEtAUeuu9cvjDDHL/view?usp=sharing',
     fields: [
       { key: 'name', label: 'Nombre', required: true, type: 'text' },
       { key: 'email', label: 'Email', required: false, type: 'email', hint: 'email o teléfono requerido' },
@@ -62,7 +62,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'services',
     labelKey: 'services',
     icon: ClipboardList,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1Bag4cE5VR2qMECwjc3TYrSd6JoJw21oK/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/18rlA-H3xDIY2a3doKfsGzYNLtMQN1nQJ/view?usp=sharing',
     fields: [
       { key: 'name', label: 'Nombre', required: true, type: 'text' },
       { key: 'category', label: 'Categoría', required: true, type: 'text' },
@@ -79,7 +79,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'quotes',
     labelKey: 'quotes',
     icon: FileText,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1C3QlHI4TVkwciXB3IcUWN4O0YpO5Sx9F/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/1-dO2THxJGQ2Ec5DT1afvZLPAM-QlHy4S/view?usp=sharing',
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'service_name', label: 'Servicio', required: true, type: 'text' },
@@ -95,7 +95,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'invoices',
     labelKey: 'invoices',
     icon: Receipt,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1whzx7Tp1nTWrnL4SIFReVlw2w4kOpxOq/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/1X0g_-yBUZ_9_mTv69uMAOtlxnbcGbDXY/view?usp=sharing',
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'service_name', label: 'Servicio', required: true, type: 'text' },
@@ -110,7 +110,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'payments',
     labelKey: 'payments',
     icon: CreditCard,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1CZSvwK-uq6MaHsJggu2_UvLf3hforZmU/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/1n4nGIsSQ9p6QaXZlr_AzT5MWIyJNfAle/view?usp=sharing',
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'amount', label: 'Monto', required: true, type: 'number' },
@@ -124,7 +124,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'appointments',
     labelKey: 'appointments',
     icon: Calendar,
-    exampleCsvUrl: 'https://drive.google.com/file/d/12WP_wbz1cezZ-fRQt3PkxmEGkK17qvg-/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/1Az5H7ME3n-LZr0q7Q85kK8L7D3iJGIeC/view?usp=sharing',
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'doctor_name', label: 'Doctor', required: true, type: 'text' },
@@ -139,7 +139,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'clinical_sessions',
     labelKey: 'clinicalSessions',
     icon: Stethoscope,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1M8L36Z8el4sp0Sfolcg5201wuBjwI_WF/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/16wf9l3fKq-ZntuL_5WiTVhu_4gC6EzQr/view?usp=sharing',
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'date', label: 'Fecha de Sesión', required: true, type: 'date', hint: 'YYYY-MM-DD' },
