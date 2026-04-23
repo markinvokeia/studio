@@ -127,13 +127,14 @@ export async function getUsersServicesBatch(userIds: string[]): Promise<Map<stri
                 currency: s.currency || 'USD',
                 duration_minutes: s.duration_minutes || 30,
             }));
-            serviceMap.set(entry.user_id, services);
+            serviceMap.set(String(entry.user_id), services);
         }
 
         // Asegurar que todos los userIds solicitados tengan una entrada (aunque sea vacía)
         for (const userId of userIds) {
-            if (!serviceMap.has(userId)) {
-                serviceMap.set(userId, []);
+            const key = String(userId);
+            if (!serviceMap.has(key)) {
+                serviceMap.set(key, []);
             }
         }
 

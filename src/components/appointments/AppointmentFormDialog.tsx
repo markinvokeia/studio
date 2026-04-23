@@ -472,14 +472,12 @@ export function AppointmentFormDialog({
             endDateTime = parse(`${date} ${endTime}`, 'yyyy-MM-dd HH:mm', new Date());
         } else {
             let totalDuration = 0;
-            if (doctor && services.length > 0) {
-                const doctorServices = doctorServiceMap.get(doctor.id);
-                if (doctorServices) {
-                    totalDuration = services.reduce((acc, service) => {
-                        const docService = doctorServices.find(ds => ds.id === service.id);
-                        return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                    }, 0);
-                }
+            const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
+            if (doctor && services.length > 0 && doctorServices && doctorServices.length > 0) {
+                totalDuration = services.reduce((acc, service) => {
+                    const docService = doctorServices.find(ds => String(ds.id) === String(service.id));
+                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+                }, 0);
             } else {
                 totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
             }
@@ -553,14 +551,12 @@ export function AppointmentFormDialog({
             if (!isValid(startDateTime)) return null;
 
             let totalDuration = 0;
-            if (doctor && doctor.id && services.length > 0) {
-                const doctorServices = doctorServiceMap.get(doctor.id);
-                if (doctorServices) {
-                    totalDuration = services.reduce((acc, service) => {
-                        const docService = doctorServices.find(ds => ds.id === service.id);
-                        return acc + (docService?.duration_minutes || service.duration_minutes || 0);
-                    }, 0);
-                }
+            const doctorServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
+            if (doctor && doctor.id && services.length > 0 && doctorServices && doctorServices.length > 0) {
+                totalDuration = services.reduce((acc, service) => {
+                    const docService = doctorServices.find(ds => String(ds.id) === String(service.id));
+                    return acc + (docService?.duration_minutes || service.duration_minutes || 0);
+                }, 0);
             } else {
                 totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
             }
@@ -633,14 +629,12 @@ export function AppointmentFormDialog({
             }
         } else {
             let totalDuration = 0;
-            if (doctor && doctor.id && services.length > 0) {
-                const docServices = doctorServiceMap.get(doctor.id);
-                if (docServices) {
-                    totalDuration = services.reduce((acc, service) => {
-                        const ds = docServices.find(s => s.id === service.id);
-                        return acc + (ds?.duration_minutes || service.duration_minutes || 0);
-                    }, 0);
-                }
+            const docServices = doctor?.id ? doctorServiceMap.get(String(doctor.id)) : undefined;
+            if (doctor && doctor.id && services.length > 0 && docServices && docServices.length > 0) {
+                totalDuration = services.reduce((acc, service) => {
+                    const ds = docServices.find(s => String(s.id) === String(service.id));
+                    return acc + (ds?.duration_minutes || service.duration_minutes || 0);
+                }, 0);
             } else {
                 totalDuration = services.reduce((acc, service) => acc + (service.duration_minutes || 0), 0);
             }
@@ -953,7 +947,7 @@ export function AppointmentFormDialog({
         if (appointment.services.length === 0) return allDoctors;
         const selectedServiceIds = new Set(appointment.services.map(s => s.id));
         return allDoctors.filter(doctor => {
-            const docServices = doctorServiceMap.get(doctor.id);
+            const docServices = doctorServiceMap.get(String(doctor.id));
             return docServices && Array.from(selectedServiceIds).some(sid => docServices.some(ds => String(ds.id) === String(sid)));
         });
     }, [allDoctors, appointment.services, doctorServiceMap, checkDoctorAvailability]);
