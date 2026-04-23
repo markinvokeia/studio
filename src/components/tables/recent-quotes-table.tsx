@@ -618,7 +618,7 @@ export function RecentQuotesTable({
                       subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
                       isSelected={row.getIsSelected()}
                       showArrow={!!(onRowClick || onRowSelectionChange)}
-                      actions={!isCompact ? (
+                      actions={!isCompact && !viewportNarrow ? (
                         <QuoteActions
                           quote={row.original}
                           onEdit={onEdit}
