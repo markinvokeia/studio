@@ -9,6 +9,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { Badge } from '@/components/ui/badge';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { ActionButton } from '@/components/ui/action-button';
@@ -46,6 +47,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
@@ -580,6 +582,7 @@ export default function QuotesPage() {
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
+    const viewportNarrow = useViewportNarrow();
     const { hasPermission } = usePermissions();
 
     // Permission checks for UI elements (used in this page and child components)
@@ -702,6 +705,22 @@ export default function QuotesPage() {
     React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
+
+    React.useEffect(() => {
+        if (!selectedQuote) return;
+
+        const refreshedSelectedQuote = quotes.find((quote) => quote.id === selectedQuote.id) || null;
+
+        if (!refreshedSelectedQuote) {
+            setSelectedQuote(null);
+            setRowSelection({});
+            return;
+        }
+
+        if (refreshedSelectedQuote !== selectedQuote) {
+            setSelectedQuote(refreshedSelectedQuote);
+        }
+    }, [quotes, selectedQuote]);
 
     React.useEffect(() => {
         getClinic().then(setClinic);
@@ -1627,31 +1646,60 @@ export default function QuotesPage() {
                                             </div>
                                             )}
                                             {activeTab === 'appointments' && (
-                                            <div className="m-0 h-full overflow-y-auto flex flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex-1 min-h-0">
-                                                        <DataTable
-                                                            columns={getAppointmentColumns(t, (key) => tRoot(`AppointmentStatus.${key}`))}
-                                                            data={quoteAppointments}
-                                                            isRefreshing={isLoadingAppointments}
-                                                            onRefresh={loadQuoteAppointments}
-                                                        />
-                                                    </div>
-                                                </div>
+                                            <div className="m-0 h-full flex flex-col">
+                                                <DataTable
+                                                    columns={getAppointmentColumns(t, (key) => tRoot(`AppointmentStatus.${key}`))}
+                                                    data={quoteAppointments}
+                                                    isRefreshing={isLoadingAppointments}
+                                                    onRefresh={loadQuoteAppointments}
+                                                    isNarrow={viewportNarrow}
+                                                    renderCard={(appointment: QuoteAppointment) => {
+                                                        const statusKey = appointment.status?.toLowerCase() || '';
+                                                        const translatedStatus = statusKey ? tRoot(`AppointmentStatus.${statusKey}`) : '';
+                                                        const statusVariant: 'default' | 'secondary' | 'destructive' =
+                                                            statusKey === 'confirmed' || statusKey === 'completed'
+                                                                ? 'default'
+                                                                : statusKey === 'cancelled'
+                                                                    ? 'destructive'
+                                                                    : 'secondary';
+
+                                                        return (
+                                                            <DataCard
+                                                                title={appointment.summary || t('appointments.columns.summary')}
+                                                                subtitle={[
+                                                                    appointment.start_datetime ? formatDateTime(appointment.start_datetime) : null,
+                                                                    appointment.end_datetime ? formatDateTime(appointment.end_datetime) : null,
+                                                                ].filter(Boolean).join(' · ')}
+                                                                badge={translatedStatus ? (
+                                                                    <Badge variant={statusVariant} className="capitalize">
+                                                                        {translatedStatus}
+                                                                    </Badge>
+                                                                ) : undefined}
+                                                            />
+                                                        );
+                                                    }}
+                                                />
                                             </div>
                                             )}
                                             {activeTab === 'clinicSessions' && (
-                                            <div className="m-0 h-full overflow-y-auto flex flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex-1 min-h-0">
-                                                        <DataTable
-                                                            columns={getClinicSessionColumns(t)}
-                                                            data={quoteClinicSessions}
-                                                            isRefreshing={isLoadingClinicSessions}
-                                                            onRefresh={loadQuoteClinicSessions}
+                                            <div className="m-0 h-full flex flex-col">
+                                                <DataTable
+                                                    columns={getClinicSessionColumns(t)}
+                                                    data={quoteClinicSessions}
+                                                    isRefreshing={isLoadingClinicSessions}
+                                                    onRefresh={loadQuoteClinicSessions}
+                                                    isNarrow={viewportNarrow}
+                                                    renderCard={(session: QuoteClinicSession) => (
+                                                        <DataCard
+                                                            title={session.procedimiento_realizado || t('clinicSessions.columns.procedure')}
+                                                            subtitle={[
+                                                                session.fecha_sesion ? formatDateTime(session.fecha_sesion) : null,
+                                                                session.doctor_nombre || null,
+                                                                session.fecha_proxima_cita ? `${t('clinicSessions.columns.nextDate')}: ${formatDateTime(session.fecha_proxima_cita)}` : null,
+                                                            ].filter(Boolean).join(' · ')}
                                                         />
-                                                    </div>
-                                                </div>
+                                                    )}
+                                                />
                                             </div>
                                             )}
                                     </div>

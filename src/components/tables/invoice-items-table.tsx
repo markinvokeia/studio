@@ -2,8 +2,11 @@
 
 import * as React from 'react';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { InvoiceItem } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +19,9 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 interface InvoiceItemsTableProps {
   items: InvoiceItem[];
   isLoading?: boolean;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  onCreate?: () => void;
   canEdit?: boolean;
   onEdit?: (item: InvoiceItem) => void;
   onDelete?: (item: InvoiceItem) => void;
@@ -24,8 +30,11 @@ interface InvoiceItemsTableProps {
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
 }
 
-export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, onEdit, onDelete, onRowSelectionChange, rowSelection, setRowSelection }: InvoiceItemsTableProps) {
+export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefreshing, onCreate, canEdit = false, onEdit, onDelete, onRowSelectionChange, rowSelection, setRowSelection }: InvoiceItemsTableProps) {
   const t = useTranslations('InvoicesPage.InvoiceItemsTable');
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = panelNarrow || viewportNarrow;
 
   const columns: ColumnDef<InvoiceItem>[] = [
     {
@@ -141,10 +150,26 @@ export function InvoiceItemsTable({ items, isLoading = false, canEdit = false, o
           data={items}
           filterColumnId="service_name"
           filterPlaceholder={t('filterPlaceholder')}
+          onRefresh={onRefresh}
+          isRefreshing={isRefreshing}
+          onCreate={canEdit ? onCreate : undefined}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRowSelectionChange={onRowSelectionChange}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
+          isNarrow={isNarrow}
+          renderCard={(item: InvoiceItem, isSelected: boolean) => (
+            <DataCard
+              isSelected={isSelected}
+              title={item.service_name || String(item.id)}
+              subtitle={[
+                `${t('columns.quantity')}: ${item.quantity}`,
+                `${t('columns.total')}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}`,
+              ].filter(Boolean).join(' · ')}
+              showArrow={!!onRowSelectionChange}
+              onClick={() => onRowSelectionChange?.([item])}
+            />
+          )}
           columnTranslations={{
             id: t('columns.id'),
             service_name: t('columns.service'),

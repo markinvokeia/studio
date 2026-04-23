@@ -609,36 +609,41 @@ export function RecentQuotesTable({
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
           {isNarrow ? (
-            <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
-              {table.getRowModel().rows.length > 0
-                ? table.getRowModel().rows.map((row) => (
-                  <DataCard
-                      key={row.id}
-                      title={row.original.doc_no || String(row.original.id)}
-                      subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
-                      isSelected={row.getIsSelected()}
-                      showArrow={!!(onRowClick || onRowSelectionChange)}
-                      actions={!isCompact && !viewportNarrow ? (
-                        <QuoteActions
-                          quote={row.original}
-                          onEdit={onEdit}
-                          onDelete={onDelete}
-                          onQuoteActionRequest={onQuoteActionRequest}
-                          onPrint={handlePrintQuote}
-                          onSendEmail={handleSendEmailClick}
-                          {...actionPermissions}
-                        />
-                      ) : undefined}
-                      onClick={() => {
-                        table.toggleAllPageRowsSelected(false);
-                        row.toggleSelected(true);
-                        onRowSelectionChange?.([row.original]);
-                        onRowClick?.(row.original);
-                      }}
-                    />
-                  ))
-                : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
-              }
+            <div className="flex flex-1 min-h-0 flex-col">
+              <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
+                {table.getRowModel().rows.length > 0
+                  ? table.getRowModel().rows.map((row) => (
+                    <DataCard
+                        key={row.id}
+                        title={row.original.doc_no || String(row.original.id)}
+                        subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
+                        isSelected={row.getIsSelected()}
+                        showArrow={!!(onRowClick || onRowSelectionChange)}
+                        actions={!isCompact && !viewportNarrow ? (
+                          <QuoteActions
+                            quote={row.original}
+                            onEdit={onEdit}
+                            onDelete={onDelete}
+                            onQuoteActionRequest={onQuoteActionRequest}
+                            onPrint={handlePrintQuote}
+                            onSendEmail={handleSendEmailClick}
+                            {...actionPermissions}
+                          />
+                        ) : undefined}
+                        onClick={() => {
+                          table.toggleAllPageRowsSelected(false);
+                          row.toggleSelected(true);
+                          onRowSelectionChange?.([row.original]);
+                          onRowClick?.(row.original);
+                        }}
+                      />
+                    ))
+                  : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
+                }
+              </div>
+              <div className="flex-none px-0.5 pb-0.5 pt-2">
+                <DataTablePagination table={table} />
+              </div>
             </div>
           ) : (
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
