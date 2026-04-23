@@ -36,24 +36,25 @@ function VideoUrlList({
     setNewUrl('');
   };
   return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
+    <div className="w-full space-y-2">
+      <div className="flex w-full gap-2">
+        <Button type="button" size="sm" variant="outline" className="shrink-0" onClick={add}>
+          <Plus className="h-4 w-4" />
+        </Button>
         <Input
           value={newUrl}
           onChange={(e) => setNewUrl(e.target.value)}
           placeholder={placeholder}
+          className="min-w-0 flex-1"
           onKeyDown={(e) => e.key === 'Enter' && add()}
         />
-        <Button type="button" size="sm" variant="outline" onClick={add}>
-          <Plus className="h-4 w-4" />
-        </Button>
       </div>
       {urls.length === 0 && (
         <p className="text-xs text-muted-foreground">Sin videos. Agrega una URL para comenzar.</p>
       )}
       {urls.map((url, i) => (
-        <div key={i} className="flex items-center gap-2 text-sm">
-          <span className="flex-1 truncate text-muted-foreground">{url}</span>
+        <div key={i} className="flex w-full items-center gap-2 text-sm">
+          <span className="min-w-0 flex-1 truncate text-muted-foreground">{url}</span>
           <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={() => onRemove(i)}>
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -85,7 +86,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
   const isHorizontal = videoPos === 'top' || videoPos === 'bottom';
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {/* Theme */}
       <div className="space-y-3">
         <div className="space-y-1.5">
@@ -94,7 +95,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             value={settings.theme}
             onValueChange={(v) => updateSettings({ theme: v as TVDisplaySettings['theme'] })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -116,7 +117,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
         ) : (
           <div className="space-y-2">
             {calendars.map((cal) => {
-              const calendarSourceId = cal.id;
+              const calendarSourceId = String(cal.id);
               return (
                 <div key={calendarSourceId} className="flex items-center gap-2">
                   <Checkbox
@@ -184,7 +185,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             max={60}
             value={settings.refreshIntervalMinutes}
             onChange={(e) => updateSettings({ refreshIntervalMinutes: Number(e.target.value) || 5 })}
-            className="w-full sm:w-24"
+            className="w-full max-w-24"
           />
         </div>
         <div className="space-y-1.5">
@@ -196,7 +197,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             max={120}
             value={settings.promoIntervalMinutes}
             onChange={(e) => updateSettings({ promoIntervalMinutes: Number(e.target.value) || 15 })}
-            className="w-full sm:w-24"
+            className="w-full max-w-24"
           />
         </div>
       </div>
@@ -229,7 +230,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
           value={videoPos}
           onValueChange={(v) => updateSettings({ videoColumnPosition: v as TVDisplaySettings['videoColumnPosition'] })}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -243,9 +244,9 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
 
         {/* Orientation hint */}
         {(isVertical || isHorizontal) && (
-          <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3 py-2">
-            <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-            <p className="text-xs text-blue-700 dark:text-blue-300">
+          <div className="flex w-full items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30 px-3 py-2">
+            <Info className="h-4 w-4 shrink-0 text-blue-500 mt-0.5" />
+            <p className="min-w-0 flex-1 text-xs text-blue-700 dark:text-blue-300">
               {isVertical ? t('videoColumnNoteVertical') : t('videoColumnNoteHorizontal')}
             </p>
           </div>
@@ -286,6 +287,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
               value={settings.musicUrl}
               onChange={(e) => updateSettings({ musicUrl: e.target.value })}
               placeholder={t('musicUrlPlaceholder')}
+              className="w-full min-w-0"
             />
           </div>
         )}

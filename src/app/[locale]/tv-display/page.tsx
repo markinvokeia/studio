@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useTVDisplay } from '@/context/tv-display-context';
 import { SettingsForm } from '@/components/tv-display/settings-form';
@@ -73,11 +72,11 @@ export default function TVDisplayPage() {
               <CardTitle className="text-base">{t('settings.title')}</CardTitle>
             </CardHeader>
             <Separator />
-            <ScrollArea className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
               <CardContent className="pt-4 pb-6">
                 <SettingsForm calendars={calendars} />
               </CardContent>
-            </ScrollArea>
+            </div>
           </Card>
         )}
 
@@ -181,7 +180,7 @@ export default function TVDisplayPage() {
                       variant="outline"
                       onClick={() => nextPatient(room.calendarId)}
                       className="gap-2"
-                      disabled={room.currentIndex >= room.appointments.length - 1}
+                      disabled={room.currentIndex >= room.appointments.length}
                     >
                       {room.calendarColor && (
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: room.calendarColor }} />
