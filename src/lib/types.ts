@@ -1190,3 +1190,99 @@ export type QuoteClinicSession = {
   paciente_nombre: string;
   doctor_nombre: string | null;
 };
+
+// ──── Dental Record (Expediente Médico) ────
+
+export type ToothConditionType =
+  | 'healthy' | 'caries' | 'filling' | 'crown' | 'missing'
+  | 'implant' | 'root_canal' | 'bridge' | 'impacted' | 'extracted';
+
+export type ToothCondition = {
+  toothId: string;
+  condition: ToothConditionType;
+  surfaces?: ('occlusal' | 'mesial' | 'distal' | 'buccal' | 'lingual')[];
+  color?: string;
+  notes?: string;
+};
+
+export type SixPointMeasure = { MB: number; B: number; DB: number; ML: number; L: number; DL: number };
+export type SixPointBool = { MB: boolean; B: boolean; DB: boolean; ML: boolean; L: boolean; DL: boolean };
+
+export type ToothPerioData = {
+  toothId: string;
+  missing?: boolean;
+  implant?: boolean;
+  probing: SixPointMeasure;
+  recession: SixPointMeasure;
+  bleeding: SixPointBool;
+  suppuration: SixPointBool;
+  mobility: 0 | 1 | 2 | 3;
+  furcation: 0 | 1 | 2 | 3;
+};
+
+export type DentalRecordSession = {
+  id: string;
+  patient_id: string;
+  date: string;
+  label?: string;
+  doctor_id?: string;
+  doctor_name?: string;
+  odontogram: ToothCondition[];
+  periodontogram: ToothPerioData[];
+  notes?: string;
+  created_at: string;
+};
+
+// ──── Odontogram (interactive, session-based) ────
+
+/** All possible conditions that can be applied to a tooth or surface */
+export type OdontogramCondition =
+  // Surface conditions (apply per face)
+  | 'caries' | 'filling' | 'wear'
+  // Whole-tooth conditions
+  | 'missing' | 'crown' | 'implant' | 'root_canal' | 'bridge'
+  | 'impacted' | 'extracted' | 'crown_temp' | 'residual_root'
+  // Overlay conditions (stack on top)
+  | 'fracture' | 'orthodontics' | 'post' | 'gyroversion' | 'diastema';
+
+/** 5 surfaces of a tooth */
+export type OdontogramSurface = 'center' | 'top' | 'bottom' | 'left' | 'right';
+
+export type OdontogramToothState = {
+  /** Oclusal / Incisal surface */
+  center?: OdontogramCondition;
+  /** Vestibular surface */
+  top?: OdontogramCondition;
+  /** Lingual / Palatino surface */
+  bottom?: OdontogramCondition;
+  /** Mesial surface */
+  left?: OdontogramCondition;
+  /** Distal surface */
+  right?: OdontogramCondition;
+  /** Condition affecting the whole tooth (corona, ausente, etc.) */
+  whole?: OdontogramCondition;
+  /** Stacked overlays (fractura, ortodoncia, etc.) */
+  overlays?: OdontogramCondition[];
+};
+
+/** Keyed by FDI tooth ID string (e.g. "16", "48") */
+export type OdontogramState = {
+  [toothId: string]: OdontogramToothState;
+};
+
+export type OdontogramAttachment = {
+  diente_asociado: number | null;
+  ruta: string;
+  thumbnail?: string;
+  tipo: string;
+};
+
+export type OdontogramSnapshot = {
+  date: string;          // ISO date string (YYYY-MM-DD) for storage
+  description: string;   // Session title
+  state: OdontogramState;
+  notes?: string;
+  doctorId?: string;
+  doctorName?: string;
+  archivosAdjuntos?: OdontogramAttachment[];
+};

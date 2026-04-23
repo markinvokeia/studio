@@ -39,6 +39,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
+import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
@@ -53,6 +54,7 @@ import { UserInvoices } from '@/components/users/user-invoices';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
+import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
@@ -1350,7 +1352,6 @@ export default function UsersPage() {
       'Anamnesis': 'anamnesis',
       'Timeline': 'timeline',
       'Linea-de-Tiempo': 'timeline',
-      'Odontograma': 'odontogram',
       'Documentos': 'documents',
     },
     onFilter: (value) => {
@@ -1754,6 +1755,7 @@ export default function UsersPage() {
                             { id: 'info', icon: Users, label: 'Información' },
                             ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
                             { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
+                            { id: 'medical-record', icon: ToothIcon, label: t('UsersPage.tabs.medicalRecord') },
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
                             // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
@@ -1870,6 +1872,12 @@ export default function UsersPage() {
                                 setEditSessionId(sesionId);
                                 setActiveTab('clinical-history');
                               }}
+                            />
+                          )}
+                          {activeTab === 'medical-record' && (
+                            <DentalRecordViewer
+                              patientId={selectedUser.id}
+                              patientName={selectedUser.name}
                             />
                           )}
                           {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}

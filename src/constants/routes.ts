@@ -102,6 +102,10 @@ export const API_ROUTES = {
         USERS_DOCUMENT: '/api/users/document',
         USERS_IMPORT: '/api/users/import',
     },
+    ODONTOGRAM: {
+        PATIENT_ODONTOGRAMS: '/patient_odontograms',
+        CREATE_ODONTOGRAMS: '/create_odontograms',
+    },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
     CLINIC_UPDATE: '/clinic/update',
