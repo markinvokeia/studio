@@ -3,11 +3,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { QuoteItem } from '@/lib/types';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { MoreHorizontal } from 'lucide-react';
@@ -158,6 +161,9 @@ const getColumns = (
 export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = panelNarrow || viewportNarrow;
   const columns = getColumns(
     (key) => {
       try {
@@ -199,6 +205,20 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           extraButtons={extraButtons}
+          isNarrow={isNarrow}
+          renderCard={(item: QuoteItem, isSelected: boolean) => (
+            <DataCard
+              isSelected={isSelected}
+              title={item.service_name || String(item.id)}
+              subtitle={[
+                showToothNumber && item.tooth_number ? `${t('toothNumber')}: ${item.tooth_number}` : null,
+                `${t('quantity')}: ${item.quantity}`,
+                `${t('total')}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}`,
+              ].filter(Boolean).join(' · ')}
+              showArrow={!!onRowSelectionChange}
+              onClick={() => onRowSelectionChange?.([item])}
+            />
+          )}
           columnTranslations={{
             id: t('id'),
             service_name: t('service'),

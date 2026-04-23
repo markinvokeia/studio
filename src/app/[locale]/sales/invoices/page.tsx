@@ -254,6 +254,12 @@ export default function InvoicesPage() {
     const invoiceItemSchema = React.useMemo(() => getInvoiceItemSchema(t), [t]);
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(invoiceItemSchema),
+        defaultValues: {
+            id: undefined,
+            service_id: '',
+            quantity: 1,
+            unit_price: 0,
+        },
     });
 
     const watchedServiceId = itemForm.watch('service_id');
@@ -747,23 +753,13 @@ export default function InvoicesPage() {
                                     <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                                         {activeTab === 'items' && (
                                             <div className="m-0 h-full flex flex-col">
-                                                <div className="flex items-center justify-between mb-2 flex-none px-3">
-                                                    <h4 className="text-sm font-semibold">{t('InvoiceItemsTable.titleWithId', { id: selectedInvoice.id })}</h4>
-                                                    <div className="flex items-center gap-2">
-                                                        {canEditItems && canAddItem && (
-                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleCreateItem}>
-                                                                <PlusCircle className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                        <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                            <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                        </Button>
-                                                    </div>
-                                                </div>
                                                 <div className="flex-1 min-h-0">
                                                     <InvoiceItemsTable
                                                         items={invoiceItems}
                                                         isLoading={isLoadingInvoiceItems}
+                                                        onRefresh={loadInvoiceItems}
+                                                        isRefreshing={isLoadingInvoiceItems}
+                                                        onCreate={canEditItems && canAddItem ? handleCreateItem : undefined}
                                                         canEdit={canEditItems && canUpdateItem}
                                                         onEdit={canEditItems && canUpdateItem ? handleEditItem : undefined}
                                                         onDelete={canEditItems && canDeleteItem ? handleDeleteItem : undefined}
@@ -1082,7 +1078,7 @@ const ItemFormDialog = ({
                                             <FormLabel>{t('InvoiceItemsTable.form.service')}</FormLabel>
                                             <Select
                                                 onValueChange={field.onChange}
-                                                value={field.value || ""}
+                                                value={field.value ?? ""}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -1113,7 +1109,7 @@ const ItemFormDialog = ({
                                         <FormItem>
                                             <FormLabel>{t('InvoiceItemsTable.form.quantity')}</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -1126,7 +1122,7 @@ const ItemFormDialog = ({
                                         <FormItem>
                                             <FormLabel>{t('InvoiceItemsTable.form.unitPrice')}</FormLabel>
                                             <FormControl>
-                                                <Input type="number" step="0.01" {...field} />
+                                                <Input type="number" step="0.01" {...field} value={field.value ?? ''} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

@@ -5,12 +5,15 @@ import { AppointmentFormDialog } from '@/components/appointments/AppointmentForm
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
 import { formatDateTime, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -59,6 +62,9 @@ interface OrderItemsTableProps {
 export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = panelNarrow || viewportNarrow;
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [isClinicSessionDialogOpen, setIsClinicSessionDialogOpen] = React.useState(false);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
@@ -540,15 +546,34 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             columns={columns}
             data={items}
             filterColumnId="service_name"
-            filterPlaceholder={t('filterPlaceholder')}
-            onRowSelectionChange={handleRowSelectionChange}
-            enableSingleRowSelection
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
-            extraButtons={toolbarActions}
-            columnTranslations={{
-              id: t('columns.id'),
-              service_name: t('columns.service'),
+          filterPlaceholder={t('filterPlaceholder')}
+          onRowSelectionChange={handleRowSelectionChange}
+          enableSingleRowSelection
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
+          extraButtons={toolbarActions}
+          isNarrow={isNarrow}
+          renderCard={(item: OrderItem, isSelected: boolean) => (
+            <DataCard
+              isSelected={isSelected}
+              title={item.service_name || String(item.id)}
+              subtitle={[
+                item.tooth_number ? `${t('columns.toothNumber')}: ${item.tooth_number}` : null,
+                `${t('columns.quantity')}: ${item.quantity}`,
+                item.status ? t(`status.${item.status.toLowerCase()}`) : null,
+              ].filter(Boolean).join(' · ')}
+              badge={item.total != null ? (
+                <Badge variant="outline">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total)}
+                </Badge>
+              ) : undefined}
+              showArrow
+              onClick={() => handleRowSelectionChange([item])}
+            />
+          )}
+          columnTranslations={{
+            id: t('columns.id'),
+            service_name: t('columns.service'),
               tooth_number: t('columns.toothNumber'),
               quantity: t('columns.quantity'),
               unit_price: t('columns.unitPrice'),
