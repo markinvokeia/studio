@@ -4608,7 +4608,10 @@
     "openChat": "Open Chat",
     "openMenu": "Open Menu",
     "closeMenu": "Close Menu",
-    "chatbotTitle": "Assistant"
+    "chatbotTitle": "Assistant",
+    "minimizeChat": "Minimize chat",
+    "restoreChat": "Restore chat",
+    "closeChat": "Close chat"
   },
   "ResetPasswordPage": {
     "title": "Reset Password",

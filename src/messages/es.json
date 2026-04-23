@@ -4576,7 +4576,10 @@
     "openChat": "Abrir Chat",
     "openMenu": "Abrir Menú",
     "closeMenu": "Cerrar Menú",
-    "chatbotTitle": "Asistente"
+    "chatbotTitle": "Asistente",
+    "minimizeChat": "Minimizar chat",
+    "restoreChat": "Restaurar chat",
+    "closeChat": "Cerrar chat"
   },
   "ResetPasswordPage": {
     "title": "Restablecer contraseña",
