@@ -2033,6 +2033,8 @@
     "title": "Cajas Registradoras Físicas",
     "description": "Una lista de Cajas Registradoras Físicas",
     "filterPlaceholder": "Filtrar aquí...",
+    "active": "Activa",
+    "inactive": "Inactiva",
     "columns": {
       "id": "ID",
       "name": "Nombre",

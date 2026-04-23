@@ -59,7 +59,8 @@ export const OpenCashSessionWidget = () => {
                                 )}
                             >
                                 <Banknote className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
-                                <div className="flex items-center gap-1.5 text-[11px] sm:gap-2 sm:text-xs">
+                                <span className="text-[11px] font-semibold sm:hidden">{t('activeSession.button')}</span>
+                                <div className="hidden items-center gap-1.5 text-[11px] sm:flex sm:gap-2 sm:text-xs">
                                     <div className="flex items-center gap-0.5 sm:gap-1">
                                         <span className="font-bold">{uyuAmount.toFixed(2)}</span>
                                         <span className="opacity-90 text-[9px] sm:text-[10px]">UYU</span>

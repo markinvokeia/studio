@@ -2056,6 +2056,8 @@
     "title": "Physical Cash Registers",
     "description": "A list of Physical Cash Registers",
     "filterPlaceholder": "Filter here...",
+    "active": "Active",
+    "inactive": "Inactive",
     "columns": {
       "id": "ID",
       "name": "Name",
