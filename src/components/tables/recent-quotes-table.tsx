@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -32,7 +33,7 @@ import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { CheckCircle, Loader2, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
@@ -76,38 +77,35 @@ function QuoteActions({
   const isPending = status === 'pending';
 
   const actions = [
-    { icon: Printer, label: tQuotes('print'), onClick: () => onPrint(quote), disabled: false, destructive: false, visible: canPrint },
-    { icon: Send, label: tQuotes('sendEmail'), onClick: () => onSendEmail(quote), disabled: false, destructive: false, visible: canSendEmail },
-    { icon: Pencil, label: tQuotes('edit'), onClick: () => onEdit(quote), disabled: !isDraft, destructive: false, visible: canEdit },
-    { icon: CheckCircle, label: tQuotes('confirm'), onClick: () => onQuoteActionRequest(quote, 'confirm'), disabled: !isDraft && !isPending, destructive: false, visible: canConfirm },
-    { icon: XCircle, label: tQuotes('reject'), onClick: () => onQuoteActionRequest(quote, 'reject'), disabled: !isDraft && !isPending, destructive: true, visible: canReject },
-    { icon: Trash2, label: tQuotes('delete'), onClick: () => onDelete(quote), disabled: !isDraft, destructive: true, visible: canDelete },
+    { icon: Printer, label: tQuotes('print'), onClick: () => onPrint(quote), visible: canPrint },
+    { icon: Send, label: tQuotes('sendEmail'), onClick: () => onSendEmail(quote), visible: canSendEmail },
+    { icon: Pencil, label: tQuotes('edit'), onClick: () => onEdit(quote), visible: canEdit && isDraft },
+    { icon: CheckCircle, label: tQuotes('confirm'), onClick: () => onQuoteActionRequest(quote, 'confirm'), visible: canConfirm && (isDraft || isPending) },
+    { icon: XCircle, label: tQuotes('reject'), onClick: () => onQuoteActionRequest(quote, 'reject'), visible: canReject && (isDraft || isPending) },
+    { icon: Trash2, label: tQuotes('delete'), onClick: () => onDelete(quote), visible: canDelete && isDraft },
   ].filter((action) => action.visible);
 
   if (actions.length === 0) return null;
 
   return (
-    <div className="flex items-center gap-1">
-      {actions.map(({ icon: Icon, label, onClick, disabled, destructive }) => (
-        <button
-          key={label}
-          type="button"
-          title={label}
-          aria-label={label}
-          disabled={disabled}
-          onClick={(e) => {
-            e.stopPropagation();
-            onClick();
-          }}
-          className={cn(
-            'flex min-w-[44px] flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35',
-            destructive && 'hover:bg-destructive/10 hover:text-destructive',
-          )}
-        >
-          <Icon className="h-3.5 w-3.5" />
-          <span className="max-w-[48px] truncate text-[9px] font-medium leading-tight">{label}</span>
-        </button>
-      ))}
+    <div onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">{tQuotes('actions.openMenu')}</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>{tQuotes('actions.title')}</DropdownMenuLabel>
+          {actions.map(({ icon: Icon, label, onClick }) => (
+            <DropdownMenuItem key={label} onClick={onClick}>
+              <Icon className="mr-2 h-4 w-4" />
+              <span>{label}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -317,7 +315,7 @@ const getColumns = (
         );
       },
       enableHiding: false,
-      size: 300,
+      size: 50,
     },
   ];
   return columns.filter((column) => !isCompact || column.id !== 'actions');

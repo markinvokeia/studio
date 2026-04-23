@@ -1155,6 +1155,8 @@
     "title": "Quotes",
     "description": "Manage all your quotes here.",
     "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
       "print": "Print",
       "sendEmail": "Send Email",
       "confirm": "Confirm",

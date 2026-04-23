@@ -1155,6 +1155,8 @@
     "title": "Presupuestos",
     "description": "Gestione todos sus presupuestos aquí.",
     "actions": {
+      "openMenu": "Abrir menú",
+      "title": "Acciones",
       "print": "Imprimir",
       "sendEmail": "Enviar Correo",
       "confirm": "Confirmar",
