@@ -1311,6 +1311,9 @@
       "appointments": "Citas",
       "clinicSessions": "Sesiones Clínicas"
     },
+    "columns": {
+      "docNo": "Doc No."
+    },
     "appointments": {
       "columns": {
         "summary": "Resumen",

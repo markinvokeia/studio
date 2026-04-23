@@ -1311,6 +1311,9 @@
       "appointments": "Appointments",
       "clinicSessions": "Clinical Sessions"
     },
+    "columns": {
+      "docNo": "Doc No."
+    },
     "appointments": {
       "columns": {
         "summary": "Summary",
