@@ -431,7 +431,14 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             renderCard={(row: Invoice, _isSelected: boolean) => (
               <DataCard isSelected={_isSelected}
                 title={row.doc_no || String(row.id)}
-                subtitle={[row.user_name, row.currency, row.status].filter(Boolean).join(' · ')}
+                subtitle={[
+                  row.user_name,
+                  formatDateTime(row.createdAt).split(' ')[0],
+                  row.total != null
+                    ? [row.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.total))].filter(Boolean).join(' ')
+                    : undefined,
+                  row.status,
+                ].filter(Boolean).join(' · ')}
                 showArrow
                 onClick={() => onRowSelectionChange?.([row])}
               />

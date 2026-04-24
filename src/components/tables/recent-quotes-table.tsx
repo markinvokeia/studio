@@ -646,7 +646,14 @@ export function RecentQuotesTable({
                       <DataCard
                           key={row.id}
                           title={row.original.doc_no || String(row.original.id)}
-                          subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
+                          subtitle={[
+                            row.original.user_name,
+                            formatDateTime(row.original.createdAt).split(' ')[0],
+                            row.original.total != null
+                              ? [row.original.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.original.total))].filter(Boolean).join(' ')
+                              : undefined,
+                            row.original.status,
+                          ].filter(Boolean).join(' · ')}
                           isSelected={row.getIsSelected()}
                           showArrow={!!(onRowClick || onRowSelectionChange)}
                           actions={!isCompact && !viewportNarrow ? (

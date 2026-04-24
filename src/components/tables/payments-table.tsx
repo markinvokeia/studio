@@ -342,7 +342,14 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           renderCard={(row: Payment, _isSelected: boolean) => (
             <DataCard isSelected={_isSelected}
               title={row.doc_no || String(row.id)}
-              subtitle={[row.user_name, row.payment_method_code, row.transaction_type].filter(Boolean).join(' · ')}
+              subtitle={[
+                row.user_name,
+                formatDateTime(row.payment_date).split(' ')[0],
+                row.amount_applied != null
+                  ? [row.source_currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(Number(row.amount_applied)))].filter(Boolean).join(' ')
+                  : undefined,
+                row.payment_method_code,
+              ].filter(Boolean).join(' · ')}
               showArrow
               onClick={() => onRowSelectionChange?.([row])}
             />
