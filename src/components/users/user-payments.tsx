@@ -45,6 +45,8 @@ const getPaymentType = (payment: Payment): { type: 'payment' | 'prepaid' | 'cred
   return { type: 'payment', variant: 'default' };
 };
 
+const historicalBadgeClassName = 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300';
+
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
   {
@@ -100,9 +102,16 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
       const payment = row.original;
       const { type, variant } = getPaymentType(payment);
       return (
-        <Badge variant={variant}>
-          {t(`PaymentsPage.columns.paymentTypes.${type}`)}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge variant={variant}>
+            {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+          </Badge>
+          {payment.is_historical && (
+            <Badge variant="outline" className={historicalBadgeClassName}>
+              {t('PaymentsPage.columns.isHistorical')}
+            </Badge>
+          )}
+        </div>
       );
     },
   },
@@ -402,10 +411,16 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               const statusLower = payment.status?.toLowerCase();
               return (
                 <DataCard isSelected={_isSelected}
+                  className={payment.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
                   title={payment.doc_no || `PAY-${payment.id}`}
                   subtitle={formatDateTime(payment.createdAt)}
                   badge={
                     <div className="flex gap-1 flex-wrap justify-end">
+                      {payment.is_historical && (
+                        <Badge variant="outline" className={`${historicalBadgeClassName} text-[10px]`}>
+                          {t('PaymentsPage.columns.isHistorical')}
+                        </Badge>
+                      )}
                       <Badge variant={variant} className="capitalize text-[10px]">
                         {t(`PaymentsPage.columns.paymentTypes.${type}`)}
                       </Badge>
@@ -470,9 +485,16 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                   {(() => {
                     const { type, variant } = getPaymentType(selectedPayment);
                     return (
-                      <Badge variant={variant}>
-                        {t(`PaymentsPage.columns.paymentTypes.${type}`)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge variant={variant}>
+                          {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                        </Badge>
+                        {selectedPayment.is_historical && (
+                          <Badge variant="outline" className={historicalBadgeClassName}>
+                            {t('PaymentsPage.columns.isHistorical')}
+                          </Badge>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>

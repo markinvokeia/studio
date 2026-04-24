@@ -8,6 +8,7 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Badge } from '@/components/ui/badge';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
@@ -49,15 +50,16 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Receipt, RefreshCw, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -663,6 +665,11 @@ export default function QuotesPage() {
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+    const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
+    const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
@@ -1185,6 +1192,121 @@ export default function QuotesPage() {
         setIsRightExpanded(false);
     };
 
+    const handlePrintQuote = React.useCallback(async (quote: Quote) => {
+        const fileName = getDocumentFileName(quote, 'quote');
+
+        toast({
+            title: t('generatingPdf'),
+            description: t('pleaseWait', { id: fileName }),
+        });
+
+        try {
+            const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `${fileName}.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            window.URL.revokeObjectURL(url);
+            anchor.remove();
+
+            toast({
+                title: t('downloadStarted'),
+                description: t('pdfDownloading', { id: fileName }),
+            });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('printError'),
+                description: error instanceof Error ? error.message : t('couldNotPrint'),
+            });
+        }
+    }, [t, toast]);
+
+    const handleSendEmailClick = React.useCallback((quote: Quote) => {
+        setSelectedQuoteForEmail(quote);
+        setEmailRecipients(quote.userEmail || '');
+        setIsSendEmailDialogOpen(true);
+    }, []);
+
+    const sendQuoteEmail = React.useCallback(async (emails: string[]) => {
+        if (!selectedQuoteForEmail) return;
+
+        setIsSendingEmail(true);
+        try {
+            await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, {
+                quote_id: selectedQuoteForEmail.id,
+                is_sales: true,
+                emails,
+            });
+
+            toast({
+                title: t('emailSent'),
+                description: t('emailSentSuccess', { emails: emails.join(', ') }),
+            });
+
+            setIsSendEmailDialogOpen(false);
+            setSelectedQuoteForEmail(null);
+            setEmailRecipients('');
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('emailError'),
+                description: error instanceof Error ? error.message : t('unexpectedError'),
+            });
+        } finally {
+            setIsSendingEmail(false);
+        }
+    }, [selectedQuoteForEmail, t, toast]);
+
+    const handleConfirmSendEmail = React.useCallback(async () => {
+        if (!selectedQuoteForEmail) return;
+
+        const emails = emailRecipients
+            .split(',')
+            .map((email) => email.trim())
+            .filter((email) => email);
+
+        if (emails.length === 0) {
+            toast({ variant: 'destructive', title: t('emailError'), description: t('atLeastOneEmail') });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = emails.filter((email) => !emailRegex.test(email));
+
+        if (invalidEmails.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: t('invalidEmail'),
+                description: t('invalidEmails', { emails: invalidEmails.join(', ') }),
+            });
+            return;
+        }
+
+        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+        const disabled = getDisabledEmails(preferences);
+
+        if (disabled.length > 0) {
+            setDisabledEmails(disabled);
+            setIsWarningDialogOpen(true);
+            return;
+        }
+
+        await sendQuoteEmail(emails);
+    }, [emailRecipients, selectedQuoteForEmail, sendQuoteEmail, t, toast]);
+
+    const handleWarningConfirm = React.useCallback(async () => {
+        const emails = emailRecipients
+            .split(',')
+            .map((email) => email.trim())
+            .filter((email) => email);
+
+        setIsWarningDialogOpen(false);
+        await sendQuoteEmail(emails);
+    }, [emailRecipients, sendQuoteEmail]);
+
     const handleInvoiceFromQuote = async () => {
         if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
         try {
@@ -1420,6 +1542,18 @@ export default function QuotesPage() {
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
                                             {t('delete')}
+                                        </Button>
+                                    )}
+                                    {canPrint && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintQuote(selectedQuote)}>
+                                            <Printer className="h-3.5 w-3.5" />
+                                            {t('print')}
+                                        </Button>
+                                    )}
+                                    {canSendEmail && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
+                                            <Send className="h-3.5 w-3.5" />
+                                            {t('sendEmail')}
                                         </Button>
                                     )}
                                     {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
@@ -2287,6 +2421,45 @@ export default function QuotesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <label htmlFor="quote-email-recipients" className="text-sm font-medium">{t('sendEmailDialog.recipients')}</label>
+                        <Input
+                            id="quote-email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder={t('sendEmailDialog.placeholder')}
+                        />
+                        <p className="mt-1 text-sm text-muted-foreground">{t('sendEmailDialog.helperText')}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>
+                            {t('quoteDialog.cancel')}
+                        </Button>
+                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t('sendEmailDialog.sending')}
+                                </>
+                            ) : (
+                                t('sendEmail')
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <CommunicationWarningDialog
+                open={isWarningDialogOpen}
+                onOpenChange={setIsWarningDialogOpen}
+                disabledItems={disabledEmails}
+                onConfirm={handleWarningConfirm}
+            />
         </>
     );
 }

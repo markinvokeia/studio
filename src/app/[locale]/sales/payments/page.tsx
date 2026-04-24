@@ -7,6 +7,7 @@ import { PaymentAllocationsTable } from '@/components/tables/payment-allocations
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -38,7 +39,7 @@ import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -456,7 +457,7 @@ export default function PaymentsPage() {
                 }
                 rightPanel={
                     selectedPayment && (
-                        <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
+                        <Card className={cn('h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0', selectedPayment.is_historical && 'border-amber-300 bg-amber-50/40 dark:border-amber-800 dark:bg-amber-950/20')}>
                             <CardHeader className="flex-none px-6 py-4 border-b border-border/50">
                                 <DetailHeader
                                     icon={CreditCard}
@@ -507,6 +508,21 @@ export default function PaymentsPage() {
                                     onClose={handleCloseDetails}
                                 />
                             </CardHeader>
+                            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                {selectedPayment.is_historical && (
+                                    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+                                        {t('columns.isHistorical')}
+                                    </Badge>
+                                )}
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
+                                    <Printer className="h-3.5 w-3.5" />
+                                    {t('actions.print')}
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
+                                    <Send className="h-3.5 w-3.5" />
+                                    {t('actions.sendEmail')}
+                                </Button>
+                            </div>
                             <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                 <VerticalTabStrip
                                     tabs={paymentTabs}
