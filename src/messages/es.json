@@ -1245,7 +1245,8 @@
         "unitPrice": "Precio Unitario",
         "total": "Total",
         "selectService": "Seleccionar Servicio",
-        "toothNumber": "Número de Diente"
+        "toothNumber": "Número de Diente",
+        "empty": "Aún no se han agregado artículos."
       },
       "notes": "Notas",
       "notesPlaceholder": "Agregue notas adicionales aquí..."

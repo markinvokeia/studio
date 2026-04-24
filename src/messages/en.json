@@ -1245,7 +1245,8 @@
         "unitPrice": "Unit Price",
         "total": "Total",
         "selectService": "Select Service",
-        "toothNumber": "Tooth Number"
+        "toothNumber": "Tooth Number",
+        "empty": "No items added yet."
       },
       "notes": "Notes",
       "notesPlaceholder": "Add any additional notes here..."

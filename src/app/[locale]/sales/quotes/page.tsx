@@ -1864,6 +1864,97 @@ export default function QuotesPage() {
                                     </CardHeader>
                                     <CardContent className="bg-card">
                                         <div className="space-y-4">
+                                            {/* Mobile: stacked card per item */}
+                                            <div className="md:hidden space-y-3">
+                                                {quoteFormFields.map((fieldItem, index) => (
+                                                    <div key={fieldItem.id} className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-xs font-medium text-muted-foreground">{t('quoteDialog.items.title')} #{index + 1}</span>
+                                                            <Button type="button" variant="destructive" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveQuoteItem(index)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                        <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-xs">{t('quoteDialog.items.service')}</FormLabel>
+                                                                <ServiceSelector
+                                                                    isSales={true}
+                                                                    value={field.value}
+                                                                    onValueChange={(serviceId, service) => {
+                                                                        field.onChange(serviceId);
+                                                                        if (service) {
+                                                                            const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                            const servicePrice = Number(service.price);
+                                                                            quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
+                                                                            quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                        }
+                                                                    }}
+                                                                    placeholder={t('itemDialog.searchService')}
+                                                                    noResultsText={t('itemDialog.noServiceFound')}
+                                                                    triggerText={t('quoteDialog.items.selectService')}
+                                                                />
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.quantity')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="1" min="1" {...field} onChange={(e) => {
+                                                                            const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
+                                                                            field.onChange(e);
+                                                                            const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
+                                                                            const newQty = rounded === '' ? 0 : rounded;
+                                                                            quoteForm.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
+                                                                            quoteForm.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
+                                                                        }} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={quoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.unitPrice')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="0.01" min="0" {...field} onChange={(e) => {
+                                                                            field.onChange(e);
+                                                                            const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                            const newPrice = Number(e.target.value);
+                                                                            quoteForm.setValue(`items.${index}.total`, Math.round((newPrice * quantity) * 100) / 100, { shouldDirty: true });
+                                                                        }} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <FormField control={quoteForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.total')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" {...field} readOnly disabled />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={quoteForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.toothNumber')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {quoteFormFields.length === 0 && (
+                                                    <p className="text-center text-sm text-muted-foreground py-4">{t('quoteDialog.items.empty')}</p>
+                                                )}
+                                            </div>
+                                            {/* Desktop: table */}
                                             <table className="hidden md:table w-full text-sm">
                                                 <thead>
                                                     <tr className="text-muted-foreground text-center">

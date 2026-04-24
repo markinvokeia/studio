@@ -606,44 +606,6 @@ export function RecentQuotesTable({
           </CardHeader>
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
-          {isNarrow ? (
-            <div className="flex flex-1 min-h-0 flex-col">
-              <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
-                {table.getRowModel().rows.length > 0
-                  ? table.getRowModel().rows.map((row) => (
-                    <DataCard
-                        key={row.id}
-                        title={row.original.doc_no || String(row.original.id)}
-                        subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
-                        isSelected={row.getIsSelected()}
-                        showArrow={!!(onRowClick || onRowSelectionChange)}
-                        actions={!isCompact && !viewportNarrow ? (
-                          <QuoteActions
-                            quote={row.original}
-                            onEdit={onEdit}
-                            onDelete={onDelete}
-                            onQuoteActionRequest={onQuoteActionRequest}
-                            onPrint={handlePrintQuote}
-                            onSendEmail={handleSendEmailClick}
-                            {...actionPermissions}
-                          />
-                        ) : undefined}
-                        onClick={() => {
-                          table.toggleAllPageRowsSelected(false);
-                          row.toggleSelected(true);
-                          onRowSelectionChange?.([row.original]);
-                          onRowClick?.(row.original);
-                        }}
-                      />
-                    ))
-                  : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
-                }
-              </div>
-              <div className="flex-none px-0.5 pb-0.5 pt-2">
-                <DataTablePagination table={table} />
-              </div>
-            </div>
-          ) : (
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
             {standalone ? (
               <DataTableAdvancedToolbar
@@ -676,69 +638,109 @@ export function RecentQuotesTable({
                 columnTranslations={columnTranslations}
               />
             )}
-            <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
-              <table className={cn("w-full caption-bottom text-sm")}>
-                <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        return (
-                          <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                          </TableHead>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                        onClick={() => {
-                          if (onRowSelectionChange) {
+            {isNarrow ? (
+              <div className="flex flex-1 min-h-0 flex-col">
+                <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
+                  {table.getRowModel().rows.length > 0
+                    ? table.getRowModel().rows.map((row) => (
+                      <DataCard
+                          key={row.id}
+                          title={row.original.doc_no || String(row.original.id)}
+                          subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
+                          isSelected={row.getIsSelected()}
+                          showArrow={!!(onRowClick || onRowSelectionChange)}
+                          actions={!isCompact && !viewportNarrow ? (
+                            <QuoteActions
+                              quote={row.original}
+                              onEdit={onEdit}
+                              onDelete={onDelete}
+                              onQuoteActionRequest={onQuoteActionRequest}
+                              onPrint={handlePrintQuote}
+                              onSendEmail={handleSendEmailClick}
+                              {...actionPermissions}
+                            />
+                          ) : undefined}
+                          onClick={() => {
                             table.toggleAllPageRowsSelected(false);
                             row.toggleSelected(true);
-                          }
-                          onRowClick?.(row.original);
-                        }}
-                        className={onRowSelectionChange || onRowClick ? 'cursor-pointer' : ''}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            onRowSelectionChange?.([row.original]);
+                            onRowClick?.(row.original);
+                          }}
+                        />
+                      ))
+                    : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
+                  }
+                </div>
+                <div className="flex-none px-0.5 pb-0.5 pt-2">
+                  <DataTablePagination table={table} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
+                  <table className={cn("w-full caption-bottom text-sm")}>
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => {
+                            return (
+                              <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                              </TableHead>
+                            )
+                          })}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            data-state={row.getIsSelected() && 'selected'}
+                            onClick={() => {
+                              if (onRowSelectionChange) {
+                                table.toggleAllPageRowsSelected(false);
+                                row.toggleSelected(true);
+                              }
+                              onRowClick?.(row.original);
+                            }}
+                            className={onRowSelectionChange || onRowClick ? 'cursor-pointer' : ''}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={columns.length}
+                            className="h-24 text-center"
+                          >
+                            {t('General.noResults')}
                           </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
-                        {t('General.noResults')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </table>
-            </div>
-            <div className="flex-none">
-              <DataTablePagination table={table} />
-            </div>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </table>
+                </div>
+                <div className="flex-none">
+                  <DataTablePagination table={table} />
+                </div>
+              </>
+            )}
           </div>
-          )}
         </CardContent>
       </Card>
 
