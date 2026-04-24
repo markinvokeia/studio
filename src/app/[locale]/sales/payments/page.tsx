@@ -38,7 +38,7 @@ import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -507,6 +507,16 @@ export default function PaymentsPage() {
                                     onClose={handleCloseDetails}
                                 />
                             </CardHeader>
+                            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
+                                    <Printer className="h-3.5 w-3.5" />
+                                    {t('actions.print')}
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
+                                    <Send className="h-3.5 w-3.5" />
+                                    {t('actions.sendEmail')}
+                                </Button>
+                            </div>
                             <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                 <VerticalTabStrip
                                     tabs={paymentTabs}

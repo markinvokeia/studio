@@ -24,7 +24,7 @@ import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments } from '@/services/payments-service';
 import { RowSelectionState } from '@tanstack/react-table';
-import { CreditCard, Loader2, Maximize2, Minimize2, RefreshCw, StickyNote } from 'lucide-react';
+import { CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send, StickyNote } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -318,6 +318,16 @@ function PaymentsPageContent() {
                                     onClose={handleCloseDetails}
                                 />
                             </CardHeader>
+                            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
+                                    <Printer className="h-3.5 w-3.5" />
+                                    {t('actions.print')}
+                                </Button>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
+                                    <Send className="h-3.5 w-3.5" />
+                                    {t('actions.sendEmail')}
+                                </Button>
+                            </div>
                             <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                 <VerticalTabStrip
                                     tabs={paymentTabs}
