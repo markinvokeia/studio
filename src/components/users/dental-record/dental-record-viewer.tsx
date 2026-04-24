@@ -179,10 +179,10 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
     return () => ro.disconnect();
   }, []);
 
-  // 16 teeth per row + 15 gaps (2px each) + midline (8px) = 38px overhead; uncapped on wide monitors
+  // 16 teeth per row + gaps + midline ≈ 38px overhead; canvas scrolls so no hard cap needed
   const computedToothSize = canvasWidth > 30
-    ? Math.max(18, Math.min(72, Math.floor((canvasWidth - 38) / 16)))
-    : (isMobile ? 22 : 30);
+    ? Math.max(24, Math.min(90, Math.floor((canvasWidth - 38) / 16)))
+    : 30;
 
   useEffect(() => {
     setIsLoading(true);
@@ -362,8 +362,8 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
   const toothState: OdontogramToothState = selectedToothId
     ? (displayState[selectedToothId] ?? {}) : {};
 
-  // Layout selection: mobile always uses 'mouth'; desktop uses user toggle
-  const odontogramLayout = isMobile ? 'mouth' : desktopLayout;
+  // Both mobile and desktop respect the user's layout toggle
+  const odontogramLayout = desktopLayout;
 
   // ── Session detail panel (read mode) ──────────────────────────────────────
   const sessionReadPanel = !isEditing && currentSnapshot ? (() => {
@@ -565,6 +565,19 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
               </Button>
             )}
 
+            {/* Layout toggle — mobile */}
+            <Button
+              size="icon" variant="ghost"
+              className="h-7 w-7 shrink-0"
+              onClick={() => setDesktopLayout((l) => l === 'flat' ? 'mouth' : 'flat')}
+              title={desktopLayout === 'flat' ? t('layoutMouth') : t('layoutFlat')}
+            >
+              {desktopLayout === 'flat'
+                ? <Smile className="h-4 w-4" />
+                : <AlignJustify className="h-4 w-4" />
+              }
+            </Button>
+
             <Button
               size="icon" variant="ghost"
               className="h-7 w-7 shrink-0"
@@ -599,15 +612,6 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             </button>
           </div>
 
-          <button
-            onClick={() => setHistoryIndex((i) => Math.max(0, i - 1))}
-            disabled={!canGoBack || isEditing}
-            className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors shrink-0"
-            title={t('prevSession')}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-
           <div className="flex-1 min-w-0">
             {currentSnapshot ? (
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -626,20 +630,30 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             )}
           </div>
 
-          <button
-            onClick={() => setHistoryIndex((i) => Math.min(history.length - 1, i + 1))}
-            disabled={!canGoForward || isEditing}
-            className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors shrink-0"
-            title={t('nextSession')}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-
-          {history.length > 0 && (
-            <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-              {historyIndex + 1}/{history.length}
-            </span>
-          )}
+          {/* Grouped: arrows + current/total counter */}
+          <div className="flex items-center shrink-0">
+            <button
+              onClick={() => setHistoryIndex((i) => Math.max(0, i - 1))}
+              disabled={!canGoBack || isEditing}
+              className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors"
+              title={t('prevSession')}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setHistoryIndex((i) => Math.min(history.length - 1, i + 1))}
+              disabled={!canGoForward || isEditing}
+              className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors"
+              title={t('nextSession')}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            {history.length > 0 && (
+              <span className="text-xs text-muted-foreground tabular-nums pl-1">
+                {historyIndex + 1}/{history.length}
+              </span>
+            )}
+          </div>
 
           {!isEditing && (
             <Button size="sm" onClick={handleStartNewSession} className="gap-1.5 text-xs shrink-0">
@@ -774,7 +788,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
                   className="h-full"
                 />
               ) : (
-                <div style={{ minHeight: '48vh' }}>
+                <div ref={canvasWrapperRef} style={{ minHeight: '48vh' }}>
                   <OdontogramCanvas
                     state={displayState}
                     selectedToothId={selectedToothId}
@@ -782,7 +796,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
                     readOnly={false}
                     half="full"
                     layout="flat"
-                    toothSize={Math.min(120, Math.round(computedToothSize * zoom))}
+                    toothSize={Math.min(120, Math.round(40 * zoom))}
                   />
                 </div>
               )}
@@ -833,11 +847,11 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
           </button>
 
           {archExpanded && (
-            <div className="flex gap-3 items-start rounded-b-xl border bg-background p-3">
-              {/* Column 1: Arch — width-capped so circle stays fully visible */}
+            <div className="flex gap-3 items-stretch rounded-b-xl border bg-background p-3">
+              {/* Column 1: Arch — fixed width, stretches to match right column height */}
               <div
-                className="shrink-0 relative rounded-xl border bg-muted/20 p-3 overflow-y-auto"
-                style={{ width: 420, maxHeight: 500 }}
+                className="shrink-0 relative rounded-xl border bg-muted/20 p-2 overflow-hidden"
+                style={{ width: 320 }}
               >
                 <OdontogramArchView
                   state={displayState}

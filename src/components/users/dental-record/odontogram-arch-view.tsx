@@ -2,6 +2,7 @@
 
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import 'react-odontogram/style.css';
 import type { ToothConditionGroup, ToothDetail } from 'react-odontogram';
 import { cn } from '@/lib/utils';
 import type { OdontogramCondition, OdontogramState, OdontogramSurface } from '@/lib/types';
@@ -162,7 +163,14 @@ export function OdontogramArchView({
   }, [onSelectTooth]);
 
   return (
-    <div className={cn('relative w-full', className)}>
+    <div className={cn('oav-root relative w-full', className)}>
+      {/* Scoped overrides for react-odontogram default tooth appearance */}
+      <style>{`
+        .oav-root .Odontogram svg g:not(.selected) path:nth-of-type(2):not([data-colored]) {
+          opacity: 1 !important;
+          fill: #fdf8f0;
+        }
+      `}</style>
       {/* Floating conditions panel */}
       {panelEntries.length > 0 && (
         <div className="absolute top-2 right-2 z-20">
@@ -222,6 +230,11 @@ export function OdontogramArchView({
         onChange={handleChange}
         selectedColor="hsl(var(--primary))"
         styles={{ width: '100%' }}
+        colors={{
+          darkBlue: '#8a7f74',   // warm gray for selected/focus state
+          baseBlue: '#c4b8aa',   // warm neutral for default tooth outline
+          lightBlue: '#f0e8dc',  // warm cream for hover/selected fill
+        }}
         tooltip={{
           content: (tooth?: ToothDetail) => {
             if (!tooth) return null;

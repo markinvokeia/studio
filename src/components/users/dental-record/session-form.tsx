@@ -84,30 +84,18 @@ export function SessionForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-xl border bg-background p-4">
       <h3 className="text-sm font-semibold text-foreground">{t('session.newTitle')}</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Date */}
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">{t('session.date')}</Label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-8 text-xs"
-            required
-          />
-        </div>
+      {/* Hidden title — still sent to the API but not shown to the user */}
+      <input type="hidden" value={description} readOnly />
 
-        {/* Description */}
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">{t('session.description')}</Label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t('session.descriptionPlaceholder')}
-            className="h-8 text-xs"
-            maxLength={120}
-          />
-        </div>
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs">{t('session.date')}</Label>
+        <Input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="h-8 text-xs"
+          required
+        />
       </div>
 
       {/* Doctor */}
