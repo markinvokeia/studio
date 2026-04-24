@@ -24,7 +24,9 @@ export function CalendarMonthViewMobile({
   onEventClick,
   onSlotClick,
 }: CalendarMonthViewMobileProps) {
-  const [selectedDay, setSelectedDay] = React.useState<Date>(new Date());
+  // Initialize stable for SSR; set real "today" after mount.
+  const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date(2000, 0, 1));
+  React.useEffect(() => { setSelectedDay(new Date()); }, []);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();

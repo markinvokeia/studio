@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Loader2, Paperclip, Save, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DoctorOption } from '@/services/dental-record';
 
 export interface SessionFormValues {
@@ -42,7 +42,10 @@ export function SessionForm({
   const t = useTranslations('DentalRecord');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [date, setDate] = useState(defaultDate ?? new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(defaultDate ?? '');
+  useEffect(() => {
+    if (!defaultDate && !date) setDate(new Date().toISOString().split('T')[0]);
+  }, [defaultDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const [description, setDescription] = useState(defaultDescription ?? '');
   const [doctorId, setDoctorId] = useState('');
   const [internalNotes, setInternalNotes] = useState('');

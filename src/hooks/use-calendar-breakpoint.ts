@@ -16,13 +16,12 @@ function getBreakpoint(width: number): CalendarBreakpoint {
  * - desktop: > 1024px
  */
 export function useCalendarBreakpoint(): CalendarBreakpoint {
-  const [breakpoint, setBreakpoint] = React.useState<CalendarBreakpoint>(() => {
-    if (typeof window === 'undefined') return 'desktop';
-    return getBreakpoint(window.innerWidth);
-  });
+  // Always start as 'desktop' so SSR and first client render match; real value is set after mount.
+  const [breakpoint, setBreakpoint] = React.useState<CalendarBreakpoint>('desktop');
 
   React.useEffect(() => {
     const handler = () => setBreakpoint(getBreakpoint(window.innerWidth));
+    handler();
     window.addEventListener('resize', handler, { passive: true });
     return () => window.removeEventListener('resize', handler);
   }, []);

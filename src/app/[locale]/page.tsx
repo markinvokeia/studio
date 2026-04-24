@@ -325,10 +325,14 @@ export default function DashboardPage() {
     });
     const [patientColumnFilters, setPatientColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-    const [date, setDate] = React.useState<DateRange | undefined>({
-        from: subMonths(new Date(), 1),
-        to: new Date(),
-    });
+    // Initialize as undefined so SSR and first client render match; the real date range
+    // is set in useEffect below after mount (prevents hydration mismatch from new Date()).
+    const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+
+    React.useEffect(() => {
+        const now = new Date();
+        setDate({ from: subMonths(now, 1), to: now });
+    }, []);
 
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
