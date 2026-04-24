@@ -106,7 +106,7 @@ export function InvoicePaymentDialog({
 }: InvoicePaymentDialogProps) {
   const t = useTranslations('InvoicesPage');
   const locale = useLocale();
-  const { user, checkActiveSession } = useAuth();
+  const { user, checkActiveSession, activeCashSession } = useAuth();
   const { validateActiveSession } = useCashSessionValidation();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
@@ -116,7 +116,7 @@ export function InvoicePaymentDialog({
   const [userCredits, setUserCredits] = React.useState<Credit[]>([]);
   const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
   const [companyCurrency, setCompanyCurrency] = React.useState<string>('USD');
-  const [sessionExchangeRate, setSessionExchangeRate] = React.useState<number>(1);
+  const [paidAmount, setPaidAmount] = React.useState<number>(0);
   const [paymentSubmissionError, setPaymentSubmissionError] = React.useState<string | null>(null);
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -125,6 +125,11 @@ export function InvoicePaymentDialog({
     resolver: zodResolver(paymentFormSchema(t)),
     defaultValues: { status: 'completed', notes: '' },
   });
+
+  const sessionExchangeRate = React.useMemo<number>(() => {
+    const rate = activeCashSession?.data?.opening_details?.date_rate;
+    return rate && Number(rate) > 0 ? Number(rate) : 1;
+  }, [activeCashSession]);
 
   const watchedAmount = useWatch({ control: form.control, name: 'amount' });
   const watchedPaymentCurrency = useWatch({ control: form.control, name: 'payment_currency' });
@@ -177,7 +182,6 @@ export function InvoicePaymentDialog({
   React.useEffect(() => {
     if (!invoice || !isOpen) return;
     const invoiceTotal = invoice.total || 0;
-    const paidAmount = invoice.paid_amount || 0;
     const invoiceCurrency = invoice.currency || 'USD';
     const remainingBalance = Math.max(0, invoiceTotal - paidAmount - creditsTotalInInvoiceCurrency);
     const paymentCurrency = form.getValues('payment_currency') || invoiceCurrency;
@@ -189,13 +193,12 @@ export function InvoicePaymentDialog({
         amountToSet = remainingBalance / sessionExchangeRate;
     }
     form.setValue('amount', Math.round(amountToSet * 100) / 100);
-  }, [creditsTotalInInvoiceCurrency, invoice, isOpen, form, sessionExchangeRate, appliedCredits.size]);
+  }, [creditsTotalInInvoiceCurrency, invoice, isOpen, form, sessionExchangeRate, appliedCredits.size, paidAmount]);
 
   // Remaining amount (live, as user types)
   const remainingAmountToPay = React.useMemo(() => {
     if (!invoice) return 0;
     const invoiceTotal = invoice.total || 0;
-    const paidAmount = invoice.paid_amount || 0;
     let paymentAmountInInvoiceCurrency = 0;
     if (watchedAmount) {
       paymentAmountInInvoiceCurrency =
@@ -205,7 +208,7 @@ export function InvoicePaymentDialog({
       invoiceTotal - paidAmount - paymentAmountInInvoiceCurrency - creditsTotalInInvoiceCurrency;
     const rounded = Math.round(balance * 100) / 100;
     return rounded === 0 ? 0 : rounded;
-  }, [invoice, watchedAmount, showExchangeRate, equivalentAmount, creditsTotalInInvoiceCurrency]);
+  }, [invoice, watchedAmount, showExchangeRate, equivalentAmount, creditsTotalInInvoiceCurrency, paidAmount]);
 
   // ── Data loading ──────────────────────────────────────────────────────────
   const fetchPaymentMethods = React.useCallback(async () => {
@@ -230,6 +233,22 @@ export function InvoicePaymentDialog({
     }
   }, []);
 
+  const fetchInvoicePaidAmount = React.useCallback(async (invoiceId: string) => {
+    try {
+      const route = isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS;
+      const data = await api.get(route, { invoice_id: invoiceId, is_sales: isSales ? 'true' : 'false' });
+      const paymentsData = Array.isArray(data) ? data : (data.payments || data.data || []);
+      const total = paymentsData.reduce((sum: number, p: any) => {
+        if (p?.status === 'failed') return sum;
+        const applied = parseFloat(p?.amount_applied ?? p?.amount ?? 0);
+        return sum + (Number.isFinite(applied) ? applied : 0);
+      }, 0);
+      setPaidAmount(Math.round(total * 100) / 100);
+    } catch {
+      setPaidAmount(0);
+    }
+  }, [isSales]);
+
   // Initialize form when dialog opens
   React.useEffect(() => {
     if (!isOpen || !invoice) return;
@@ -246,15 +265,17 @@ export function InvoicePaymentDialog({
     });
     setAppliedCredits(new Map());
     setUserCredits([]);
+    setPaidAmount(invoice.paid_amount || 0);
     setPaymentSubmissionError(null);
 
     fetchPaymentMethods();
     fetchUserCredits(invoice.user_id);
+    fetchInvoicePaidAmount(invoice.id);
 
     api.get(API_ROUTES.CLINIC).then((clinicData) => {
       setCompanyCurrency(clinicData.currency || 'USD');
     }).catch(() => {});
-  }, [isOpen, invoice, fetchPaymentMethods, fetchUserCredits, form]);
+  }, [isOpen, invoice, fetchPaymentMethods, fetchUserCredits, fetchInvoicePaidAmount, form]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async (values: PaymentFormValues) => {
@@ -269,9 +290,6 @@ export function InvoicePaymentDialog({
         return;
       }
       sessionId = sessionValidation.sessionId || null;
-      if (sessionValidation.exchangeRate) {
-        setSessionExchangeRate(sessionValidation.exchangeRate);
-      }
     }
 
     const totalCredits = Array.from(appliedCredits.values()).reduce((a, b) => a + b, 0);
@@ -281,7 +299,6 @@ export function InvoicePaymentDialog({
     }
 
     const invoiceTotal = invoice.total || 0;
-    const paidAmount = invoice.paid_amount || 0;
     const invoiceCurrency = invoice.currency || 'USD';
 
     let paymentAmountInInvoiceCurrency = 0;
