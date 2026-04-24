@@ -32,3 +32,6 @@ export const GROUPED_DAY_GAP = 1.6;
 
 /** Height of one hour time slot in px */
 export const HOUR_SLOT_HEIGHT = 60;
+
+/** Hour to auto-scroll to on initial day/week view render (working day start) */
+export const DEFAULT_SCROLL_HOUR = 8;

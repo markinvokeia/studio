@@ -1,10 +1,12 @@
 'use client';
 
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
 
+import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
@@ -50,6 +52,13 @@ export function CalendarDayView({
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+    }
+  }, []);
+
   const handleSlotClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     if (onSlotClick) {
@@ -63,7 +72,7 @@ export function CalendarDayView({
   };
 
   return (
-    <div className="day-view-container">
+    <div className="day-view-container" ref={scrollContainerRef}>
       <div className="day-view-scroll-content">
         <div className="day-view-header-wrapper">
           <div

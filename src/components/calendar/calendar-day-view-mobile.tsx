@@ -13,6 +13,7 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 
+import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
@@ -91,6 +92,13 @@ export function CalendarDayViewMobile({
   }, [isGrouped, days, groupingColumns, events, groupBy, dateLocale]);
 
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
+
+  const timeGridScrollRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    if (timeGridScrollRef.current) {
+      timeGridScrollRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!api) return;
@@ -234,7 +242,7 @@ export function CalendarDayViewMobile({
       )}
 
       {/* Scrollable time grid with carousel */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={timeGridScrollRef}>
         <div className="flex min-h-[1440px]">
           {/* Sticky time column */}
           <div className="sticky left-0 z-10 bg-card w-12 shrink-0">
