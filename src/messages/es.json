@@ -2794,6 +2794,7 @@
         "emailInvalid": "Correo electrónico inválido.",
         "phoneInvalid": "Número de teléfono inválido.",
         "identityInvalid": "Documento de identidad inválido.",
+        "identityRequired": "La cedula de identidad es requerida.",
         "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
       }

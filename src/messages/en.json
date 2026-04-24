@@ -2825,6 +2825,7 @@
         "emailInvalid": "Invalid email.",
         "phoneInvalid": "Invalid phone number.",
         "identityInvalid": "Invalid identity document.",
+        "identityRequired": "Identity is required.",
         "identityMaxLength": "Identity document must be at most 10 characters long.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
