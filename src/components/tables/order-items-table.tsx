@@ -511,9 +511,18 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       </div>
     );
   }
+  const isSelectedItemCompleted =
+    selectedItem?.status === 'completed' || Boolean(selectedItem?.completed_date);
+  const canScheduleSelectedItem = selectedItem
+    ? canSchedule && !selectedItem.scheduled_date && !isSelectedItemCompleted
+    : false;
+  const canCompleteSelectedItem = selectedItem
+    ? canComplete && !selectedItem.completed_date
+    : false;
+
   const toolbarActions = selectedItem ? (
     <div className="ml-auto flex items-center gap-1.5">
-      {canSchedule && !selectedItem.scheduled_date && (
+      {canScheduleSelectedItem && (
         <Button
           variant="outline"
           size="sm"
@@ -524,7 +533,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           {t('actions.schedule')}
         </Button>
       )}
-      {canComplete && !selectedItem.completed_date && (
+      {canCompleteSelectedItem && (
         <Button
           variant="default"
           size="sm"
