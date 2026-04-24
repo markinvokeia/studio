@@ -5207,6 +5207,9 @@
     "activeTool": "Herramienta activa",
     "fullscreen": "Pantalla completa",
     "exitFullscreen": "Salir de pantalla completa",
+    "layoutMouth": "Vista boca abierta",
+    "layoutFlat": "Vista plana",
+    "backToMouth": "Volver a la boca",
     "conditionCategory": {
       "surface": "Superficies",
       "whole": "Pieza",

@@ -5239,6 +5239,9 @@
     "activeTool": "Active tool",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
+    "layoutMouth": "Open mouth view",
+    "layoutFlat": "Flat view",
+    "backToMouth": "Back to mouth view",
     "conditionCategory": {
       "surface": "Surfaces",
       "whole": "Whole",

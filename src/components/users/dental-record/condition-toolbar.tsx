@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import type { OdontogramCondition } from '@/lib/types';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 export type ConditionCategory = 'surface' | 'whole' | 'overlay';
 
@@ -52,22 +53,117 @@ interface ConditionToolbarProps {
   active: OdontogramCondition | null;
   onSelect: (c: OdontogramCondition | null) => void;
   readOnly?: boolean;
+  /** When true, categories stack vertically as an accordion (expand downward) */
+  vertical?: boolean;
 }
 
-export function ConditionToolbar({ active, onSelect, readOnly }: ConditionToolbarProps) {
+function ConditionButtons({
+  conditions,
+  active,
+  onSelect,
+  t,
+}: {
+  conditions: ConditionDef[];
+  active: OdontogramCondition | null;
+  onSelect: (c: OdontogramCondition | null) => void;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5 pt-1.5">
+      {conditions.map((cond) => {
+        const isActive = active === cond.id;
+        return (
+          <button
+            key={cond.id}
+            title={t(`conditions.${cond.id}`)}
+            onClick={() => onSelect(cond.id)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium border transition-all',
+              isActive ? 'text-white shadow-sm scale-105' : 'bg-background text-foreground hover:scale-105',
+            )}
+            style={
+              isActive
+                ? { backgroundColor: cond.color, borderColor: cond.border }
+                : { borderColor: cond.color, color: cond.color }
+            }
+          >
+            <span
+              className="h-4 w-4 rounded-sm flex items-center justify-center text-[9px] font-bold text-white shrink-0"
+              style={{ backgroundColor: cond.color }}
+            >
+              {cond.icon}
+            </span>
+            <span className="hidden sm:inline truncate max-w-[72px]">
+              {t(`conditions.${cond.id}`)}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ConditionToolbar({ active, onSelect, readOnly, vertical }: ConditionToolbarProps) {
   const t = useTranslations('DentalRecord');
   const [tab, setTab] = useState<ConditionCategory>('surface');
 
   function handleTabChange(newTab: ConditionCategory) {
     setTab(newTab);
-    onSelect(null); // clear active tool when switching categories
+    onSelect(null);
   }
 
   const visible = CONDITIONS.filter((c) => c.category === tab);
 
+  if (vertical) {
+    return (
+      <div className={cn('flex flex-col gap-1', readOnly && 'pointer-events-none opacity-60')}>
+        {CATEGORIES.map((cat) => {
+          const isOpen = tab === cat.id;
+          const catConditions = CONDITIONS.filter((c) => c.category === cat.id);
+          return (
+            <div key={cat.id} className="flex flex-col">
+              <button
+                onClick={() => handleTabChange(cat.id)}
+                className={cn(
+                  'flex items-center justify-between w-full py-1.5 px-2.5 rounded-md text-xs font-semibold transition-colors',
+                  isOpen
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/60 text-foreground hover:bg-muted',
+                )}
+              >
+                {t(cat.labelKey)}
+                <ChevronDown
+                  className={cn('h-3.5 w-3.5 transition-transform duration-150', isOpen && 'rotate-180')}
+                />
+              </button>
+              {isOpen && (
+                <div className="border border-t-0 rounded-b-md px-2 pb-2">
+                  <ConditionButtons conditions={catConditions} active={active} onSelect={onSelect} t={t} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {active && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {t('activeTool')}:{' '}
+            <span className="font-semibold" style={{ color: CONDITION_MAP[active]?.color }}>
+              {t(`conditions.${active}`)}
+            </span>
+            {' — '}
+            {CONDITION_MAP[active]?.category === 'surface' && t('hint.surface')}
+            {CONDITION_MAP[active]?.category === 'whole' && t('hint.whole')}
+            {CONDITION_MAP[active]?.category === 'overlay' && t('hint.overlay')}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={cn('flex flex-col gap-2', readOnly && 'pointer-events-none opacity-60')}>
-      {/* Category tabs */}
+      {/* Category tabs — horizontal */}
       <div className="flex rounded-md border overflow-hidden text-xs">
         {CATEGORIES.map((cat) => (
           <button
@@ -85,40 +181,8 @@ export function ConditionToolbar({ active, onSelect, readOnly }: ConditionToolba
         ))}
       </div>
 
-      {/* Condition buttons */}
-      <div className="flex flex-wrap gap-1.5">
-        {visible.map((cond) => {
-          const isActive = active === cond.id;
-          return (
-            <button
-              key={cond.id}
-              title={t(`conditions.${cond.id}`)}
-              onClick={() => onSelect(cond.id)}
-              className={cn(
-                'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium border transition-all',
-                isActive ? 'text-white shadow-sm scale-105' : 'bg-background text-foreground hover:scale-105',
-              )}
-              style={
-                isActive
-                  ? { backgroundColor: cond.color, borderColor: cond.border }
-                  : { borderColor: cond.color, color: cond.color }
-              }
-            >
-              <span
-                className="h-4 w-4 rounded-sm flex items-center justify-center text-[9px] font-bold text-white shrink-0"
-                style={{ backgroundColor: cond.color }}
-              >
-                {cond.icon}
-              </span>
-              <span className="hidden sm:inline truncate max-w-[72px]">
-                {t(`conditions.${cond.id}`)}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <ConditionButtons conditions={visible} active={active} onSelect={onSelect} t={t} />
 
-      {/* Active condition hint */}
       {active && (
         <p className="text-[10px] text-muted-foreground">
           {t('activeTool')}:{' '}
