@@ -17,6 +17,7 @@ import { createOdontogram, fetchDoctors, fetchOdontograms } from '@/services/den
 import type { DoctorOption } from '@/services/dental-record';
 import { CONDITION_MAP } from './condition-toolbar';
 import { ConditionToolbar } from './condition-toolbar';
+import { OdontogramArchView } from './odontogram-arch-view';
 import { ToothDetailPanel } from './tooth-detail-panel';
 import { OdontogramCanvas } from './odontogram-canvas';
 import { PeriodontogramView } from './periodontogram-view';
@@ -26,6 +27,7 @@ import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import {
   AlignJustify,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -40,6 +42,7 @@ import {
   Smile,
   Stethoscope,
   User,
+  X,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -160,6 +163,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
   const [zoom, setZoom] = useState(1);
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
+  const [archExpanded, setArchExpanded] = useState(true);
 
   // Dynamic tooth size — measured from the canvas wrapper element
   const canvasWrapperRef = useRef<HTMLDivElement>(null);
@@ -341,9 +345,10 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
     setSelectedToothId(null);
   }
 
-  function handleSelectTooth(id: string) {
+  const handleSelectTooth = useCallback((id: string) => {
+    console.log('[DentalRecord] handleSelectTooth id:', id);
     setSelectedToothId((prev) => (prev === id ? null : id));
-  }
+  }, []);
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -359,45 +364,6 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
 
   // Layout selection: mobile always uses 'mouth'; desktop uses user toggle
   const odontogramLayout = isMobile ? 'mouth' : desktopLayout;
-
-  // Condition entries for the current snapshot (used in mobile arch side-panel)
-  const displayStateEntries = currentSnapshot
-    ? buildStateEntries(currentSnapshot.state, getCondLabel)
-    : [];
-
-  // ── Tooth detail + condition toolbar (editing area) ────────────────────────
-  const editingArea = (isEditing || selectedToothId) ? (
-    <div className={cn(
-      'flex gap-3 rounded-xl border bg-muted/20 p-3',
-      isMobile ? 'flex-col' : 'flex-row items-start',
-    )}>
-      <div className="flex flex-col items-center shrink-0">
-        {selectedToothId ? (
-          <ToothDetailPanel
-            toothId={selectedToothId}
-            state={toothState}
-            activeTool={isEditing ? activeTool : null}
-            readOnly={!isEditing}
-            onApply={handleApply}
-            onClearTooth={handleClearTooth}
-            onClose={() => setSelectedToothId(null)}
-          />
-        ) : (
-          isEditing && (
-            <div className="flex items-center justify-center rounded-xl border border-dashed h-[170px] w-[170px] text-xs text-muted-foreground text-center p-4">
-              {t('selectToothHint')}
-            </div>
-          )
-        )}
-      </div>
-
-      {isEditing && (
-        <div className="flex-1 min-w-0">
-          <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
-        </div>
-      )}
-    </div>
-  ) : null;
 
   // ── Session detail panel (read mode) ──────────────────────────────────────
   const sessionReadPanel = !isEditing && currentSnapshot ? (() => {
@@ -758,205 +724,176 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
       ) : isMobile ? (
         /* ── Mobile odontogram ── */
         <>
-          {selectedToothId ? (
-            /* Tooth selected → full-screen detail with back button */
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setSelectedToothId(null)}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors self-start"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                {t('backToMouth')}
-              </button>
-              <ToothDetailPanel
-                toothId={selectedToothId}
-                state={toothState}
-                activeTool={isEditing ? activeTool : null}
-                readOnly={!isEditing}
-                onApply={handleApply}
-                onClearTooth={handleClearTooth}
-                onClose={() => setSelectedToothId(null)}
-              />
-              {isEditing && (
-                <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
-              )}
+          {/* Fixed tooth overlay — appears on top of the canvas when a tooth is selected */}
+          {selectedToothId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4">
+              <div className="relative w-full max-w-sm rounded-2xl border bg-background shadow-2xl p-4 flex flex-col gap-3 max-h-[90vh] overflow-y-auto">
+                <button
+                  onClick={() => setSelectedToothId(null)}
+                  className="absolute top-3 right-3 h-7 w-7 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <ToothDetailPanel
+                  toothId={selectedToothId}
+                  state={toothState}
+                  activeTool={isEditing ? activeTool : null}
+                  readOnly={!isEditing}
+                  onApply={handleApply}
+                  onClearTooth={handleClearTooth}
+                  onClose={() => setSelectedToothId(null)}
+                />
+                {isEditing && (
+                  <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
+                )}
+              </div>
             </div>
-          ) : (
-            /* No tooth selected → arch view + conditions side-panel */
-            <div className="flex flex-col gap-2">
-              {/* Compact session header (read mode) */}
-              {!isEditing && currentSnapshot && (
-                <div className="flex items-center justify-between gap-2 px-1">
-                  <span className="text-xs font-medium text-foreground truncate">
-                    {currentSnapshot.description || t('session.untitled')}
-                  </span>
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {formatDisplayDate(currentSnapshot.date)}
-                  </span>
-                </div>
-              )}
+          )}
 
-              {/* Arch canvas + conditions list */}
-              <div className={cn(
-                'relative rounded-xl border bg-muted/20 p-2',
-                !isEditing && displayStateEntries.length > 0 && 'flex flex-row gap-2',
-              )} style={{ minHeight: '55vh' }}>
-                <div className={cn(
-                  !isEditing && displayStateEntries.length > 0 ? 'flex-1 min-w-0' : 'w-full',
-                  'h-full',
-                )} style={{ minHeight: '50vh' }}>
+          {/* Canvas/arch — always visible */}
+          <div className="flex flex-col gap-2">
+            {/* Compact session header (read mode) */}
+            {!isEditing && currentSnapshot && (
+              <div className="flex items-center justify-between gap-2 px-1">
+                <span className="text-xs font-medium text-foreground truncate">
+                  {currentSnapshot.description || t('session.untitled')}
+                </span>
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {formatDisplayDate(currentSnapshot.date)}
+                </span>
+              </div>
+            )}
+
+            {/* Canvas */}
+            <div className="relative rounded-xl border bg-muted/20 p-2" style={{ minHeight: '55vh' }}>
+              {odontogramLayout === 'mouth' ? (
+                <OdontogramArchView
+                  state={displayState}
+                  selectedToothId={selectedToothId}
+                  onSelectTooth={handleSelectTooth}
+                  className="h-full"
+                />
+              ) : (
+                <div style={{ minHeight: '48vh' }}>
                   <OdontogramCanvas
                     state={displayState}
                     selectedToothId={selectedToothId}
                     onSelectTooth={handleSelectTooth}
                     readOnly={false}
                     half="full"
-                    layout="mouth"
-                    zoom={zoom}
+                    layout="flat"
+                    toothSize={Math.min(120, Math.round(computedToothSize * zoom))}
                   />
                 </div>
-
-                {/* Conditions list to the right (read mode) */}
-                {!isEditing && displayStateEntries.length > 0 && (
-                  <div
-                    className="w-28 shrink-0 flex flex-col gap-0.5 overflow-y-auto border-l pl-2"
-                    style={{ maxHeight: '55vh' }}
-                  >
-                    {displayStateEntries.map((entry, i) => (
-                      <button
-                        key={i}
-                        onClick={() => handleSelectTooth(entry.toothId)}
-                        className="flex items-center gap-1 text-left rounded px-0.5 py-0.5 hover:bg-muted/50"
-                      >
-                        <span
-                          className="text-[9px] font-bold text-white rounded px-1 py-0.5 leading-tight shrink-0"
-                          style={{ backgroundColor: entry.color }}
-                        >
-                          D{entry.toothId}
-                        </span>
-                        <span className="text-xs truncate text-foreground">{entry.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Zoom controls */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border px-1.5 py-1 z-10 shadow-sm">
-                  <button
-                    onClick={() => setZoom((z) => parseFloat(Math.max(0.4, z - 0.1).toFixed(1)))}
-                    className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                    title="Zoom out"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <span className="text-[10px] font-medium tabular-nums w-8 text-center select-none">
-                    {Math.round(zoom * 100)}%
-                  </span>
-                  <button
-                    onClick={() => setZoom((z) => parseFloat(Math.min(2.5, z + 0.1).toFixed(1)))}
-                    className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                    title="Zoom in"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                </div>
+              )}
+              {/* Zoom controls */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border px-1.5 py-1 z-10 shadow-sm">
+                <button
+                  onClick={() => setZoom((z) => parseFloat(Math.max(0.4, z - 0.1).toFixed(1)))}
+                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                  title="Zoom out"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span className="text-[10px] font-medium tabular-nums w-8 text-center select-none">
+                  {Math.round(zoom * 100)}%
+                </span>
+                <button
+                  onClick={() => setZoom((z) => parseFloat(Math.min(2.5, z + 0.1).toFixed(1)))}
+                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
+                  title="Zoom in"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
               </div>
-
-              {/* Condition toolbar (edit mode) */}
-              {isEditing && (
-                <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
-              )}
-
-              {/* Notes snippet (read mode) */}
-              {!isEditing && currentSnapshot?.notes && (
-                <p className="text-xs text-muted-foreground px-1 line-clamp-2">
-                  {currentSnapshot.notes}
-                </p>
-              )}
             </div>
-          )}
+
+            {isEditing && (
+              <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
+            )}
+            {!isEditing && currentSnapshot?.notes && (
+              <p className="text-xs text-muted-foreground px-1 line-clamp-2">
+                {currentSnapshot.notes}
+              </p>
+            )}
+          </div>
         </>
       ) : odontogramLayout === 'mouth' ? (
-        /* ── Desktop mouth view — 3-column layout ── */
-        <div className="flex gap-3 items-stretch flex-1 min-h-0">
-          {/* Column 1: Arch canvas — fills remaining height */}
-          <div
-            className="flex-1 min-w-0 relative rounded-xl border bg-muted/20 p-2"
-            style={{ minHeight: 420 }}
+        /* ── Desktop mouth view — react-odontogram, collapsible 3-column layout ── */
+        <div className="flex flex-col gap-0">
+          {/* Collapse toggle strip */}
+          <button
+            onClick={() => setArchExpanded((v) => !v)}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-t-xl border border-b-0 bg-muted/40 hover:bg-muted/60 transition-colors text-xs font-medium text-muted-foreground"
           >
-            <div style={{ height: '100%' }}>
-              <OdontogramCanvas
-                state={displayState}
-                selectedToothId={selectedToothId}
-                onSelectTooth={handleSelectTooth}
-                readOnly={!isEditing}
-                half="full"
-                layout="mouth"
-                zoom={zoom}
-              />
-            </div>
-            {/* Zoom controls */}
-            <div className="absolute bottom-3 right-3 flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border px-1.5 py-1 z-10 shadow-sm">
-              <button
-                onClick={() => setZoom((z) => parseFloat(Math.max(0.4, z - 0.1).toFixed(1)))}
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                title="Zoom out"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-[10px] font-medium tabular-nums w-8 text-center select-none">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={() => setZoom((z) => parseFloat(Math.min(2.5, z + 0.1).toFixed(1)))}
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                title="Zoom in"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-          </div>
+            <span>{t('odontogramSection')}</span>
+            <ChevronDown
+              className={cn('h-4 w-4 transition-transform duration-200', archExpanded && 'rotate-180')}
+            />
+          </button>
 
-          {isEditing ? (
-            <>
-              {/* Column 2: Tooth detail */}
-              <div className="shrink-0 w-52 self-start">
-                {selectedToothId ? (
-                  <ToothDetailPanel
-                    toothId={selectedToothId}
-                    state={toothState}
-                    activeTool={activeTool}
-                    readOnly={false}
-                    onApply={handleApply}
-                    onClearTooth={handleClearTooth}
-                    onClose={() => setSelectedToothId(null)}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center rounded-xl border border-dashed h-[170px] text-xs text-muted-foreground text-center p-4">
-                    {t('selectToothHint')}
+          {archExpanded && (
+            <div className="flex gap-3 items-start rounded-b-xl border bg-background p-3">
+              {/* Column 1: Arch — width-capped so circle stays fully visible */}
+              <div
+                className="shrink-0 relative rounded-xl border bg-muted/20 p-3 overflow-y-auto"
+                style={{ width: 420, maxHeight: 500 }}
+              >
+                <OdontogramArchView
+                  state={displayState}
+                  selectedToothId={selectedToothId}
+                  onSelectTooth={handleSelectTooth}
+                  className="h-full"
+                />
+              </div>
+
+              {isEditing ? (
+                <>
+                  {/* Column 2: Tooth detail panel */}
+                  <div className="flex-1 min-w-0 self-start">
+                    {selectedToothId ? (
+                      <ToothDetailPanel
+                        toothId={selectedToothId}
+                        state={toothState}
+                        activeTool={activeTool}
+                        readOnly={false}
+                        onApply={handleApply}
+                        onClearTooth={handleClearTooth}
+                        onClose={() => setSelectedToothId(null)}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center rounded-xl border border-dashed h-[170px] text-xs text-muted-foreground text-center p-4">
+                        {t('selectToothHint')}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {/* Column 3: Condition toolbar */}
-              <div className="shrink-0 self-start">
-                <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} vertical />
-              </div>
-            </>
-          ) : (
-            /* Read mode: session info + selected tooth */
-            <div className="shrink-0 w-64 flex flex-col gap-3 self-start">
-              {sessionReadPanel}
-              {selectedToothId && (
-                <div className="flex justify-center">
-                  <ToothDetailPanel
-                    toothId={selectedToothId}
-                    state={toothState}
-                    activeTool={null}
-                    readOnly
-                    onApply={() => {}}
-                    onClearTooth={() => {}}
-                    onClose={() => setSelectedToothId(null)}
-                  />
+                  {/* Column 3: Compact condition toolbar (icon-only, 3 per row) */}
+                  <div className="shrink-0 self-start" style={{ width: 224 }}>
+                    <ConditionToolbar
+                      active={activeTool}
+                      onSelect={(c) => setActiveTool(c)}
+                      vertical
+                      compact
+                    />
+                  </div>
+                </>
+              ) : (
+                /* Read mode: session info + selected tooth */
+                <div className="flex-1 min-w-0 flex flex-col gap-3 self-start">
+                  {sessionReadPanel}
+                  {selectedToothId && (
+                    <div className="flex justify-center">
+                      <ToothDetailPanel
+                        toothId={selectedToothId}
+                        state={toothState}
+                        activeTool={null}
+                        readOnly
+                        onApply={() => {}}
+                        onClearTooth={() => {}}
+                        onClose={() => setSelectedToothId(null)}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -964,11 +901,11 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
         </div>
       ) : (
         /* ── Desktop flat view ── */
-        <div className="flex flex-col gap-3 flex-1 min-h-0">
-          {sessionReadPanel}
+        <div className="flex flex-col gap-3">
+          {!isEditing && sessionReadPanel}
 
-          {/* Canvas wrapper — ref used to measure available width for dynamic tooth sizing */}
-          <div ref={canvasWrapperRef} className="relative rounded-xl border bg-muted/20 p-2 sm:p-3 min-h-[420px] flex items-center justify-center">
+          {/* Full-width canvas */}
+          <div ref={canvasWrapperRef} className="relative rounded-xl border bg-muted/20 p-2 sm:p-3">
             <OdontogramCanvas
               state={displayState}
               selectedToothId={selectedToothId}
@@ -1001,8 +938,38 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             </div>
           </div>
 
-          {editingArea}
+          {/* Edit mode: 2 columns — tooth detail + compact toolbar */}
+          {isEditing && (
+            <div className="flex gap-3 items-start">
+              <div className="flex-1 min-w-0">
+                {selectedToothId ? (
+                  <ToothDetailPanel
+                    toothId={selectedToothId}
+                    state={toothState}
+                    activeTool={activeTool}
+                    readOnly={false}
+                    onApply={handleApply}
+                    onClearTooth={handleClearTooth}
+                    onClose={() => setSelectedToothId(null)}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center rounded-xl border border-dashed h-[170px] text-xs text-muted-foreground text-center p-4">
+                    {t('selectToothHint')}
+                  </div>
+                )}
+              </div>
+              <div className="shrink-0" style={{ width: 200 }}>
+                <ConditionToolbar
+                  active={activeTool}
+                  onSelect={(c) => setActiveTool(c)}
+                  vertical
+                  compact
+                />
+              </div>
+            </div>
+          )}
 
+          {/* Read mode: selected tooth detail */}
           {!isEditing && selectedToothId && (
             <div className="flex justify-center">
               <ToothDetailPanel

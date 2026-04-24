@@ -5242,6 +5242,8 @@
     "layoutMouth": "Open mouth view",
     "layoutFlat": "Flat view",
     "backToMouth": "Back to mouth view",
+    "conditionsPanel": "Conditions",
+    "odontogramSection": "Odontogram",
     "conditionCategory": {
       "surface": "Surfaces",
       "whole": "Whole",

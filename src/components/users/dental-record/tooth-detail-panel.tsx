@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 import type { OdontogramCondition, OdontogramSurface, OdontogramToothState } from '@/lib/types';
 import { CONDITION_MAP } from './condition-toolbar';
 import { useTranslations } from 'next-intl';
-import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -85,14 +84,9 @@ export function ToothDetailPanel({
   return (
     <div className="flex flex-col items-center gap-3 p-3 rounded-xl border bg-background shadow-sm min-w-[200px]">
       {/* Header */}
-      <div className="flex items-center justify-between w-full">
-        <div>
-          <span className="text-base font-bold text-foreground">{toothId}</span>
-          <span className="text-xs text-muted-foreground ml-1.5">{TOOTH_NAMES[toothId] ?? ''}</span>
-        </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-          <X className="h-4 w-4" />
-        </button>
+      <div className="flex items-center w-full gap-1.5">
+        <span className="text-base font-bold text-foreground">{toothId}</span>
+        <span className="text-xs text-muted-foreground">{TOOTH_NAMES[toothId] ?? ''}</span>
       </div>
 
       {/* Whole condition badge */}

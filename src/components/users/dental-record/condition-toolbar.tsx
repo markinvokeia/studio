@@ -55,6 +55,8 @@ interface ConditionToolbarProps {
   readOnly?: boolean;
   /** When true, categories stack vertically as an accordion (expand downward) */
   vertical?: boolean;
+  /** When true, buttons render as icon-only 3-per-row grid (for narrow columns) */
+  compact?: boolean;
 }
 
 function ConditionButtons({
@@ -62,12 +64,48 @@ function ConditionButtons({
   active,
   onSelect,
   t,
+  compact = false,
 }: {
   conditions: ConditionDef[];
   active: OdontogramCondition | null;
   onSelect: (c: OdontogramCondition | null) => void;
   t: ReturnType<typeof useTranslations>;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <div className="grid grid-cols-3 gap-1 pt-1">
+        {conditions.map((cond) => {
+          const isActive = active === cond.id;
+          return (
+            <button
+              key={cond.id}
+              title={t(`conditions.${cond.id}`)}
+              onClick={() => onSelect(cond.id)}
+              className={cn(
+                'flex items-center justify-center rounded-md border transition-all',
+                'aspect-square w-full p-0',
+                isActive ? 'shadow-sm ring-1 ring-inset' : 'bg-background hover:bg-muted/60',
+              )}
+              style={
+                isActive
+                  ? { backgroundColor: cond.color, borderColor: cond.border }
+                  : { borderColor: `${cond.color}80` }
+              }
+            >
+              <span
+                className="h-5 w-5 rounded-sm flex items-center justify-center text-[9px] font-bold text-white shrink-0"
+                style={{ backgroundColor: cond.color }}
+              >
+                {cond.icon}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-1.5 pt-1.5">
       {conditions.map((cond) => {
@@ -103,7 +141,7 @@ function ConditionButtons({
   );
 }
 
-export function ConditionToolbar({ active, onSelect, readOnly, vertical }: ConditionToolbarProps) {
+export function ConditionToolbar({ active, onSelect, readOnly, vertical, compact }: ConditionToolbarProps) {
   const t = useTranslations('DentalRecord');
   const [tab, setTab] = useState<ConditionCategory>('surface');
 
@@ -138,7 +176,7 @@ export function ConditionToolbar({ active, onSelect, readOnly, vertical }: Condi
               </button>
               {isOpen && (
                 <div className="border border-t-0 rounded-b-md px-2 pb-2">
-                  <ConditionButtons conditions={catConditions} active={active} onSelect={onSelect} t={t} />
+                  <ConditionButtons conditions={catConditions} active={active} onSelect={onSelect} t={t} compact={compact} />
                 </div>
               )}
             </div>
@@ -181,7 +219,7 @@ export function ConditionToolbar({ active, onSelect, readOnly, vertical }: Condi
         ))}
       </div>
 
-      <ConditionButtons conditions={visible} active={active} onSelect={onSelect} t={t} />
+      <ConditionButtons conditions={visible} active={active} onSelect={onSelect} t={t} compact={compact} />
 
       {active && (
         <p className="text-[10px] text-muted-foreground">

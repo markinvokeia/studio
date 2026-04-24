@@ -5210,6 +5210,8 @@
     "layoutMouth": "Vista boca abierta",
     "layoutFlat": "Vista plana",
     "backToMouth": "Volver a la boca",
+    "conditionsPanel": "Condiciones",
+    "odontogramSection": "Odontograma",
     "conditionCategory": {
       "surface": "Superficies",
       "whole": "Pieza",
