@@ -23,10 +23,16 @@ export function FormattedNumberInput({
   disabled,
   id,
 }: FormattedNumberInputProps) {
-  const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+  const isFocused = React.useRef(false);
+  const formatValue = (v: number | undefined) =>
+    v !== undefined && !isNaN(v) ? v.toFixed(2) : '';
+
+  const [inputValue, setInputValue] = React.useState(() => formatValue(value));
 
   React.useEffect(() => {
-    setInputValue(value ? String(value) : '');
+    if (!isFocused.current) {
+      setInputValue(formatValue(value));
+    }
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +52,7 @@ export function FormattedNumberInput({
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    isFocused.current = false;
     const numValue = parseFloat(e.target.value);
     if (!isNaN(numValue) && (allowNegative ? true : numValue >= 0)) {
       onChange(numValue);
@@ -64,6 +71,7 @@ export function FormattedNumberInput({
       disabled={disabled}
       value={inputValue}
       onChange={handleChange}
+      onFocus={() => { isFocused.current = true; }}
       onBlur={handleBlur}
     />
   );
