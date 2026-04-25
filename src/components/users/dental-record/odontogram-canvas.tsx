@@ -85,10 +85,13 @@ function SmallTooth({ toothId, state, selected, readOnly, arch, size, showSilhou
     if (!readOnly && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); }
   };
 
-  const toothFill = wholeDef ? `${wholeDef.color}30` : '#f2e8d8';
-  const borderColor = selected ? '#6366f1' : '#baa898';
-  const borderWidth = selected ? 3 : 1.8;
-  const dividerColor = '#a89888';
+  // White base; subtle tint when whole condition present
+  const toothFill = wholeDef ? `${wholeDef.color}12` : '#ffffff';
+  // Overlay: outer border takes first overlay's color
+  const firstOverlayDef = state.overlays?.[0] ? CONDITION_MAP[state.overlays[0]] : null;
+  const borderColor = selected ? '#6366f1' : (firstOverlayDef ? firstOverlayDef.color : '#d1d5db');
+  const borderWidth = selected ? 3 : (firstOverlayDef ? 3 : 1.5);
+  const dividerColor = '#e5e7eb';
 
   return (
     <div
@@ -123,59 +126,85 @@ function SmallTooth({ toothId, state, selected, readOnly, arch, size, showSilhou
             <circle cx="45" cy="45" r="43" />
           </clipPath>
         </defs>
+
+        {/* Base tooth (white) */}
         <circle cx="45" cy="45" r="43" fill={toothFill} stroke={borderColor} strokeWidth={borderWidth} />
+
+        {/* Surface condition fills */}
         <g clipPath={`url(#${clipId})`}>
           {SURFACES.map((s) => {
             const fill = conditionFill(state[s]);
             if (!fill) return null;
-            return <path key={s} d={SURFACE_PATHS[s]} fill={fill} opacity="0.9" />;
+            return <path key={s} d={SURFACE_PATHS[s]} fill={fill} opacity="0.85" />;
           })}
         </g>
+
+        {/* Grid dividers */}
         <g clipPath={`url(#${clipId})`}>
           <line x1="25" y1="0"  x2="25" y2="90" stroke={dividerColor} strokeWidth="1" />
           <line x1="65" y1="0"  x2="65" y2="90" stroke={dividerColor} strokeWidth="1" />
           <line x1="0"  y1="25" x2="90" y2="25" stroke={dividerColor} strokeWidth="1" />
           <line x1="0"  y1="65" x2="90" y2="65" stroke={dividerColor} strokeWidth="1" />
         </g>
-        <g clipPath={`url(#${clipId})`}>
-          {state.whole === 'missing' && (
-            <>
-              <line x1="10" y1="10" x2="80" y2="80" stroke={CONDITION_MAP.missing.color} strokeWidth="3" strokeLinecap="round" />
-              <line x1="80" y1="10" x2="10" y2="80" stroke={CONDITION_MAP.missing.color} strokeWidth="3" strokeLinecap="round" />
-            </>
-          )}
-          {state.whole === 'extracted' && (
-            <rect x="0" y="0" width="90" height="90" fill={CONDITION_MAP.extracted.color} opacity="0.22" />
-          )}
-          {(state.whole === 'crown' || state.whole === 'crown_temp') && (
-            <rect
-              x="4" y="4" width="82" height="82" rx="6"
+
+        {/* Whole condition — inner ring + condition-specific symbol */}
+        {wholeDef && (
+          <g clipPath={`url(#${clipId})`}>
+            <circle cx="45" cy="45" r="37"
               fill="none"
-              stroke={CONDITION_MAP[state.whole].color}
-              strokeWidth="4"
-              strokeDasharray={state.whole === 'crown_temp' ? '8,4' : undefined}
+              stroke={wholeDef.color}
+              strokeWidth="3"
+              strokeDasharray={state.whole === 'crown-tmp' ? '8,4' : undefined}
             />
-          )}
-          {state.whole === 'root_canal' && (
-            <circle cx="45" cy="45" r="16" fill="none" stroke={CONDITION_MAP.root_canal.color} strokeWidth="3" />
-          )}
-          {state.whole === 'bridge' && (
-            <line x1="0" y1="45" x2="90" y2="45" stroke={CONDITION_MAP.bridge.color} strokeWidth="4" strokeDasharray="7,3" />
-          )}
-          {state.whole === 'implant' && (
-            <>
-              <line x1="45" y1="8"  x2="45" y2="82" stroke={CONDITION_MAP.implant.color} strokeWidth="3" strokeLinecap="round" />
-              <line x1="28" y1="26" x2="62" y2="26" stroke={CONDITION_MAP.implant.color} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="30" y1="42" x2="60" y2="42" stroke={CONDITION_MAP.implant.color} strokeWidth="2" strokeLinecap="round" />
-            </>
-          )}
+            {state.whole === 'missing' && (
+              <>
+                <line x1="14" y1="14" x2="76" y2="76" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+                <line x1="76" y1="14" x2="14" y2="76" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+              </>
+            )}
+            {state.whole === 'implant' && (
+              <>
+                <line x1="45" y1="10" x2="45" y2="80" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+                <line x1="30" y1="28" x2="60" y2="28" stroke={wholeDef.color} strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="33" y1="44" x2="57" y2="44" stroke={wholeDef.color} strokeWidth="2"   strokeLinecap="round" />
+                <line x1="36" y1="60" x2="54" y2="60" stroke={wholeDef.color} strokeWidth="1.5" strokeLinecap="round" />
+              </>
+            )}
+            {state.whole === 'endodontics' && (
+              <circle cx="45" cy="45" r="13" fill={wholeDef.color} opacity="0.35" />
+            )}
+            {state.whole === 'edentulism' && (
+              <>
+                <line x1="18" y1="38" x2="72" y2="38" stroke={wholeDef.color} strokeWidth="2.5" />
+                <line x1="18" y1="52" x2="72" y2="52" stroke={wholeDef.color} strokeWidth="2.5" />
+              </>
+            )}
+            {state.whole === 'fixed-prosth' && (
+              <line x1="8" y1="45" x2="82" y2="45" stroke={wholeDef.color} strokeWidth="4" strokeDasharray="7,3" />
+            )}
+          </g>
+        )}
+
+        {/* Overlay symbols (drawn inside clip, on top of everything) */}
+        <g clipPath={`url(#${clipId})`}>
           {state.overlays?.includes('fracture') && (
             <line x1="15" y1="5" x2="75" y2="85" stroke={CONDITION_MAP.fracture.color} strokeWidth="2.5" strokeLinecap="round" />
           )}
-          {state.overlays?.includes('orthodontics') && (
-            <rect x="26" y="36" width="38" height="18" rx="3" fill={CONDITION_MAP.orthodontics.color} opacity="0.85" />
+          {state.overlays?.includes('fixed-ortho') && (
+            <rect x="26" y="36" width="38" height="18" rx="3" fill={CONDITION_MAP['fixed-ortho'].color} opacity="0.85" />
+          )}
+          {state.overlays?.includes('diastema') && (
+            <>
+              <line x1="42" y1="8" x2="42" y2="82" stroke={CONDITION_MAP.diastema.color} strokeWidth="2" strokeDasharray="4,3" />
+              <line x1="48" y1="8" x2="48" y2="82" stroke={CONDITION_MAP.diastema.color} strokeWidth="2" strokeDasharray="4,3" />
+            </>
+          )}
+          {state.overlays?.includes('rotation') && (
+            <path d="M20,45 A25,25 0 1,1 70,45" fill="none" stroke={CONDITION_MAP.rotation.color} strokeWidth="2.5" strokeLinecap="round" markerEnd="url(#arrow)" />
           )}
         </g>
+
+        {/* Selected highlight on top */}
         {selected && (
           <circle cx="45" cy="45" r="43" fill="none" stroke="#6366f1" strokeWidth="3" />
         )}
@@ -275,10 +304,11 @@ function ArchTooth({ toothId, state, selected, x, y, cx, a, size, arch, onClick 
   const clipId = `atc-${toothId}`;
   const fontSize = Math.max(9, Math.round(size * 0.75));
 
-  const toothFill = wholeDef ? `${wholeDef.color}30` : '#f2e8d8';
-  const borderColor = selected ? '#6366f1' : '#baa898';
-  const borderWidth = selected ? 3 : 1.8;
-  const dividerColor = '#a89888';
+  const firstOverlayDef = state.overlays?.[0] ? CONDITION_MAP[state.overlays[0]] : null;
+  const toothFill = wholeDef ? `${wholeDef.color}12` : '#ffffff';
+  const borderColor = selected ? '#6366f1' : (firstOverlayDef ? firstOverlayDef.color : '#d1d5db');
+  const borderWidth = selected ? 3 : (firstOverlayDef ? 3 : 1.5);
+  const dividerColor = '#e5e7eb';
 
   let labelSide: LabelSide;
   if (x < cx - a / 3) {
@@ -362,43 +392,45 @@ function ArchTooth({ toothId, state, selected, x, y, cx, a, size, arch, onClick 
           <line x1="0"  y1="25" x2="90" y2="25" stroke={dividerColor} strokeWidth="1" />
           <line x1="0"  y1="65" x2="90" y2="65" stroke={dividerColor} strokeWidth="1" />
         </g>
+        {/* Whole condition — inner ring + symbol */}
+        {wholeDef && (
+          <g clipPath={`url(#${clipId})`}>
+            <circle cx="45" cy="45" r="37" fill="none" stroke={wholeDef.color} strokeWidth="3"
+              strokeDasharray={state.whole === 'crown-tmp' ? '8,4' : undefined} />
+            {state.whole === 'missing' && (
+              <>
+                <line x1="14" y1="14" x2="76" y2="76" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+                <line x1="76" y1="14" x2="14" y2="76" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+              </>
+            )}
+            {state.whole === 'implant' && (
+              <>
+                <line x1="45" y1="10" x2="45" y2="80" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+                <line x1="30" y1="28" x2="60" y2="28" stroke={wholeDef.color} strokeWidth="2.5" strokeLinecap="round" />
+                <line x1="33" y1="44" x2="57" y2="44" stroke={wholeDef.color} strokeWidth="2" strokeLinecap="round" />
+              </>
+            )}
+            {state.whole === 'endodontics' && (
+              <circle cx="45" cy="45" r="13" fill={wholeDef.color} opacity="0.35" />
+            )}
+            {state.whole === 'edentulism' && (
+              <>
+                <line x1="18" y1="38" x2="72" y2="38" stroke={wholeDef.color} strokeWidth="2.5" />
+                <line x1="18" y1="52" x2="72" y2="52" stroke={wholeDef.color} strokeWidth="2.5" />
+              </>
+            )}
+            {state.whole === 'fixed-prosth' && (
+              <line x1="8" y1="45" x2="82" y2="45" stroke={wholeDef.color} strokeWidth="4" strokeDasharray="7,3" />
+            )}
+          </g>
+        )}
+        {/* Overlay symbols */}
         <g clipPath={`url(#${clipId})`}>
-          {state.whole === 'missing' && (
-            <>
-              <line x1="10" y1="10" x2="80" y2="80" stroke={CONDITION_MAP.missing.color} strokeWidth="3" strokeLinecap="round" />
-              <line x1="80" y1="10" x2="10" y2="80" stroke={CONDITION_MAP.missing.color} strokeWidth="3" strokeLinecap="round" />
-            </>
-          )}
-          {state.whole === 'extracted' && (
-            <rect x="0" y="0" width="90" height="90" fill={CONDITION_MAP.extracted.color} opacity="0.22" />
-          )}
-          {(state.whole === 'crown' || state.whole === 'crown_temp') && (
-            <rect
-              x="4" y="4" width="82" height="82" rx="6"
-              fill="none"
-              stroke={CONDITION_MAP[state.whole].color}
-              strokeWidth="4"
-              strokeDasharray={state.whole === 'crown_temp' ? '8,4' : undefined}
-            />
-          )}
-          {state.whole === 'root_canal' && (
-            <circle cx="45" cy="45" r="16" fill="none" stroke={CONDITION_MAP.root_canal.color} strokeWidth="3" />
-          )}
-          {state.whole === 'bridge' && (
-            <line x1="0" y1="45" x2="90" y2="45" stroke={CONDITION_MAP.bridge.color} strokeWidth="4" strokeDasharray="7,3" />
-          )}
-          {state.whole === 'implant' && (
-            <>
-              <line x1="45" y1="8"  x2="45" y2="82" stroke={CONDITION_MAP.implant.color} strokeWidth="3" strokeLinecap="round" />
-              <line x1="28" y1="26" x2="62" y2="26" stroke={CONDITION_MAP.implant.color} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="30" y1="42" x2="60" y2="42" stroke={CONDITION_MAP.implant.color} strokeWidth="2" strokeLinecap="round" />
-            </>
-          )}
           {state.overlays?.includes('fracture') && (
             <line x1="15" y1="5" x2="75" y2="85" stroke={CONDITION_MAP.fracture.color} strokeWidth="2.5" strokeLinecap="round" />
           )}
-          {state.overlays?.includes('orthodontics') && (
-            <rect x="26" y="36" width="38" height="18" rx="3" fill={CONDITION_MAP.orthodontics.color} opacity="0.85" />
+          {state.overlays?.includes('fixed-ortho') && (
+            <rect x="26" y="36" width="38" height="18" rx="3" fill={CONDITION_MAP['fixed-ortho'].color} opacity="0.85" />
           )}
         </g>
         {selected && <circle cx="45" cy="45" r="43" fill="none" stroke="#6366f1" strokeWidth="3" />}

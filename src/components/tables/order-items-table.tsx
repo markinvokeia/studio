@@ -70,7 +70,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
   const [actionType, setActionType] = React.useState<ActionType | null>(null);
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
+  React.useEffect(() => { setSelectedDate(new Date()); }, []);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);

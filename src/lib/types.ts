@@ -1238,12 +1238,15 @@ export type DentalRecordSession = {
 /** All possible conditions that can be applied to a tooth or surface */
 export type OdontogramCondition =
   // Surface conditions (apply per face)
-  | 'caries' | 'filling' | 'wear'
+  | 'healthy' | 'caries' | 'filling' | 'pulp' | 'dyschromic' | 'worn'
   // Whole-tooth conditions
-  | 'missing' | 'crown' | 'implant' | 'root_canal' | 'bridge'
-  | 'impacted' | 'extracted' | 'crown_temp' | 'residual_root'
+  | 'crown' | 'crown-tmp' | 'missing' | 'root-remnant' | 'prosthesis'
+  | 'fixed-prosth' | 'implant' | 'edentulism' | 'endodontics'
   // Overlay conditions (stack on top)
-  | 'fracture' | 'orthodontics' | 'post' | 'gyroversion' | 'diastema';
+  | 'fracture' | 'diastema' | 'rem-prost' | 'drifting' | 'rotation'
+  | 'fusion' | 'eruption' | 'transposition' | 'supernumerary' | 'bolt'
+  | 'fixed-ortho' | 'macrodontia' | 'microdontia' | 'impacted-semi'
+  | 'intrusion' | 'ectopic' | 'impacted' | 'rem-orthodo' | 'extrusion' | 'post';
 
 /** 5 surfaces of a tooth */
 export type OdontogramSurface = 'center' | 'top' | 'bottom' | 'left' | 'right';

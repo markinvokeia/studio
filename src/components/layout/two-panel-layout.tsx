@@ -1,17 +1,12 @@
 'use client';
 
 import * as React from 'react';
-import {
-    Group,
-    Panel,
-    Separator,
-} from 'react-resizable-panels';
+import { Group, Panel, Separator } from 'react-resizable-panels';
 import { cn } from '@/lib/utils';
 import { usePanelWidth } from '@/hooks/use-panel-width';
 import { LEFT_PANEL_NARROW_THRESHOLD } from '@/lib/design-tokens';
 import { ChevronLeft } from 'lucide-react';
 
-// Context so children of the left panel can react to narrow mode
 interface NarrowModeContextType {
     isNarrow: boolean;
 }
@@ -21,7 +16,6 @@ export function useNarrowMode() {
     return React.useContext(NarrowModeContext);
 }
 
-// Context for mobile back button
 interface MobileBackContextType {
     onBack?: () => void;
 }
@@ -41,8 +35,19 @@ interface TwoPanelLayoutProps {
     minLeftSize?: number;
     minRightSize?: number;
     className?: string;
-    /** When true, renders only the right panel at full width (desktop expand mode) */
+    /** When true, renders only the right panel at full width. */
     forceRightOnly?: boolean;
+}
+
+const DESKTOP_BREAKPOINT = 1024;
+
+// Safe to read window here: this component lives behind PrivateRoute, which renders
+// a "Loading…" placeholder during SSR. The TwoPanelLayout's render function only ever
+// runs on the client (post-mount, after AuthContext loads), so there's no SSR baseline
+// to mismatch against.
+function getIsDesktop(): boolean {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth >= DESKTOP_BREAKPOINT;
 }
 
 export function TwoPanelLayout({
@@ -57,38 +62,18 @@ export function TwoPanelLayout({
     className,
     forceRightOnly = false,
 }: TwoPanelLayoutProps) {
-    const [mounted, setMounted] = React.useState(false);
-    const [isMobile, setIsMobile] = React.useState(false);
+    const [isDesktop, setIsDesktop] = React.useState<boolean>(getIsDesktop);
     const leftPanelRef = React.useRef<HTMLDivElement>(null);
     const leftPanelWidth = usePanelWidth(leftPanelRef);
     const isNarrow = isRightPanelOpen && leftPanelWidth > 0 && leftPanelWidth < LEFT_PANEL_NARROW_THRESHOLD;
 
     React.useEffect(() => {
-        setMounted(true);
-        const checkMobile = () => {
-            setIsMobile(window.innerWidth < 1024);
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
+        const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`);
+        const update = () => setIsDesktop(mq.matches);
+        update();
+        mq.addEventListener('change', update);
+        return () => mq.removeEventListener('change', update);
     }, []);
-
-    if (!mounted) {
-        return (
-            <div className={cn("grid grid-cols-1 lg:grid-cols-5 h-full", className)}>
-                <div className={cn("h-full min-h-0 overflow-hidden", isRightPanelOpen ? "hidden lg:block lg:col-span-2" : "lg:col-span-5")}>
-                    <NarrowModeContext.Provider value={{ isNarrow: false }}>
-                        {leftPanel}
-                    </NarrowModeContext.Provider>
-                </div>
-                {isRightPanelOpen && (
-                    <div className="lg:col-span-3 h-full min-h-0 overflow-hidden">
-                        {rightPanel}
-                    </div>
-                )}
-            </div>
-        );
-    }
 
     if (forceRightOnly && isRightPanelOpen) {
         return (
@@ -100,75 +85,84 @@ export function TwoPanelLayout({
         );
     }
 
-    if (isMobile) {
+    // ── Desktop: resizable panels (drag the separator to resize) ────────────
+    if (isDesktop) {
         return (
             <MobileBackContext.Provider value={{ onBack }}>
                 <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
-                    {!isRightPanelOpen ? (
-                        <div className="flex-1 min-h-0 overflow-hidden">
-                            <NarrowModeContext.Provider value={{ isNarrow: false }}>
-                                {leftPanel}
-                            </NarrowModeContext.Provider>
-                        </div>
-                    ) : (
-                        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-                            {onBack && (
-                                <button
-                                    type="button"
-                                    onClick={onBack}
-                                    className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-background border-b border-border flex-none"
-                                >
-                                    <ChevronLeft className="h-4 w-4" />
-                                    Atrás
-                                </button>
-                            )}
-                            <div className="flex-1 min-h-0 overflow-hidden">
-                                {rightPanel}
+                    <Group orientation="horizontal" className="flex-1">
+                        <Panel
+                            defaultSize={isRightPanelOpen ? `${leftPanelDefaultSize}%` : '100%'}
+                            minSize={isRightPanelOpen ? `${minLeftSize}%` : '100%'}
+                            collapsible={false}
+                            className="h-full relative overflow-hidden"
+                            id="left-panel-v4"
+                        >
+                            <div ref={leftPanelRef} className="absolute inset-0 overflow-hidden px-1">
+                                <NarrowModeContext.Provider value={{ isNarrow }}>
+                                    {leftPanel}
+                                </NarrowModeContext.Provider>
                             </div>
-                        </div>
-                    )}
+                        </Panel>
+
+                        {isRightPanelOpen && (
+                            <Separator className="w-2 hover:bg-primary/5 transition-colors flex items-center justify-center group relative cursor-col-resize z-10 outline-none">
+                                <div className="h-4 w-1 rounded-full bg-border group-hover:bg-primary/20 transition-colors" />
+                            </Separator>
+                        )}
+
+                        {isRightPanelOpen && (
+                            <Panel
+                                defaultSize={`${rightPanelDefaultSize}%`}
+                                minSize={`${minRightSize}%`}
+                                collapsible={false}
+                                className="h-full relative overflow-hidden"
+                                id="right-panel-v4"
+                            >
+                                <div className="absolute inset-0 overflow-hidden px-1">
+                                    {rightPanel}
+                                </div>
+                            </Panel>
+                        )}
+                    </Group>
                 </div>
             </MobileBackContext.Provider>
         );
     }
 
+    // ── Mobile: stacked layout (one panel visible at a time) ────────────────
     return (
-        <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
-            <Group orientation="horizontal" className="flex-1">
-                <Panel
-                    defaultSize={isRightPanelOpen ? `${leftPanelDefaultSize}%` : "100%"}
-                    minSize={isRightPanelOpen ? `${minLeftSize}%` : "100%"}
-                    collapsible={false}
-                    className="h-full relative overflow-hidden"
-                    id="left-panel-v4"
+        <MobileBackContext.Provider value={{ onBack }}>
+            <div className={cn("flex flex-col h-full min-h-0 overflow-hidden", className)}>
+                <div
+                    ref={leftPanelRef}
+                    className={cn(
+                        "h-full min-h-0 overflow-hidden px-1",
+                        isRightPanelOpen ? "hidden" : "block"
+                    )}
                 >
-                    <div ref={leftPanelRef} className="absolute inset-0 overflow-hidden px-1">
-                        <NarrowModeContext.Provider value={{ isNarrow }}>
-                            {leftPanel}
-                        </NarrowModeContext.Provider>
-                    </div>
-                </Panel>
-
+                    <NarrowModeContext.Provider value={{ isNarrow: false }}>
+                        {leftPanel}
+                    </NarrowModeContext.Provider>
+                </div>
                 {isRightPanelOpen && (
-                    <Separator className="w-2 hover:bg-primary/5 transition-colors flex items-center justify-center group relative cursor-col-resize z-10 outline-none">
-                        <div className="h-4 w-1 rounded-full bg-border group-hover:bg-primary/20 transition-colors" />
-                    </Separator>
-                )}
-
-                {isRightPanelOpen && (
-                    <Panel
-                        defaultSize={`${rightPanelDefaultSize}%`}
-                        minSize={`${minRightSize}%`}
-                        collapsible={false}
-                        className="h-full relative overflow-hidden"
-                        id="right-panel-v4"
-                    >
-                        <div className="absolute inset-0 overflow-hidden px-1">
+                    <div className="h-full min-h-0 overflow-hidden flex flex-col px-1">
+                        {onBack && (
+                            <button
+                                type="button"
+                                onClick={onBack}
+                                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-background border-b border-border flex-none"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Atrás
+                            </button>
+                        )}
+                        <div className="flex-1 min-h-0 overflow-hidden">
                             {rightPanel}
                         </div>
-                    </Panel>
+                    </div>
                 )}
-            </Group>
-        </div>
+            </div>
+        </MobileBackContext.Provider>
     );
 }

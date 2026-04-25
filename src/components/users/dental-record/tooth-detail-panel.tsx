@@ -163,59 +163,50 @@ export function ToothDetailPanel({
             />
           )}
 
-          {/* Missing X mark */}
-          {state.whole === 'missing' && (
+          {/* Whole condition inner ring + symbol */}
+          {wholeDef && (
             <>
-              <line x1="5" y1="5"  x2="85" y2="85" stroke={CONDITION_MAP.missing.color} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="85" y1="5" x2="5"  y2="85" stroke={CONDITION_MAP.missing.color} strokeWidth="2.5" strokeLinecap="round" />
+              <circle cx="45" cy="45" r="37" fill="none" stroke={wholeDef.color} strokeWidth="3"
+                strokeDasharray={state.whole === 'crown-tmp' ? '8,4' : undefined} />
+              {state.whole === 'missing' && (
+                <>
+                  <line x1="14" y1="14" x2="76" y2="76" stroke={wholeDef.color} strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="76" y1="14" x2="14" y2="76" stroke={wholeDef.color} strokeWidth="2.5" strokeLinecap="round" />
+                </>
+              )}
+              {state.whole === 'implant' && (
+                <>
+                  <line x1="45" y1="10" x2="45" y2="80" stroke={wholeDef.color} strokeWidth="3" strokeLinecap="round" />
+                  <line x1="28" y1="28" x2="62" y2="28" stroke={wholeDef.color} strokeWidth="2.5" strokeLinecap="round" />
+                  <line x1="31" y1="44" x2="59" y2="44" stroke={wholeDef.color} strokeWidth="2" strokeLinecap="round" />
+                </>
+              )}
+              {state.whole === 'endodontics' && (
+                <circle cx="45" cy="45" r="12" fill={wholeDef.color} opacity="0.35" />
+              )}
+              {state.whole === 'edentulism' && (
+                <>
+                  <line x1="18" y1="38" x2="72" y2="38" stroke={wholeDef.color} strokeWidth="2.5" />
+                  <line x1="18" y1="52" x2="72" y2="52" stroke={wholeDef.color} strokeWidth="2.5" />
+                </>
+              )}
+              {state.whole === 'fixed-prosth' && (
+                <line x1="8" y1="45" x2="82" y2="45" stroke={wholeDef.color} strokeWidth="4" strokeDasharray="7,3" />
+              )}
             </>
           )}
 
-          {/* Extracted fill */}
-          {state.whole === 'extracted' && (
-            <rect x="0" y="0" width="90" height="90" fill={CONDITION_MAP.extracted.color} opacity="0.2" />
-          )}
-
-          {/* Root canal circle */}
-          {state.whole === 'root_canal' && (
-            <circle cx="45" cy="45" r="12" fill="none" stroke={CONDITION_MAP.root_canal.color} strokeWidth="3" />
-          )}
-
-          {/* Implant symbol */}
-          {state.whole === 'implant' && (
-            <>
-              <line x1="45" y1="10" x2="45" y2="80" stroke={CONDITION_MAP.implant.color} strokeWidth="3" strokeLinecap="round" />
-              <line x1="28" y1="25" x2="62" y2="25" stroke={CONDITION_MAP.implant.color} strokeWidth="2.5" strokeLinecap="round" />
-              <line x1="30" y1="40" x2="60" y2="40" stroke={CONDITION_MAP.implant.color} strokeWidth="2" strokeLinecap="round" />
-            </>
-          )}
-
-          {/* Crown outline */}
-          {(state.whole === 'crown' || state.whole === 'crown_temp') && (
-            <rect
-              x="3" y="3" width="84" height="84" rx="6"
-              fill="none"
-              stroke={CONDITION_MAP[state.whole].color}
-              strokeWidth="3"
-              strokeDasharray={state.whole === 'crown_temp' ? '5,3' : undefined}
-            />
-          )}
-
-          {/* Fracture line overlay */}
+          {/* Overlay symbols */}
           {state.overlays?.includes('fracture') && (
             <line x1="20" y1="5" x2="70" y2="85" stroke={CONDITION_MAP.fracture.color} strokeWidth="2" strokeLinecap="round" />
           )}
-
-          {/* Orthodontics brackets */}
-          {state.overlays?.includes('orthodontics') && (
+          {state.overlays?.includes('fixed-ortho') && (
             <>
-              <rect x="32" y="40" width="26" height="10" rx="2" fill={CONDITION_MAP.orthodontics.color} />
-              <line x1="5" y1="45" x2="32" y2="45" stroke={CONDITION_MAP.orthodontics.color} strokeWidth="1.5" />
-              <line x1="58" y1="45" x2="85" y2="45" stroke={CONDITION_MAP.orthodontics.color} strokeWidth="1.5" />
+              <rect x="32" y="40" width="26" height="10" rx="2" fill={CONDITION_MAP['fixed-ortho'].color} />
+              <line x1="5"  y1="45" x2="32" y2="45" stroke={CONDITION_MAP['fixed-ortho'].color} strokeWidth="1.5" />
+              <line x1="58" y1="45" x2="85" y2="45" stroke={CONDITION_MAP['fixed-ortho'].color} strokeWidth="1.5" />
             </>
           )}
-
-          {/* Post (perno) */}
           {state.overlays?.includes('post') && (
             <line x1="45" y1="30" x2="45" y2="75" stroke={CONDITION_MAP.post.color} strokeWidth="3" strokeLinecap="round" strokeDasharray="4,2" />
           )}

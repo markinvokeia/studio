@@ -18,25 +18,43 @@ export type ConditionDef = {
 
 export const CONDITIONS: ConditionDef[] = [
   // ── Surface conditions ──
+  { id: 'healthy',    category: 'surface',  color: '#22c55e', border: '#16a34a', icon: 'Sa' },
   { id: 'caries',     category: 'surface',  color: '#ef4444', border: '#dc2626', icon: 'Ca' },
   { id: 'filling',    category: 'surface',  color: '#3b82f6', border: '#2563eb', icon: 'Ob' },
-  { id: 'wear',       category: 'surface',  color: '#9ca3af', border: '#6b7280', icon: 'De' },
+  { id: 'pulp',       category: 'surface',  color: '#f97316', border: '#ea580c', icon: 'Pu' },
+  { id: 'dyschromic', category: 'surface',  color: '#eab308', border: '#ca8a04', icon: 'Dc' },
+  { id: 'worn',       category: 'surface',  color: '#9ca3af', border: '#6b7280', icon: 'Dg' },
   // ── Whole-tooth conditions ──
-  { id: 'missing',    category: 'whole',    color: '#60a5fa', border: '#3b82f6', icon: 'Au' },
-  { id: 'crown',      category: 'whole',    color: '#2563eb', border: '#1d4ed8', icon: 'Co' },
-  { id: 'implant',    category: 'whole',    color: '#6366f1', border: '#4f46e5', icon: 'Im' },
-  { id: 'root_canal', category: 'whole',    color: '#ef4444', border: '#b91c1c', icon: 'En' },
-  { id: 'bridge',     category: 'whole',    color: '#1d4ed8', border: '#1e40af', icon: 'Pu' },
-  { id: 'impacted',   category: 'whole',    color: '#f59e0b', border: '#d97706', icon: 'Re' },
-  { id: 'extracted',  category: 'whole',    color: '#94a3b8', border: '#64748b', icon: 'Ex' },
-  { id: 'crown_temp', category: 'whole',    color: '#fb923c', border: '#ea580c', icon: 'CT' },
-  { id: 'residual_root', category: 'whole', color: '#dc2626', border: '#991b1b', icon: 'RR' },
+  { id: 'crown',       category: 'whole',   color: '#2563eb', border: '#1d4ed8', icon: 'Co' },
+  { id: 'crown-tmp',   category: 'whole',   color: '#fb923c', border: '#ea580c', icon: 'CT' },
+  { id: 'missing',     category: 'whole',   color: '#64748b', border: '#475569', icon: 'Au' },
+  { id: 'root-remnant',category: 'whole',   color: '#dc2626', border: '#b91c1c', icon: 'RR' },
+  { id: 'prosthesis',  category: 'whole',   color: '#7c3aed', border: '#6d28d9', icon: 'Pr' },
+  { id: 'fixed-prosth',category: 'whole',   color: '#1d4ed8', border: '#1e40af', icon: 'PF' },
+  { id: 'implant',     category: 'whole',   color: '#6366f1', border: '#4f46e5', icon: 'Im' },
+  { id: 'edentulism',  category: 'whole',   color: '#94a3b8', border: '#64748b', icon: 'Ed' },
+  { id: 'endodontics', category: 'whole',   color: '#be123c', border: '#9f1239', icon: 'En' },
   // ── Overlay conditions ──
-  { id: 'fracture',    category: 'overlay', color: '#dc2626', border: '#991b1b', icon: 'Fx' },
-  { id: 'orthodontics',category: 'overlay', color: '#10b981', border: '#059669', icon: 'Or' },
-  { id: 'post',        category: 'overlay', color: '#6b7280', border: '#4b5563', icon: 'Pe' },
-  { id: 'gyroversion', category: 'overlay', color: '#8b5cf6', border: '#7c3aed', icon: 'Gi' },
-  { id: 'diastema',    category: 'overlay', color: '#0ea5e9', border: '#0284c7', icon: 'Di' },
+  { id: 'fracture',     category: 'overlay', color: '#dc2626', border: '#b91c1c', icon: 'Fx' },
+  { id: 'diastema',     category: 'overlay', color: '#0ea5e9', border: '#0284c7', icon: 'Di' },
+  { id: 'rem-prost',    category: 'overlay', color: '#8b5cf6', border: '#7c3aed', icon: 'RP' },
+  { id: 'drifting',     category: 'overlay', color: '#f59e0b', border: '#d97706', icon: 'Dt' },
+  { id: 'rotation',     category: 'overlay', color: '#ec4899', border: '#db2777', icon: 'Ro' },
+  { id: 'fusion',       category: 'overlay', color: '#14b8a6', border: '#0d9488', icon: 'Fu' },
+  { id: 'eruption',     category: 'overlay', color: '#84cc16', border: '#65a30d', icon: 'Er' },
+  { id: 'transposition',category: 'overlay', color: '#f97316', border: '#ea580c', icon: 'Tp' },
+  { id: 'supernumerary',category: 'overlay', color: '#a855f7', border: '#9333ea', icon: 'Sn' },
+  { id: 'bolt',         category: 'overlay', color: '#6b7280', border: '#4b5563', icon: 'Bl' },
+  { id: 'fixed-ortho',  category: 'overlay', color: '#10b981', border: '#059669', icon: 'OF' },
+  { id: 'macrodontia',  category: 'overlay', color: '#f43f5e', border: '#e11d48', icon: 'Mc' },
+  { id: 'microdontia',  category: 'overlay', color: '#db2777', border: '#be185d', icon: 'Mi' },
+  { id: 'impacted-semi',category: 'overlay', color: '#d97706', border: '#b45309', icon: 'SI' },
+  { id: 'intrusion',    category: 'overlay', color: '#7c3aed', border: '#6d28d9', icon: 'In' },
+  { id: 'ectopic',      category: 'overlay', color: '#06b6d4', border: '#0891b2', icon: 'Ec' },
+  { id: 'impacted',     category: 'overlay', color: '#92400e', border: '#78350f', icon: 'Ip' },
+  { id: 'rem-orthodo',  category: 'overlay', color: '#16a34a', border: '#15803d', icon: 'RO' },
+  { id: 'extrusion',    category: 'overlay', color: '#7e22ce', border: '#6b21a8', icon: 'Ex' },
+  { id: 'post',         category: 'overlay', color: '#78716c', border: '#57534e', icon: 'Pe' },
 ];
 
 export const CONDITION_MAP = Object.fromEntries(
@@ -83,8 +101,7 @@ function ConditionButtons({
               title={t(`conditions.${cond.id}`)}
               onClick={() => onSelect(cond.id)}
               className={cn(
-                'flex items-center justify-center rounded-md border transition-all',
-                'aspect-square w-full p-0',
+                'flex flex-col items-center justify-center gap-0.5 rounded-md border transition-all py-1.5 px-0.5',
                 isActive ? 'shadow-sm ring-1 ring-inset' : 'bg-background hover:bg-muted/60',
               )}
               style={
@@ -98,6 +115,12 @@ function ConditionButtons({
                 style={{ backgroundColor: cond.color }}
               >
                 {cond.icon}
+              </span>
+              <span
+                className="text-[8px] leading-tight text-center w-full truncate px-0.5"
+                style={{ color: isActive ? '#fff' : cond.color }}
+              >
+                {t(`conditions.${cond.id}`)}
               </span>
             </button>
           );

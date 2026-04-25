@@ -88,7 +88,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
       onRowSelectionChange(selectedRows);
     }
   }, [onRowSelectionChange]);
-  const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
+  const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(undefined);
+  React.useEffect(() => { setInvoiceDate(new Date()); }, []);
   const [invoiceNotes, setInvoiceNotes] = React.useState('');
   const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
   const locale = useLocale();

@@ -28,6 +28,10 @@ interface UseCalendarNavigationReturn {
   dateLocale: Locale;
 }
 
+// Stable reference date used for SSR + first client render so hydration matches.
+// Real "now" is set inside useEffect after mount.
+const SSR_STABLE_DATE = new Date(2000, 0, 1);
+
 export function useCalendarNavigation({
   onDateChange,
   onViewChange,
@@ -36,12 +40,14 @@ export function useCalendarNavigation({
   const locale = useLocale();
   const dateLocale = locale === 'es' ? es : enUS;
 
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(SSR_STABLE_DATE);
   const [view, setView] = useState<CalendarView>(initialView);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date>(SSR_STABLE_DATE);
 
-  // Update current time every minute
+  // Initialize with real "now" after mount, then update every minute
   useEffect(() => {
+    setCurrentDate(new Date());
+    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);

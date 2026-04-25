@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Loader2, Paperclip, Save, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { DoctorOption } from '@/services/dental-record';
 
 export interface SessionFormValues {
@@ -42,7 +42,10 @@ export function SessionForm({
   const t = useTranslations('DentalRecord');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [date, setDate] = useState(defaultDate ?? new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(defaultDate ?? '');
+  useEffect(() => {
+    if (!defaultDate && !date) setDate(new Date().toISOString().split('T')[0]);
+  }, [defaultDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const [description, setDescription] = useState(defaultDescription ?? '');
   const [doctorId, setDoctorId] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
@@ -81,30 +84,18 @@ export function SessionForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-xl border bg-background p-4">
       <h3 className="text-sm font-semibold text-foreground">{t('session.newTitle')}</h3>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {/* Date */}
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">{t('session.date')}</Label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-8 text-xs"
-            required
-          />
-        </div>
+      {/* Hidden title — still sent to the API but not shown to the user */}
+      <input type="hidden" value={description} readOnly />
 
-        {/* Description */}
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">{t('session.description')}</Label>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t('session.descriptionPlaceholder')}
-            className="h-8 text-xs"
-            maxLength={120}
-          />
-        </div>
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs">{t('session.date')}</Label>
+        <Input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="h-8 text-xs"
+          required
+        />
       </div>
 
       {/* Doctor */}
