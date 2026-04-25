@@ -20,7 +20,7 @@ import { PaymentMethod, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, parseISO } from 'date-fns';
+import { format, formatISO, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -172,7 +172,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                 user,
                 client_user: clientUser,
                 query: {
-                    payment_date: pendingData.created_at.toISOString(),
+                    payment_date: formatISO(pendingData.created_at),
                     amount: pendingData.payment_amount,
                     method: selectedMethod?.name,
                     payment_method_id: pendingData.payment_method_id,

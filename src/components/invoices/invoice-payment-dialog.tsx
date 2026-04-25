@@ -40,7 +40,7 @@ import { Credit, Invoice, PaymentMethod } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
+import { format, formatISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, CreditCard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -365,7 +365,7 @@ export function InvoicePaymentDialog({
         }),
         query: {
           invoice_id: parseInt(invoice.id, 10),
-          payment_date: values.payment_date.toISOString(),
+          payment_date: formatISO(values.payment_date),
           amount: values.amount,
           converted_amount: convertedAmount,
           method: selectedMethod?.name || 'Credit',

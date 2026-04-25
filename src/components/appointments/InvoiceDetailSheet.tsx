@@ -31,7 +31,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, formatISO } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -281,7 +281,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
         client_user: { id: invoice.user_id, name: invoice.user_name },
         query: {
           invoice_id: parseInt(invoice.id, 10),
-          payment_date: values.payment_date.toISOString(),
+          payment_date: formatISO(values.payment_date),
           amount: values.amount,
           converted_amount: showExchangeRate && equivalentAmount ? equivalentAmount : values.amount,
           method: selectedMethod?.name || 'Credit',

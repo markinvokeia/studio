@@ -38,7 +38,7 @@ import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { format, formatISO, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -396,7 +396,7 @@ export default function PaymentsPage() {
                 user: user,
                 client_user: clientUser,
                 query: {
-                    payment_date: prepaidData.created_at.toISOString(),
+                    payment_date: formatISO(prepaidData.created_at),
                     amount: prepaidData.payment_amount,
                     method: selectedMethod?.name,
                     payment_method_id: prepaidData.payment_method_id,
