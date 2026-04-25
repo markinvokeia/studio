@@ -7,21 +7,16 @@ import { InvoicesTable } from '@/components/tables/invoices-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
 import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
 import api from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, FileText, RefreshCw, X, ShoppingCart } from 'lucide-react';
+import { RefreshCw, X, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -185,7 +180,6 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
 
 export default function OrdersPage() {
     const t = useTranslations('OrdersPage');
-    const { toast } = useToast();
     const tQuotes = useTranslations('QuotesPage');
     const tOrderItems = useTranslations('OrderItemsTable');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
@@ -218,11 +212,6 @@ export default function OrdersPage() {
     const [isLoadingInvoices, setIsLoadingInvoices] = React.useState(false);
     const [isLoadingInvoiceItems, setIsLoadingInvoiceItems] = React.useState(false);
     const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
-
-    const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
-    const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(undefined);
-    const [invoiceNotes, setInvoiceNotes] = React.useState('');
-    const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
 
     const loadOrders = React.useCallback(async () => {
         setIsLoadingOrders(true);
@@ -300,49 +289,7 @@ export default function OrdersPage() {
         setRowSelection({});
     };
 
-    const handleInvoiceClick = () => {
-        setInvoiceDate(new Date());
-        setInvoiceNotes('');
-        setInvoiceSubmissionError(null);
-        setIsInvoiceDialogOpen(true);
-    };
-
-    const handleConfirmInvoice = async () => {
-        if (!selectedOrder || !invoiceDate) return;
-        setInvoiceSubmissionError(null);
-        try {
-            const payload = {
-                order_id: selectedOrder.id,
-                is_sales: true,
-                query: JSON.stringify({
-                    order_id: parseInt(selectedOrder.id, 10),
-                    invoice_date: invoiceDate.toISOString(),
-                    is_sales: true,
-                    user_id: selectedOrder.user_id,
-                    notes: invoiceNotes || '',
-                }),
-            };
-            const responseData = await api.post(API_ROUTES.SALES.ORDER_INVOICE, payload);
-            if (responseData.error || (responseData.code && responseData.code >= 400)) {
-                if (responseData.message) {
-                    setInvoiceSubmissionError(responseData.message);
-                    return;
-                }
-                throw new Error(t('invoiceDialog.createError'));
-            }
-            toast({
-                title: t('invoiceDialog.invoiceSuccess'),
-                description: t('invoiceDialog.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }),
-            });
-            loadOrders();
-            setIsInvoiceDialogOpen(false);
-        } catch (error) {
-            setInvoiceSubmissionError(error instanceof Error ? error.message : t('invoiceDialog.createError'));
-        }
-    };
-
     return (
-        <>
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <TwoPanelLayout
                 isRightPanelOpen={!!selectedOrder}
@@ -376,18 +323,10 @@ export default function OrdersPage() {
                                         <CardDescription className="text-xs">{t('orderId')}: {selectedOrder.doc_no}</CardDescription>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {canInvoiceFromOrder && selectedOrder.status?.toLowerCase() !== 'completed' && (
-                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceClick}>
-                                            <FileText className="h-3.5 w-3.5" />
-                                            {t('invoiceDialog.title')}
-                                        </Button>
-                                    )}
-                                    <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
-                                        <X className="h-5 w-5" />
-                                        <span className="sr-only">{t('close')}</span>
-                                    </Button>
-                                </div>
+                                <Button variant="ghost" size="icon" onClick={handleCloseDetails}>
+                                    <X className="h-5 w-5" />
+                                    <span className="sr-only">{t('close')}</span>
+                                </Button>
                             </CardHeader>
                             <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0">
                                 <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
@@ -482,45 +421,5 @@ export default function OrdersPage() {
                 }
             />
         </div>
-
-        <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>{t('invoiceDialog.title')}</DialogTitle>
-                    <DialogDescription>
-                        {t('invoiceDialog.description', { orderId: selectedOrder?.doc_no })}
-                    </DialogDescription>
-                </DialogHeader>
-                {invoiceSubmissionError && (
-                    <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>{t('invoiceDialog.error')}</AlertTitle>
-                        <AlertDescription>{invoiceSubmissionError}</AlertDescription>
-                    </Alert>
-                )}
-                <div className="flex justify-center py-4">
-                    <DatePicker
-                        mode="single"
-                        selected={invoiceDate}
-                        onSelect={setInvoiceDate}
-                        initialFocus
-                    />
-                </div>
-                <div className="px-6 pb-2">
-                    <label className="text-sm font-medium">{t('invoiceDialog.notesLabel')}</label>
-                    <Textarea
-                        value={invoiceNotes}
-                        onChange={(e) => setInvoiceNotes(e.target.value)}
-                        placeholder={t('invoiceDialog.notesPlaceholder')}
-                        className="mt-2 min-h-[80px]"
-                    />
-                </div>
-                <DialogFooter>
-                    <Button onClick={handleConfirmInvoice}>{t('invoiceDialog.confirm')}</Button>
-                    <Button variant="outline" onClick={() => setIsInvoiceDialogOpen(false)}>{t('cancel')}</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-        </>
     );
 }
