@@ -1091,6 +1091,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   {t('UserQuotes.actions.reject')}
                 </Button>
               )}
+              {showInvoiceFromOrderButton && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceFromQuote}>
+                  <Receipt className="h-3.5 w-3.5" />
+                  {tQuotes('actions.invoice')}
+                </Button>
+              )}
               {(canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote))) && (
                 <Separator orientation="vertical" className="h-6 mx-1" />
               )}
@@ -1117,12 +1123,6 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsDeletingQuote(true)}>
                   <Trash2 className="h-3.5 w-3.5" />
                   {t('UserQuotes.actions.delete')}
-                </Button>
-              )}
-              {showInvoiceFromOrderButton && (
-                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceFromQuote}>
-                  <Receipt className="h-3.5 w-3.5" />
-                  {tQuotes('actions.invoice')}
                 </Button>
               )}
             </div>
