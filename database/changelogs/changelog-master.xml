@@ -35,7 +35,7 @@
     <!-- <include file="changelogs/v1_baseline.xml" relativeToChangelogFile="false"/> -->
 
     <!-- Add new versioned changelogs below, in chronological order:        -->
-    <!-- <include file="changelogs/changelog_20260426_1430.xml" relativeToChangelogFile="false"/> -->
+    <include file="changelogs/v1_baseline.xml" relativeToChangelogFile="false"/>
 
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
