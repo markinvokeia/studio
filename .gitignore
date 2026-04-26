@@ -49,3 +49,6 @@ firestore-debug.log
 
 # agent
 /.agent
+
+# Liquibase
+database/drivers/*.jar
