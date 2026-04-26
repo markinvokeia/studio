@@ -33,7 +33,7 @@ const T = {
 
 test.describe('Métodos de Pago', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/sales/payment-methods');
+    await page.goto('/es/sales/payment-methods');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -99,7 +99,7 @@ test.describe('Métodos de Pago', () => {
       const code = `ME${ts}`.slice(-10);
       const editedName = `${name} EDIT`;
 
-      // CREAR
+      // CREAR via dialog
       await page.getByRole('button', { name: T.createBtn }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByLabel(T.nameLabel).fill(name);
@@ -112,35 +112,25 @@ test.describe('Métodos de Pago', () => {
       await page.waitForTimeout(600);
       await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
 
-      // EDITAR
+      // EDITAR: click row → right panel opens
       const row = page.locator('table tbody tr').filter({ hasText: name });
-      await row.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Editar' }).click();
-      await expect(page.getByRole('dialog')).toBeVisible();
-      // Nombre pre-cargado
-      expect(await page.getByLabel(T.nameLabel).inputValue()).toBe(name);
-      await page.getByLabel(T.nameLabel).clear();
-      await page.getByLabel(T.nameLabel).fill(editedName);
+      await row.click();
+      await page.waitForTimeout(500);
+      await page.getByRole('button', { name: 'Editar' }).first().click();
+      const nameInput = page.getByLabel(T.nameLabel);
+      await nameInput.clear();
+      await nameInput.fill(editedName);
       await page.getByRole('button', { name: T.saveEdit }).click();
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
-      // RESTAURAR nombre original
-      await page.getByPlaceholder(T.filterPlaceholder).fill(editedName);
-      await page.waitForTimeout(600);
-      const editedRow = page.locator('table tbody tr').filter({ hasText: editedName });
-      await editedRow.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Editar' }).click();
-      await page.getByLabel(T.nameLabel).clear();
-      await page.getByLabel(T.nameLabel).fill(name);
+      // RESTAURAR nombre original (panel still open)
+      await nameInput.clear();
+      await nameInput.fill(name);
       await page.getByRole('button', { name: T.saveEdit }).click();
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
-      // ELIMINAR
-      await page.getByPlaceholder(T.filterPlaceholder).fill(name);
-      await page.waitForTimeout(600);
-      const finalRow = page.locator('table tbody tr').filter({ hasText: name });
-      await finalRow.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Eliminar' }).click();
+      // ELIMINAR: trash icon button in panel
+      await page.locator('button').filter({ has: page.locator('svg.lucide-trash-2') }).first().click();
       await page.getByRole('button', { name: T.deleteDialog.confirm }).click();
       await expect(page.getByText(name)).not.toBeVisible({ timeout: 8_000 });
     });

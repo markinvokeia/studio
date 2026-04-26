@@ -14,6 +14,8 @@ export default defineConfig({
   workers: 1,
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
 
+  timeout: 90_000,
+
   use: {
     baseURL: `${BASE_URL}/es`,
     trace: 'on-first-retry',

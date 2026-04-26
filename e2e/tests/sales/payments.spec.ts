@@ -48,7 +48,7 @@ const T = {
 
 test.describe('Pagos de Venta', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/sales/payments');
+    await page.goto('/es/sales/payments');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -61,7 +61,7 @@ test.describe('Pagos de Venta', () => {
     });
 
     test('columnas incluyen No. Documento, Monto, Método, Estado', async ({ page }) => {
-      await expect(page.getByRole('columnheader', { name: T.col.amount })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.amount, exact: true })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: T.col.status })
         .or(page.getByRole('columnheader', { name: T.col.method }))).toBeVisible();
     });

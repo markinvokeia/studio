@@ -16,7 +16,7 @@ test.describe('Sistema — Usuarios del Sistema', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/users');
+    await page.goto('/es/system/users');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -70,7 +70,7 @@ test.describe('Sistema — Roles', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/roles');
+    await page.goto('/es/roles');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -93,7 +93,7 @@ test.describe('Sistema — Roles', () => {
 
 test.describe('Sistema — Permisos', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/permissions');
+    await page.goto('/es/permissions');
     await page.waitForLoadState('networkidle');
   });
 
@@ -107,7 +107,7 @@ test.describe('Sistema — Permisos', () => {
 
 test.describe('Sistema — Registro de Auditoría', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/audit');
+    await page.goto('/es/system/audit');
     await page.waitForLoadState('networkidle');
   });
 
@@ -130,7 +130,7 @@ test.describe('Sistema — Registro de Auditoría', () => {
 
 test.describe('Sistema — Registro de Acceso', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/access');
+    await page.goto('/es/system/access');
     await page.waitForLoadState('networkidle');
   });
 
@@ -149,7 +149,7 @@ test.describe('Sistema — Plantillas de Comunicación', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/communication-templates');
+    await page.goto('/es/system/communication-templates');
     await page.waitForLoadState('networkidle');
   });
 
@@ -185,7 +185,7 @@ test.describe('Sistema — Plantillas de Comunicación', () => {
 
 test.describe('Sistema — Configuraciones', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/configurations');
+    await page.goto('/es/system/config');
     await page.waitForLoadState('networkidle');
   });
 
@@ -199,7 +199,7 @@ test.describe('Sistema — Configuraciones', () => {
 
 test.describe('Sistema — Notificaciones', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/notification-settings');
+    await page.goto('/es/system/notification-settings');
     await page.waitForLoadState('networkidle');
   });
 
@@ -213,7 +213,7 @@ test.describe('Sistema — Notificaciones', () => {
 
 test.describe('Sistema — Registro de Errores', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/errors');
+    await page.goto('/es/system/errors');
     await page.waitForLoadState('networkidle');
   });
 
@@ -226,7 +226,7 @@ test.describe('Sistema — Registro de Errores', () => {
 
 test.describe('Sistema — Historial de Ejecuciones', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/execution-history');
+    await page.goto('/es/system/execution-history');
     await page.waitForLoadState('networkidle');
   });
 
@@ -239,13 +239,13 @@ test.describe('Sistema — Historial de Ejecuciones', () => {
 
 test.describe('Sistema — Categorías de Alertas', () => {
   const T = {
-    pageTitle: 'Categorías de Alertas',
+    pageTitle: 'Categorías de Alerta',
     createBtn: 'Crear',
     col: { name: 'Nombre' },
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/alert-categories');
+    await page.goto('/es/system/alert-categories');
     await page.waitForLoadState('networkidle');
   });
 
@@ -273,13 +273,13 @@ test.describe('Sistema — Categorías de Alertas', () => {
 
 test.describe('Sistema — Reglas de Alertas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/alert-rules');
+    await page.goto('/es/system/alert-rules');
     await page.waitForLoadState('networkidle');
   });
 
   test('carga la página de Reglas de Alertas sin error', async ({ page }) => {
     await expect(page).not.toHaveURL(/error/);
-    await expect(page.getByText('Reglas de Alertas').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Reglas de Alerta').first()).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -287,13 +287,13 @@ test.describe('Sistema — Reglas de Alertas', () => {
 
 test.describe('Sistema — Configuración de Alertas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/system/alerts-config');
+    await page.goto('/es/system/alerts-config');
     await page.waitForLoadState('networkidle');
   });
 
   test('carga la página de Configuración de Alertas sin error', async ({ page }) => {
     await expect(page).not.toHaveURL(/error/);
-    await expect(page.getByText('Configuración de Alertas').first()
-      .or(page.getByText('Configuración de Alertas'))).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Configuración del Sistema de Alertas').first()
+      .or(page.getByText('Configuración del Sistema de Alertas'))).toBeVisible({ timeout: 10_000 });
   });
 });

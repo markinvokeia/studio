@@ -14,13 +14,12 @@ import { test, expect } from '@playwright/test';
  */
 test.describe('Flujo de Citas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/appointments');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/appointments', { waitUntil: 'domcontentloaded' });
   });
 
   test('página de Citas carga con título y controles de navegación', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Citas' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Nueva Cita' })).toBeVisible();
+    await expect(page.getByText('Citas').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Crear' }).first()).toBeVisible();
     await expect(page).not.toHaveURL(/error/);
   });
 
@@ -37,7 +36,7 @@ test.describe('Flujo de Citas', () => {
   });
 
   test('formulario de nueva cita se abre con campos de paciente, servicio, fecha, hora', async ({ page }) => {
-    await page.getByRole('button', { name: 'Nueva Cita' }).click();
+    await page.getByRole('button', { name: 'Crear' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible({ timeout: 8_000 });
 
@@ -55,7 +54,7 @@ test.describe('Flujo de Citas', () => {
   });
 
   test('validación en el formulario: guardar sin datos muestra error', async ({ page }) => {
-    await page.getByRole('button', { name: 'Nueva Cita' }).click();
+    await page.getByRole('button', { name: 'Crear' }).click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8_000 });
     await page.getByRole('button', { name: 'Guardar' }).click();
 

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 // Translation strings from es.json — QuotesPage
 const T = {
   pageTitle: 'Presupuestos',
-  filterPlaceholder: 'Filtrar aquí...',
+  filterPlaceholder: 'Filtrar presupuestos por nombre de usuario...',
   createBtn: 'Crear',
   createDialogTitle: 'Crear Presupuesto',
   editDialogTitle: 'Editar Presupuesto',
@@ -55,7 +55,7 @@ const T = {
 
 test.describe('Presupuestos de Venta', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/sales/quotes');
+    await page.goto('/es/sales/quotes');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -70,7 +70,7 @@ test.describe('Presupuestos de Venta', () => {
     test('columnas muestran Doc No., Estado, Estado de Facturación, Total', async ({ page }) => {
       await expect(page.getByRole('columnheader', { name: T.col.docNo })
         .or(page.getByRole('columnheader', { name: /doc/i }))).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: T.col.status })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.status, exact: true })).toBeVisible();
       await expect(page.getByRole('columnheader', { name: T.col.total })).toBeVisible();
     });
 

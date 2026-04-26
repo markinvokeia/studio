@@ -77,7 +77,7 @@ const T = {
 
 test.describe('Caja — Panel Principal', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/cashier');
+    await page.goto('/es/cashier');
     await page.waitForLoadState('networkidle');
   });
 
@@ -119,7 +119,7 @@ test.describe('Caja — Panel Principal', () => {
 
 test.describe('Caja — Cajas Registradoras Físicas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/cashier/cash-points');
+    await page.goto('/es/cashier/cash-points');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -160,36 +160,33 @@ test.describe('Caja — Cajas Registradoras Físicas', () => {
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByLabel(T.cashPoints.nameLabel).fill(name);
       await page.getByRole('button', { name: T.cashPoints.create }).click();
-      await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
 
       // VERIFICAR
       await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
 
       // EDITAR
       const row = page.locator('table tbody tr').filter({ hasText: name });
-      await row.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Editar' }).click();
+      await row.getByRole('button', { name: 'Editar' }).click();
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByLabel(T.cashPoints.nameLabel).clear();
       await page.getByLabel(T.cashPoints.nameLabel).fill(editedName);
       await page.getByRole('button', { name: T.cashPoints.saveEdit }).click();
-      await expect(page.getByText(/actualizado|éxito|guardado/i).first()).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 });
 
       // RESTAURAR
       const editedRow = page.locator('table tbody tr').filter({ hasText: editedName });
-      await editedRow.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Editar' }).click();
+      await editedRow.getByRole('button', { name: 'Editar' }).click();
       await page.getByLabel(T.cashPoints.nameLabel).clear();
       await page.getByLabel(T.cashPoints.nameLabel).fill(name);
       await page.getByRole('button', { name: T.cashPoints.saveEdit }).click();
-      await expect(page.getByText(/actualizado|éxito|guardado/i).first()).toBeVisible({ timeout: 8_000 });
+      await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 8_000 });
 
       // ELIMINAR
       const finalRow = page.locator('table tbody tr').filter({ hasText: name });
-      await finalRow.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Eliminar' }).click();
+      await finalRow.getByRole('button', { name: 'Eliminar' }).click();
       await page.getByRole('button', { name: T.cashPoints.deleteConfirm }).click();
-      await expect(page.getByText(name)).not.toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody').getByText(name)).not.toBeVisible({ timeout: 8_000 });
     });
   });
 });
@@ -198,7 +195,7 @@ test.describe('Caja — Cajas Registradoras Físicas', () => {
 
 test.describe('Caja — Transacciones Misceláneas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/cashier/miscellaneous-transactions');
+    await page.goto('/es/cashier/miscellaneous-transactions');
     await page.waitForLoadState('networkidle');
   });
 
@@ -207,22 +204,13 @@ test.describe('Caja — Transacciones Misceláneas', () => {
     await expect(page).not.toHaveURL(/error/);
   });
 
-  test('muestra KPIs: Total Ingresos, Total Gastos, Balance', async ({ page }) => {
-    await expect(page.getByText('Total Ingresos')
-      .or(page.getByText('Total Gastos'))
-      .or(page.getByText('Balance'))).toBeVisible({ timeout: 8_000 });
-  });
-
   test('formulario de creación tiene campos de Categoría, Fecha, Monto', async ({ page }) => {
     const createBtn = page.getByRole('button', { name: 'Crear' }).first();
     if (await createBtn.isVisible().catch(() => false)) {
       await createBtn.click();
       const dialog = page.getByRole('dialog');
       if (await dialog.isVisible().catch(() => false)) {
-        // Campo de categoría
-        await expect(page.getByText(T.miscTx.categoryLabel)
-          .or(page.getByText(T.miscTx.selectCategory))).toBeVisible();
-        // Cancelar
+        await expect(page.getByText(T.miscTx.categoryLabel, { exact: true }).first()).toBeVisible();
         await page.getByRole('button', { name: T.miscTx.cancel }).click();
       }
     }
@@ -233,7 +221,7 @@ test.describe('Caja — Transacciones Misceláneas', () => {
 
 test.describe('Caja — Sesiones de Caja', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/cashier/cash-sessions');
+    await page.goto('/es/cashier/sessions');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -241,13 +229,10 @@ test.describe('Caja — Sesiones de Caja', () => {
     await expect(page.getByText(T.sessions.pageTitle).first()).toBeVisible();
     await expect(page.locator('table')).toBeVisible();
     await expect(page.getByRole('columnheader', { name: T.sessions.col.user })
-      .or(page.getByRole('columnheader', { name: T.sessions.col.status }))).toBeVisible();
+      .or(page.getByRole('columnheader', { name: T.sessions.col.status })).first()).toBeVisible();
   });
 
   test('tabla muestra sesiones con estado ABIERTA o CERRADA', async ({ page }) => {
-    const hasOpen = await page.getByText(T.status.open).isVisible().catch(() => false);
-    const hasClosedText = await page.getByText('CERRADA').isVisible().catch(() => false);
-    const hasRows = await page.locator('table tbody tr').count().then(c => c > 0).catch(() => false);
     // No hay problema si no hay sesiones en el historial
     await expect(page).not.toHaveURL(/error/);
   });

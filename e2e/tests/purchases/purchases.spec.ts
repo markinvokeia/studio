@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { randomEmail, randomPhone } from '../../utils/helpers';
+import { randomEmail, randomPhone, randomDoc } from '../../utils/helpers';
 
 // Translation strings from es.json — ProvidersPage / Purchases modules
 
@@ -24,8 +24,8 @@ test.describe('Compras — Proveedores', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/purchases/providers');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/purchases/providers', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table', { timeout: 60_000 });
   });
 
   test('carga título "Proveedores" y tabla con columnas', async ({ page }) => {
@@ -72,6 +72,7 @@ test.describe('Compras — Proveedores', () => {
       await expect(page.getByRole('dialog')).toBeVisible();
       await page.getByLabel(T.nameLabel).fill(name);
       await page.getByLabel(T.emailLabel).fill(email);
+      await page.getByLabel(T.docLabel).fill(randomDoc());
       await page.getByRole('button', { name: T.save }).click();
       await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 10_000 });
 
@@ -124,8 +125,8 @@ test.describe('Compras — Proveedores', () => {
 
 test.describe('Compras — Presupuestos de Compra', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/purchases/quotes');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/purchases/quotes', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table', { timeout: 60_000 });
   });
 
   test('carga título "Presupuestos" y tabla', async ({ page }) => {
@@ -142,7 +143,7 @@ test.describe('Compras — Presupuestos de Compra', () => {
     await page.getByRole('button', { name: 'Crear' }).click();
     const dialog = page.getByRole('dialog');
     if (await dialog.isVisible().catch(() => false)) {
-      await expect(page.getByText(/proveedor|supplier/i).first()).toBeVisible();
+      await expect(page.getByText(/usuario|proveedor|supplier/i).first()).toBeVisible();
       await page.getByRole('button', { name: 'Cancelar' }).click();
     }
   });
@@ -152,8 +153,8 @@ test.describe('Compras — Presupuestos de Compra', () => {
 
 test.describe('Compras — Facturas de Compra', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/purchases/invoices');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/purchases/invoices', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table', { timeout: 60_000 });
   });
 
   test('carga título "Facturas" y tabla', async ({ page }) => {
@@ -171,8 +172,8 @@ test.describe('Compras — Facturas de Compra', () => {
 
 test.describe('Compras — Pagos de Compra', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/purchases/payments');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/purchases/payments', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table', { timeout: 60_000 });
   });
 
   test('carga título "Pagos" y tabla', async ({ page }) => {

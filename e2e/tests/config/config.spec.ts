@@ -16,7 +16,7 @@ test.describe('Configuración — Detalles de la Clínica', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/clinics');
+    await page.goto('/es/config/clinics');
     await page.waitForLoadState('networkidle');
   });
 
@@ -65,7 +65,7 @@ test.describe('Configuración — Doctores', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/doctors');
+    await page.goto('/es/config/doctors');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -187,7 +187,7 @@ test.describe('Configuración — Horarios', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/schedules');
+    await page.goto('/es/config/schedules');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -231,7 +231,7 @@ test.describe('Configuración — Calendarios', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/calendars');
+    await page.goto('/es/config/calendars');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -302,7 +302,7 @@ test.describe('Configuración — Días Feriados', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/holidays');
+    await page.goto('/es/config/holidays');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -324,7 +324,7 @@ test.describe('Configuración — Días Feriados', () => {
 
 test.describe('Configuración — Secuencias', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/sequences');
+    await page.goto('/es/config/sequences');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -338,7 +338,7 @@ test.describe('Configuración — Secuencias', () => {
 
 test.describe('Configuración — Sociedades Mutuales', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/mutual-societies');
+    await page.goto('/es/config/mutual-societies');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -352,7 +352,7 @@ test.describe('Configuración — Sociedades Mutuales', () => {
 
 test.describe('Configuración — Monedas y Tipos de Cambio', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/config/currencies');
+    await page.goto('/es/config/currencies');
     await page.waitForLoadState('networkidle');
   });
 

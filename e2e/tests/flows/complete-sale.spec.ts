@@ -15,12 +15,12 @@ import { randomDoc, randomEmail } from '../../utils/helpers';
  */
 test.describe('Flujo de Venta Completo', () => {
   test('navegar al módulo de Presupuestos y crear un presupuesto', async ({ page }) => {
-    await page.goto('/sales/quotes');
+    await page.goto('/es/sales/quotes');
     await page.waitForSelector('table', { timeout: 15_000 });
 
     // Verificar que la página cargó
-    await expect(page.getByRole('heading', { name: 'Presupuestos' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Crear' })).toBeVisible();
+    await expect(page.getByText('Presupuestos').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Crear' }).first()).toBeVisible();
 
     // Abrir formulario de creación
     await page.getByRole('button', { name: 'Crear' }).click();
@@ -37,7 +37,7 @@ test.describe('Flujo de Venta Completo', () => {
   });
 
   test('panel de detalle de presupuesto muestra tabs: Artículos, Órdenes, Facturas, Pagos, Notas', async ({ page }) => {
-    await page.goto('/sales/quotes');
+    await page.goto('/es/sales/quotes');
     await page.waitForSelector('table', { timeout: 15_000 });
 
     const firstRow = page.locator('table tbody tr').first();
@@ -60,7 +60,7 @@ test.describe('Flujo de Venta Completo', () => {
   });
 
   test('tab Órdenes muestra acciones Programar/Completar por ítem', async ({ page }) => {
-    await page.goto('/sales/quotes');
+    await page.goto('/es/sales/quotes');
     await page.waitForSelector('table', { timeout: 15_000 });
 
     const firstRow = page.locator('table tbody tr').first();
@@ -87,7 +87,7 @@ test.describe('Flujo de Venta Completo', () => {
   });
 
   test('tab Facturas dentro del presupuesto está disponible', async ({ page }) => {
-    await page.goto('/sales/quotes');
+    await page.goto('/es/sales/quotes');
     await page.waitForSelector('table', { timeout: 15_000 });
 
     const firstRow = page.locator('table tbody tr').first();
@@ -106,7 +106,7 @@ test.describe('Flujo de Venta Completo', () => {
   });
 
   test('acción Confirmar presupuesto muestra diálogo de confirmación', async ({ page }) => {
-    await page.goto('/sales/quotes');
+    await page.goto('/es/sales/quotes');
     await page.waitForSelector('table', { timeout: 15_000 });
 
     const actionBtn = page.locator('table tbody tr').first()
@@ -131,9 +131,9 @@ test.describe('Flujo de Venta Completo', () => {
 
   test('flujo completo: navegar desde Pacientes → Presupuestos del paciente', async ({ page }) => {
     // Ir a pacientes
-    await page.goto('/patients');
+    await page.goto('/es/patients');
     await page.waitForSelector('table', { timeout: 15_000 });
-    await expect(page.getByRole('heading', { name: 'Pacientes' })).toBeVisible();
+    await expect(page.getByText('Pacientes').first()).toBeVisible();
 
     // Seleccionar el primer paciente
     const firstRow = page.locator('table tbody tr').first();

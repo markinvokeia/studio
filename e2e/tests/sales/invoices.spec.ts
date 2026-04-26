@@ -58,7 +58,7 @@ const T = {
 
 test.describe('Facturas de Venta', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/sales/invoices');
+    await page.goto('/es/sales/invoices');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -175,7 +175,7 @@ test.describe('Facturas de Venta', () => {
       if (await actionBtn.isVisible().catch(() => false)) {
         await actionBtn.click();
         await expect(page.getByRole('menuitem', { name: T.print })
-          .or(page.getByRole('menuitem', { name: T.sendEmail }))).toBeVisible();
+          .or(page.getByRole('menuitem', { name: T.sendEmail })).first()).toBeVisible();
         await page.keyboard.press('Escape');
       }
     });

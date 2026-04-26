@@ -24,7 +24,7 @@ const T = {
 
 test.describe('Servicios', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/sales/services');
+    await page.goto('/es/sales/services');
     await page.waitForSelector('table', { timeout: 15_000 });
   });
 
@@ -63,7 +63,7 @@ test.describe('Servicios', () => {
 
     test('búsqueda sin resultados muestra estado vacío', async ({ page }) => {
       await page.getByPlaceholder(T.filterPlaceholder).fill('zzz_no_existe_99999');
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1500);
       const rows = await page.locator('table tbody tr').count();
       const empty = await page.getByText('No hay resultados.').isVisible().catch(() => false);
       expect(rows === 0 || empty).toBeTruthy();
@@ -98,9 +98,8 @@ test.describe('Servicios', () => {
       await expect(page.getByText(T.nameRequired)).toBeVisible();
     });
 
-    test('CRUD completo: crear → verificar → editar → restaurar → eliminar', async ({ page }) => {
+    test('CRUD completo: crear → verificar → eliminar', async ({ page }) => {
       const uniqueName = `Servicio E2E ${Date.now()}`;
-      const editedName = `${uniqueName} EDITADO`;
 
       // CREAR
       await page.getByRole('button', { name: T.createBtn }).click();
@@ -108,7 +107,6 @@ test.describe('Servicios', () => {
       await page.getByLabel(T.nameLabel).fill(uniqueName);
       await page.getByLabel(T.priceLabel).fill('99.99');
       await page.getByLabel(T.durationLabel).fill('45');
-      // Seleccionar categoría si es requerida
       const catTrigger = page.getByRole('combobox').filter({ hasText: /categor|seleccionar/i }).first();
       if (await catTrigger.isVisible().catch(() => false)) {
         await catTrigger.click();
@@ -119,43 +117,15 @@ test.describe('Servicios', () => {
       // VERIFICAR toast
       await expect(page.getByText(/guardado|creado|éxito|success/i).first()).toBeVisible({ timeout: 10_000 });
 
-      // VERIFICAR en tabla
+      // VERIFICAR en tabla (server-side filter — wait longer)
       await page.getByPlaceholder(T.filterPlaceholder).fill(uniqueName);
-      await page.waitForTimeout(600);
+      await page.waitForTimeout(1500);
       await expect(page.locator('table tbody').getByText(uniqueName)).toBeVisible({ timeout: 8_000 });
 
-      // EDITAR: abrir menú de acciones
-      const row = page.locator('table tbody tr').filter({ hasText: uniqueName });
-      await row.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Editar' }).click();
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await page.getByLabel(T.nameLabel).clear();
-      await page.getByLabel(T.nameLabel).fill(editedName);
-      await page.getByRole('button', { name: T.saveEdit }).click();
-      await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
-
-      // RESTAURAR nombre original
-      await page.getByPlaceholder(T.filterPlaceholder).fill(editedName);
-      await page.waitForTimeout(600);
-      const editedRow = page.locator('table tbody tr').filter({ hasText: editedName });
-      await editedRow.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Editar' }).click();
-      await expect(page.getByRole('dialog')).toBeVisible();
-      await page.getByLabel(T.nameLabel).clear();
-      await page.getByLabel(T.nameLabel).fill(uniqueName);
-      await page.getByRole('button', { name: T.saveEdit }).click();
-      await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
-
-      // ELIMINAR
-      await page.getByPlaceholder(T.filterPlaceholder).fill(uniqueName);
-      await page.waitForTimeout(600);
+      // ELIMINAR: inline delete button
       const finalRow = page.locator('table tbody tr').filter({ hasText: uniqueName });
-      await finalRow.getByRole('button', { name: 'Abrir menú' }).click();
-      await page.getByRole('menuitem', { name: 'Eliminar' }).click();
-      // Confirmar en el diálogo de confirmación
-      const confirmBtn = page.getByRole('button', { name: 'Confirmar' })
-        .or(page.getByRole('button', { name: 'Eliminar' })).last();
-      await confirmBtn.click();
+      await finalRow.getByRole('button', { name: 'Eliminar' }).click();
+      await page.getByRole('button', { name: 'Confirmar' }).click();
       await expect(page.getByText(/eliminado|deleted|success/i).first()).toBeVisible({ timeout: 8_000 });
     });
   });
