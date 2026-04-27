@@ -56,9 +56,9 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Skeleton } from '../ui/skeleton';
 
 
-const createInvoiceFormSchema = z.object({
-  user_id: z.string().min(1, 'A user or provider is required.'),
-  total: z.coerce.number().min(0, 'Total must be a non-negative number.'),
+const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
+  user_id: z.string().min(1, t('validation.userRequired')),
+  total: z.coerce.number().min(0, t('validation.totalNonNegative')),
   currency: z.enum(['UYU', 'USD']),
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
@@ -66,15 +66,15 @@ const createInvoiceFormSchema = z.object({
   is_historical: z.boolean().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
-    service_id: z.string().min(1, 'Service name is required'),
-    quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
-    unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
+    service_id: z.string().min(1, t('validation.serviceRequired')),
+    quantity: z.coerce.number().min(1, t('validation.quantityMin')),
+    unit_price: z.coerce.number().min(0, t('validation.unitPriceNonNegative')),
     total: z.coerce.number().optional(),
   })),
   type: z.enum(['invoice', 'credit_note']),
   parent_id: z.string().optional(),
 });
-type CreateInvoiceFormValues = z.infer<typeof createInvoiceFormSchema>;
+type CreateInvoiceFormValues = z.infer<ReturnType<typeof getCreateInvoiceFormSchema>>;
 
 const getColumns = (
   t: (key: string) => string,
@@ -509,6 +509,8 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const [serviceSearchOpen, setServiceSearchOpen] = React.useState<Record<number, boolean>>({});
   const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
   const [isSearchingServices, setIsSearchingServices] = React.useState(false);
+
+  const createInvoiceFormSchema = React.useMemo(() => getCreateInvoiceFormSchema(t), [t]);
 
   // Reset search when dialog closes
   React.useEffect(() => {

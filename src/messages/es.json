@@ -1660,7 +1660,12 @@
       },
       "validation": {
         "errorTitle": "Error de Envío",
-        "checkFields": "Por favor, revise los campos marcados en rojo."
+        "checkFields": "Por favor, revise los campos marcados en rojo.",
+        "userRequired": "Un usuario o proveedor es obligatorio.",
+        "totalNonNegative": "El total debe ser un número no negativo.",
+        "serviceRequired": "El nombre del servicio es obligatorio.",
+        "quantityMin": "La cantidad debe ser al menos 1.",
+        "unitPriceNonNegative": "El precio unitario no puede ser negativo."
       },
       "errors": {
         "title": "Error",

@@ -1659,7 +1659,12 @@
       },
       "validation": {
         "errorTitle": "Submission Error",
-        "checkFields": "Please check the form for errors."
+        "checkFields": "Please check the form for errors.",
+        "userRequired": "A user or provider is required.",
+        "totalNonNegative": "Total must be a non-negative number.",
+        "serviceRequired": "Service name is required.",
+        "quantityMin": "Quantity must be at least 1.",
+        "unitPriceNonNegative": "Unit price cannot be negative."
       },
       "errors": {
         "title": "Error",
