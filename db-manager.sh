@@ -274,6 +274,8 @@ cmd_init_baseline() {
       _warn "Operación cancelada."
       exit 0
     fi
+    # SOLUCIÓN: Eliminamos el archivo para que Liquibase no necesite sobreescribirlo
+    rm -f "${baseline_path}"
   fi
 
   _log "Generando changelog desde el esquema actual de la base de datos..."
@@ -281,7 +283,6 @@ cmd_init_baseline() {
 
   _run_liquibase generate-changelog \
     --changelog-file="${baseline_file}" \
-    --overwrite-output-file=true \
     --include-schema=false \
     --include-catalog=false
 
@@ -307,51 +308,108 @@ cmd_init_baseline() {
 }
 
 # =============================================================================
-# COMMAND: snapshot  (Capturar cambios — flujo diario)
-# Diffs the current DB against existing changelogs and generates a new file.
+# COMMAND: snapshot  (Capturar cambios — flujo diario usando Shadow DB)
 # =============================================================================
 cmd_snapshot() {
-  _section "Snapshot — Generando changelog diferencial"
+  _section "Snapshot — Generando changelog diferencial (Shadow DB Mode)"
 
   _check_docker
   _load_env
   _ensure_driver
+
+  mkdir -p "${DB_DIR}/scripts/metadata"
+  mkdir -p "${DB_DIR}/scripts/seed"
 
   local timestamp
   timestamp=$(date '+%Y%m%d_%H%M')
   local snapshot_filename="changelog_${timestamp}.xml"
   local snapshot_file="changelogs/${snapshot_filename}"
   local snapshot_path="${CHANGELOGS_DIR}/${snapshot_filename}"
-  local master_xml="${CHANGELOGS_DIR}/changelog-master.xml"
 
-  _log "Comparando la DB actual contra los changelogs registrados..."
-  _log "Archivo de salida: ${snapshot_filename}"
+  rm -f "${snapshot_path}"
 
-  _run_liquibase diff-changelog \
-    --changelog-file="${snapshot_file}" \
-    --overwrite-output-file=true
+  # ── 1. LEVANTAR SHADOW DB ────────────────────────────────────────────────────
+  _log "1/4 Levantando Base de Datos temporal (Shadow DB)..."
+  docker rm -f liquibase_shadow_db >/dev/null 2>&1 || true
+  
+  # Levantamos Postgres SIN exponer puertos al host (no es necesario)
+  docker run -d --name liquibase_shadow_db \
+    -e POSTGRES_PASSWORD=shadow \
+    -e POSTGRES_USER=postgres \
+    -e POSTGRES_DB=shadow_db \
+    postgres:15-alpine >/dev/null
+
+  _log "Esperando a que Postgres arranque..."
+  sleep 5
+
+  # URL local limpia porque Liquibase compartirá la red del contenedor
+  local shadow_url="jdbc:postgresql://localhost:5432/shadow_db"
+  
+  # URL de tu base DEV (resolviendo localhost para Mac si aplica)
+  local resolved_dev_url="${DB_URL}"
+  if [[ "${OSTYPE}" == "darwin"* ]]; then
+    resolved_dev_url="${resolved_dev_url/localhost/host.docker.internal}"
+    resolved_dev_url="${resolved_dev_url/127.0.0.1/host.docker.internal}"
+  fi
+
+  # ── 2. CONSTRUIR ESTADO DEL PROYECTO ─────────────────────────────────────────
+  _log "2/4 Construyendo el estado actual del código en la Shadow DB..."
+  # Usamos --network container:liquibase_shadow_db para conexión directa
+  # Quitamos el >/dev/null para poder ver si hay errores
+  docker run --rm \
+    --network container:liquibase_shadow_db \
+    -v "${DB_DIR}:/liquibase/changelog" \
+    -v "${DRIVERS_DIR}:/liquibase/lib" \
+    "${LIQUIBASE_IMAGE}" \
+    --url="${shadow_url}" \
+    --username="postgres" \
+    --password="shadow" \
+    --defaults-file=/liquibase/changelog/liquibase.properties \
+    update \
+    --changelog-file=changelogs/changelog-master.xml
+
+  # ── 3. COMPARAR (DIFF) ───────────────────────────────────────────────────────
+  _log "3/4 Comparando DEV viva vs Shadow DB..."
+  rm -f "${snapshot_path}"
+
+  docker run --rm \
+    --network container:liquibase_shadow_db \
+    -v "${DB_DIR}:/liquibase/changelog" \
+    -v "${DRIVERS_DIR}:/liquibase/lib" \
+    "${LIQUIBASE_IMAGE}" \
+    --reference-url="${resolved_dev_url}" \
+    --reference-username="${DB_USER}" \
+    --reference-password="${DB_PASS}" \
+    --url="${shadow_url}" \
+    --username="postgres" \
+    --password="shadow" \
+    --defaults-file=/liquibase/changelog/liquibase.properties \
+    --include-catalog=false \
+    --include-schema=false \
+    --diff-types="tables,columns,indexes,foreignkeys,primarykeys,uniqueconstraints" \
+    diff-changelog \
+    --changelog-file="${snapshot_file}"
+
+  # ── 4. LIMPIEZA ──────────────────────────────────────────────────────────────
+  _log "4/4 Destruyendo Shadow DB..."
+  docker rm -f liquibase_shadow_db >/dev/null 2>&1
 
   if [ ! -f "${snapshot_path}" ]; then
     _warn "No se generó ningún archivo. Puede que no haya diferencias o hubo un error."
     exit 0
   fi
 
-  # Check if the generated file has any actual changesets (not just the header)
   if ! grep -q "<changeSet" "${snapshot_path}" 2>/dev/null; then
-    _log "No se encontraron diferencias entre la DB y los changelogs actuales."
+    _log "No se encontraron diferencias de esquema entre la DB y el código."
     rm -f "${snapshot_path}"
     exit 0
   fi
 
-  _log "Snapshot generado con diferencias: ${snapshot_path}"
+  _log "Snapshot generado exitosamente: ${snapshot_path}"
   printf "\n"
   _warn "PRÓXIMOS PASOS:"
-  _warn "  1. Revisa y ajusta el archivo generado:"
-  printf "     %bcode database/changelogs/%s%b\n" "${CYAN}" "${snapshot_filename}" "${RESET}"
-  _warn "  2. Agrega la referencia en changelog-master.xml (sección SECTION 1):"
-  printf "     %b<include file=\"changelogs/%s\" relativeToChangelogFile=\"false\"/>%b\n" "${CYAN}" "${snapshot_filename}" "${RESET}"
-  _warn "  3. Aplica los cambios:"
-  printf "     %bnpm run db:migrate%b  (o %bnpm run db:migrate -- --dry-run%b para previsualizar)\n" "${CYAN}" "${RESET}" "${CYAN}" "${RESET}"
+  _warn "  1. Revisa el archivo generado: code database/changelogs/${snapshot_filename}"
+  _warn "  2. Añádelo al master: <include file=\"changelogs/${snapshot_filename}\" relativeToChangelogFile=\"false\"/>"
 }
 
 # =============================================================================
@@ -497,6 +555,25 @@ _usage() {
 }
 
 # =============================================================================
+# COMMAND: sync (Registrar sin ejecutar)
+# Marca todos los cambios del código como "ya aplicados" en la DDBB actual.
+# =============================================================================
+cmd_sync() {
+  _section "Sync — Sincronizando historial de Liquibase"
+
+  _check_docker
+  _load_env
+  _ensure_driver
+
+  _log "Marcando todos los changesets en changelog-master.xml como ejecutados..."
+  
+  _run_liquibase changelog-sync \
+    --changelog-file=changelogs/changelog-master.xml
+
+  _log "${GREEN}${BOLD}Sincronización completada.${RESET}"
+}
+
+# =============================================================================
 # MAIN DISPATCH
 # =============================================================================
 main() {
@@ -514,6 +591,7 @@ main() {
     snapshot)       cmd_snapshot "$@" ;;
     deploy)         cmd_deploy "$@" ;;
     rollback)       cmd_rollback "$@" ;;
+    sync)           cmd_sync "$@" ;; 
     help|--help|-h) _usage ;;
     *)
       _error "Comando desconocido: '${command}'"

@@ -1,6 +1,49 @@
 <?xml version="1.1" encoding="UTF-8" standalone="no"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <changeSet author="liquibase (generated)" id="1777237614048-1">
+    <changeSet author="manual-fix" id="000-custom-types">
+        <sql>
+            CREATE TYPE document_type_enum AS ENUM ('invoice', 'quote', 'order', 'payment', 'miscellaneous', 'appointment');
+            CREATE TYPE reset_period_enum AS ENUM ('never', 'daily', 'weekly', 'monthly', 'yearly');
+            CREATE TYPE recurrence_type AS ENUM ('daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'none');
+        </sql>
+    </changeSet>
+    <changeSet author="manual-fix" id="000-custom-functions" runOnChange="true">
+        <sql splitStatements="false">
+            CREATE OR REPLACE FUNCTION public.get_user_primary_type(
+	p_user_id uuid)
+    RETURNS text
+    LANGUAGE 'plpgsql'
+    COST 100
+    STABLE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+    v_is_sales BOOLEAN;
+BEGIN
+    -- Obtener is_sales del usuario
+    SELECT is_sales INTO v_is_sales FROM users WHERE id = p_user_id;
+    
+    -- Priorizar roles específicos
+    IF user_has_role(p_user_id, 'employee') THEN
+        RETURN 'employee';
+    ELSIF user_has_role(p_user_id, 'owner') THEN
+        RETURN 'owner';
+    ELSIF user_has_role(p_user_id, 'government') THEN
+        RETURN 'government';
+    ELSIF user_has_role(p_user_id, 'other_party') THEN
+        RETURN 'other';
+    -- Si no tiene roles específicos, usar is_sales
+    ELSIF v_is_sales = true THEN
+        RETURN 'customer';
+    ELSIF v_is_sales = false THEN
+        RETURN 'supplier';
+    ELSE
+        RETURN 'other';
+    END IF;
+END;
+$BODY$;
+            </sql>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777289234254-1">
         <createTable tableName="access_logs">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="access_logs_pkey"/>
@@ -22,7 +65,7 @@
             <column name="response" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-2">
+    <changeSet author="liquibase (generated)" id="1777289234254-2">
         <createTable tableName="ai_generated_appointments">
             <column defaultValueComputed="gen_random_uuid()" name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="ai_generated_appointments_pkey"/>
@@ -55,7 +98,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="updated_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-3">
+    <changeSet author="liquibase (generated)" id="1777289234254-3">
         <createTable remarks="Alergias conocidas del paciente." tableName="alergias_paciente">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alergias_paciente_pkey"/>
@@ -69,7 +112,7 @@
             <column name="reaccion_descrita" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-4">
+    <changeSet author="liquibase (generated)" id="1777289234254-4">
         <createTable remarks="Registro de todas las acciones tomadas sobre las alertas" tableName="alert_actions">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alert_actions_pkey"/>
@@ -93,7 +136,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-5">
+    <changeSet author="liquibase (generated)" id="1777289234254-5">
         <createTable remarks="Categorías para agrupar tipos de alertas" tableName="alert_categories">
             <column autoIncrement="true" name="id" startWith="11" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alert_categories_pkey"/>
@@ -118,7 +161,7 @@
             <column name="notification_category_slug" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-6">
+    <changeSet author="liquibase (generated)" id="1777289234254-6">
         <createTable remarks="Instancias concretas de alertas generadas por el proceso nocturno" tableName="alert_instances">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alert_instances_pkey"/>
@@ -161,7 +204,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-7">
+    <changeSet author="liquibase (generated)" id="1777289234254-7">
         <createTable remarks="Definición de reglas que generan alertas automáticamente" tableName="alert_rules">
             <column autoIncrement="true" name="id" startWith="15" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alert_rules_pkey"/>
@@ -201,10 +244,10 @@
                 <constraints nullable="false"/>
             </column>
             <column name="next_execution_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
-            <column defaultValueComputed="{}" name="ui_display_config" type="JSONB"/>
+            <column defaultValueComputed="'{}'::jsonb" name="ui_display_config" type="JSONB"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-8">
+    <changeSet author="liquibase (generated)" id="1777289234254-8">
         <createTable remarks="Registro de ejecuciones del proceso nocturno" tableName="alert_schedule_runs">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alert_schedule_runs_pkey"/>
@@ -231,7 +274,7 @@
             <column defaultValue="SCHEDULER" name="triggered_by" remarks="SCHEDULER, MANUAL, API" type="VARCHAR(50)"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-9">
+    <changeSet author="liquibase (generated)" id="1777289234254-9">
         <createTable remarks="Configuración global del sistema de alertas" tableName="alert_system_config">
             <column autoIncrement="true" name="id" startWith="187" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="alert_system_config_pkey"/>
@@ -253,7 +296,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-10">
+    <changeSet author="liquibase (generated)" id="1777289234254-10">
         <createTable remarks="Historial médico de familiares directos del paciente." tableName="antecedentes_familiares">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="antecedentes_familiares_pkey"/>
@@ -268,7 +311,7 @@
             <column name="padecimiento_id" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-11">
+    <changeSet author="liquibase (generated)" id="1777289234254-11">
         <createTable remarks="Padecimientos médicos actuales o pasados del paciente." tableName="antecedentes_personales">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="antecedentes_personales_pkey"/>
@@ -280,7 +323,7 @@
             <column name="padecimiento_id" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-12">
+    <changeSet author="liquibase (generated)" id="1777289234254-12">
         <createTable tableName="appointments">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="appointments_pkey"/>
@@ -314,7 +357,7 @@
             <column name="calendar_source_id" type="BIGINT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-13">
+    <changeSet author="liquibase (generated)" id="1777289234254-13">
         <createTable remarks="Almacena referencias a archivos (radiografías, fotos) de una sesión." tableName="archivos_adjuntos_sesion">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="archivos_adjuntos_sesion_pkey"/>
@@ -334,7 +377,7 @@
             <column name="thumbnail_url" type="VARCHAR(512)"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-14">
+    <changeSet author="liquibase (generated)" id="1777289234254-14">
         <createTable tableName="audit_log">
             <column autoIncrement="true" name="id" startWith="683" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="audit_log_pkey"/>
@@ -356,7 +399,7 @@
             <column name="session_id" type="UUID"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-15">
+    <changeSet author="liquibase (generated)" id="1777289234254-15">
         <createTable tableName="availability_exceptions">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="availability_exceptions_pkey"/>
@@ -374,7 +417,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-16">
+    <changeSet author="liquibase (generated)" id="1777289234254-16">
         <createTable tableName="cash_movements">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="cash_movements_pkey"/>
@@ -414,10 +457,10 @@
             <column name="source_id" remarks="ID del registro origen: payment_id o miscellaneous_transaction_id según source_type" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-17">
+    <changeSet author="liquibase (generated)" id="1777289234254-17">
         <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="cash_movements_id_seq" startValue="1"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-18">
+    <changeSet author="liquibase (generated)" id="1777289234254-18">
         <createTable tableName="cash_points">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="cash_points_pkey"/>
@@ -436,10 +479,10 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-19">
+    <changeSet author="liquibase (generated)" id="1777289234254-19">
         <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="cash_points_id_seq" startValue="1"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-20">
+    <changeSet author="liquibase (generated)" id="1777289234254-20">
         <createTable tableName="cash_session_currencies">
             <column name="cash_session_id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="cash_session_currencies_pkey"/>
@@ -462,7 +505,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-21">
+    <changeSet author="liquibase (generated)" id="1777289234254-21">
         <createTable tableName="cash_sessions">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="cash_sessions_pkey"/>
@@ -486,10 +529,10 @@
             <column name="bank_deposit_details" type="JSON"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-22">
+    <changeSet author="liquibase (generated)" id="1777289234254-22">
         <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="cash_sessions_id_seq" startValue="1"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-23">
+    <changeSet author="liquibase (generated)" id="1777289234254-23">
         <createTable remarks="Hallazgos posibles en un odontograma." tableName="catalogo_condiciones_dentales">
             <column autoIncrement="true" name="id" startWith="74" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="catalogo_condiciones_dentales_pkey"/>
@@ -500,10 +543,10 @@
             <column name="codigo_visual" type="VARCHAR(20)">
                 <constraints nullable="false"/>
             </column>
-            <column name="color_hex" type="VARCHAR(10)"/>
+            <column name="color_hex" type="VARCHAR(13)"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-24">
+    <changeSet author="liquibase (generated)" id="1777289234254-24">
         <createTable remarks="Catálogo de medicamentos para autocompletado." tableName="catalogo_medicamentos">
             <column autoIncrement="true" name="id" startWith="94" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="catalogo_medicamentos_pkey"/>
@@ -514,7 +557,7 @@
             <column name="nombre_comercial" type="VARCHAR(255)"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-25">
+    <changeSet author="liquibase (generated)" id="1777289234254-25">
         <createTable remarks="Lista estandarizada de enfermedades y condiciones médicas." tableName="catalogo_padecimientos">
             <column autoIncrement="true" name="id" startWith="81" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="catalogo_padecimientos_pkey"/>
@@ -528,7 +571,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-26">
+    <changeSet author="liquibase (generated)" id="1777289234254-26">
         <createTable remarks="Superficies de un diente." tableName="catalogo_superficies_dentales">
             <column autoIncrement="true" name="id" startWith="18" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="catalogo_superficies_dentales_pkey"/>
@@ -541,7 +584,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-27">
+    <changeSet author="liquibase (generated)" id="1777289234254-27">
         <createTable tableName="chat_registered">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="chat_registered_pkey"/>
@@ -556,7 +599,7 @@
             <column defaultValueBoolean="false" name="procesado" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-28">
+    <changeSet author="liquibase (generated)" id="1777289234254-28">
         <createTable tableName="clinic">
             <column autoIncrement="true" name="id" startWith="2" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="clinic_pkey"/>
@@ -579,7 +622,7 @@
             <column name="thumbnail_link" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-29">
+    <changeSet author="liquibase (generated)" id="1777289234254-29">
         <createTable tableName="clinic_exceptions">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="clinic_exceptions_pkey"/>
@@ -595,7 +638,7 @@
             <column name="notes" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-30">
+    <changeSet author="liquibase (generated)" id="1777289234254-30">
         <createTable tableName="clinic_schedules">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="clinic_schedules_pkey"/>
@@ -612,7 +655,7 @@
             <column defaultValueComputed="now()" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-31">
+    <changeSet author="liquibase (generated)" id="1777289234254-31">
         <createTable tableName="clinics">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="clinics_pkey"/>
@@ -628,7 +671,7 @@
             <column defaultValueBoolean="true" name="is_active" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-32">
+    <changeSet author="liquibase (generated)" id="1777289234254-32">
         <createTable tableName="communication_channels">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="communication_channels_pkey"/>
@@ -643,7 +686,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-33">
+    <changeSet author="liquibase (generated)" id="1777289234254-33">
         <createTable remarks="Plantillas para emails, SMS y documentos con variables dinámicas" tableName="communication_templates">
             <column autoIncrement="true" name="id" startWith="32" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="communication_templates_pkey"/>
@@ -677,7 +720,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-34">
+    <changeSet author="liquibase (generated)" id="1777289234254-34">
         <createTable tableName="conversation_audit_logs">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="conversation_audit_logs_pkey"/>
@@ -692,7 +735,7 @@
             <column name="details" type="JSONB"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-35">
+    <changeSet author="liquibase (generated)" id="1777289234254-35">
         <createTable tableName="conversations">
             <column defaultValueComputed="gen_random_uuid()" name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="conversations_pkey"/>
@@ -706,7 +749,7 @@
             <column name="metadata" type="JSONB"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-36">
+    <changeSet author="liquibase (generated)" id="1777289234254-36">
         <createTable remarks="Mediciones periodontales detalladas para cada diente." tableName="datos_periodontograma">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="datos_periodontograma_pkey"/>
@@ -735,7 +778,7 @@
             <column name="afectacion_furca" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-37">
+    <changeSet author="liquibase (generated)" id="1777289234254-37">
         <createTable tableName="error_logs">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="error_logs_pkey"/>
@@ -752,7 +795,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-38">
+    <changeSet author="liquibase (generated)" id="1777289234254-38">
         <createTable remarks="Almacena referencias a archivos (radiografías, fotos) de una sesión." tableName="fotos_odontograma_sesion">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="fotos_odontograma_sesion_pkey"/>
@@ -770,7 +813,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-39">
+    <changeSet author="liquibase (generated)" id="1777289234254-39">
         <createTable tableName="global_notification_settings">
             <column name="channel_slug" type="VARCHAR(50)">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="global_notification_settings_pkey"/>
@@ -781,7 +824,7 @@
             <column defaultValueBoolean="true" name="is_enabled" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-40">
+    <changeSet author="liquibase (generated)" id="1777289234254-40">
         <createTable remarks="Hábitos del paciente relevantes para el tratamiento dental." tableName="habitos_paciente">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="habitos_paciente_pkey"/>
@@ -795,7 +838,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="fecha_actualizacion" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-41">
+    <changeSet author="liquibase (generated)" id="1777289234254-41">
         <createTable remarks="Cada condición específica encontrada en un diente para un odontograma." tableName="hallazgos_odontograma">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="hallazgos_odontograma_pkey"/>
@@ -813,7 +856,7 @@
             <column name="comentarios" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-42">
+    <changeSet author="liquibase (generated)" id="1777289234254-42">
         <createTable remarks="Medicamentos que el paciente está tomando o ha tomado." tableName="historial_medicamentos_paciente">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="historial_medicamentos_paciente_pkey"/>
@@ -832,7 +875,7 @@
             <column name="motivo" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-43">
+    <changeSet author="liquibase (generated)" id="1777289234254-43">
         <createTable tableName="invoice_allocations">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="invoice_allocations_pkey"/>
@@ -859,7 +902,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-44">
+    <changeSet author="liquibase (generated)" id="1777289234254-44">
         <createTable tableName="invoice_items">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="invoice_items_pkey"/>
@@ -878,7 +921,7 @@
             <column name="service_id" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-45">
+    <changeSet author="liquibase (generated)" id="1777289234254-45">
         <createTable tableName="invoices">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="invoices_pkey"/>
@@ -922,7 +965,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-46">
+    <changeSet author="liquibase (generated)" id="1777289234254-46">
         <createTable tableName="log_cotizaciones_json">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="log_cotizaciones_json_pkey"/>
@@ -935,7 +978,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-47">
+    <changeSet author="liquibase (generated)" id="1777289234254-47">
         <createTable tableName="logout_log">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="logout_log_pkey"/>
@@ -949,7 +992,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-48">
+    <changeSet author="liquibase (generated)" id="1777289234254-48">
         <createTable tableName="mensajes_entrada">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="mensajes_entrada_pkey"/>
@@ -964,7 +1007,7 @@
             <column defaultValueBoolean="false" name="procesado" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-49">
+    <changeSet author="liquibase (generated)" id="1777289234254-49">
         <createTable tableName="mensajes_prueba">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="mensajes_prueba_pkey"/>
@@ -979,7 +1022,7 @@
             <column defaultValueBoolean="false" name="procesado" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-50">
+    <changeSet author="liquibase (generated)" id="1777289234254-50">
         <createTable tableName="messages">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="messages_pkey"/>
@@ -998,7 +1041,7 @@
             <column name="metadata" type="JSONB"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-51">
+    <changeSet author="liquibase (generated)" id="1777289234254-51">
         <createTable tableName="miscellaneous_attachments">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="miscellaneous_attachments_pkey"/>
@@ -1023,7 +1066,7 @@
             <column name="description" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-52">
+    <changeSet author="liquibase (generated)" id="1777289234254-52">
         <createTable tableName="miscellaneous_categories">
             <column autoIncrement="true" name="id" startWith="56" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="miscellaneous_categories_pkey"/>
@@ -1051,7 +1094,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-53">
+    <changeSet author="liquibase (generated)" id="1777289234254-53">
         <createTable remarks="Transacciones de caja que no son ventas ni compras (salarios, servicios, etc.)" tableName="miscellaneous_transactions">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="miscellaneous_transactions_pkey"/>
@@ -1103,7 +1146,7 @@
             <column name="tags" type="VARCHAR[]"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-54">
+    <changeSet author="liquibase (generated)" id="1777289234254-54">
         <createTable tableName="mutual_societies">
             <column name="name" type="TEXT">
                 <constraints nullable="false"/>
@@ -1118,7 +1161,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-55">
+    <changeSet author="liquibase (generated)" id="1777289234254-55">
         <createTable tableName="n8n_chat_histories">
             <column autoIncrement="true" name="id" startWith="15677" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="n8n_chat_histories_pkey"/>
@@ -1131,7 +1174,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-56">
+    <changeSet author="liquibase (generated)" id="1777289234254-56">
         <createTable tableName="notification_categories">
             <column name="slug" type="TEXT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="notification_categories_pkey"/>
@@ -1142,7 +1185,7 @@
             <column defaultValueBoolean="false" name="is_critical" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-57">
+    <changeSet author="liquibase (generated)" id="1777289234254-57">
         <createTable tableName="notification_platforms">
             <column autoIncrement="true" name="platform_id" startWith="4" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="notification_platforms_pkey"/>
@@ -1153,7 +1196,7 @@
             <column defaultValueBoolean="true" name="is_active" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-58">
+    <changeSet author="liquibase (generated)" id="1777289234254-58">
         <createTable remarks="Representa una &quot;foto&quot; del estado dental en un momento dado." tableName="odontogramas">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="odontogramas_pkey"/>
@@ -1170,7 +1213,7 @@
             <column name="notas_generales" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-59">
+    <changeSet author="liquibase (generated)" id="1777289234254-59">
         <createTable tableName="order_items">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="order_items_pkey"/>
@@ -1186,7 +1229,7 @@
             <column name="tooth_number" remarks="Número del diente asociado a la orden de servicio (opcional)" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-60">
+    <changeSet author="liquibase (generated)" id="1777289234254-60">
         <createTable tableName="orders">
             <column autoIncrement="true" name="id" startWith="218" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="orders_pkey"/>
@@ -1209,7 +1252,7 @@
             <column name="notes" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-61">
+    <changeSet author="liquibase (generated)" id="1777289234254-61">
         <createTable tableName="payment_allocations">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="payment_allocations_pkey"/>
@@ -1235,7 +1278,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-62">
+    <changeSet author="liquibase (generated)" id="1777289234254-62">
         <createTable tableName="payment_methods">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="payment_methods_pkey"/>
@@ -1254,10 +1297,10 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-63">
+    <changeSet author="liquibase (generated)" id="1777289234254-63">
         <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="payment_methods_id_seq" startValue="1"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-64">
+    <changeSet author="liquibase (generated)" id="1777289234254-64">
         <createTable tableName="payments">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="payments_pkey"/>
@@ -1289,7 +1332,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-65">
+    <changeSet author="liquibase (generated)" id="1777289234254-65">
         <createTable remarks="Representa una &quot;foto&quot; del estado periodontal en un momento dado." tableName="periodontogramas">
             <column autoIncrement="true" name="id" startWith="2" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="periodontogramas_pkey"/>
@@ -1306,7 +1349,7 @@
             <column name="notas_generales" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-66">
+    <changeSet author="liquibase (generated)" id="1777289234254-66">
         <createTable tableName="permissions">
             <column autoIncrement="true" name="id" startWith="500" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="permissions_pkey"/>
@@ -1323,7 +1366,7 @@
             <column name="permission_type" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-67">
+    <changeSet author="liquibase (generated)" id="1777289234254-67">
         <createTable tableName="quote_items">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="quote_items_pkey"/>
@@ -1342,7 +1385,7 @@
             <column name="tooth_number" remarks="Número del diente tratado (opcional)" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-68">
+    <changeSet author="liquibase (generated)" id="1777289234254-68">
         <createTable tableName="quotes">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="quotes_pkey"/>
@@ -1377,7 +1420,7 @@
             <column name="notes" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-69">
+    <changeSet author="liquibase (generated)" id="1777289234254-69">
         <createTable tableName="role_channel_permissions">
             <column name="role_id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="role_channel_permissions_pkey"/>
@@ -1389,7 +1432,7 @@
             <column name="restrictions" type="JSONB"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-70">
+    <changeSet author="liquibase (generated)" id="1777289234254-70">
         <createTable tableName="roles">
             <column autoIncrement="true" name="id" startWith="95" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="roles_pkey"/>
@@ -1401,7 +1444,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-71">
+    <changeSet author="liquibase (generated)" id="1777289234254-71">
         <createTable tableName="sesiones">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="sesiones_pkey"/>
@@ -1417,7 +1460,7 @@
             <column name="estado_odontograma" type="JSONB">
                 <constraints nullable="false"/>
             </column>
-            <column defaultValueComputed="00000000-0000-0000-0000-000000000000" name="doctor_id" type="UUID">
+            <column defaultValueComputed="'00000000-0000-0000-0000-000000000000'::uuid" name="doctor_id" type="UUID">
                 <constraints nullable="false"/>
             </column>
             <column name="tratamientos" type="JSONB"/>
@@ -1425,7 +1468,7 @@
             <column name="fecha_proximo_control" type="TIMESTAMP WITH TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-72">
+    <changeSet author="liquibase (generated)" id="1777289234254-72">
         <createTable remarks="El corazón del historial, cada registro es una visita o sesión." tableName="sesiones_clinicas">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="sesiones_clinicas_pkey"/>
@@ -1448,7 +1491,7 @@
             <column name="appointment_id" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-73">
+    <changeSet author="liquibase (generated)" id="1777289234254-73">
         <createTable tableName="system_configurations">
             <column autoIncrement="true" name="id" startWith="7" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="system_configurations_pkey"/>
@@ -1466,7 +1509,7 @@
             <column name="updated_by" type="UUID"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-74">
+    <changeSet author="liquibase (generated)" id="1777289234254-74">
         <createTable tableName="token_blacklist">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="token_blacklist_pkey"/>
@@ -1484,7 +1527,7 @@
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-75">
+    <changeSet author="liquibase (generated)" id="1777289234254-75">
         <createTable remarks="Detalla los tratamientos específicos realizados en una sesión y a qué dientes afectaron." tableName="tratamientos_sesion">
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="tratamientos_sesion_pkey"/>
@@ -1498,19 +1541,19 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-76">
+    <changeSet author="liquibase (generated)" id="1777289234254-76">
         <createTable tableName="user_balances">
             <column name="user_id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="user_balances_pkey"/>
             </column>
-            <column defaultValueComputed="{}" name="total_invoiced" type="JSONB"/>
-            <column defaultValueComputed="{}" name="total_paid" type="JSONB"/>
-            <column defaultValueComputed="{}" name="current_debt" type="JSONB"/>
-            <column defaultValueComputed="{}" name="available_balance" type="JSONB"/>
+            <column defaultValueComputed="'{}'::jsonb" name="total_invoiced" type="JSONB"/>
+            <column defaultValueComputed="'{}'::jsonb" name="total_paid" type="JSONB"/>
+            <column defaultValueComputed="'{}'::jsonb" name="current_debt" type="JSONB"/>
+            <column defaultValueComputed="'{}'::jsonb" name="available_balance" type="JSONB"/>
             <column defaultValueComputed="now()" name="last_updated_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-77">
+    <changeSet author="liquibase (generated)" id="1777289234254-77">
         <createTable tableName="user_clinics">
             <column name="user_id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="user_clinics_pkey"/>
@@ -1524,7 +1567,7 @@
             <column name="end_date" type="date"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-78">
+    <changeSet author="liquibase (generated)" id="1777289234254-78">
         <createTable tableName="user_communication_preferences">
             <column autoIncrement="true" name="id" startWith="361" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="user_communication_preferences_pkey"/>
@@ -1542,7 +1585,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-79">
+    <changeSet author="liquibase (generated)" id="1777289234254-79">
         <createTable tableName="user_roles">
             <column name="user_id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="user_roles_pkey"/>
@@ -1555,7 +1598,7 @@
             <column defaultValueBoolean="true" name="is_active" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-80">
+    <changeSet author="liquibase (generated)" id="1777289234254-80">
         <createTable tableName="user_services">
             <column name="user_id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="user_services_pkey"/>
@@ -1568,7 +1611,7 @@
             <column name="duration_minutes" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-81">
+    <changeSet author="liquibase (generated)" id="1777289234254-81">
         <createTable tableName="role_permissions">
             <column name="role_id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="role_permissions_pkey"/>
@@ -1580,7 +1623,7 @@
             <column name="write_uid" type="UUID"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-82">
+    <changeSet author="liquibase (generated)" id="1777289234254-82">
         <createTable tableName="appointment_service_catalog">
             <column name="appointment_id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="pk_appointment_service_catalog"/>
@@ -1590,7 +1633,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-83">
+    <changeSet author="liquibase (generated)" id="1777289234254-83">
         <createTable tableName="treatment_steps">
             <column autoIncrement="true" name="id" startWith="159" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="treatment_steps_pkey"/>
@@ -1617,7 +1660,7 @@
             <column name="notes" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-84">
+    <changeSet author="liquibase (generated)" id="1777289234254-84">
         <createTable tableName="treatment_sequences">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="treatment_sequences_pkey"/>
@@ -1644,7 +1687,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-85">
+    <changeSet author="liquibase (generated)" id="1777289234254-85">
         <createTable tableName="sequence_notes">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="sequence_notes_pkey"/>
@@ -1659,7 +1702,7 @@
             <column name="content" type="TEXT">
                 <constraints nullable="false"/>
             </column>
-            <column defaultValueComputed="[]" name="attachments" type="JSONB">
+            <column defaultValueComputed="'[]'::jsonb" name="attachments" type="JSONB">
                 <constraints nullable="false"/>
             </column>
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE">
@@ -1667,7 +1710,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-86">
+    <changeSet author="liquibase (generated)" id="1777289234254-86">
         <createTable tableName="abandonment_alerts">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="abandonment_alerts_pkey"/>
@@ -1686,7 +1729,7 @@
             <column name="action_taken" type="TEXT"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-87">
+    <changeSet author="liquibase (generated)" id="1777289234254-87">
         <createTable tableName="sequences">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="sequences_pkey"/>
@@ -1711,7 +1754,7 @@
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-88">
+    <changeSet author="liquibase (generated)" id="1777289234254-88">
         <createTable tableName="calendar_sources">
             <column name="name" type="TEXT">
                 <constraints nullable="false"/>
@@ -1720,13 +1763,13 @@
             <column defaultValueBoolean="true" name="is_active" type="BOOLEAN"/>
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="updated_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
-            <column name="color" type="COLOR_HEX(13)"/>
+            <column name="color" type="VARCHAR(13)"/>
             <column autoIncrement="true" name="id" type="BIGINT">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="calendar_sources_pkey"/>
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-89">
+    <changeSet author="liquibase (generated)" id="1777289234254-89">
         <createTable tableName="service_catalog">
             <column autoIncrement="true" name="id" startWith="48" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="service_catalog_pkey"/>
@@ -1747,7 +1790,7 @@
             <column defaultValueBoolean="true" name="is_sales" type="BOOLEAN">
                 <constraints nullable="false"/>
             </column>
-            <column name="color" type="COLOR_HEX(13)"/>
+            <column name="color" type="VARCHAR(13)"/>
             <column name="category_id" remarks="Referencia a miscellaneous_categories. Reemplaza al campo category (texto) con una relación formal." type="INTEGER"/>
             <column defaultValue="single" name="service_type" type="VARCHAR(20)">
                 <constraints nullable="false"/>
@@ -1756,7 +1799,7 @@
             <column name="estimated_total_days" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-90">
+    <changeSet author="liquibase (generated)" id="1777289234254-90">
         <createTable tableName="users">
             <column defaultValueComputed="gen_random_uuid()" name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="users_pkey"/>
@@ -1780,7 +1823,7 @@
             <column name="last_login_timestamp" type="TIMESTAMP WITHOUT TIME ZONE"/>
             <column defaultValue="NULL::character varying" name="password_setup_token" type="VARCHAR(500)"/>
             <column name="token_expiry" type="TIMESTAMP WITHOUT TIME ZONE"/>
-            <column name="color" type="COLOR_HEX(13)"/>
+            <column name="color" type="VARCHAR(13)"/>
             <column defaultValueBoolean="true" name="is_sales" type="BOOLEAN">
                 <constraints nullable="false"/>
             </column>
@@ -1795,117 +1838,117 @@
             <column name="mutual_society_id" type="INTEGER"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-91">
+    <changeSet author="liquibase (generated)" id="1777289234254-91">
         <createIndex indexName="idx_access_logs_action" tableName="access_logs" using="btree">
             <column name="action"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-92">
+    <changeSet author="liquibase (generated)" id="1777289234254-92">
         <createIndex indexName="idx_access_logs_success" tableName="access_logs" using="btree">
             <column name="success"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-93">
+    <changeSet author="liquibase (generated)" id="1777289234254-93">
         <createIndex indexName="idx_access_logs_timestamp" tableName="access_logs" using="btree">
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="timestamp"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-94">
+    <changeSet author="liquibase (generated)" id="1777289234254-94">
         <createIndex indexName="idx_access_logs_user" tableName="access_logs" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-95">
+    <changeSet author="liquibase (generated)" id="1777289234254-95">
         <createIndex indexName="idx_alergias_paciente_paciente" tableName="alergias_paciente" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-96">
+    <changeSet author="liquibase (generated)" id="1777289234254-96">
         <addUniqueConstraint columnNames="paciente_id, alergeno" constraintName="alergias_paciente_paciente_id_alergeno_key" tableName="alergias_paciente"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-97">
+    <changeSet author="liquibase (generated)" id="1777289234254-97">
         <addUniqueConstraint columnNames="code" constraintName="alert_categories_code_key" tableName="alert_categories"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-98">
+    <changeSet author="liquibase (generated)" id="1777289234254-98">
         <addUniqueConstraint columnNames="rule_id, reference_table, reference_id, alert_date" constraintName="unique_alert_per_record" tableName="alert_instances"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-99">
+    <changeSet author="liquibase (generated)" id="1777289234254-99">
         <addUniqueConstraint columnNames="code" constraintName="alert_rules_code_key" tableName="alert_rules"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-100">
+    <changeSet author="liquibase (generated)" id="1777289234254-100">
         <addUniqueConstraint columnNames="run_date, started_at" constraintName="unique_run_per_date" tableName="alert_schedule_runs"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-101">
+    <changeSet author="liquibase (generated)" id="1777289234254-101">
         <addUniqueConstraint columnNames="config_key" constraintName="alert_system_config_config_key_key" tableName="alert_system_config"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-102">
+    <changeSet author="liquibase (generated)" id="1777289234254-102">
         <createIndex indexName="idx_antecedentes_familiares_paciente" tableName="antecedentes_familiares" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-103">
+    <changeSet author="liquibase (generated)" id="1777289234254-103">
         <createIndex indexName="idx_antecedentes_personales_paciente" tableName="antecedentes_personales" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-104">
+    <changeSet author="liquibase (generated)" id="1777289234254-104">
         <createIndex indexName="idx_appointments_assignee_id" tableName="appointments" using="btree">
             <column name="assignee_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-105">
+    <changeSet author="liquibase (generated)" id="1777289234254-105">
         <createIndex indexName="idx_appointments_patient_id" tableName="appointments" using="btree">
             <column name="patient_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-106">
+    <changeSet author="liquibase (generated)" id="1777289234254-106">
         <createIndex indexName="idx_appt_sequence" tableName="appointments" using="btree">
             <column name="sequence_id"/>
             <column name="step_position"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-107">
+    <changeSet author="liquibase (generated)" id="1777289234254-107">
         <createIndex indexName="idx_appointments_calendar_source_id" tableName="appointments" using="btree">
             <column name="calendar_source_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-108">
+    <changeSet author="liquibase (generated)" id="1777289234254-108">
         <createIndex indexName="idx_archivos_adjuntos_sesion_sesion" tableName="archivos_adjuntos_sesion" using="btree">
             <column name="sesion_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-109">
+    <changeSet author="liquibase (generated)" id="1777289234254-109">
         <createIndex indexName="idx_audit_log_changed_by" tableName="audit_log" using="btree">
             <column name="changed_by"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-110">
+    <changeSet author="liquibase (generated)" id="1777289234254-110">
         <createIndex indexName="idx_audit_log_operation" tableName="audit_log" using="btree">
             <column name="operation"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-111">
+    <changeSet author="liquibase (generated)" id="1777289234254-111">
         <createIndex indexName="idx_audit_log_record" tableName="audit_log" using="btree">
             <column name="record_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-112">
+    <changeSet author="liquibase (generated)" id="1777289234254-112">
         <createIndex indexName="idx_audit_log_table" tableName="audit_log" using="btree">
             <column name="table_name"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-113">
+    <changeSet author="liquibase (generated)" id="1777289234254-113">
         <createIndex indexName="idx_audit_log_timestamp" tableName="audit_log" using="btree">
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="changed_at"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-114">
+    <changeSet author="liquibase (generated)" id="1777289234254-114">
         <createIndex indexName="idx_availability_exceptions_user_date" tableName="availability_exceptions" using="btree">
             <column name="user_id"/>
             <column name="exception_date"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-115">
+    <changeSet author="liquibase (generated)" id="1777289234254-115">
         <createTable tableName="availability_rules">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="availability_rules_pkey"/>
@@ -1930,7 +1973,7 @@
             <column name="biweekly_reference_date" type="date"/>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-116">
+    <changeSet author="liquibase (generated)" id="1777289234254-116">
         <createView fullDefinition="false" viewName="v_cash_movements_detailed">SELECT cm.id AS movement_id,
     cm.cash_session_id,
     cm.type AS movement_type,
@@ -2001,7 +2044,7 @@
      LEFT JOIN miscellaneous_categories mc ON ((mt.category_id = mc.id)))
      LEFT JOIN users creator ON ((cm.user_id = creator.id)));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-117">
+    <changeSet author="liquibase (generated)" id="1777289234254-117">
         <createView fullDefinition="false" viewName="v_miscellaneous_transactions_detailed">SELECT mt.id,
     mt.doc_no,
     mt.transaction_date,
@@ -2036,7 +2079,7 @@
      LEFT JOIN payment_methods pm ON ((mt.payment_method_id = pm.id)))
      LEFT JOIN cash_movements cm ON ((((cm.source_type)::text = 'miscellaneous'::text) AND (cm.source_id = mt.id))));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-118">
+    <changeSet author="liquibase (generated)" id="1777289234254-118">
         <createView fullDefinition="false" viewName="v_miscellaneous_transactions_detailed_paginable">SELECT mt.id,
     mt.doc_no,
     mt.transaction_date,
@@ -2071,20 +2114,20 @@
      LEFT JOIN payment_methods pm ON ((mt.payment_method_id = pm.id)))
      LEFT JOIN cash_movements cm ON ((((cm.source_type)::text = 'miscellaneous'::text) AND (cm.source_id = mt.id))));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-119">
+    <changeSet author="liquibase (generated)" id="1777289234254-119">
         <createIndex indexName="idx_cash_mov_source_id" tableName="cash_movements" using="btree">
             <column name="source_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-120">
+    <changeSet author="liquibase (generated)" id="1777289234254-120">
         <createIndex indexName="idx_cash_mov_source_type" tableName="cash_movements" using="btree">
             <column name="source_type"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-121">
+    <changeSet author="liquibase (generated)" id="1777289234254-121">
         <addUniqueConstraint columnNames="name" constraintName="cash_points_name_key" tableName="cash_points"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-122">
+    <changeSet author="liquibase (generated)" id="1777289234254-122">
         <createView fullDefinition="false" viewName="v_cash_session_balance">SELECT s.id AS session_id,
     s.user_id,
     s.status,
@@ -2099,92 +2142,92 @@
    FROM (cash_sessions s
      JOIN cash_session_currencies c ON ((s.id = c.cash_session_id)));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-123">
+    <changeSet author="liquibase (generated)" id="1777289234254-123">
         <addUniqueConstraint columnNames="codigo_visual" constraintName="catalogo_condiciones_dentales_codigo_visual_key" tableName="catalogo_condiciones_dentales"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-124">
+    <changeSet author="liquibase (generated)" id="1777289234254-124">
         <addUniqueConstraint columnNames="nombre" constraintName="catalogo_condiciones_dentales_nombre_key" tableName="catalogo_condiciones_dentales"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-125">
+    <changeSet author="liquibase (generated)" id="1777289234254-125">
         <addUniqueConstraint columnNames="nombre_generico, nombre_comercial" constraintName="catalogo_medicamentos_nombre_generico_nombre_comercial_key" tableName="catalogo_medicamentos"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-126">
+    <changeSet author="liquibase (generated)" id="1777289234254-126">
         <addUniqueConstraint columnNames="nombre" constraintName="catalogo_padecimientos_nombre_key" tableName="catalogo_padecimientos"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-127">
+    <changeSet author="liquibase (generated)" id="1777289234254-127">
         <addUniqueConstraint columnNames="codigo" constraintName="catalogo_superficies_dentales_codigo_key" tableName="catalogo_superficies_dentales"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-128">
+    <changeSet author="liquibase (generated)" id="1777289234254-128">
         <addUniqueConstraint columnNames="nombre" constraintName="catalogo_superficies_dentales_nombre_key" tableName="catalogo_superficies_dentales"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-129">
+    <changeSet author="liquibase (generated)" id="1777289234254-129">
         <addUniqueConstraint columnNames="name" constraintName="communication_channels_name_key" tableName="communication_channels"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-130">
+    <changeSet author="liquibase (generated)" id="1777289234254-130">
         <addUniqueConstraint columnNames="code" constraintName="communication_templates_code_key" tableName="communication_templates"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-131">
+    <changeSet author="liquibase (generated)" id="1777289234254-131">
         <createIndex indexName="idx_conversations_channel" tableName="conversations" using="btree">
             <column name="channel_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-132">
+    <changeSet author="liquibase (generated)" id="1777289234254-132">
         <createIndex indexName="idx_conversations_started" tableName="conversations" using="btree">
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="started_at"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-133">
+    <changeSet author="liquibase (generated)" id="1777289234254-133">
         <createIndex indexName="idx_conversations_status" tableName="conversations" using="btree">
             <column name="status"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-134">
+    <changeSet author="liquibase (generated)" id="1777289234254-134">
         <createIndex indexName="idx_conversations_user" tableName="conversations" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-135">
+    <changeSet author="liquibase (generated)" id="1777289234254-135">
         <createIndex indexName="idx_datos_periodontograma_periodontograma" tableName="datos_periodontograma" using="btree">
             <column name="periodontograma_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-136">
+    <changeSet author="liquibase (generated)" id="1777289234254-136">
         <addUniqueConstraint columnNames="periodontograma_id, numero_diente" constraintName="datos_periodontograma_periodontograma_id_numero_diente_key" tableName="datos_periodontograma"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-137">
+    <changeSet author="liquibase (generated)" id="1777289234254-137">
         <createIndex indexName="idx_error_logs_severity" tableName="error_logs" using="btree">
             <column name="severity"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-138">
+    <changeSet author="liquibase (generated)" id="1777289234254-138">
         <createIndex indexName="idx_error_logs_timestamp" tableName="error_logs" using="btree">
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-139">
+    <changeSet author="liquibase (generated)" id="1777289234254-139">
         <createIndex indexName="idx_error_logs_user" tableName="error_logs" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-140">
+    <changeSet author="liquibase (generated)" id="1777289234254-140">
         <createIndex indexName="idx_fotos_odontograma_sesion_sesion" tableName="fotos_odontograma_sesion" using="btree">
             <column name="sesion_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-141">
+    <changeSet author="liquibase (generated)" id="1777289234254-141">
         <addUniqueConstraint columnNames="paciente_id" constraintName="habitos_paciente_paciente_id_key" tableName="habitos_paciente"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-142">
+    <changeSet author="liquibase (generated)" id="1777289234254-142">
         <createIndex indexName="idx_hallazgos_odontograma_odontograma" tableName="hallazgos_odontograma" using="btree">
             <column name="odontograma_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-143">
+    <changeSet author="liquibase (generated)" id="1777289234254-143">
         <createIndex indexName="idx_historial_medicamentos_paciente" tableName="historial_medicamentos_paciente" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-144">
+    <changeSet author="liquibase (generated)" id="1777289234254-144">
         <createView fullDefinition="false" viewName="view_invoice_status">SELECT id,
     type,
     is_sales,
@@ -2208,15 +2251,15 @@
    FROM invoices i
   WHERE ((type)::text = 'invoice'::text);</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-145">
+    <changeSet author="liquibase (generated)" id="1777289234254-145">
         <addUniqueConstraint columnNames="source_id, target_id" constraintName="unique_invoice_allocation" tableName="invoice_allocations"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-146">
+    <changeSet author="liquibase (generated)" id="1777289234254-146">
         <createIndex indexName="idx_invoice_items_service_id" tableName="invoice_items" using="btree">
             <column name="service_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-147">
+    <changeSet author="liquibase (generated)" id="1777289234254-147">
         <createView fullDefinition="false" viewName="v_all_transactions_unified">SELECT 'payment'::text AS transaction_type,
     p.id,
     (p.id)::text AS transaction_number,
@@ -2268,7 +2311,7 @@ UNION ALL
    FROM (miscellaneous_transactions mt
      JOIN miscellaneous_categories mc ON ((mt.category_id = mc.id)));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-148">
+    <changeSet author="liquibase (generated)" id="1777289234254-148">
         <createView fullDefinition="false" viewName="v_pacientes_deudores">SELECT u.id,
     u.name,
     u.email,
@@ -2283,73 +2326,73 @@ UNION ALL
           WHERE ((ur.user_id = u.id) AND (r.name = 'paciente'::text)))))
   GROUP BY u.id, u.name, u.email, u.phone_number, i.currency;</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-149">
+    <changeSet author="liquibase (generated)" id="1777289234254-149">
         <createIndex indexName="idx_invoices_lifecycle_status" tableName="invoices" using="btree">
             <column name="status"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-150">
+    <changeSet author="liquibase (generated)" id="1777289234254-150">
         <createIndex indexName="idx_invoices_parent" tableName="invoices" using="btree">
             <column name="parent_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-151">
+    <changeSet author="liquibase (generated)" id="1777289234254-151">
         <createIndex indexName="idx_invoices_payment_state" tableName="invoices" using="btree">
             <column name="payment_state"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-152">
+    <changeSet author="liquibase (generated)" id="1777289234254-152">
         <createIndex indexName="idx_invoices_type" tableName="invoices" using="btree">
             <column name="type"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-153">
+    <changeSet author="liquibase (generated)" id="1777289234254-153">
         <createIndex indexName="idx_invoices_user_id" tableName="invoices" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-154">
+    <changeSet author="liquibase (generated)" id="1777289234254-154">
         <addUniqueConstraint columnNames="doc_no" constraintName="invoices_doc_no_key" tableName="invoices"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-155">
+    <changeSet author="liquibase (generated)" id="1777289234254-155">
         <addUniqueConstraint columnNames="fecha" constraintName="log_cotizaciones_json_fecha_key" tableName="log_cotizaciones_json"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-156">
+    <changeSet author="liquibase (generated)" id="1777289234254-156">
         <createIndex indexName="idx_logout_log_time" tableName="logout_log" using="btree">
             <column name="logout_time"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-157">
+    <changeSet author="liquibase (generated)" id="1777289234254-157">
         <createIndex indexName="idx_logout_log_user" tableName="logout_log" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-158">
+    <changeSet author="liquibase (generated)" id="1777289234254-158">
         <createIndex indexName="idx_messages_conversation" tableName="messages" using="btree">
             <column name="conversation_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-159">
+    <changeSet author="liquibase (generated)" id="1777289234254-159">
         <createIndex indexName="idx_messages_sender" tableName="messages" using="btree">
             <column name="sender_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-160">
+    <changeSet author="liquibase (generated)" id="1777289234254-160">
         <createIndex indexName="idx_messages_timestamp" tableName="messages" using="btree">
             <column defaultValueComputed="CURRENT_TIMESTAMP" name="timestamp"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-161">
+    <changeSet author="liquibase (generated)" id="1777289234254-161">
         <createIndex indexName="idx_messages_unread" tableName="messages" using="btree">
             <column defaultValueBoolean="false" name="is_read"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-162">
+    <changeSet author="liquibase (generated)" id="1777289234254-162">
         <createIndex indexName="idx_misc_attach_transaction" tableName="miscellaneous_attachments" using="btree">
             <column name="miscellaneous_transaction_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-163">
+    <changeSet author="liquibase (generated)" id="1777289234254-163">
         <createView fullDefinition="false" viewName="v_miscellaneous_summary">SELECT mc.code AS category_code,
     mc.name AS category_name,
     mc.category_type,
@@ -2364,108 +2407,108 @@ UNION ALL
   WHERE ((mt.status)::text = 'completed'::text)
   GROUP BY mc.code, mc.name, mc.category_type, mt.currency, (date_trunc('month'::text, (mt.transaction_date)::timestamp with time zone)), (date_trunc('year'::text, (mt.transaction_date)::timestamp with time zone));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-164">
+    <changeSet author="liquibase (generated)" id="1777289234254-164">
         <createIndex indexName="idx_misc_categories_active" tableName="miscellaneous_categories" using="btree">
             <column defaultValueBoolean="true" name="is_active"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-165">
+    <changeSet author="liquibase (generated)" id="1777289234254-165">
         <createIndex indexName="idx_misc_categories_type" tableName="miscellaneous_categories" using="btree">
             <column name="category_type"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-166">
+    <changeSet author="liquibase (generated)" id="1777289234254-166">
         <addUniqueConstraint columnNames="code" constraintName="miscellaneous_categories_code_key" tableName="miscellaneous_categories"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-167">
+    <changeSet author="liquibase (generated)" id="1777289234254-167">
         <createIndex indexName="idx_misc_trx_beneficiary" tableName="miscellaneous_transactions" using="btree">
             <column name="beneficiary"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-168">
+    <changeSet author="liquibase (generated)" id="1777289234254-168">
         <createIndex indexName="idx_misc_trx_cash_session" tableName="miscellaneous_transactions" using="btree">
             <column name="cash_session_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-169">
+    <changeSet author="liquibase (generated)" id="1777289234254-169">
         <createIndex indexName="idx_misc_trx_category" tableName="miscellaneous_transactions" using="btree">
             <column name="category_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-170">
+    <changeSet author="liquibase (generated)" id="1777289234254-170">
         <createIndex indexName="idx_misc_trx_created_at" tableName="miscellaneous_transactions" using="btree">
             <column defaultValueComputed="now()" name="created_at"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-171">
+    <changeSet author="liquibase (generated)" id="1777289234254-171">
         <createIndex indexName="idx_misc_trx_created_by" tableName="miscellaneous_transactions" using="btree">
             <column name="created_by"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-172">
+    <changeSet author="liquibase (generated)" id="1777289234254-172">
         <createIndex indexName="idx_misc_trx_date" tableName="miscellaneous_transactions" using="btree">
             <column defaultValueComputed="CURRENT_DATE" name="transaction_date"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-173">
+    <changeSet author="liquibase (generated)" id="1777289234254-173">
         <createIndex indexName="idx_misc_trx_payment_method" tableName="miscellaneous_transactions" using="btree">
             <column name="payment_method_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-174">
+    <changeSet author="liquibase (generated)" id="1777289234254-174">
         <createIndex indexName="idx_misc_trx_status" tableName="miscellaneous_transactions" using="btree">
             <column name="status"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-175">
+    <changeSet author="liquibase (generated)" id="1777289234254-175">
         <createIndex indexName="idx_misc_trx_tags" tableName="miscellaneous_transactions" using="gin">
             <column name="tags"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-176">
+    <changeSet author="liquibase (generated)" id="1777289234254-176">
         <addUniqueConstraint columnNames="doc_no" constraintName="miscellaneous_transactions_transaction_number_key" tableName="miscellaneous_transactions"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-177">
+    <changeSet author="liquibase (generated)" id="1777289234254-177">
         <addUniqueConstraint columnNames="name" constraintName="mutual_societies_name_key" tableName="mutual_societies"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-178">
+    <changeSet author="liquibase (generated)" id="1777289234254-178">
         <addUniqueConstraint columnNames="platform_name" constraintName="notification_platforms_platform_name_key" tableName="notification_platforms"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-179">
+    <changeSet author="liquibase (generated)" id="1777289234254-179">
         <createIndex indexName="idx_odontogramas_paciente" tableName="odontogramas" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-180">
+    <changeSet author="liquibase (generated)" id="1777289234254-180">
         <addUniqueConstraint columnNames="doc_no" constraintName="order_doc_no_key" tableName="orders"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-181">
+    <changeSet author="liquibase (generated)" id="1777289234254-181">
         <createIndex indexName="idx_pay_alloc_invoice" tableName="payment_allocations" using="btree">
             <column name="invoice_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-182">
+    <changeSet author="liquibase (generated)" id="1777289234254-182">
         <createIndex indexName="idx_pay_alloc_payment" tableName="payment_allocations" using="btree">
             <column name="payment_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-183">
+    <changeSet author="liquibase (generated)" id="1777289234254-183">
         <addUniqueConstraint columnNames="code" constraintName="payment_methods_code_key" tableName="payment_methods"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-184">
+    <changeSet author="liquibase (generated)" id="1777289234254-184">
         <createIndex indexName="idx_payments_user_id" tableName="payments" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-185">
+    <changeSet author="liquibase (generated)" id="1777289234254-185">
         <addUniqueConstraint columnNames="doc_no" constraintName="payment_doc_no_key" tableName="payments"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-186">
+    <changeSet author="liquibase (generated)" id="1777289234254-186">
         <createIndex indexName="idx_periodontogramas_paciente" tableName="periodontogramas" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-187">
+    <changeSet author="liquibase (generated)" id="1777289234254-187">
         <createView fullDefinition="false" viewName="v_user_permissions">SELECT DISTINCT u.id AS user_id,
     u.email,
     r.name AS role_name,
@@ -2479,62 +2522,62 @@ UNION ALL
      JOIN permissions p ON ((rp.permission_id = p.id)))
   WHERE ((u.is_active = true) AND (ur.is_active = true));</createView>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-188">
+    <changeSet author="liquibase (generated)" id="1777289234254-188">
         <addUniqueConstraint columnNames="code" constraintName="permissions_code_key" tableName="permissions"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-189">
+    <changeSet author="liquibase (generated)" id="1777289234254-189">
         <addUniqueConstraint columnNames="name" constraintName="permissions_name_key" tableName="permissions"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-190">
+    <changeSet author="liquibase (generated)" id="1777289234254-190">
         <addUniqueConstraint columnNames="doc_no" constraintName="quotes_doc_no_key" tableName="quotes"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-191">
+    <changeSet author="liquibase (generated)" id="1777289234254-191">
         <addUniqueConstraint columnNames="name" constraintName="roles_name_key" tableName="roles"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-192">
+    <changeSet author="liquibase (generated)" id="1777289234254-192">
         <createIndex indexName="idx_sesiones_paciente_id" tableName="sesiones" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-193">
+    <changeSet author="liquibase (generated)" id="1777289234254-193">
         <createIndex indexName="idx_sesiones_clinicas_paciente" tableName="sesiones_clinicas" using="btree">
             <column name="paciente_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-194">
+    <changeSet author="liquibase (generated)" id="1777289234254-194">
         <addUniqueConstraint columnNames="key" constraintName="system_configurations_key_key" tableName="system_configurations"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-195">
+    <changeSet author="liquibase (generated)" id="1777289234254-195">
         <createIndex indexName="idx_token_blacklist_expires" tableName="token_blacklist" using="btree">
             <column name="expires_at"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-196">
+    <changeSet author="liquibase (generated)" id="1777289234254-196">
         <addUniqueConstraint columnNames="token" constraintName="token_blacklist_token_key" tableName="token_blacklist"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-197">
+    <changeSet author="liquibase (generated)" id="1777289234254-197">
         <createIndex indexName="idx_tratamientos_sesion_sesion" tableName="tratamientos_sesion" using="btree">
             <column name="sesion_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-198">
+    <changeSet author="liquibase (generated)" id="1777289234254-198">
         <addUniqueConstraint columnNames="user_id, channel_slug, category_slug" constraintName="user_pref_unique" tableName="user_communication_preferences"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-199">
+    <changeSet author="liquibase (generated)" id="1777289234254-199">
         <createIndex indexName="idx_asc_service_id" tableName="appointment_service_catalog" using="btree">
             <column name="service_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-200">
+    <changeSet author="liquibase (generated)" id="1777289234254-200">
         <addUniqueConstraint columnNames="service_id, position" constraintName="uq_step_position" tableName="treatment_steps"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-201">
+    <changeSet author="liquibase (generated)" id="1777289234254-201">
         <createIndex indexName="idx_sequences_patient_status" tableName="treatment_sequences" using="btree">
             <column name="patient_id"/>
             <column name="status"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-202">
+    <changeSet author="liquibase (generated)" id="1777289234254-202">
         <createTable tableName="attachments">
             <column autoIncrement="true" name="id" type="INTEGER">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="cash_session_attachments_pkey"/>
@@ -2559,436 +2602,436 @@ UNION ALL
             </column>
         </createTable>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-203">
+    <changeSet author="liquibase (generated)" id="1777289234254-203">
         <createIndex indexName="idx_abandonment_unresolved" tableName="abandonment_alerts" using="btree">
             <column name="sequence_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-204">
+    <changeSet author="liquibase (generated)" id="1777289234254-204">
         <createIndex indexName="idx_sequences_active" tableName="sequences" using="btree">
             <column defaultValueBoolean="true" name="is_active"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-205">
+    <changeSet author="liquibase (generated)" id="1777289234254-205">
         <addUniqueConstraint columnNames="document_type" constraintName="sequences_document_type_key" tableName="sequences"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-206">
+    <changeSet author="liquibase (generated)" id="1777289234254-206">
         <addUniqueConstraint columnNames="name" constraintName="sequences_sequence_name_key" tableName="sequences"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-207">
+    <changeSet author="liquibase (generated)" id="1777289234254-207">
         <addUniqueConstraint columnNames="google_calendar_id" constraintName="calendar_sources_google_calendar_id_key" tableName="calendar_sources"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-208">
+    <changeSet author="liquibase (generated)" id="1777289234254-208">
         <addUniqueConstraint columnNames="name" constraintName="calendar_sources_name_key" tableName="calendar_sources"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-209">
+    <changeSet author="liquibase (generated)" id="1777289234254-209">
         <createIndex indexName="idx_service_catalog_category" tableName="service_catalog" using="btree">
             <column name="category_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-210">
+    <changeSet author="liquibase (generated)" id="1777289234254-210">
         <addUniqueConstraint columnNames="name" constraintName="service_catalog_name_key" tableName="service_catalog"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-211">
+    <changeSet author="liquibase (generated)" id="1777289234254-211">
         <createIndex indexName="idx_users_active" tableName="users" using="btree">
             <column defaultValueBoolean="true" name="is_active"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-212">
+    <changeSet author="liquibase (generated)" id="1777289234254-212">
         <createIndex indexName="idx_users_email" tableName="users" using="btree">
             <column name="email"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-213">
+    <changeSet author="liquibase (generated)" id="1777289234254-213">
         <addUniqueConstraint columnNames="identity_document" constraintName="users_document_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-214">
+    <changeSet author="liquibase (generated)" id="1777289234254-214">
         <addUniqueConstraint columnNames="facebook_psid" constraintName="users_facebook_psid_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-215">
+    <changeSet author="liquibase (generated)" id="1777289234254-215">
         <addUniqueConstraint columnNames="instagram_sender_id" constraintName="users_instagram_sender_id_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-216">
+    <changeSet author="liquibase (generated)" id="1777289234254-216">
         <addUniqueConstraint columnNames="internal_id" constraintName="users_internal_id_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-217">
+    <changeSet author="liquibase (generated)" id="1777289234254-217">
         <addUniqueConstraint columnNames="linkedin_member_id" constraintName="users_linkedin_member_id_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-218">
+    <changeSet author="liquibase (generated)" id="1777289234254-218">
         <addUniqueConstraint columnNames="password_setup_token" constraintName="users_password_setup_token_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-219">
+    <changeSet author="liquibase (generated)" id="1777289234254-219">
         <addUniqueConstraint columnNames="phone_number" constraintName="users_phone_number_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-220">
+    <changeSet author="liquibase (generated)" id="1777289234254-220">
         <addUniqueConstraint columnNames="rut" constraintName="users_rut_key" tableName="users"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-221">
+    <changeSet author="liquibase (generated)" id="1777289234254-221">
         <createIndex indexName="idx_availability_rules_user_id" tableName="availability_rules" using="btree">
             <column name="user_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-222">
+    <changeSet author="liquibase (generated)" id="1777289234254-222">
         <createIndex indexName="idx_attachments_source" tableName="attachments" using="btree">
             <column name="source_name"/>
             <column name="source_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-223">
+    <changeSet author="liquibase (generated)" id="1777289234254-223">
         <addForeignKeyConstraint baseColumnNames="resolved_by" baseTableName="abandonment_alerts" constraintName="abandonment_alerts_resolved_by_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-224">
+    <changeSet author="liquibase (generated)" id="1777289234254-224">
         <addForeignKeyConstraint baseColumnNames="sequence_id" baseTableName="abandonment_alerts" constraintName="abandonment_alerts_sequence_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="treatment_sequences" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-225">
+    <changeSet author="liquibase (generated)" id="1777289234254-225">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="access_logs" constraintName="access_logs_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-226">
+    <changeSet author="liquibase (generated)" id="1777289234254-226">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="alergias_paciente" constraintName="alergias_paciente_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-227">
+    <changeSet author="liquibase (generated)" id="1777289234254-227">
         <addForeignKeyConstraint baseColumnNames="alert_instance_id" baseTableName="alert_actions" constraintName="alert_actions_alert_instance_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="alert_instances" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-228">
+    <changeSet author="liquibase (generated)" id="1777289234254-228">
         <addForeignKeyConstraint baseColumnNames="rule_id" baseTableName="alert_instances" constraintName="alert_instances_rule_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="alert_rules" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-229">
+    <changeSet author="liquibase (generated)" id="1777289234254-229">
         <addForeignKeyConstraint baseColumnNames="category_id" baseTableName="alert_rules" constraintName="alert_rules_category_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="alert_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-230">
+    <changeSet author="liquibase (generated)" id="1777289234254-230">
         <addForeignKeyConstraint baseColumnNames="email_template_id" baseTableName="alert_rules" constraintName="alert_rules_email_template_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="communication_templates" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-231">
+    <changeSet author="liquibase (generated)" id="1777289234254-231">
         <addForeignKeyConstraint baseColumnNames="sms_template_id" baseTableName="alert_rules" constraintName="alert_rules_sms_template_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="communication_templates" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-232">
+    <changeSet author="liquibase (generated)" id="1777289234254-232">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="antecedentes_familiares" constraintName="antecedentes_familiares_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-233">
+    <changeSet author="liquibase (generated)" id="1777289234254-233">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="antecedentes_personales" constraintName="antecedentes_personales_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-234">
+    <changeSet author="liquibase (generated)" id="1777289234254-234">
         <addForeignKeyConstraint baseColumnNames="sequence_id" baseTableName="appointments" constraintName="appointments_sequence_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="treatment_sequences" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-235">
+    <changeSet author="liquibase (generated)" id="1777289234254-235">
         <addForeignKeyConstraint baseColumnNames="sesion_id" baseTableName="archivos_adjuntos_sesion" constraintName="archivos_adjuntos_sesion_sesion_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="sesiones_clinicas" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-236">
+    <changeSet author="liquibase (generated)" id="1777289234254-236">
         <addForeignKeyConstraint baseColumnNames="changed_by" baseTableName="audit_log" constraintName="audit_log_changed_by_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-237">
+    <changeSet author="liquibase (generated)" id="1777289234254-237">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="availability_exceptions" constraintName="availability_exceptions_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-238">
+    <changeSet author="liquibase (generated)" id="1777289234254-238">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="availability_rules" constraintName="availability_rules_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-239">
+    <changeSet author="liquibase (generated)" id="1777289234254-239">
         <addForeignKeyConstraint baseColumnNames="cash_session_id" baseTableName="cash_movements" constraintName="cash_movements_cash_session_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="cash_sessions" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-240">
+    <changeSet author="liquibase (generated)" id="1777289234254-240">
         <addForeignKeyConstraint baseColumnNames="payment_id" baseTableName="cash_movements" constraintName="cash_movements_payment_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="payments" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-241">
+    <changeSet author="liquibase (generated)" id="1777289234254-241">
         <addForeignKeyConstraint baseColumnNames="payment_method_id" baseTableName="cash_movements" constraintName="cash_movements_payment_method_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="payment_methods" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-242">
+    <changeSet author="liquibase (generated)" id="1777289234254-242">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="cash_movements" constraintName="cash_movements_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-243">
+    <changeSet author="liquibase (generated)" id="1777289234254-243">
         <addForeignKeyConstraint baseColumnNames="cash_session_id" baseTableName="cash_session_currencies" constraintName="cash_session_currencies_session_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="cash_sessions" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-244">
+    <changeSet author="liquibase (generated)" id="1777289234254-244">
         <addForeignKeyConstraint baseColumnNames="cash_point_id" baseTableName="cash_sessions" constraintName="cash_sessions_cash_point_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="cash_points" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-245">
+    <changeSet author="liquibase (generated)" id="1777289234254-245">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="cash_sessions" constraintName="cash_sessions_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-246">
+    <changeSet author="liquibase (generated)" id="1777289234254-246">
         <addForeignKeyConstraint baseColumnNames="category_id" baseTableName="communication_templates" constraintName="communication_templates_category_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="alert_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-247">
+    <changeSet author="liquibase (generated)" id="1777289234254-247">
         <addForeignKeyConstraint baseColumnNames="created_by" baseTableName="communication_templates" constraintName="communication_templates_created_by_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-248">
+    <changeSet author="liquibase (generated)" id="1777289234254-248">
         <addForeignKeyConstraint baseColumnNames="conversation_id" baseTableName="conversation_audit_logs" constraintName="conversation_audit_logs_conversation_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="conversations" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-249">
+    <changeSet author="liquibase (generated)" id="1777289234254-249">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="conversation_audit_logs" constraintName="conversation_audit_logs_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-250">
+    <changeSet author="liquibase (generated)" id="1777289234254-250">
         <addForeignKeyConstraint baseColumnNames="channel_id" baseTableName="conversations" constraintName="conversations_channel_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="communication_channels" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-251">
+    <changeSet author="liquibase (generated)" id="1777289234254-251">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="conversations" constraintName="conversations_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-252">
+    <changeSet author="liquibase (generated)" id="1777289234254-252">
         <addForeignKeyConstraint baseColumnNames="periodontograma_id" baseTableName="datos_periodontograma" constraintName="datos_periodontograma_periodontograma_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="periodontogramas" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-253">
+    <changeSet author="liquibase (generated)" id="1777289234254-253">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="error_logs" constraintName="error_logs_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-254">
+    <changeSet author="liquibase (generated)" id="1777289234254-254">
         <addForeignKeyConstraint baseColumnNames="notification_category_slug" baseTableName="alert_categories" constraintName="fk_alert_categories_notification_category" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="CASCADE" referencedColumnNames="slug" referencedTableName="notification_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-255">
+    <changeSet author="liquibase (generated)" id="1777289234254-255">
         <addForeignKeyConstraint baseColumnNames="source_id" baseTableName="invoice_allocations" constraintName="fk_allocation_source" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="invoices" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-256">
+    <changeSet author="liquibase (generated)" id="1777289234254-256">
         <addForeignKeyConstraint baseColumnNames="target_id" baseTableName="invoice_allocations" constraintName="fk_allocation_target" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="invoices" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-257">
+    <changeSet author="liquibase (generated)" id="1777289234254-257">
         <addForeignKeyConstraint baseColumnNames="assignee_id" baseTableName="appointments" constraintName="fk_appointments_assignee_id" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-258">
+    <changeSet author="liquibase (generated)" id="1777289234254-258">
         <addForeignKeyConstraint baseColumnNames="calendar_source_id" baseTableName="appointments" constraintName="fk_appointments_calendar_source_id" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="calendar_sources" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-259">
+    <changeSet author="liquibase (generated)" id="1777289234254-259">
         <addForeignKeyConstraint baseColumnNames="parent_appointment_id" baseTableName="appointments" constraintName="fk_appointments_parent_id" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="appointments" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-260">
+    <changeSet author="liquibase (generated)" id="1777289234254-260">
         <addForeignKeyConstraint baseColumnNames="patient_id" baseTableName="appointments" constraintName="fk_appointments_patient_id" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-261">
+    <changeSet author="liquibase (generated)" id="1777289234254-261">
         <addForeignKeyConstraint baseColumnNames="appointment_id" baseTableName="appointment_service_catalog" constraintName="fk_asc_appointment" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="appointments" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-262">
+    <changeSet author="liquibase (generated)" id="1777289234254-262">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="appointment_service_catalog" constraintName="fk_asc_service" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-263">
+    <changeSet author="liquibase (generated)" id="1777289234254-263">
         <addForeignKeyConstraint baseColumnNames="medico_id" baseTableName="ai_generated_appointments" constraintName="fk_medico_id" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-264">
+    <changeSet author="liquibase (generated)" id="1777289234254-264">
         <addForeignKeyConstraint baseColumnNames="miscellaneous_transaction_id" baseTableName="miscellaneous_attachments" constraintName="fk_misc_attach_transaction" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="miscellaneous_transactions" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-265">
+    <changeSet author="liquibase (generated)" id="1777289234254-265">
         <addForeignKeyConstraint baseColumnNames="uploaded_by" baseTableName="miscellaneous_attachments" constraintName="fk_misc_attach_user" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-266">
+    <changeSet author="liquibase (generated)" id="1777289234254-266">
         <addForeignKeyConstraint baseColumnNames="cash_session_id" baseTableName="miscellaneous_transactions" constraintName="fk_misc_trx_cash_session" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="cash_sessions" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-267">
+    <changeSet author="liquibase (generated)" id="1777289234254-267">
         <addForeignKeyConstraint baseColumnNames="category_id" baseTableName="miscellaneous_transactions" constraintName="fk_misc_trx_category" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="miscellaneous_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-268">
+    <changeSet author="liquibase (generated)" id="1777289234254-268">
         <addForeignKeyConstraint baseColumnNames="created_by" baseTableName="miscellaneous_transactions" constraintName="fk_misc_trx_created_by" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-269">
+    <changeSet author="liquibase (generated)" id="1777289234254-269">
         <addForeignKeyConstraint baseColumnNames="payment_method_id" baseTableName="miscellaneous_transactions" constraintName="fk_misc_trx_payment_method" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="payment_methods" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-270">
+    <changeSet author="liquibase (generated)" id="1777289234254-270">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="sesiones" constraintName="fk_paciente" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-271">
+    <changeSet author="liquibase (generated)" id="1777289234254-271">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="ai_generated_appointments" constraintName="fk_paciente_id" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-272">
+    <changeSet author="liquibase (generated)" id="1777289234254-272">
         <addForeignKeyConstraint baseColumnNames="parent_id" baseTableName="miscellaneous_categories" constraintName="fk_parent_category" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="miscellaneous_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-273">
+    <changeSet author="liquibase (generated)" id="1777289234254-273">
         <addForeignKeyConstraint baseColumnNames="invoice_id" baseTableName="payment_allocations" constraintName="fk_pay_alloc_invoice" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="invoices" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-274">
+    <changeSet author="liquibase (generated)" id="1777289234254-274">
         <addForeignKeyConstraint baseColumnNames="payment_id" baseTableName="payment_allocations" constraintName="fk_pay_alloc_payment" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="payments" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-275">
+    <changeSet author="liquibase (generated)" id="1777289234254-275">
         <addForeignKeyConstraint baseColumnNames="payment_method_id" baseTableName="payments" constraintName="fk_payments_payment_method" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="payment_methods" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-276">
+    <changeSet author="liquibase (generated)" id="1777289234254-276">
         <addForeignKeyConstraint baseColumnNames="category_id" baseTableName="service_catalog" constraintName="fk_service_catalog_category" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="miscellaneous_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-277">
+    <changeSet author="liquibase (generated)" id="1777289234254-277">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="ai_generated_appointments" constraintName="fk_service_id" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-278">
+    <changeSet author="liquibase (generated)" id="1777289234254-278">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="user_balances" constraintName="fk_user_balances_user" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-279">
+    <changeSet author="liquibase (generated)" id="1777289234254-279">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="ai_generated_appointments" constraintName="fk_user_id" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-280">
+    <changeSet author="liquibase (generated)" id="1777289234254-280">
         <addForeignKeyConstraint baseColumnNames="sesion_id" baseTableName="fotos_odontograma_sesion" constraintName="fotos_odontograma_sesion_sesion_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="sesiones" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-281">
+    <changeSet author="liquibase (generated)" id="1777289234254-281">
         <addForeignKeyConstraint baseColumnNames="category_slug" baseTableName="global_notification_settings" constraintName="global_notification_settings_category_slug_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="slug" referencedTableName="notification_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-282">
+    <changeSet author="liquibase (generated)" id="1777289234254-282">
         <addForeignKeyConstraint baseColumnNames="channel_slug" baseTableName="global_notification_settings" constraintName="global_notification_settings_channel_slug_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="platform_name" referencedTableName="notification_platforms" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-283">
+    <changeSet author="liquibase (generated)" id="1777289234254-283">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="habitos_paciente" constraintName="habitos_paciente_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-284">
+    <changeSet author="liquibase (generated)" id="1777289234254-284">
         <addForeignKeyConstraint baseColumnNames="condicion_id" baseTableName="hallazgos_odontograma" constraintName="hallazgos_odontograma_condicion_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="catalogo_condiciones_dentales" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-285">
+    <changeSet author="liquibase (generated)" id="1777289234254-285">
         <addForeignKeyConstraint baseColumnNames="odontograma_id" baseTableName="hallazgos_odontograma" constraintName="hallazgos_odontograma_odontograma_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="odontogramas" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-286">
+    <changeSet author="liquibase (generated)" id="1777289234254-286">
         <addForeignKeyConstraint baseColumnNames="superficie_id" baseTableName="hallazgos_odontograma" constraintName="hallazgos_odontograma_superficie_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="catalogo_superficies_dentales" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-287">
+    <changeSet author="liquibase (generated)" id="1777289234254-287">
         <addForeignKeyConstraint baseColumnNames="medicamento_id" baseTableName="historial_medicamentos_paciente" constraintName="historial_medicamentos_paciente_medicamento_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="catalogo_medicamentos" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-288">
+    <changeSet author="liquibase (generated)" id="1777289234254-288">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="historial_medicamentos_paciente" constraintName="historial_medicamentos_paciente_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-289">
+    <changeSet author="liquibase (generated)" id="1777289234254-289">
         <addForeignKeyConstraint baseColumnNames="invoice_id" baseTableName="invoice_items" constraintName="invoice_items_invoice_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="invoices" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-290">
+    <changeSet author="liquibase (generated)" id="1777289234254-290">
         <addForeignKeyConstraint baseColumnNames="order_item_id" baseTableName="invoice_items" constraintName="invoice_items_order_item_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="order_items" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-291">
+    <changeSet author="liquibase (generated)" id="1777289234254-291">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="invoice_items" constraintName="invoice_items_service_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-292">
+    <changeSet author="liquibase (generated)" id="1777289234254-292">
         <addForeignKeyConstraint baseColumnNames="order_id" baseTableName="invoices" constraintName="invoices_order_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="orders" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-293">
+    <changeSet author="liquibase (generated)" id="1777289234254-293">
         <addForeignKeyConstraint baseColumnNames="parent_id" baseTableName="invoices" constraintName="invoices_parent_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="invoices" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-294">
+    <changeSet author="liquibase (generated)" id="1777289234254-294">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="invoices" constraintName="invoices_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-295">
+    <changeSet author="liquibase (generated)" id="1777289234254-295">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="logout_log" constraintName="logout_log_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-296">
+    <changeSet author="liquibase (generated)" id="1777289234254-296">
         <addForeignKeyConstraint baseColumnNames="conversation_id" baseTableName="messages" constraintName="messages_conversation_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="conversations" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-297">
+    <changeSet author="liquibase (generated)" id="1777289234254-297">
         <addForeignKeyConstraint baseColumnNames="sender_id" baseTableName="messages" constraintName="messages_sender_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-298">
+    <changeSet author="liquibase (generated)" id="1777289234254-298">
         <addForeignKeyConstraint baseColumnNames="doctor_id" baseTableName="odontogramas" constraintName="odontogramas_doctor_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-299">
+    <changeSet author="liquibase (generated)" id="1777289234254-299">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="odontogramas" constraintName="odontogramas_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-300">
+    <changeSet author="liquibase (generated)" id="1777289234254-300">
         <addForeignKeyConstraint baseColumnNames="order_id" baseTableName="order_items" constraintName="order_items_order_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="orders" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-301">
+    <changeSet author="liquibase (generated)" id="1777289234254-301">
         <addForeignKeyConstraint baseColumnNames="quote_item_id" baseTableName="order_items" constraintName="order_items_quote_item_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="quote_items" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-302">
+    <changeSet author="liquibase (generated)" id="1777289234254-302">
         <addForeignKeyConstraint baseColumnNames="quote_id" baseTableName="orders" constraintName="orders_quote_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="quotes" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-303">
+    <changeSet author="liquibase (generated)" id="1777289234254-303">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="orders" constraintName="orders_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-304">
+    <changeSet author="liquibase (generated)" id="1777289234254-304">
         <addForeignKeyConstraint baseColumnNames="invoice_id" baseTableName="payments" constraintName="payments_invoice_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="invoices" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-305">
+    <changeSet author="liquibase (generated)" id="1777289234254-305">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="payments" constraintName="payments_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-306">
+    <changeSet author="liquibase (generated)" id="1777289234254-306">
         <addForeignKeyConstraint baseColumnNames="doctor_id" baseTableName="periodontogramas" constraintName="periodontogramas_doctor_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-307">
+    <changeSet author="liquibase (generated)" id="1777289234254-307">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="periodontogramas" constraintName="periodontogramas_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-308">
+    <changeSet author="liquibase (generated)" id="1777289234254-308">
         <addForeignKeyConstraint baseColumnNames="quote_id" baseTableName="quote_items" constraintName="quote_items_quote_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="quotes" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-309">
+    <changeSet author="liquibase (generated)" id="1777289234254-309">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="quote_items" constraintName="quote_items_service_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-310">
+    <changeSet author="liquibase (generated)" id="1777289234254-310">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="quotes" constraintName="quotes_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-311">
+    <changeSet author="liquibase (generated)" id="1777289234254-311">
         <addForeignKeyConstraint baseColumnNames="channel_id" baseTableName="role_channel_permissions" constraintName="role_channel_permissions_channel_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="communication_channels" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-312">
+    <changeSet author="liquibase (generated)" id="1777289234254-312">
         <addForeignKeyConstraint baseColumnNames="role_id" baseTableName="role_channel_permissions" constraintName="role_channel_permissions_role_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="roles" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-313">
+    <changeSet author="liquibase (generated)" id="1777289234254-313">
         <addForeignKeyConstraint baseColumnNames="create_uid" baseTableName="role_permissions" constraintName="role_permissions_create_uid_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-314">
+    <changeSet author="liquibase (generated)" id="1777289234254-314">
         <addForeignKeyConstraint baseColumnNames="permission_id" baseTableName="role_permissions" constraintName="role_permissions_permission_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="permissions" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-315">
+    <changeSet author="liquibase (generated)" id="1777289234254-315">
         <addForeignKeyConstraint baseColumnNames="role_id" baseTableName="role_permissions" constraintName="role_permissions_role_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="roles" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-316">
+    <changeSet author="liquibase (generated)" id="1777289234254-316">
         <addForeignKeyConstraint baseColumnNames="write_uid" baseTableName="role_permissions" constraintName="role_permissions_write_uid_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-317">
+    <changeSet author="liquibase (generated)" id="1777289234254-317">
         <addForeignKeyConstraint baseColumnNames="appointment_id" baseTableName="sequence_notes" constraintName="sequence_notes_appointment_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="appointments" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-318">
+    <changeSet author="liquibase (generated)" id="1777289234254-318">
         <addForeignKeyConstraint baseColumnNames="author_id" baseTableName="sequence_notes" constraintName="sequence_notes_author_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-319">
+    <changeSet author="liquibase (generated)" id="1777289234254-319">
         <addForeignKeyConstraint baseColumnNames="sequence_id" baseTableName="sequence_notes" constraintName="sequence_notes_sequence_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="treatment_sequences" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-320">
+    <changeSet author="liquibase (generated)" id="1777289234254-320">
         <addForeignKeyConstraint baseColumnNames="doctor_id" baseTableName="sesiones_clinicas" constraintName="sesiones_clinicas_doctor_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="RESTRICT" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-321">
+    <changeSet author="liquibase (generated)" id="1777289234254-321">
         <addForeignKeyConstraint baseColumnNames="paciente_id" baseTableName="sesiones_clinicas" constraintName="sesiones_clinicas_paciente_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-322">
+    <changeSet author="liquibase (generated)" id="1777289234254-322">
         <addForeignKeyConstraint baseColumnNames="updated_by" baseTableName="system_configurations" constraintName="system_configurations_updated_by_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-323">
+    <changeSet author="liquibase (generated)" id="1777289234254-323">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="token_blacklist" constraintName="token_blacklist_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-324">
+    <changeSet author="liquibase (generated)" id="1777289234254-324">
         <addForeignKeyConstraint baseColumnNames="sesion_id" baseTableName="tratamientos_sesion" constraintName="tratamientos_sesion_sesion_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="sesiones_clinicas" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-325">
+    <changeSet author="liquibase (generated)" id="1777289234254-325">
         <addForeignKeyConstraint baseColumnNames="patient_id" baseTableName="treatment_sequences" constraintName="treatment_sequences_patient_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-326">
+    <changeSet author="liquibase (generated)" id="1777289234254-326">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="treatment_sequences" constraintName="treatment_sequences_service_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-327">
+    <changeSet author="liquibase (generated)" id="1777289234254-327">
         <addForeignKeyConstraint baseColumnNames="started_by" baseTableName="treatment_sequences" constraintName="treatment_sequences_started_by_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-328">
+    <changeSet author="liquibase (generated)" id="1777289234254-328">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="treatment_steps" constraintName="treatment_steps_service_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-329">
+    <changeSet author="liquibase (generated)" id="1777289234254-329">
         <addForeignKeyConstraint baseColumnNames="clinic_id" baseTableName="user_clinics" constraintName="user_clinics_clinic_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="clinics" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-330">
+    <changeSet author="liquibase (generated)" id="1777289234254-330">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="user_clinics" constraintName="user_clinics_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-331">
+    <changeSet author="liquibase (generated)" id="1777289234254-331">
         <addForeignKeyConstraint baseColumnNames="category_slug" baseTableName="user_communication_preferences" constraintName="user_communication_preferences_category_slug_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="slug" referencedTableName="notification_categories" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-332">
+    <changeSet author="liquibase (generated)" id="1777289234254-332">
         <addForeignKeyConstraint baseColumnNames="channel_slug" baseTableName="user_communication_preferences" constraintName="user_communication_preferences_channel_slug_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="platform_name" referencedTableName="notification_platforms" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-333">
+    <changeSet author="liquibase (generated)" id="1777289234254-333">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="user_communication_preferences" constraintName="user_communication_preferences_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-334">
+    <changeSet author="liquibase (generated)" id="1777289234254-334">
         <addForeignKeyConstraint baseColumnNames="create_uid" baseTableName="user_roles" constraintName="user_roles_create_uid_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-335">
+    <changeSet author="liquibase (generated)" id="1777289234254-335">
         <addForeignKeyConstraint baseColumnNames="role_id" baseTableName="user_roles" constraintName="user_roles_role_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="roles" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-336">
+    <changeSet author="liquibase (generated)" id="1777289234254-336">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="user_roles" constraintName="user_roles_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-337">
+    <changeSet author="liquibase (generated)" id="1777289234254-337">
         <addForeignKeyConstraint baseColumnNames="write_uid" baseTableName="user_roles" constraintName="user_roles_write_uid_fkey" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-338">
+    <changeSet author="liquibase (generated)" id="1777289234254-338">
         <addForeignKeyConstraint baseColumnNames="service_id" baseTableName="user_services" constraintName="user_services_service_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="service_catalog" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-339">
+    <changeSet author="liquibase (generated)" id="1777289234254-339">
         <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="user_services" constraintName="user_services_user_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="CASCADE" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="users" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-340">
+    <changeSet author="liquibase (generated)" id="1777289234254-340">
         <addForeignKeyConstraint baseColumnNames="mutual_society_id" baseTableName="users" constraintName="users_mutual_society_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="id" referencedTableName="mutual_societies" validate="true"/>
     </changeSet>
-    <changeSet author="liquibase (generated)" id="1777237614048-341">
+    <changeSet author="liquibase (generated)" id="1777289234254-341">
         <addForeignKeyConstraint baseColumnNames="preferred_platform_id" baseTableName="users" constraintName="users_preferred_platform_id_fkey" deferrable="false" initiallyDeferred="false" onDelete="SET NULL" onUpdate="NO ACTION" referencedColumnNames="platform_id" referencedTableName="notification_platforms" validate="true"/>
     </changeSet>
 </databaseChangeLog>

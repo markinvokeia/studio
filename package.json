@@ -17,7 +17,8 @@
     "db:baseline": "./db-manager.sh init-baseline",
     "db:snapshot": "./db-manager.sh snapshot",
     "db:migrate": "./db-manager.sh deploy",
-    "db:rollback": "./db-manager.sh rollback"
+    "db:rollback": "./db-manager.sh rollback",
+    "db:sync": "./db-manager.sh sync"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
