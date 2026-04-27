@@ -40,7 +40,10 @@ const T = {
 test.describe('Citas', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/appointments');
-    await page.waitForLoadState('networkidle');
+    // networkidle is unreliable here: the page makes 3 sequential API batches
+    // (initial data → getUsersServicesBatch → loadAppointments). Waiting for
+    // the Calendar header ensures React has hydrated and the component is interactive.
+    await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
   });
 
   // ── Vista principal ────────────────────────────────────────────────────
