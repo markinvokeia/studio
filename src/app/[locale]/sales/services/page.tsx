@@ -40,6 +40,7 @@ import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstac
 import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useDeepLink } from '@/hooks/use-deep-link';
 
 console.log("Services Page Loaded. API_ROUTES.SERVICES:", API_ROUTES.SERVICES);
@@ -94,7 +95,7 @@ async function getServices(params: { page: number; limit: number; search: string
     // Response: [{ items: [...], total: N, total_pages: N }]
     const normalized = normalizeApiResponse<any>(data);
     const total = normalized.total;
-    const items = normalized.items.map((apiService: any) => ({
+    const items = normalized.items.filter((apiService: any) => apiService.id != null).map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
       name: apiService.name || 'No Name',
       category: apiService.category_name || apiService.category || 'No Category',
@@ -720,20 +721,26 @@ export default function ServicesPage() {
     defaultValues: DEFAULT_SERVICE_FORM_VALUES,
   });
 
-  const searchValue = (columnFilters.find(f => f.id === 'name')?.value as string) ?? '';
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const pageCount = totalCount > 0 ? Math.ceil(totalCount / pagination.pageSize) : 1;
+
+  React.useEffect(() => {
+    const nameFilter = columnFilters.find(f => f.id === 'name');
+    setSearchTerm((nameFilter?.value as string) ?? '');
+  }, [columnFilters]);
 
   const loadServices = React.useCallback(async () => {
     setIsRefreshing(true);
     const result = await getServices({
       page: pagination.pageIndex + 1,
       limit: pagination.pageSize,
-      search: searchValue,
+      search: debouncedSearch,
     });
     setServices(result.items);
     setTotalCount(result.total);
     setIsRefreshing(false);
-  }, [pagination.pageIndex, pagination.pageSize, searchValue]);
+  }, [pagination.pageIndex, pagination.pageSize, debouncedSearch]);
 
   React.useEffect(() => { loadServices(); }, [loadServices]);
 

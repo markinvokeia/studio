@@ -8,7 +8,7 @@ const T = {
   createBtn: 'Crear',
   col: {
     docNo: 'No. Documento',
-    amount: 'Monto',
+    amount: 'Monto Aplicado',
     currency: 'Moneda',
     method: 'Método',
     status: 'Estado',
@@ -173,8 +173,8 @@ test.describe('Pagos de Venta', () => {
         .getByRole('button', { name: 'Abrir Menú' });
       if (await actionBtn.isVisible().catch(() => false)) {
         await actionBtn.click();
-        await expect(page.getByRole('menuitem', { name: T.actions.print })
-          .or(page.getByRole('menuitem', { name: T.actions.sendEmail }))).toBeVisible();
+        await expect(page.getByRole('menuitem', { name: T.actions.print })).toBeVisible();
+        await expect(page.getByRole('menuitem', { name: T.actions.sendEmail })).toBeVisible();
         await page.keyboard.press('Escape');
       }
     });
