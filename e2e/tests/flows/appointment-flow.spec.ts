@@ -67,72 +67,56 @@ test.describe('Flujo de Citas', () => {
   });
 
   test('seleccionar cita existente abre panel con tab Información', async ({ page }) => {
-    // Cambiar a vista de lista para poder hacer clic en filas
-    const listViewBtn = page.getByRole('button', { name: 'Vista de Lista' });
-    if (await listViewBtn.isVisible().catch(() => false)) {
-      await listViewBtn.click();
-      await page.waitForTimeout(500);
+    const firstEvent = page.locator('.event').first();
+    const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+      .then(() => true).catch(() => false);
+    test.skip(!hasEvents, 'No hay citas visibles en el calendario');
+
+    await firstEvent.click();
+
+    await expect(page.getByRole('button', { name: 'Información' }))
+      .toBeVisible({ timeout: 8_000 });
+    await expect(page).not.toHaveURL(/error/);
+  });
+
+  test('panel de cita muestra tabs: Información, Paciente, Doctor, Sesión Clínica', async ({ page }) => {
+    const firstEvent = page.locator('.event').first();
+    const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+      .then(() => true).catch(() => false);
+    test.skip(!hasEvents, 'No hay citas visibles en el calendario');
+
+    await firstEvent.click();
+    await page.waitForTimeout(400);
+
+    const alwaysPresentTabs = ['Información', 'Paciente', 'Doctor', 'Sesión Clínica Enlazada'];
+    for (const tabName of alwaysPresentTabs) {
+      await expect(page.getByRole('button', { name: tabName }))
+        .toBeVisible({ timeout: 5_000 });
     }
 
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-      await page.waitForTimeout(600);
-
-      const infoTab = page.getByRole('button', { name: 'Información' })
-        .or(page.getByText('Información')).first();
-      if (await infoTab.isVisible().catch(() => false)) {
-        await expect(infoTab).toBeVisible();
-        await infoTab.click();
-        await page.waitForTimeout(400);
-        await expect(page).not.toHaveURL(/error/);
-      }
+    for (const tabName of alwaysPresentTabs) {
+      await page.getByRole('button', { name: tabName }).click();
+      await page.waitForTimeout(300);
+      await expect(page).not.toHaveURL(/error/);
     }
   });
 
-  test('panel de cita muestra tabs: Información, Presupuesto, Facturas, Pagos', async ({ page }) => {
-    const listViewBtn = page.getByRole('button', { name: 'Vista de Lista' });
-    if (await listViewBtn.isVisible().catch(() => false)) {
-      await listViewBtn.click();
-      await page.waitForTimeout(500);
-    }
+  test('tab Sesión Clínica muestra botón de crear o editar sesión', async ({ page }) => {
+    const firstEvent = page.locator('.event').first();
+    const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+      .then(() => true).catch(() => false);
+    test.skip(!hasEvents, 'No hay citas visibles en el calendario');
 
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-      await page.waitForTimeout(600);
+    await firstEvent.click();
+    await page.waitForTimeout(400);
 
-      const tabs = ['Información', 'Presupuesto', 'Facturas', 'Pagos'];
-      for (const tabName of tabs) {
-        const tab = page.getByRole('button', { name: tabName })
-          .or(page.getByText(tabName)).first();
-        if (await tab.isVisible().catch(() => false)) {
-          await tab.click();
-          await page.waitForTimeout(300);
-          await expect(page).not.toHaveURL(/error/);
-        }
-      }
-    }
-  });
+    await page.getByRole('button', { name: 'Sesión Clínica Enlazada' }).click();
+    await page.waitForTimeout(300);
 
-  test('opción "Crear sesión" / "Registrar sesión clínica" disponible en cita', async ({ page }) => {
-    const listViewBtn = page.getByRole('button', { name: 'Vista de Lista' });
-    if (await listViewBtn.isVisible().catch(() => false)) {
-      await listViewBtn.click();
-      await page.waitForTimeout(500);
-    }
-
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-      await page.waitForTimeout(600);
-
-      const createSession = page.getByRole('button', { name: 'Crear sesión' })
-        .or(page.getByRole('button', { name: 'Registrar sesión clínica' }))
-        .or(page.getByText('Crear sesión')).first();
-      if (await createSession.isVisible().catch(() => false)) {
-        await expect(createSession).toBeVisible();
-      }
-    }
+    const hasCreate = await page.getByRole('button', { name: 'Crear sesión' })
+      .isVisible().catch(() => false);
+    const hasEdit = await page.getByRole('button', { name: 'Editar sesión' })
+      .isVisible().catch(() => false);
+    expect(hasCreate || hasEdit).toBeTruthy();
   });
 });

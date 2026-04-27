@@ -9,8 +9,32 @@ const T = {
   today: 'Hoy',
   thisWeek: 'Esta Semana',
   thisMonth: 'Este Mes',
+  calendars: 'Calendarios',
+  doctors: 'Doctores',
+  selectAll: 'Seleccionar Todo',
+  deselectAll: 'Deseleccionar Todo',
+  createSession: 'Crear sesión',
+  editSession: 'Editar sesión',
+  noLinkedSession: 'No hay sesión clínica enlazada a esta cita',
+  grouping: {
+    label: 'Agrupar',
+    none: 'Sin agrupar',
+    doctor: 'Doctores',
+    calendar: 'Consultorios',
+  },
+  panelTabs: {
+    info: 'Información',
+    patient: 'Paciente',
+    doctor: 'Doctor',
+    session: 'Sesión Clínica Enlazada',
+    openPatient: 'Ver ficha del paciente',
+    openDoctor: 'Ver perfil del doctor',
+  },
   createDialog: {
     title: 'Crear Nueva Cita',
+    editTitle: 'Editar',
+    cancelAppointmentTitle: 'Cancelar Cita',
+    close: 'Cerrar',
     patientLabel: 'Nombre de paciente',
     serviceLabel: 'Servicios',
     dateLabel: 'Fecha',
@@ -34,6 +58,8 @@ const T = {
     date: 'Fecha',
     time: 'Hora',
     status: 'Estado',
+    edit: 'Editar',
+    cancel: 'Cancelar',
   },
 };
 
@@ -144,6 +170,80 @@ test.describe('Citas', () => {
           .toBeVisible({ timeout: 5_000 });
       }
     });
+
+    test('formulario muestra etiquetas de todos los campos requeridos', async ({ page }) => {
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      await expect(dialog.getByText(T.createDialog.patientLabel)).toBeVisible();
+      await expect(dialog.getByText(T.createDialog.serviceLabel)).toBeVisible();
+      await expect(dialog.getByText(T.createDialog.dateLabel)).toBeVisible();
+      await expect(dialog.getByText(T.createDialog.timeLabel, { exact: true }).first()).toBeVisible();
+      await expect(dialog.locator('label').filter({ hasText: T.createDialog.calendarLabel }).first()).toBeVisible();
+
+      await page.getByRole('button', { name: T.createDialog.cancel }).click();
+      await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+  });
+
+  // ── Navegación temporal (anterior / siguiente) ──────────────────────────
+
+  test.describe('Navegación temporal', () => {
+    test('botón siguiente cambia el período mostrado en el encabezado', async ({ page }) => {
+      // The header period is rendered in an <h3> next to the Hoy button
+      const headerPeriod = page.locator('h3.font-semibold').first();
+      const initialText = await headerPeriod.textContent({ timeout: 5_000 }).catch(() => null);
+      if (!initialText) return;
+
+      // Scope to .calendar-header to avoid matching chevrons in floating bars
+      const nextBtn = page.locator('.calendar-header svg.lucide-chevron-right').locator('..').first();
+      if (!await nextBtn.isVisible().catch(() => false)) return;
+
+      await nextBtn.click();
+      await page.waitForTimeout(400);
+
+      const updatedText = await headerPeriod.textContent().catch(() => null);
+      expect(updatedText).not.toBeNull();
+      expect(updatedText).not.toBe(initialText);
+      await expect(page).not.toHaveURL(/error/);
+    });
+
+    test('botón anterior cambia el período mostrado en el encabezado', async ({ page }) => {
+      const headerPeriod = page.locator('h3.font-semibold').first();
+      const initialText = await headerPeriod.textContent({ timeout: 5_000 }).catch(() => null);
+      if (!initialText) return;
+
+      // Scope to .calendar-header to avoid matching chevrons in floating bars
+      const prevBtn = page.locator('.calendar-header svg.lucide-chevron-left').locator('..').first();
+      if (!await prevBtn.isVisible().catch(() => false)) return;
+
+      await prevBtn.click();
+      await page.waitForTimeout(400);
+
+      const updatedText = await headerPeriod.textContent().catch(() => null);
+      expect(updatedText).not.toBeNull();
+      expect(updatedText).not.toBe(initialText);
+      await expect(page).not.toHaveURL(/error/);
+    });
+
+    test('anterior → siguiente regresa al período original', async ({ page }) => {
+      const headerPeriod = page.locator('h3.font-semibold').first();
+      const initialText = await headerPeriod.textContent({ timeout: 5_000 }).catch(() => null);
+      if (!initialText) return;
+
+      const nextBtn = page.locator('.calendar-header svg.lucide-chevron-right').locator('..').first();
+      const prevBtn = page.locator('.calendar-header svg.lucide-chevron-left').locator('..').first();
+      if (!await nextBtn.isVisible().catch(() => false)) return;
+
+      await nextBtn.click();
+      await page.waitForTimeout(300);
+      await prevBtn.click();
+      await page.waitForTimeout(300);
+
+      const restoredText = await headerPeriod.textContent().catch(() => null);
+      expect(restoredText).toBe(initialText);
+    });
   });
 
   // ── Vista de lista ─────────────────────────────────────────────────────
@@ -169,29 +269,280 @@ test.describe('Citas', () => {
         await page.waitForTimeout(500);
       }
       await expect(page).not.toHaveURL(/error/);
+
+      // If there are rows, at least one must display a recognizable status badge
+      const hasRows = await page.locator('table tbody tr').first().isVisible().catch(() => false);
+      if (hasRows) {
+        const statusPattern = new RegExp(Object.values(T.status).join('|'), 'i');
+        await expect(page.locator('table tbody').getByText(statusPattern).first())
+          .toBeVisible({ timeout: 5_000 });
+      }
     });
   });
 
   // ── Panel de detalle de cita ──────────────────────────────────────────
 
   test.describe('Panel de detalle', () => {
-    test('clic en una cita abre panel con tabs Información, Presupuesto', async ({ page }) => {
-      // Intentar en vista de lista
-      const listViewBtn = page.getByRole('button', { name: T.listView });
-      if (await listViewBtn.isVisible().catch(() => false)) {
-        await listViewBtn.click();
+    test('clic en evento del calendario abre panel con tab Información activo', async ({ page }) => {
+      // The panel is opened by clicking a .event div in the calendar — there is no separate list view
+      const firstEvent = page.locator('.event').first();
+      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+        .then(() => true).catch(() => false);
+      test.skip(!hasEvents, 'No hay citas visibles en el calendario');
+
+      await firstEvent.click();
+
+      await expect(page.getByRole('button', { name: T.panelTabs.info }))
+        .toBeVisible({ timeout: 8_000 });
+    });
+  });
+
+  // ── Filtros y controles del toolbar ──────────────────────────────────
+
+  test.describe('Filtros y toolbar', () => {
+    test('botón Refresh recarga citas sin producir error', async ({ page }) => {
+      // Icon-only button identified by the Lucide SVG class
+      const refreshBtn = page.locator('svg.lucide-refresh-cw').locator('..').first();
+      if (!await refreshBtn.isVisible().catch(() => false)) return;
+
+      await refreshBtn.click();
+      await page.waitForTimeout(600);
+      await expect(page).not.toHaveURL(/error/);
+    });
+
+    test('popover de Calendarios se abre y muestra opciones de filtrado', async ({ page }) => {
+      const calBtn = page.getByRole('button', { name: T.calendars });
+      if (!await calBtn.isVisible().catch(() => false)) return;
+
+      await calBtn.click();
+      await expect(page.getByText(T.selectAll).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(T.deselectAll).first()).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+
+    test('popover de Doctores se abre en vista Esta Semana', async ({ page }) => {
+      // Doctor filter is only rendered in week / day views (showGroupControls)
+      const weekBtn = page.getByRole('button', { name: T.thisWeek });
+      if (await weekBtn.isVisible().catch(() => false)) {
+        await weekBtn.click();
         await page.waitForTimeout(500);
       }
-      const firstRow = page.locator('table tbody tr').first();
-      if (await firstRow.isVisible().catch(() => false)) {
-        await firstRow.click();
+
+      const doctorsBtn = page.getByRole('button', { name: T.doctors, exact: true });
+      if (!await doctorsBtn.isVisible().catch(() => false)) return;
+
+      await doctorsBtn.click();
+      await expect(page.getByText(T.selectAll).first()).toBeVisible({ timeout: 5_000 });
+      await page.keyboard.press('Escape');
+    });
+
+    test('popover de Agrupación ofrece opciones Doctores y Consultorios', async ({ page }) => {
+      // Grouping button only visible in week / day views
+      const weekBtn = page.getByRole('button', { name: T.thisWeek });
+      if (await weekBtn.isVisible().catch(() => false)) {
+        await weekBtn.click();
         await page.waitForTimeout(500);
-        const infoTab = page.getByRole('button', { name: 'Información' })
-          .or(page.getByText('Información')).first();
-        if (await infoTab.isVisible().catch(() => false)) {
-          await expect(infoTab).toBeVisible();
-        }
       }
+
+      const groupBtn = page.getByRole('button', { name: new RegExp(T.grouping.label, 'i') });
+      if (!await groupBtn.isVisible().catch(() => false)) return;
+
+      await groupBtn.click();
+      await expect(page.getByText(T.grouping.doctor).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(T.grouping.calendar).first()).toBeVisible();
+      await page.keyboard.press('Escape');
+    });
+  });
+
+  // ── Creación desde slot vacío del calendario ──────────────────────────
+
+  test.describe('Creación desde calendario', () => {
+    test('clic en día vacío del calendario abre formulario de nueva cita', async ({ page }) => {
+      // Month view cells use class .calendar-day — clicking them triggers onSlotClick
+      const emptyDay = page.locator('.calendar-day').first();
+      if (!await emptyDay.isVisible().catch(() => false)) return;
+
+      await emptyDay.click();
+      const dialog = page.getByRole('dialog');
+      const isOpen = await dialog.isVisible({ timeout: 5_000 }).catch(() => false);
+      if (!isOpen) return;
+
+      await expect(page.getByText(T.createDialog.title)).toBeVisible();
+      await page.getByRole('button', { name: T.createDialog.cancel }).click();
+      await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+  });
+
+  // ── Tabs del panel de detalle ─────────────────────────────────────────
+
+  test.describe('Panel de detalle — tabs', () => {
+    async function openFirstAppointmentPanel(page: import('@playwright/test').Page) {
+      const firstEvent = page.locator('.event').first();
+      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+        .then(() => true).catch(() => false);
+      if (!hasEvents) return false;
+      await firstEvent.click();
+      await page.waitForTimeout(400);
+      return true;
+    }
+
+    test('tab Paciente muestra nombre y botón "Ver ficha del paciente"', async ({ page }) => {
+      if (!await openFirstAppointmentPanel(page)) return;
+
+      // Tab buttons use aria-label={tab.label} in VerticalTabStrip
+      const patientTab = page.getByRole('button', { name: T.panelTabs.patient, exact: true });
+      if (!await patientTab.isVisible().catch(() => false)) return;
+
+      await patientTab.click();
+      await page.waitForTimeout(300);
+      await expect(page.getByRole('button', { name: T.panelTabs.openPatient }))
+        .toBeVisible({ timeout: 5_000 });
+    });
+
+    test('tab Doctor muestra nombre y botón "Ver perfil del doctor"', async ({ page }) => {
+      if (!await openFirstAppointmentPanel(page)) return;
+
+      const doctorTab = page.getByRole('button', { name: T.panelTabs.doctor, exact: true });
+      if (!await doctorTab.isVisible().catch(() => false)) return;
+
+      await doctorTab.click();
+      await page.waitForTimeout(300);
+      await expect(page.getByRole('button', { name: T.panelTabs.openDoctor }))
+        .toBeVisible({ timeout: 5_000 });
+    });
+
+    test('tab Sesión Clínica muestra botón de crear o editar sesión', async ({ page }) => {
+      if (!await openFirstAppointmentPanel(page)) return;
+
+      const sessionTab = page.getByRole('button', { name: T.panelTabs.session });
+      if (!await sessionTab.isVisible().catch(() => false)) return;
+
+      await sessionTab.click();
+      await page.waitForTimeout(300);
+
+      const hasCreate = await page.getByRole('button', { name: T.createSession })
+        .isVisible().catch(() => false);
+      const hasEdit = await page.getByRole('button', { name: T.editSession })
+        .isVisible().catch(() => false);
+      expect(hasCreate || hasEdit).toBeTruthy();
+    });
+  });
+
+  // ── Acciones sobre cita existente ─────────────────────────────────────
+
+  test.describe('Acciones sobre cita existente', () => {
+    async function openPanelFromCalendar(page: import('@playwright/test').Page) {
+      const firstEvent = page.locator('.event').first();
+      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+        .then(() => true).catch(() => false);
+      if (!hasEvents) return false;
+      await firstEvent.click();
+      // Wait for panel's info tab to confirm panel is open
+      await page.getByRole('button', { name: T.panelTabs.info })
+        .waitFor({ state: 'visible', timeout: 8_000 }).catch(() => { });
+      return true;
+    }
+
+    test('botón Editar en panel abre formulario de edición con título "Editar"', async ({ page }) => {
+      const opened = await openPanelFromCalendar(page);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
+
+      // Edit button is in the panel's info tab
+      const editBtn = page.getByRole('button', { name: T.columns.edit });
+      if (!await editBtn.isVisible().catch(() => false)) return;
+
+      await editBtn.click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+      await expect(dialog.getByText(T.createDialog.editTitle)).toBeVisible();
+
+      await page.getByRole('button', { name: T.createDialog.cancel }).click();
+      await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+
+    test('botón Cancelar en panel abre AlertDialog de confirmación "Cancelar Cita"', async ({ page }) => {
+      const opened = await openPanelFromCalendar(page);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
+
+      // Cancel button is in the panel's info tab (uses Trash2 icon, text "Cancelar")
+      const cancelBtn = page.getByRole('button', { name: T.columns.cancel });
+      if (!await cancelBtn.isVisible().catch(() => false)) return;
+
+      await cancelBtn.click();
+      const alertDialog = page.getByRole('alertdialog');
+      await expect(alertDialog).toBeVisible({ timeout: 5_000 });
+      await expect(alertDialog.getByText(T.createDialog.cancelAppointmentTitle)).toBeVisible();
+
+      // Dismiss without confirming to avoid modifying test data
+      await page.getByRole('button', { name: T.createDialog.close }).click();
+      await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
+    });
+  });
+
+  // ── Funcionalidades avanzadas ─────────────────────────────────────────
+
+  test.describe('Funcionalidades avanzadas', () => {
+    test('menú contextual de evento muestra paleta de 11 colores', async ({ page }) => {
+      // Events render as .event divs wrapped in a Radix ContextMenu
+      const firstEvent = page.locator('.event').first();
+      if (!await firstEvent.isVisible().catch(() => false)) return;
+
+      await firstEvent.click({ button: 'right' });
+
+      // ContextMenuContent renders with role="menu"; color swatches are .rounded-full divs inside it
+      const colorSwatches = page.locator('[role="menu"] .rounded-full');
+      await expect(colorSwatches.first()).toBeVisible({ timeout: 5_000 });
+      const count = await colorSwatches.count();
+      expect(count).toBeGreaterThanOrEqual(11);
+
+      await page.keyboard.press('Escape');
+    });
+
+    test('botón "Nuevo" de presupuesto en formulario abre QuickQuoteDialog', async ({ page }) => {
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      // The "Nueva Presupuesto" button uses FilePlus icon — locate by SVG class scoped to dialog
+      const newQuoteBtn = dialog.locator('svg.lucide-file-plus').locator('..').first();
+      if (!await newQuoteBtn.isVisible().catch(() => false)) {
+        await page.getByRole('button', { name: T.createDialog.cancel }).click();
+        return;
+      }
+
+      await newQuoteBtn.click();
+      // QuickQuoteDialog opens as a nested dialog with title "Crear Presupuesto Rápido"
+      await expect(page.getByText('Crear Presupuesto Rápido')).toBeVisible({ timeout: 8_000 });
+
+      // Close the inner dialog, then the outer one
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: T.createDialog.cancel }).click();
+    });
+
+    test('botón "Crear sesión" desde panel abre ClinicSessionDialog', async ({ page }) => {
+      const firstEvent = page.locator('.event').first();
+      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
+        .then(() => true).catch(() => false);
+      test.skip(!hasEvents, 'No hay citas visibles en el calendario');
+
+      await firstEvent.click();
+      await page.waitForTimeout(400);
+
+      const sessionTab = page.getByRole('button', { name: T.panelTabs.session });
+      if (!await sessionTab.isVisible().catch(() => false)) return;
+      await sessionTab.click();
+      await page.waitForTimeout(300);
+
+      // Only "Crear sesión" (not "Editar sesión") opens the dialog fresh
+      const createSessionBtn = page.getByRole('button', { name: T.createSession });
+      if (!await createSessionBtn.isVisible().catch(() => false)) return;
+
+      await createSessionBtn.click();
+      // Dialog opens after an async API call (loadLinkedSession) — needs a generous timeout.
+      // Title is t('createTitle') from ClinicSessionDialog namespace = "Crear Sesión" (capital S).
+      await expect(page.getByRole('dialog').getByText('Crear Sesión')).toBeVisible({ timeout: 20_000 });
+
+      await page.keyboard.press('Escape');
     });
   });
 });
