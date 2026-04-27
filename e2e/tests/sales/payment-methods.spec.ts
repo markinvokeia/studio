@@ -131,7 +131,7 @@ test.describe('Métodos de Pago', () => {
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
       // ELIMINAR: trash icon button in panel
-      await page.locator('button').filter({ has: page.locator('svg.lucide-trash-2') }).first().click();
+      await page.locator('button').filter({ has: page.locator('svg.lucide-trash2') }).first().click();
       await page.getByRole('button', { name: T.deleteDialog.confirm }).click();
       await expect(page.getByText(name)).not.toBeVisible({ timeout: 8_000 });
     });
