@@ -31,8 +31,8 @@ const T = {
 
 test.describe('Centro de Alertas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/alerts');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/alerts', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   // ── Vista principal ────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ test.describe('Centro de Alertas', () => {
   test.describe('Acciones sobre alertas', () => {
     test('alertas tienen opciones de acción al hacer clic en una fila', async ({ page }) => {
       // Las alertas muestran botones de acción al seleccionar una fila
-      const firstRow = page.locator('table tbody tr').first();
+      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
       const hasRows = await firstRow.isVisible({ timeout: 5_000 }).catch(() => false);
       if (hasRows) {
         await firstRow.click();

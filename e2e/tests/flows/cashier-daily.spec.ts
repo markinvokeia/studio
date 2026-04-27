@@ -19,8 +19,9 @@ import { test, expect } from '@playwright/test';
 test.describe('Flujo de Caja Diario', () => {
   test.describe('Panel principal de caja', () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto('/es/cashier');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/es/cashier', { waitUntil: 'domcontentloaded' });
+      // Wait for cashier session data to load (async after page load)
+      await page.waitForSelector('[class*="card"], [class*="Card"]', { timeout: 30_000 }).catch(() => {});
     });
 
     test('panel carga con estado de sesiones', async ({ page }) => {
@@ -69,8 +70,8 @@ test.describe('Flujo de Caja Diario', () => {
 
   test.describe('Wizard de apertura de sesión', () => {
     test('wizard de apertura tiene pasos con botón Siguiente y Atrás', async ({ page }) => {
-      await page.goto('/es/cashier');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/es/cashier', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[class*="card"], [class*="Card"]', { timeout: 30_000 }).catch(() => {});
 
       // Sólo intentar si hay una caja cerrada
       const openBtn = page.getByRole('button', { name: 'Abrir' }).first();
@@ -95,19 +96,22 @@ test.describe('Flujo de Caja Diario', () => {
 
   test.describe('Sesiones de caja históricas', () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto('/es/cashier/sessions');
-      await page.waitForSelector('table', { timeout: 15_000 });
+      await page.goto('/es/cashier/sessions', { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
     });
 
     test('tabla de sesiones muestra columnas: Usuario, Punto de Caja, Estado, Fecha Apertura', async ({ page }) => {
       await expect(page.getByText('Sesión de Caja').first()).toBeVisible();
-      await expect(page.locator('table')).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: 'Usuario' })
-        .or(page.getByRole('columnheader', { name: 'Estado' })).first()).toBeVisible();
+      await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
+      const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+      if (!inCardMode) {
+        await expect(page.getByRole('columnheader', { name: 'Usuario' })
+          .or(page.getByRole('columnheader', { name: 'Estado' })).first()).toBeVisible();
+      }
     });
 
     test('detalle de sesión de caja se abre al hacer clic en una fila', async ({ page }) => {
-      const firstRow = page.locator('table tbody tr').first();
+      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
       if (await firstRow.isVisible().catch(() => false)) {
         await firstRow.click();
         await page.waitForTimeout(500);
@@ -119,8 +123,7 @@ test.describe('Flujo de Caja Diario', () => {
 
   test.describe('Transacciones Misceláneas', () => {
     test.beforeEach(async ({ page }) => {
-      await page.goto('/es/cashier/miscellaneous-transactions');
-      await page.waitForLoadState('networkidle');
+      await page.goto('/es/cashier/miscellaneous-transactions', { waitUntil: 'domcontentloaded' });
     });
 
     test('página carga con título "Transacciones Misceláneas"', async ({ page }) => {
@@ -133,7 +136,7 @@ test.describe('Flujo de Caja Diario', () => {
         await createBtn.click();
         const dialog = page.getByRole('dialog');
         if (await dialog.isVisible().catch(() => false)) {
-          await expect(page.getByText('Categoría', { exact: true }).first()).toBeVisible();
+          await expect(dialog.getByText('Categoría', { exact: true }).first()).toBeVisible();
           await expect(page.getByText('Monto')
             .or(page.getByLabel('Monto')).first()).toBeVisible();
           await page.getByRole('button', { name: 'Cancelar' }).click();

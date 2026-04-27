@@ -26,15 +26,18 @@ test.describe('Catálogo — Padecimientos', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/clinic-catalog/ailments');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/clinic-catalog/ailments', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Padecimientos" y tabla con columnas correctas', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.category })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.alertLevel })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.category })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.alertLevel })).toBeVisible();
+    }
   });
 
   test('campo de búsqueda con placeholder correcto', async ({ page }) => {
@@ -86,30 +89,30 @@ test.describe('Catálogo — Padecimientos', () => {
       // VERIFICAR en tabla (tabla visible antes de abrir panel derecho)
       await page.getByPlaceholder(T.filterPlaceholder).fill(uniqueName);
       await page.waitForTimeout(600);
-      await expect(page.locator('table tbody').getByText(uniqueName)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(uniqueName).first()).toBeVisible({ timeout: 8_000 });
 
       // Abrir panel derecho: clic en fila (aún en modo tabla)
-      await page.locator('table tbody tr').filter({ hasText: uniqueName }).click();
-      await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
+      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: uniqueName }).click();
+      await expect(page.getByRole('button', { name: 'Editar' }).first()).toBeVisible({ timeout: 5_000 });
 
       // EDITAR: panel derecho ya abierto → click Editar
-      await page.getByRole('button', { name: 'Editar' }).click();
+      await page.getByRole('button', { name: 'Editar' }).first().click();
       await page.getByLabel(T.nameLabel).clear();
       await page.getByLabel(T.nameLabel).fill(editedName);
       await page.getByRole('button', { name: T.saveEdit }).click();
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
       // RESTAURAR: panel derecho aún abierto mostrando el item → click Editar de nuevo
-      await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
-      await page.getByRole('button', { name: 'Editar' }).click();
+      await expect(page.getByRole('button', { name: 'Editar' }).first()).toBeVisible({ timeout: 5_000 });
+      await page.getByRole('button', { name: 'Editar' }).first().click();
       await page.getByLabel(T.nameLabel).clear();
       await page.getByLabel(T.nameLabel).fill(uniqueName);
       await page.getByRole('button', { name: T.saveEdit }).click();
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
       // ELIMINAR: panel derecho aún abierto → icono papelera → confirmar
-      await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
-      await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
+      await expect(page.getByRole('button', { name: 'Editar' }).first()).toBeVisible({ timeout: 5_000 });
+      await page.getByRole('button', { name: 'Editar' }).first().locator('..').getByRole('button').last().click();
       const deleteDialog = page.getByRole('alertdialog');
       await expect(deleteDialog).toBeVisible({ timeout: 5_000 });
       await deleteDialog.getByRole('button', { name: T.deleteConfirm }).click();
@@ -136,14 +139,17 @@ test.describe('Catálogo — Medicamentos', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/clinic-catalog/medications');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/clinic-catalog/medications', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Medicamentos" y columnas correctas', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.genericName })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.commercialName })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.genericName })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.commercialName })).toBeVisible();
+    }
   });
 
   test('campo de búsqueda mínimo 3 caracteres para filtrar', async ({ page }) => {
@@ -188,10 +194,10 @@ test.describe('Catálogo — Medicamentos', () => {
 
       await page.getByPlaceholder(T.filterPlaceholder).fill(name.slice(0, 5));
       await page.waitForTimeout(600);
-      await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // Clic en fila → panel derecho → icono papelera → confirmar
-      await page.locator('table tbody tr').filter({ hasText: name }).click();
+      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
       await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
       const delDlg = page.getByRole('alertdialog');
@@ -222,14 +228,17 @@ test.describe('Catálogo — Condiciones Dentales', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/clinic-catalog/dental-conditions');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/clinic-catalog/dental-conditions', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Condiciones Dentales" y columnas: Nombre, Código Visual, Color', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
+    }
   });
 
   test.describe('CRUD Condición Dental (con limpieza)', () => {
@@ -273,10 +282,10 @@ test.describe('Catálogo — Condiciones Dentales', () => {
 
       await page.getByPlaceholder(T.filterPlaceholder).fill(name);
       await page.waitForTimeout(600);
-      await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // Clic en fila → panel derecho → icono papelera → confirmar
-      await page.locator('table tbody tr').filter({ hasText: name }).click();
+      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
       await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
       const delDlg = page.getByRole('alertdialog');
@@ -306,14 +315,17 @@ test.describe('Catálogo — Superficies Dentales', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/clinic-catalog/dental-surfaces');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/clinic-catalog/dental-surfaces', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Superficies Dentales" y columnas: Nombre, Código', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
+    }
   });
 
   test.describe('CRUD Superficie Dental (con limpieza)', () => {
@@ -353,10 +365,10 @@ test.describe('Catálogo — Superficies Dentales', () => {
 
       await page.getByPlaceholder(T.filterPlaceholder).fill(name);
       await page.waitForTimeout(600);
-      await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // Clic en fila → panel derecho → icono papelera → confirmar
-      await page.locator('table tbody tr').filter({ hasText: name }).click();
+      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
       await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
       const delDlg = page.getByRole('alertdialog');

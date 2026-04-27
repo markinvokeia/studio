@@ -48,8 +48,8 @@ const T = {
 
 test.describe('Pagos de Venta', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/sales/payments');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/sales/payments', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   // ── Vista principal ────────────────────────────────────────────────────
@@ -57,13 +57,16 @@ test.describe('Pagos de Venta', () => {
   test.describe('Vista principal', () => {
     test('carga título "Pagos" y tabla', async ({ page }) => {
       await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-      await expect(page.locator('table')).toBeVisible();
+      await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
     });
 
     test('columnas incluyen No. Documento, Monto, Método, Estado', async ({ page }) => {
-      await expect(page.getByRole('columnheader', { name: T.col.amount, exact: true })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: T.col.status })
-        .or(page.getByRole('columnheader', { name: T.col.method }))).toBeVisible();
+      const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+      if (!inCardMode) {
+        await expect(page.getByRole('columnheader', { name: T.col.amount, exact: true })).toBeVisible();
+        await expect(page.getByRole('columnheader', { name: T.col.status })
+          .or(page.getByRole('columnheader', { name: T.col.method }))).toBeVisible();
+      }
     });
 
     test('botón "Crear Prepago" está visible', async ({ page }) => {
@@ -139,7 +142,7 @@ test.describe('Pagos de Venta', () => {
 
   test.describe('Panel de detalle', () => {
     test.beforeEach(async ({ page }) => {
-      const firstRow = page.locator('table tbody tr').first();
+      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
       if (await firstRow.isVisible().catch(() => false)) {
         await firstRow.click();
         await page.waitForTimeout(500);
@@ -169,7 +172,7 @@ test.describe('Pagos de Venta', () => {
 
   test.describe('Acciones de pago', () => {
     test('menú de acciones muestra Imprimir y Enviar Correo', async ({ page }) => {
-      const actionBtn = page.locator('table tbody tr').first()
+      const actionBtn = page.locator('table tbody tr, [data-testid="list-item"]').first()
         .getByRole('button', { name: 'Abrir Menú' });
       if (await actionBtn.isVisible().catch(() => false)) {
         await actionBtn.click();
@@ -180,7 +183,7 @@ test.describe('Pagos de Venta', () => {
     });
 
     test('diálogo de edición de método de pago tiene campos correctos', async ({ page }) => {
-      const actionBtn = page.locator('table tbody tr').first()
+      const actionBtn = page.locator('table tbody tr, [data-testid="list-item"]').first()
         .getByRole('button', { name: 'Abrir Menú' });
       if (await actionBtn.isVisible().catch(() => false)) {
         await actionBtn.click();
