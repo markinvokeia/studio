@@ -370,6 +370,8 @@ cmd_snapshot() {
 
   # ── 3. COMPARAR (DIFF) ───────────────────────────────────────────────────────
   _log "3/4 Comparando DEV viva vs Shadow DB..."
+  rm -f "${snapshot_path}"
+
   docker run --rm \
     --network container:liquibase_shadow_db \
     -v "${DB_DIR}:/liquibase/changelog" \
@@ -384,6 +386,7 @@ cmd_snapshot() {
     --defaults-file=/liquibase/changelog/liquibase.properties \
     --include-catalog=false \
     --include-schema=false \
+    --diff-types="tables,columns,indexes,foreignkeys,primarykeys,uniqueconstraints" \
     diff-changelog \
     --changelog-file="${snapshot_file}"
 
@@ -552,6 +555,25 @@ _usage() {
 }
 
 # =============================================================================
+# COMMAND: sync (Registrar sin ejecutar)
+# Marca todos los cambios del código como "ya aplicados" en la DDBB actual.
+# =============================================================================
+cmd_sync() {
+  _section "Sync — Sincronizando historial de Liquibase"
+
+  _check_docker
+  _load_env
+  _ensure_driver
+
+  _log "Marcando todos los changesets en changelog-master.xml como ejecutados..."
+  
+  _run_liquibase changelog-sync \
+    --changelog-file=changelogs/changelog-master.xml
+
+  _log "${GREEN}${BOLD}Sincronización completada.${RESET}"
+}
+
+# =============================================================================
 # MAIN DISPATCH
 # =============================================================================
 main() {
@@ -569,6 +591,7 @@ main() {
     snapshot)       cmd_snapshot "$@" ;;
     deploy)         cmd_deploy "$@" ;;
     rollback)       cmd_rollback "$@" ;;
+    sync)           cmd_sync "$@" ;; 
     help|--help|-h) _usage ;;
     *)
       _error "Comando desconocido: '${command}'"

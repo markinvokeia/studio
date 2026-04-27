@@ -37,6 +37,8 @@
     <!-- Add new versioned changelogs below, in chronological order:        -->
     <include file="changelogs/v1_baseline.xml" relativeToChangelogFile="false"/>
     <include file="changelogs/changelog_20260427_1000.xml" relativeToChangelogFile="false"/>
+    <include file="changelogs/changelog_20260427_1023.xml" relativeToChangelogFile="false"/>
+    <include file="changelogs/changelog_20260427_1119.xml" relativeToChangelogFile="false"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- SECTION 2 — Metadata: Catalogs, Views, Functions                   -->
