@@ -155,8 +155,7 @@ test.describe('Sistema — Plantillas de Comunicación', () => {
 
   test('carga la página de Plantillas sin error', async ({ page }) => {
     await expect(page).not.toHaveURL(/error/);
-    await expect(page.getByText(T.pageTitle).first()
-      .or(page.getByText('Plantillas'))).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText(/Plantillas/).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test('botón Crear disponible', async ({ page }) => {
