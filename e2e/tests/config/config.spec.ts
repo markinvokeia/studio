@@ -16,8 +16,8 @@ test.describe('Configuración — Detalles de la Clínica', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/clinics');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/config/clinics', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga título "Detalles de la Clínica" y campos del formulario', async ({ page }) => {
@@ -65,14 +65,17 @@ test.describe('Configuración — Doctores', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/doctors');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/config/doctors', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Doctores" y tabla con columnas', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.locator('table')).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    }
   });
 
   test('campo de búsqueda y filtro "Mostrar solo activos" disponibles', async ({ page }) => {
@@ -123,10 +126,10 @@ test.describe('Configuración — Doctores', () => {
       // VERIFICAR: filtrar por email (el filtro es sobre el correo)
       await page.getByPlaceholder(T.filterPlaceholder).fill(email);
       await page.waitForTimeout(800);
-      await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // EDITAR: clic en fila → panel derecho → tab Detalles (siempre editable)
-      await page.locator('table tbody tr').filter({ hasText: name }).click();
+      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
       await expect(page.getByRole('tab', { name: T.panelTab.details })).toBeVisible({ timeout: 5_000 });
       await page.getByLabel(T.nameLabel).clear();
       await page.getByLabel(T.nameLabel).fill(editedName);
@@ -144,7 +147,7 @@ test.describe('Configuración — Doctores', () => {
       await page.waitForTimeout(400);
       await page.getByPlaceholder(T.filterPlaceholder).fill(email);
       await page.waitForTimeout(800);
-      const finalRow = page.locator('table tbody tr').filter({ hasText: name });
+      const finalRow = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name });
       const deactivateBtn = finalRow.getByRole('button', { name: T.deactivate });
       if (await deactivateBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deactivateBtn.click();
@@ -157,7 +160,7 @@ test.describe('Configuración — Doctores', () => {
 
   test.describe('Panel de detalle del doctor', () => {
     test('seleccionar doctor abre panel con tab Detalles', async ({ page }) => {
-      const firstRow = page.locator('table tbody tr').first();
+      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
       if (await firstRow.isVisible().catch(() => false)) {
         await firstRow.click();
         await page.waitForTimeout(500);
@@ -187,14 +190,17 @@ test.describe('Configuración — Horarios', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/schedules');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/config/schedules', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Horarios" y columnas: Día, Hora de Inicio, Hora de Fin', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.startLabel })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.endLabel })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.startLabel })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: T.endLabel })).toBeVisible();
+    }
   });
 
   test.describe('CRUD Horario (con limpieza)', () => {
@@ -231,13 +237,16 @@ test.describe('Configuración — Calendarios', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/calendars');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/config/calendars', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Calendarios" y columnas: Nombre, Color, Activo', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    }
   });
 
   test.describe('CRUD Calendario (con limpieza)', () => {
@@ -267,7 +276,7 @@ test.describe('Configuración — Calendarios', () => {
       await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 15_000 });
 
       // Esperar a que la tabla vuelva a estar visible (sin reload)
-      await page.waitForSelector('table', { timeout: 15_000 });
+      await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
       await page.getByPlaceholder(T.filterPlaceholder).fill(name);
       await page.waitForTimeout(800);
 
@@ -275,7 +284,7 @@ test.describe('Configuración — Calendarios', () => {
         .isVisible({ timeout: 3_000 }).catch(() => false);
 
       if (itemFound) {
-        const row = page.locator('table tbody tr').filter({ hasText: name });
+        const row = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name });
         await row.getByRole('button', { name: /eliminar/i }).click();
         const delDlg = page.getByRole('alertdialog');
         await expect(delDlg).toBeVisible({ timeout: 5_000 });
@@ -302,13 +311,16 @@ test.describe('Configuración — Días Feriados', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/holidays');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/config/holidays', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga título "Feriados" y columna Fecha', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.date })).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.date })).toBeVisible();
+    }
   });
 
   test('formulario de creación tiene campo Fecha', async ({ page }) => {
@@ -324,13 +336,13 @@ test.describe('Configuración — Días Feriados', () => {
 
 test.describe('Configuración — Secuencias', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/sequences');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/config/sequences', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga la página de Secuencias', async ({ page }) => {
     await expect(page.getByText('Secuencias').first()).toBeVisible();
-    await expect(page.locator('table')).toBeVisible();
+    await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
   });
 });
 
@@ -338,13 +350,13 @@ test.describe('Configuración — Secuencias', () => {
 
 test.describe('Configuración — Sociedades Mutuales', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/mutual-societies');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/config/mutual-societies', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 15_000 }).catch(() => {});
   });
 
   test('carga la página de Sociedades Mutuales', async ({ page }) => {
     await expect(page.getByText('Sociedades Mutuales').first()).toBeVisible();
-    await expect(page.locator('table')).toBeVisible();
+    await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
   });
 });
 
@@ -352,8 +364,8 @@ test.describe('Configuración — Sociedades Mutuales', () => {
 
 test.describe('Configuración — Monedas y Tipos de Cambio', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/config/currencies');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/config/currencies', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
   });
 
   test('carga la página de Monedas sin error', async ({ page }) => {
@@ -362,7 +374,7 @@ test.describe('Configuración — Monedas y Tipos de Cambio', () => {
   });
 
   test('muestra tabla o lista de monedas (read-only)', async ({ page }) => {
-    const hasTable = await page.locator('table').isVisible().catch(() => false);
+    const hasTable = await page.locator('table, [data-testid="card-list"]').first().isVisible().catch(() => false);
     const hasCurrency = await page.getByText(/USD|EUR|UYU/i).first().isVisible().catch(() => false);
     expect(hasTable || hasCurrency).toBeTruthy();
   });

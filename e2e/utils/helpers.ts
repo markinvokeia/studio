@@ -1,4 +1,31 @@
-import { type Page } from '@playwright/test';
+import { type Page, type Locator } from '@playwright/test';
+
+/**
+ * Selector that matches the first visible row in a DataTable regardless of
+ * whether it is in table mode (desktop) or card-list mode (mobile / narrow).
+ * On mobile, the table is hidden and DataCards are shown instead.
+ */
+export const ROW_OR_CARD = 'table tbody tr, [data-testid="list-item"]';
+
+/** Wait for table or card list to be present (works on both desktop and mobile). */
+export async function waitForList(page: Page, timeout = 15_000) {
+  await page.waitForSelector(`table, [data-testid="card-list"]`, { timeout });
+}
+
+/** Click the first visible data row or card. Returns false if none found. */
+export async function clickFirstRow(page: Page, timeout = 8_000): Promise<boolean> {
+  const item = page.locator(ROW_OR_CARD).first();
+  if (await item.isVisible({ timeout }).catch(() => false)) {
+    await item.click();
+    return true;
+  }
+  return false;
+}
+
+/** Filter rows/cards by text content. */
+export function rowOrCardByText(page: Page, text: string): Locator {
+  return page.locator(`table tbody tr, [data-testid="list-item"]`).filter({ hasText: text });
+}
 
 /** Fill a shadcn/ui combobox (Command popover) by typing and selecting the first match. */
 export async function fillCombobox(page: Page, triggerLabel: string, searchText: string) {

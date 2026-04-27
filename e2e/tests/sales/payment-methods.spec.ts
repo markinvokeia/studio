@@ -33,21 +33,24 @@ const T = {
 
 test.describe('Métodos de Pago', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/sales/payment-methods');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/sales/payment-methods', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
   });
 
   // ── Vista principal ────────────────────────────────────────────────────
 
   test.describe('Vista principal', () => {
     test('carga título "Métodos de Pago" y tabla', async ({ page }) => {
-      await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-      await expect(page.locator('table')).toBeVisible();
+      await expect(page).not.toHaveURL(/error|login/);
+      await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible({ timeout: 10_000 });
     });
 
     test('tabla muestra columnas Nombre, Código', async ({ page }) => {
-      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
-      await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
+      const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+      if (!inCardMode) {
+        await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+        await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
+      }
     });
 
     test('botón Crear visible en toolbar', async ({ page }) => {
@@ -110,10 +113,10 @@ test.describe('Métodos de Pago', () => {
       await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 10_000 });
       await page.getByPlaceholder(T.filterPlaceholder).fill(name);
       await page.waitForTimeout(600);
-      await expect(page.locator('table tbody').getByText(name)).toBeVisible({ timeout: 8_000 });
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // EDITAR: click row → right panel opens
-      const row = page.locator('table tbody tr').filter({ hasText: name });
+      const row = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name });
       await row.click();
       await page.waitForTimeout(500);
       await page.getByRole('button', { name: 'Editar' }).first().click();

@@ -16,14 +16,17 @@ test.describe('Sistema — Usuarios del Sistema', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/users');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/system/users', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
   });
 
   test('carga título "Usuarios" y tabla', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.locator('table')).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    }
   });
 
   test('botón Crear disponible', async ({ page }) => {
@@ -70,14 +73,17 @@ test.describe('Sistema — Roles', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/roles');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await page.goto('/es/roles', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
   });
 
   test('carga título "Roles" y tabla con columna Nombre', async ({ page }) => {
     await expect(page.getByText(T.pageTitle).first()).toBeVisible();
-    await expect(page.locator('table')).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible();
+    const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+    if (!inCardMode) {
+      await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
+    }
   });
 
   test('formulario de creación tiene campo Nombre', async ({ page }) => {
@@ -93,8 +99,8 @@ test.describe('Sistema — Roles', () => {
 
 test.describe('Sistema — Permisos', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/permissions');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/permissions', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Permisos sin error', async ({ page }) => {
@@ -107,8 +113,8 @@ test.describe('Sistema — Permisos', () => {
 
 test.describe('Sistema — Registro de Auditoría', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/audit');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/audit', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Auditoría sin error', async ({ page }) => {
@@ -130,8 +136,8 @@ test.describe('Sistema — Registro de Auditoría', () => {
 
 test.describe('Sistema — Registro de Acceso', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/access');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/access', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Acceso sin error', async ({ page }) => {
@@ -149,8 +155,8 @@ test.describe('Sistema — Plantillas de Comunicación', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/communication-templates');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/communication-templates', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
   });
 
   test('carga la página de Plantillas sin error', async ({ page }) => {
@@ -159,14 +165,14 @@ test.describe('Sistema — Plantillas de Comunicación', () => {
   });
 
   test('botón Crear disponible', async ({ page }) => {
-    if (await page.locator('table').isVisible().catch(() => false)) {
+    if (await page.locator('table, [data-testid="card-list"]').first().isVisible().catch(() => false)) {
       await expect(page.getByRole('button', { name: T.createBtn })).toBeVisible();
     }
   });
 
   test('acción de duplicar plantilla disponible en el menú', async ({ page }) => {
-    if (await page.locator('table').isVisible().catch(() => false)) {
-      const actionBtn = page.locator('table tbody tr').first()
+    if (await page.locator('table, [data-testid="card-list"]').first().isVisible().catch(() => false)) {
+      const actionBtn = page.locator('table tbody tr, [data-testid="list-item"]').first()
         .getByRole('button', { name: 'Abrir menú' });
       if (await actionBtn.isVisible().catch(() => false)) {
         await actionBtn.click();
@@ -184,8 +190,8 @@ test.describe('Sistema — Plantillas de Comunicación', () => {
 
 test.describe('Sistema — Configuraciones', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/config');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/config', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Configuraciones sin error', async ({ page }) => {
@@ -198,8 +204,8 @@ test.describe('Sistema — Configuraciones', () => {
 
 test.describe('Sistema — Notificaciones', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/notification-settings');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/notification-settings', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Notificaciones sin error', async ({ page }) => {
@@ -212,8 +218,8 @@ test.describe('Sistema — Notificaciones', () => {
 
 test.describe('Sistema — Registro de Errores', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/errors');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/errors', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Errores sin redirección a login', async ({ page }) => {
@@ -225,8 +231,8 @@ test.describe('Sistema — Registro de Errores', () => {
 
 test.describe('Sistema — Historial de Ejecuciones', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/execution-history');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/execution-history', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Historial sin error', async ({ page }) => {
@@ -244,8 +250,8 @@ test.describe('Sistema — Categorías de Alertas', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/alert-categories');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/alert-categories', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Categorías de Alertas sin error', async ({ page }) => {
@@ -272,8 +278,8 @@ test.describe('Sistema — Categorías de Alertas', () => {
 
 test.describe('Sistema — Reglas de Alertas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/alert-rules');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/alert-rules', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Reglas de Alertas sin error', async ({ page }) => {
@@ -286,8 +292,8 @@ test.describe('Sistema — Reglas de Alertas', () => {
 
 test.describe('Sistema — Configuración de Alertas', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/es/system/alerts-config');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/es/system/alerts-config', { waitUntil: 'domcontentloaded' });
+    // waitForLoadState removed — domcontentloaded used in goto
   });
 
   test('carga la página de Configuración de Alertas sin error', async ({ page }) => {

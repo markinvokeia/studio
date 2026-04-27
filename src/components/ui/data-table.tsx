@@ -183,10 +183,10 @@ export function DataTable<TData, TValue>({
         />
       )}
       {isNarrow && renderCard ? (
-        <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
+        <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <div key={row.id} onClick={() => {
+              <div key={row.id} data-testid="list-item" onClick={() => {
                 if (enableSingleRowSelection) {
                   table.toggleAllPageRowsSelected(false);
                   row.toggleSelected(true);

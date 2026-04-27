@@ -191,6 +191,7 @@ export function DataTableAdvancedToolbar<TData>({
                                 !createButtonIconOnly && "sm:w-auto sm:px-3 sm:gap-1.5"
                             )}
                             onClick={onCreate}
+                            aria-label={createButtonLabel || t('create')}
                         >
                             <PlusCircle className="h-4 w-4" />
                             {createButtonIconOnly ? (
