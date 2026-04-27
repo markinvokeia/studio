@@ -1,172 +1,203 @@
-import { test, expect } from '@playwright/test';
-import { randomDoc, randomEmail } from '../../utils/helpers';
+import { expect, type Page, test } from '@playwright/test';
 
-/**
- * E2E flow: Flujo de venta completo
- * Paciente → Presupuesto → Ítems → Confirmar → tab Órdenes → tab Facturas → tab Pagos
- *
- * Translation strings used:
- * - QuotesPage.quoteDialog.createTitle = "Crear Presupuesto"
- * - QuotesPage.tabs.orders = "Órdenes"
- * - QuotesPage.tabs.invoices = "Facturas"
- * - QuotesPage.tabs.payments = "Pagos"
- * - QuotesPage.actions.confirm = "Confirmar"
- * - UsersPage.createDialog.save = "Crear Paciente"
- */
+const T = {
+  quotesPage: 'Presupuestos',
+  invoicesPage: 'Facturas',
+  filterInvoices: 'Filtrar aquí...',
+  quoteStatus: {
+    draft: 'Borrador',
+    confirmed: 'Confirmado',
+  },
+  billingStatus: {
+    notInvoiced: 'Sin Facturar',
+  },
+  tabs: {
+    items: 'Artículos',
+    invoices: 'Facturas',
+  },
+  actions: {
+    createQuote: 'Crear',
+    confirmQuote: 'Confirmar',
+    addItem: 'Agregar Artículo',
+    completeItem: 'Completar',
+    invoiceQuote: 'Facturar',
+    confirmInvoice: 'Confirmar Factura',
+    addPayment: 'Agregar Pago',
+    openMenu: /Abrir menú|Abrir Menú/,
+  },
+  quoteConfirmDialog: {
+    title: 'Confirmar Presupuesto',
+    confirm: 'Confirmar',
+  },
+  quoteDialog: {
+    title: 'Crear Presupuesto',
+    selectUser: 'Seleccionar Usuario',
+    searchUser: 'Buscar Usuario',
+    selectService: 'Seleccionar Servicio',
+    searchService: 'Buscar servicio',
+    save: 'Guardar',
+  },
+  invoiceConfirmDialog: {
+    title: 'Confirmar Factura',
+    confirm: 'Confirmar',
+  },
+  clinicSessionDialog: {
+    title: 'Crear Sesión',
+    doctor: 'Doctor',
+    save: 'Guardar',
+  },
+  paymentDialog: {
+    title: 'Agregar Pago',
+    method: 'Método',
+    historical: 'Histórico',
+    submit: 'Agregar Pago',
+  },
+  invoiceStatus: {
+    booked: 'Contabilizado',
+    paid: 'Pagado',
+  },
+};
+
+async function openQuotesPage(page: Page) {
+  await page.goto('/es/sales/quotes');
+  await page.waitForSelector('table', { timeout: 15_000 });
+  await expect(page.getByText(T.quotesPage).first()).toBeVisible();
+}
+
+async function getQuoteTableRows(page: Page) {
+  return page.locator('table').first().locator('tbody tr');
+}
+
+async function getQuoteDocNo(row: ReturnType<Page['locator']>) {
+  const docNo = (await row.locator('td').nth(1).textContent())?.trim();
+  expect(docNo, 'El presupuesto creado debe tener número de documento').toBeTruthy();
+  return docNo as string;
+}
+
+async function selectFirstDoctor(page: Page) {
+  const dialog = page.getByRole('dialog').filter({ hasText: T.clinicSessionDialog.title });
+  await expect(dialog).toBeVisible();
+
+  await dialog.getByRole('combobox').first().click();
+  const options = page.getByRole('option');
+  await expect(options.first()).toBeVisible({ timeout: 15_000 });
+  await options.first().click();
+}
+
 test.describe('Flujo de Venta Completo', () => {
-  test('navegar al módulo de Presupuestos y crear un presupuesto', async ({ page }) => {
-    await page.goto('/es/sales/quotes');
-    await page.waitForSelector('table', { timeout: 15_000 });
+  test('crea, confirma, completa, factura y cobra un presupuesto', async ({ page }) => {
+    await openQuotesPage(page);
 
-    // Verificar que la página cargó
-    await expect(page.getByText('Presupuestos').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Crear' }).first()).toBeVisible();
+    let createdQuoteDocNo = '';
+    let createdQuoteRow = page.locator('table tbody tr').first();
 
-    // Abrir formulario de creación
-    await page.getByRole('button', { name: 'Crear' }).click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
+    await test.step('Crear un presupuesto borrador', async () => {
+      await page.getByRole('button', { name: T.actions.createQuote }).click();
 
-    // Verificar el diálogo de creación
-    await expect(page.getByText('Crear Presupuesto')
-      .or(page.getByRole('heading', { name: 'Crear Presupuesto' }))).toBeVisible();
+      const quoteDialog = page.getByRole('dialog').filter({ hasText: T.quoteDialog.title });
+      await expect(quoteDialog).toBeVisible();
 
-    // Cancelar para no crear datos de prueba sin cleanup garantizado
-    await page.getByRole('button', { name: 'Cancelar' }).click();
-    await expect(dialog).not.toBeVisible();
-  });
-
-  test('panel de detalle de presupuesto muestra tabs: Artículos, Órdenes, Facturas, Pagos, Notas', async ({ page }) => {
-    await page.goto('/es/sales/quotes');
-    await page.waitForSelector('table', { timeout: 15_000 });
-
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
+      await quoteDialog.getByRole('combobox', { name: 'Usuario' }).click();
+      await page.getByPlaceholder(T.quoteDialog.searchUser).fill('a');
       await page.waitForTimeout(500);
+      await expect(page.getByRole('option').first()).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('option').first().click();
 
-      // Verificar cada tab del panel de detalle
-      const tabsToCheck = ['Artículos', 'Órdenes', 'Facturas', 'Pagos', 'Notas'];
-      for (const tabName of tabsToCheck) {
-        const tab = page.getByRole('button', { name: tabName })
-          .or(page.getByText(tabName)).first();
-        if (await tab.isVisible().catch(() => false)) {
-          await tab.click();
-          await page.waitForTimeout(300);
-          await expect(page).not.toHaveURL(/error/);
-        }
-      }
-    }
-  });
-
-  test('tab Órdenes muestra acciones Programar/Completar por ítem', async ({ page }) => {
-    await page.goto('/es/sales/quotes');
-    await page.waitForSelector('table', { timeout: 15_000 });
-
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
+      await quoteDialog.getByRole('button', { name: T.actions.addItem }).click();
+      await quoteDialog.locator('table tbody tr').last().getByRole('combobox').click();
+      await page.getByPlaceholder(new RegExp(T.quoteDialog.searchService, 'i')).fill('a');
       await page.waitForTimeout(500);
+      await expect(page.getByRole('option').first()).toBeVisible({ timeout: 15_000 });
+      await page.getByRole('option').first().click();
 
-      // Ir a tab Órdenes
-      const ordersTab = page.getByRole('button', { name: 'Órdenes' })
-        .or(page.getByText('Órdenes')).first();
-      if (await ordersTab.isVisible().catch(() => false)) {
-        await ordersTab.click();
-        await page.waitForTimeout(500);
-        await expect(page).not.toHaveURL(/error/);
+      await quoteDialog.getByRole('button', { name: T.quoteDialog.save }).click();
+      await expect(quoteDialog).not.toBeVisible({ timeout: 20_000 });
 
-        // Verificar que aparecen acciones de ítem si hay órdenes
-        const scheduleBtn = page.getByRole('button', { name: 'Programar' });
-        const completeBtn = page.getByRole('button', { name: 'Completar' });
-        const hasOrderActions = await scheduleBtn.first().isVisible().catch(() => false)
-          || await completeBtn.first().isVisible().catch(() => false);
-        // Si no hay ítems, simplemente verificamos que no hay error
-      }
-    }
-  });
+      createdQuoteRow = page.locator('table tbody tr').first();
+      await expect(createdQuoteRow).toBeVisible({ timeout: 15_000 });
+      createdQuoteDocNo = await getQuoteDocNo(createdQuoteRow);
+      await createdQuoteRow.click();
+    });
 
-  test('tab Facturas dentro del presupuesto está disponible', async ({ page }) => {
-    await page.goto('/es/sales/quotes');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await test.step('Confirmar el presupuesto recién creado', async () => {
+      const confirmQuoteButton = page.getByRole('button', { name: T.actions.confirmQuote }).first();
+      await expect(confirmQuoteButton).toBeVisible();
+      await confirmQuoteButton.click();
 
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-      await page.waitForTimeout(500);
+      const confirmDialog = page.getByRole('dialog').filter({ hasText: T.quoteConfirmDialog.title });
+      await expect(confirmDialog).toBeVisible();
+      await confirmDialog.getByRole('button', { name: T.quoteConfirmDialog.confirm }).click();
 
-      const invoicesTab = page.getByRole('button', { name: 'Facturas' })
-        .or(page.getByText('Facturas')).first();
-      if (await invoicesTab.isVisible().catch(() => false)) {
-        await invoicesTab.click();
-        await page.waitForTimeout(500);
-        await expect(page).not.toHaveURL(/error/);
-      }
-    }
-  });
+      await expect(page.getByText(T.quoteStatus.confirmed).first()).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(T.billingStatus.notInvoiced).first()).toBeVisible({ timeout: 15_000 });
+    });
 
-  test('acción Confirmar presupuesto muestra diálogo de confirmación', async ({ page }) => {
-    await page.goto('/es/sales/quotes');
-    await page.waitForSelector('table', { timeout: 15_000 });
+    await test.step('Completar un ítem de la orden desde el panel del presupuesto', async () => {
+      await page.getByRole('button', { name: T.tabs.items }).last().click();
 
-    const actionBtn = page.locator('table tbody tr').first()
-      .getByRole('button', { name: 'Abrir menú' });
-    if (await actionBtn.isVisible().catch(() => false)) {
-      await actionBtn.click();
-      const confirmItem = page.getByRole('menuitem', { name: 'Confirmar' });
-      if (await confirmItem.isVisible().catch(() => false)) {
-        await confirmItem.click();
-        const dialog = page.getByRole('dialog');
-        if (await dialog.isVisible().catch(() => false)) {
-          await expect(page.getByText('Confirmar Presupuesto')
-            .or(page.getByRole('heading', { name: 'Confirmar Presupuesto' }))).toBeVisible();
-          // Cancelar para no modificar datos reales
-          await page.getByRole('button', { name: 'Cancelar' }).click();
-        }
-      } else {
-        await page.keyboard.press('Escape');
-      }
-    }
-  });
+      const orderItemRadio = page.locator('input[type="radio"][name="order-item-selection"]').first();
+      await expect(orderItemRadio).toBeVisible({ timeout: 15_000 });
 
-  test('flujo completo: navegar desde Pacientes → Presupuestos del paciente', async ({ page }) => {
-    // Ir a pacientes
-    await page.goto('/es/patients');
-    await page.waitForSelector('table', { timeout: 15_000 });
-    await expect(page.getByText('Pacientes').first()).toBeVisible();
+      const orderItemRow = orderItemRadio.locator('xpath=ancestor::tr');
+      await orderItemRadio.check();
 
-    // Seleccionar el primer paciente
-    const firstRow = page.locator('table tbody tr').first();
-    if (await firstRow.isVisible().catch(() => false)) {
-      await firstRow.click();
-      await page.waitForTimeout(600);
+      const completeButton = page.getByRole('button', { name: T.actions.completeItem }).last();
+      await expect(completeButton).toBeVisible();
+      await completeButton.click();
 
-      // Ir a tab Presupuestos en el panel del paciente
-      const quotesTab = page.getByRole('button', { name: 'Presupuestos' })
-        .or(page.getByText('Presupuestos')).first();
-      if (await quotesTab.isVisible().catch(() => false)) {
-        await quotesTab.click();
-        await page.waitForTimeout(500);
-        await expect(page).not.toHaveURL(/error/);
-      }
+      await selectFirstDoctor(page);
 
-      // Ir a tab Facturas
-      const invoicesTab = page.getByRole('button', { name: 'Facturas' })
-        .or(page.getByText('Facturas')).first();
-      if (await invoicesTab.isVisible().catch(() => false)) {
-        await invoicesTab.click();
-        await page.waitForTimeout(500);
-        await expect(page).not.toHaveURL(/error/);
-      }
+      const clinicDialog = page.getByRole('dialog').filter({ hasText: T.clinicSessionDialog.title });
+      await clinicDialog.getByRole('button', { name: T.clinicSessionDialog.save }).click();
+      await expect(clinicDialog).not.toBeVisible({ timeout: 20_000 });
 
-      // Ir a tab Pagos
-      const paymentsTab = page.getByRole('button', { name: 'Pagos' })
-        .or(page.getByText('Pagos')).first();
-      if (await paymentsTab.isVisible().catch(() => false)) {
-        await paymentsTab.click();
-        await page.waitForTimeout(500);
-        await expect(page).not.toHaveURL(/error/);
-      }
-    }
+      await expect(orderItemRow).toContainText('Completado', { timeout: 20_000 });
+    });
+
+    let invoiceDocNo = '';
+
+    await test.step('Facturar el presupuesto y verificar que aparece una factura contabilizada', async () => {
+      const invoiceButton = page.getByRole('button', { name: T.actions.invoiceQuote });
+      await expect(invoiceButton).toBeVisible({ timeout: 15_000 });
+      await invoiceButton.click();
+
+      await page.getByRole('button', { name: T.tabs.invoices }).last().click();
+
+      const invoiceCard = page.getByRole('button', { name: /INV-\d{4}-\d{2}-\d{4}/ }).first();
+      await expect(invoiceCard).toBeVisible({ timeout: 20_000 });
+
+      const invoiceText = (await invoiceCard.innerText()).replace(/\s+/g, ' ');
+      invoiceDocNo = invoiceText.match(/INV-\d{4}-\d{2}-\d{4}/)?.[0] || '';
+      expect(invoiceDocNo, 'La factura generada debe tener número de documento').not.toBe('');
+
+      await page.goto('/es/sales/invoices');
+      await page.waitForSelector('table', { timeout: 15_000 });
+      await expect(page.getByText(T.invoicesPage).first()).toBeVisible();
+    });
+
+    await test.step('Agregar un pago real y verificar estado pagado', async () => {
+      await page.getByPlaceholder(T.filterInvoices).fill(invoiceDocNo);
+      const filteredInvoiceRow = page.locator('table tbody tr').filter({ hasText: invoiceDocNo }).first();
+      await expect(filteredInvoiceRow).toBeVisible({ timeout: 15_000 });
+      await expect(filteredInvoiceRow).toContainText(T.invoiceStatus.booked, { timeout: 15_000 });
+
+      await filteredInvoiceRow.getByRole('button', { name: T.actions.openMenu }).click();
+      await page.getByRole('menuitem', { name: T.actions.addPayment }).click();
+
+      const paymentDialog = page.getByRole('dialog').filter({ hasText: T.paymentDialog.title });
+      await expect(paymentDialog).toBeVisible();
+
+      await paymentDialog.getByRole('checkbox', { name: T.paymentDialog.historical }).click();
+
+      await paymentDialog.getByRole('combobox', { name: T.paymentDialog.method }).click();
+      const methodOptions = page.getByRole('option');
+      await expect(methodOptions.first()).toBeVisible({ timeout: 15_000 });
+      await methodOptions.first().click();
+
+      await paymentDialog.getByRole('button', { name: T.paymentDialog.submit }).click();
+      await expect(paymentDialog).not.toBeVisible({ timeout: 20_000 });
+
+      await expect(filteredInvoiceRow).toContainText(T.invoiceStatus.paid, { timeout: 20_000 });
+    });
   });
 });
