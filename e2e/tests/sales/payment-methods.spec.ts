@@ -123,7 +123,8 @@ test.describe('Métodos de Pago', () => {
       await page.getByRole('button', { name: T.saveEdit }).click();
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
-      // RESTAURAR nombre original (panel still open)
+      // RESTAURAR nombre original (re-abrir modo edición: save cierra isEditing)
+      await page.getByRole('button', { name: 'Editar' }).first().click();
       await nameInput.clear();
       await nameInput.fill(name);
       await page.getByRole('button', { name: T.saveEdit }).click();
