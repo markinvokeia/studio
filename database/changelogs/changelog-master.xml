@@ -36,7 +36,7 @@
 
     <!-- Add new versioned changelogs below, in chronological order:        -->
     <include file="changelogs/v1_baseline.xml" relativeToChangelogFile="false"/>
-
+    <include file="changelogs/changelog_20260427_1000.xml" relativeToChangelogFile="false"/>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- SECTION 2 — Metadata: Catalogs, Views, Functions                   -->
@@ -45,19 +45,16 @@
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <includeAll path="scripts/metadata/"
                 relativeToChangelogFile="false"
-                filter="sql"
                 errorIfMissingOrEmpty="false"/>
-
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- SECTION 3 — Seed Data (Dev / Local ONLY)                           -->
     <!-- NEVER runs in staging, CLIENTE, or PROD environments.              -->
-    <!-- db-manager.sh passes --context-filter=prod for those environments, -->
+    <!-- db-manager.sh passes - -context-filter=prod for those environments, -->
     <!-- which causes Liquibase to skip these changesets entirely.          -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <includeAll path="scripts/seed/"
                 relativeToChangelogFile="false"
-                filter="sql"
                 errorIfMissingOrEmpty="false"
                 context="dev,local"/>
 
