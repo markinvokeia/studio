@@ -53,25 +53,32 @@ export function CalendarHeader({
   if (breakpoint === 'mobile') {
     return (
       <div className="calendar-header-mobile">
-        <div className="flex items-center gap-2">
-          {onOpenFilterSheet && (
-            <Button variant="ghost" size="icon" onClick={onOpenFilterSheet}>
-              <SlidersHorizontal className="h-4 w-4" />
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {onOpenFilterSheet && (
+              <Button variant="ghost" size="icon" onClick={onOpenFilterSheet}>
+                <SlidersHorizontal className="h-4 w-4" />
+              </Button>
+            )}
+            <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="sm" onClick={onToday} className="text-xs px-2">
+              {t('today')}
             </Button>
-          )}
-          <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={onToday} className="text-xs px-2">
-            {t('today')}
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        {children ? (
+          <div className="calendar-header-mobile-actions" aria-label={t('title')}>
+            {children}
+          </div>
+        ) : null}
       </div>
     );
   }
