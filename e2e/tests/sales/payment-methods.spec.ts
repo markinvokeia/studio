@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 // Translation strings from es.json — PaymentMethodsPage
 const T = {
@@ -31,10 +31,41 @@ const T = {
   },
 };
 
+async function isVisibleSafe(locator: Locator): Promise<boolean> {
+  return await locator.isVisible().catch(() => false);
+}
+
+async function getActiveListLocator(page: Page): Promise<Locator> {
+  const cardList = page.getByTestId('card-list');
+  if (await isVisibleSafe(cardList)) {
+    return cardList;
+  }
+
+  return page.locator('table').first();
+}
+
+async function getActiveRowsLocator(page: Page): Promise<Locator> {
+  const cardList = page.getByTestId('card-list');
+  if (await isVisibleSafe(cardList)) {
+    return page.getByTestId('list-item');
+  }
+
+  return page.locator('table tbody tr');
+}
+
+async function getEditButton(page: Page): Promise<Locator> {
+  const namedButton = page.getByRole('button', { name: 'Editar' }).first();
+  if (await isVisibleSafe(namedButton)) {
+    return namedButton;
+  }
+
+  return page.locator('button').filter({ has: page.locator('svg.lucide-pencil') }).first();
+}
+
 test.describe('Métodos de Pago', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/es/sales/payment-methods', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
+    await expect(page.getByText(T.pageTitle).first()).toBeVisible({ timeout: 30_000 });
   });
 
   // ── Vista principal ────────────────────────────────────────────────────
@@ -42,11 +73,12 @@ test.describe('Métodos de Pago', () => {
   test.describe('Vista principal', () => {
     test('carga título "Métodos de Pago" y tabla', async ({ page }) => {
       await expect(page).not.toHaveURL(/error|login/);
-      await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText(T.pageTitle).first()).toBeVisible();
+      await expect(await getActiveListLocator(page)).toBeVisible({ timeout: 10_000 });
     });
 
     test('tabla muestra columnas Nombre, Código', async ({ page }) => {
-      const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+      const inCardMode = await isVisibleSafe(page.getByTestId('card-list'));
       if (!inCardMode) {
         await expect(page.getByRole('columnheader', { name: T.col.name })).toBeVisible();
         await expect(page.getByRole('columnheader', { name: T.col.code })).toBeVisible();
@@ -113,13 +145,13 @@ test.describe('Métodos de Pago', () => {
       await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 10_000 });
       await page.getByPlaceholder(T.filterPlaceholder).fill(name);
       await page.waitForTimeout(600);
-      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
+      await expect((await getActiveListLocator(page)).getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // EDITAR: click row → right panel opens
-      const row = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name });
+      const row = (await getActiveRowsLocator(page)).filter({ hasText: name }).first();
       await row.click();
       await page.waitForTimeout(500);
-      await page.getByRole('button', { name: 'Editar' }).first().click();
+      await (await getEditButton(page)).click();
       const nameInput = page.getByLabel(T.nameLabel);
       await nameInput.clear();
       await nameInput.fill(editedName);
@@ -127,7 +159,7 @@ test.describe('Métodos de Pago', () => {
       await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 8_000 });
 
       // RESTAURAR nombre original (re-abrir modo edición: save cierra isEditing)
-      await page.getByRole('button', { name: 'Editar' }).first().click();
+      await (await getEditButton(page)).click();
       await nameInput.clear();
       await nameInput.fill(name);
       await page.getByRole('button', { name: T.saveEdit }).click();
@@ -136,7 +168,7 @@ test.describe('Métodos de Pago', () => {
       // ELIMINAR: trash icon button in panel
       await page.locator('button').filter({ has: page.locator('svg.lucide-trash2') }).first().click();
       await page.getByRole('button', { name: T.deleteDialog.confirm }).click();
-      await expect(page.locator('table tbody').getByText(name)).not.toBeVisible({ timeout: 8_000 });
+      await expect((await getActiveListLocator(page)).getByText(name)).not.toBeVisible({ timeout: 8_000 });
     });
   });
 });
