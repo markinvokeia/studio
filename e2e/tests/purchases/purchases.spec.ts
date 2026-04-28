@@ -1,5 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { randomEmail, randomPhone, randomDoc } from '../../utils/helpers';
+
+async function getVisibleListContainer(page: Page) {
+  const cardList = page.locator('[data-testid="card-list"]').first();
+  if (await cardList.isVisible().catch(() => false)) {
+    return cardList;
+  }
+
+  return page.locator('table').first();
+}
 
 // Translation strings from es.json — ProvidersPage / Purchases modules
 
@@ -94,7 +103,8 @@ test.describe('Compras — Proveedores', () => {
       await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // EDITAR: click row → right panel opens with always-editable form
-      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
+      const listContainer = await getVisibleListContainer(page);
+      await listContainer.locator('tr, [data-testid="list-item"]').filter({ hasText: name }).first().click();
       await page.waitForTimeout(500);
       const nameInput = page.getByLabel(T.nameLabel);
       if (await nameInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
@@ -138,12 +148,16 @@ test.describe('Compras — Proveedores', () => {
 test.describe('Compras — Presupuestos de Compra', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/es/purchases/quotes', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
+    await page.waitForLoadState('networkidle').catch(() => {});
   });
 
   test('carga título "Presupuestos" y tabla', async ({ page }) => {
     await expect(page).not.toHaveURL(/error|login/);
-    await expect(page.locator('table, [data-testid="card-list"]').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText('Presupuestos').first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByPlaceholder(/filtrar presupuestos/i)).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.locator('table').first().or(page.getByRole('button', { name: /QUO-/ }).first())
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('botón Crear disponible', async ({ page }) => {
@@ -212,8 +226,9 @@ test.describe('Compras — Pagos de Compra', () => {
     await createBtn.click();
     const dialog = page.getByRole('dialog');
     if (await dialog.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await expect(page.getByText(/proveedor|supplier|monto/i).first()).toBeVisible();
-      await page.getByRole('button', { name: 'Cancelar' }).click();
+      await expect(dialog.getByText(/proveedor|supplier/i).first()).toBeVisible();
+      await expect(dialog.getByText(/monto/i).first()).toBeVisible();
+      await dialog.getByRole('button', { name: 'Cancelar' }).click();
     }
   });
 });
