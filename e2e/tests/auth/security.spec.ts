@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { expectNotOnLogin } from '../../utils/helpers';
 
 // Translation strings from es.json
 const T = {
@@ -115,7 +116,7 @@ test.describe('Headers HTTP de seguridad', () => {
 test.describe('Sesiones y tokens', () => {
   test('localStorage contiene el token JWT después de autenticar', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15_000 });
+    await expectNotOnLogin(page, 15_000);
 
     // El token debe estar guardado en localStorage (patrón de la app)
     const hasToken = await page.evaluate(() => {

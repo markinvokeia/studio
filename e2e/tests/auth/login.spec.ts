@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { LoginPage } from '../../pages/login.page';
+import { expectNotOnLogin } from '../../utils/helpers';
 
 const VALID_USER = process.env.E2E_USER ?? '';
 const VALID_PASS = process.env.E2E_PASS ?? '';
@@ -195,7 +196,7 @@ test.describe('Logout', () => {
   // Este test SÍ usa storageState (usa la sesión guardada por setup)
   test('logout limpia la sesión y redirige a /login', async ({ page }) => {
     await page.goto('/');
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15_000 });
+    await expectNotOnLogin(page, 15_000);
 
     // El botón de logout usa el texto exacto de la traducción: "Cerrar Sesión"
     const logoutBtn = page.getByRole('menuitem', { name: T.logout })

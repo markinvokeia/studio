@@ -1,4 +1,5 @@
 import { type Page, expect } from '@playwright/test';
+import { expectNotOnLogin } from '../utils/helpers';
 
 export class LoginPage {
   readonly page: Page;
@@ -38,7 +39,6 @@ export class LoginPage {
   }
 
   async expectRedirectToDashboard() {
-    await this.page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20_000 });
-    await expect(this.page).not.toHaveURL(/login/);
+    await expectNotOnLogin(this.page);
   }
 }

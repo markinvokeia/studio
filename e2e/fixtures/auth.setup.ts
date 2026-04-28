@@ -1,5 +1,6 @@
 import { test as setup, expect } from '@playwright/test';
 import path from 'path';
+import { expectNotOnLogin } from '../utils/helpers';
 
 const AUTH_FILE = path.join(__dirname, '../.auth/user.json');
 
@@ -29,8 +30,7 @@ setup('authenticate', async ({ page }) => {
   await page.getByRole('button', { name: /iniciar sesión|sign in|ingresar|entrar/i }).click();
 
   // Esperar redirect fuera de /login
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 20_000 });
-  await expect(page).not.toHaveURL(/login/);
+  await expectNotOnLogin(page);
 
   // Guardar auth state (cookies + localStorage con el JWT)
   await page.context().storageState({ path: AUTH_FILE });

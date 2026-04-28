@@ -1,4 +1,4 @@
-import { type Page, type Locator } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * Selector that matches the first visible row in a DataTable regardless of
@@ -49,6 +49,11 @@ export async function uploadFile(page: Page, inputSelector: string, filePath: st
 /** Wait for the network to be idle after an action. */
 export async function waitForNetworkIdle(page: Page, timeout = 8_000) {
   await page.waitForLoadState('networkidle', { timeout });
+}
+
+/** Wait until the app is no longer on the login route. Avoids relying on a full page load event for SPA redirects. */
+export async function expectNotOnLogin(page: Page, timeout = 20_000) {
+  await expect(page).not.toHaveURL(/\/login(?:[/?#]|$)/, { timeout });
 }
 
 /** Generate a random email for test data. */
