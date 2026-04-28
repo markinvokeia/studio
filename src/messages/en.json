@@ -498,7 +498,6 @@
     "noSuggestions": "No suggestions",
     "search": "Search",
     "selectedServices": "Selected Services",
-    "suggestionFormat": "{date} at {time} with {doctor} in {calendar}",
     "toasts": {
       "appointmentCancelled": "Appointment cancelled",
       "appointmentCancelledDesc": "Appointment has been cancelled.",

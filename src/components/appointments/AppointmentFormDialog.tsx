@@ -33,7 +33,7 @@ import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { Check, ChevronsUpDown, ClipboardList, FilePlus, Link2, Loader2, Stethoscope, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Stethoscope, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -514,19 +514,14 @@ export function AppointmentFormDialog({
                 const result = data[0];
                 isAvailable = result.isAvailable === true;
                 if (result.suggestedTimes) {
-                    suggestions = result.suggestedTimes.flatMap((suggestion: any, suggestionIndex: number) => {
-                        const doctorsInSuggestion = suggestion.json.user_name.split(',').map((name: string) => name.trim());
-                        const doctorIds = suggestion.json.user_id.split(',');
-                        const doctorEmails = suggestion.json.user_email.split(',');
-
-                        return doctorsInSuggestion.map((docName: string, docIndex: number) => ({
-                            id: `sugg-${doctorIds[docIndex]}-${suggestion.json.fecha_cita}-${suggestion.json.hora_cita}-${suggestionIndex}-${docIndex}`,
-                            calendar: suggestion.json.calendario,
-                            date: suggestion.json.fecha_cita,
-                            time: suggestion.json.hora_cita,
-                            doctor: { id: doctorIds[docIndex], name: docName, email: doctorEmails[docIndex] },
-                        }));
-                    });
+                    suggestions = result.suggestedTimes.map((suggestion: any, suggestionIndex: number) => ({
+                        id: `sugg-${suggestion.user_id}-${suggestion.fecha_cita}-${suggestion.hora_cita}-${suggestionIndex}`,
+                        calendar: suggestion.calendar_name,
+                        calendarId: String(suggestion.calendar_source_id),
+                        date: suggestion.fecha_cita,
+                        time: suggestion.hora_cita,
+                        doctor: { id: suggestion.user_id, name: suggestion.user_name, email: suggestion.user_email || '' },
+                    }));
                 }
             }
             setAvailabilityStatus(isAvailable ? 'available' : 'unavailable');
@@ -1316,23 +1311,62 @@ export function AppointmentFormDialog({
                         {!editingAppointment && (availabilityStatus === 'unavailable' || availabilityStatus === 'checking') && (
                             <div className="border-t pt-4 px-6 mb-4">
                                 <h3 className="text-lg font-medium mb-4 text-center">{t('createDialog.suggestedTimes')}</h3>
-                                <ScrollArea className="h-48">
+                                <ScrollArea className="h-72">
                                     {availabilityStatus === 'checking' ? <p>{t('checking')}</p> : (
-                                        <RadioGroup onValueChange={(value) => {
-                                            const [date, time, doctorId, calendarId] = value.split('|');
-                                            const doctor = allDoctors.find(d => d.id === doctorId);
-                                            const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
-                                            setAppointment(prev => ({ ...prev, date, time, doctor: doctor || null, calendar: calendar || null }));
-                                            setErrors(prev => prev.filter(err => !['date', 'time', 'calendar'].includes(err)));
-                                        }}>
-                                            {suggestedTimes.map((suggestion) => (
-                                                <div key={suggestion.id} className="flex items-center space-x-2 p-2 hover:bg-muted rounded">
-                                                    <RadioGroupItem value={`${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendar}`} id={suggestion.id} />
-                                                    <Label htmlFor={suggestion.id} className="font-normal text-sm">
-                                                        {t('suggestionFormat', { date: suggestion.date, time: suggestion.time, doctor: suggestion.doctor.name, calendar: suggestion.calendar })}
+                                        <RadioGroup
+                                            value={
+                                                appointment.date && appointment.time && appointment.doctor && appointment.calendar
+                                                    ? `${appointment.date}|${appointment.time}|${appointment.doctor.id}|${appointment.calendar.id}`
+                                                    : undefined
+                                            }
+                                            onValueChange={(value) => {
+                                                const [date, time, doctorId, calendarId] = value.split('|');
+                                                const doctor = allDoctors.find(d => d.id === doctorId);
+                                                const calendar = calendars.find(c => c.id === calendarId || c.name === calendarId);
+                                                setAppointment(prev => ({ ...prev, date, time, doctor: doctor || null, calendar: calendar || null }));
+                                                setErrors(prev => prev.filter(err => !['date', 'time', 'calendar'].includes(err)));
+                                            }}
+                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pr-2"
+                                        >
+                                            {suggestedTimes.map((suggestion) => {
+                                                const value = `${suggestion.date}|${suggestion.time}|${suggestion.doctor.id}|${suggestion.calendarId ?? suggestion.calendar}`;
+                                                const isSelected =
+                                                    appointment.date === suggestion.date &&
+                                                    appointment.time === suggestion.time &&
+                                                    String(appointment.doctor?.id ?? '') === String(suggestion.doctor.id) &&
+                                                    (String(appointment.calendar?.id ?? '') === String(suggestion.calendarId) ||
+                                                        appointment.calendar?.name === suggestion.calendar);
+
+                                                return (
+                                                    <Label
+                                                        key={suggestion.id}
+                                                        htmlFor={suggestion.id}
+                                                        className={cn(
+                                                            "relative flex flex-col gap-1.5 rounded-lg border p-3 cursor-pointer transition-colors text-sm font-normal",
+                                                            isSelected
+                                                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                                : "bg-muted/40 hover:bg-muted border-transparent"
+                                                        )}
+                                                    >
+                                                        <RadioGroupItem value={value} id={suggestion.id} className="sr-only" />
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <CalendarDays className="h-4 w-4 shrink-0 opacity-70" />
+                                                            <span>{suggestion.date}</span>
+                                                            <span className="opacity-50">|</span>
+                                                            <Clock className="h-4 w-4 shrink-0 opacity-70" />
+                                                            <span>{suggestion.time}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <UserRound className="h-4 w-4 shrink-0 opacity-70" />
+                                                            <span className="truncate">{suggestion.doctor.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <MapPin className="h-4 w-4 shrink-0 opacity-70" />
+                                                            <span className="truncate">{suggestion.calendar}</span>
+                                                        </div>
                                                     </Label>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </RadioGroup>
                                     )}
                                     {availabilityStatus === 'unavailable' && suggestedTimes.length === 0 && (
