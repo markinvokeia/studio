@@ -92,7 +92,7 @@ test.describe('Catálogo — Padecimientos', () => {
       await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(uniqueName).first()).toBeVisible({ timeout: 8_000 });
 
       // Abrir panel derecho: clic en fila (aún en modo tabla)
-      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: uniqueName }).click();
+      await page.locator('[data-testid="list-item"]:visible, table tbody tr:visible').filter({ hasText: uniqueName }).first().click();
       await expect(page.getByRole('button', { name: 'Editar' }).first()).toBeVisible({ timeout: 5_000 });
 
       // EDITAR: panel derecho ya abierto → click Editar
@@ -192,12 +192,12 @@ test.describe('Catálogo — Medicamentos', () => {
       await page.getByRole('button', { name: T.save }).click();
       await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 10_000 });
 
-      await page.getByPlaceholder(T.filterPlaceholder).fill(name.slice(0, 5));
+      await page.getByPlaceholder(T.filterPlaceholder).fill(name);
       await page.waitForTimeout(600);
       await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // Clic en fila → panel derecho → icono papelera → confirmar
-      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
+      await page.locator('[data-testid="list-item"]:visible, table tbody tr:visible').filter({ hasText: name }).first().click();
       await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
       const delDlg = page.getByRole('alertdialog');
@@ -285,7 +285,7 @@ test.describe('Catálogo — Condiciones Dentales', () => {
       await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // Clic en fila → panel derecho → icono papelera → confirmar
-      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
+      await page.locator('[data-testid="list-item"]:visible, table tbody tr:visible').filter({ hasText: name }).first().click();
       await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
       const delDlg = page.getByRole('alertdialog');
@@ -368,7 +368,7 @@ test.describe('Catálogo — Superficies Dentales', () => {
       await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // Clic en fila → panel derecho → icono papelera → confirmar
-      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
+      await page.locator('[data-testid="list-item"]:visible, table tbody tr:visible').filter({ hasText: name }).first().click();
       await expect(page.getByRole('button', { name: 'Editar' })).toBeVisible({ timeout: 5_000 });
       await page.getByRole('button', { name: 'Editar' }).locator('..').getByRole('button').last().click();
       const delDlg = page.getByRole('alertdialog');

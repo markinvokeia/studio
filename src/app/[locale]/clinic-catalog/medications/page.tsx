@@ -275,7 +275,7 @@ export default function MedicationsPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedMedication && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button aria-label={tColumns('edit')} variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{tColumns('edit')}</span>
                             </Button>
