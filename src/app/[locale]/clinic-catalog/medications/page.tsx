@@ -281,7 +281,7 @@ export default function MedicationsPage() {
                             </Button>
                         )}
                         {selectedMedication && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMedication(selectedMedication); setIsDeleteDialogOpen(true); }}>
+                            <Button aria-label={tColumns('delete')} variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMedication(selectedMedication); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
