@@ -696,6 +696,7 @@ export default function UsersPage() {
   const [isLoadingFinancialData, setIsLoadingFinancialData] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const latestUsersRequestRef = React.useRef(0);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -914,9 +915,14 @@ export default function UsersPage() {
   });
 
   const loadUsers = React.useCallback(async () => {
+    const requestId = latestUsersRequestRef.current + 1;
+    latestUsersRequestRef.current = requestId;
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
     const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showDebtors, showOnlyActive, date);
+    if (latestUsersRequestRef.current !== requestId) {
+      return;
+    }
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);

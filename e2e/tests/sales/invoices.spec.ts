@@ -140,12 +140,13 @@ test.describe('Facturas de Venta', () => {
       const createBtn = page.getByRole('button', { name: T.createBtn }).first();
       if (!await createBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
       await createBtn.click();
-      if (!await page.getByRole('dialog').isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const dialog = page.getByRole('dialog');
+      if (!await dialog.isVisible({ timeout: 5_000 }).catch(() => false)) return;
       // Clic en guardar/crear sin seleccionar paciente
-      const saveBtn = page.getByRole('button', { name: T.create })
-        .or(page.getByRole('button', { name: T.save })).last();
+      const saveBtn = dialog.getByRole('button', { name: T.create })
+        .or(dialog.getByRole('button', { name: T.save })).last();
       await saveBtn.click();
-      await expect(page.getByText(/usuario.*obligatorio|paciente.*requerido|seleccione/i).first())
+      await expect(dialog.getByText(/usuario(?: o proveedor)? es obligatorio/i))
         .toBeVisible({ timeout: 5_000 });
     });
   });

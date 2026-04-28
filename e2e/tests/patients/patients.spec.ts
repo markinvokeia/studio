@@ -103,7 +103,7 @@ test.describe('Pacientes', () => {
       const gotEmpty = await page.getByText(T.noResults)
         .waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
       if (!gotEmpty) {
-        const rowCount = await page.locator('table tbody tr, [data-testid="list-item"]').count();
+        const rowCount = await page.locator('table tbody tr:has(td:nth-child(2)), [data-testid="list-item"]').count();
         expect(rowCount).toBe(0);
       }
     });

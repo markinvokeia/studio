@@ -1,12 +1,17 @@
 
 import { ReactNode } from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'InvokeAI Command Center',
   description: 'AI-powered command center for your business data.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 // The app's root layout, which applies to all locales.
