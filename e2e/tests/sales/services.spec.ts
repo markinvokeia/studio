@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 
 // Translation strings from es.json — ServicesPage
 const T = {
@@ -22,6 +22,30 @@ const T = {
   nameRequired: 'El nombre es obligatorio',
 };
 
+async function isVisibleSafe(locator: Locator): Promise<boolean> {
+  return await locator.isVisible().catch(() => false);
+}
+
+async function isCardMode(page: Page): Promise<boolean> {
+  return await isVisibleSafe(page.getByTestId('card-list'));
+}
+
+async function getActiveListLocator(page: Page): Promise<Locator> {
+  if (await isCardMode(page)) {
+    return page.getByTestId('card-list');
+  }
+
+  return page.locator('table').first();
+}
+
+async function getActiveRowsLocator(page: Page): Promise<Locator> {
+  if (await isCardMode(page)) {
+    return page.getByTestId('list-item');
+  }
+
+  return page.locator('table tbody tr');
+}
+
 test.describe('Servicios', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/es/sales/services', { waitUntil: 'domcontentloaded' });
@@ -37,7 +61,7 @@ test.describe('Servicios', () => {
     });
 
     test('tabla muestra columnas Nombre y Precio', async ({ page }) => {
-      const inCardMode = await page.locator('[data-testid="card-list"]').isVisible().catch(() => false);
+      const inCardMode = await isCardMode(page);
       if (!inCardMode) {
         await expect(page.getByRole('columnheader', { name: 'Nombre' })).toBeVisible();
         await expect(page.getByRole('columnheader', { name: 'Precio' }).or(
@@ -68,12 +92,17 @@ test.describe('Servicios', () => {
       const filterInput = page.getByPlaceholder(T.filterPlaceholder);
       if (!await filterInput.isVisible({ timeout: 3_000 }).catch(() => false)) return;
       await filterInput.fill('zzz_no_existe_99999');
-      const gotEmpty = await page.getByText('No hay resultados.')
+      await page.waitForTimeout(700);
+      const emptyState = page.getByText('No hay resultados.');
+      const gotEmpty = await emptyState
         .waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
-      if (!gotEmpty) {
-        const rows = await page.locator('table tbody tr, [data-testid="list-item"]').count();
-        expect(rows).toBe(0);
+      if (gotEmpty) {
+        await expect(emptyState).toBeVisible();
+        return;
       }
+
+      const rows = await getActiveRowsLocator(page);
+      await expect(rows).toHaveCount(0);
     });
   });
 
@@ -127,11 +156,13 @@ test.describe('Servicios', () => {
       // VERIFICAR en tabla (server-side filter — wait longer)
       await page.getByPlaceholder(T.filterPlaceholder).fill(uniqueName);
       await page.waitForTimeout(1500);
-      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(uniqueName).first()).toBeVisible({ timeout: 8_000 });
+      await expect((await getActiveListLocator(page)).getByText(uniqueName).first()).toBeVisible({ timeout: 8_000 });
 
-      // ELIMINAR: inline delete button
-      const finalRow = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: uniqueName });
-      await finalRow.getByRole('button', { name: 'Eliminar' }).click();
+      // ELIMINAR: abrir panel de detalle y borrar desde allí para soportar desktop y mobile
+      const finalRow = (await getActiveRowsLocator(page)).filter({ hasText: uniqueName }).first();
+      await finalRow.click();
+      await expect(page.locator('button[title=\"Eliminar\"]').first()).toBeVisible({ timeout: 8_000 });
+      await page.locator('button[title=\"Eliminar\"]').first().click();
       await page.getByRole('button', { name: 'Confirmar' }).click();
       await expect(page.getByText(/eliminado|deleted|success/i).first()).toBeVisible({ timeout: 8_000 });
     });
