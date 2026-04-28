@@ -112,11 +112,11 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       {/* Consulting rooms */}
       <div className="space-y-2">
         <Label className="text-sm font-semibold">{t('calendars')}</Label>
-        {calendars.length === 0 ? (
+        {calendars.filter(c => c.is_active !== false).length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('noCalendars')}</p>
         ) : (
           <div className="space-y-2">
-            {calendars.map((cal) => {
+            {calendars.filter(c => c.is_active !== false).map((cal) => {
               const calendarSourceId = String(cal.id);
               return (
                 <div key={calendarSourceId} className="flex items-center gap-2">

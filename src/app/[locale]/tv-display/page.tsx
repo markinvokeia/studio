@@ -47,7 +47,7 @@ export default function TVDisplayPage() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-4 overflow-hidden">
+    <div className="flex flex-col h-full gap-4 overflow-hidden px-4 pb-4 sm:px-0 sm:pb-0">
       {/* Page header */}
       <div className="flex items-center justify-between shrink-0">
         <div>
@@ -81,23 +81,21 @@ export default function TVDisplayPage() {
         )}
 
         {/* ── RIGHT: Preview + controls ── */}
-        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto pr-0.5">
+        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5 min-w-0">
 
           {/* Preview */}
-          <Card className="shrink-0">
+          <Card className="shrink-0 min-w-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">{t('preview.title')}</CardTitle>
             </CardHeader>
             <CardContent className="pb-3">
-              <div className="max-w-xs">
-                <TVPreview />
-              </div>
+              <TVPreview />
             </CardContent>
           </Card>
 
           {/* Control bar */}
           <Can anyPermissions={[TV_DISPLAY_PERMISSIONS.VIEW_SCREEN, TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY]}>
-            <Card className="shrink-0">
+            <Card className="shrink-0 min-w-0">
               <CardContent className="pt-4">
                 <div className="flex flex-wrap gap-2">
                   <Can permission={TV_DISPLAY_PERMISSIONS.VIEW_SCREEN}>
@@ -152,10 +150,11 @@ export default function TVDisplayPage() {
                       size="sm"
                       disabled={isLoading}
                       onClick={fetchAppointments}
-                      className="gap-2 ml-auto"
+                      className="ml-auto"
+                      title={t('controls.refresh')}
                     >
                       <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                      {t('controls.refresh')}
+                      <span className="sr-only sm:not-sr-only sm:ml-2">{t('controls.refresh')}</span>
                     </Button>
                   </Can>
                 </div>
@@ -165,7 +164,7 @@ export default function TVDisplayPage() {
 
           {/* Quick actions per room */}
           {rooms.length > 0 && status !== 'off' && hasPermission(TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY) && (
-            <Card className="shrink-0">
+            <Card className="shrink-0 min-w-0">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   Acciones rápidas

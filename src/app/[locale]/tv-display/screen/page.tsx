@@ -58,6 +58,15 @@ export default function TVScreenPage() {
   // Pending room index updates — applied when announcement finishes closing
   const pendingRoomIndexRef = React.useRef<Record<string, number>>({});
 
+  // Derive visible rooms from selectedCalendarIds so the screen reacts instantly
+  // to SETTINGS_CHANGE (calendar toggle) without waiting for a REFRESH_DATA.
+  const visibleRooms = React.useMemo<TVRoomState[]>(() => {
+    if (settings.selectedCalendarIds.length === 0) return rooms;
+    return settings.selectedCalendarIds
+      .map((id) => rooms.find((r) => r.calendarId === id))
+      .filter((r): r is TVRoomState => r !== undefined);
+  }, [rooms, settings.selectedCalendarIds]);
+
   // Persistent promo video index — remembers where we left off
   const [promoVideoIndex, setPromoVideoIndex] = React.useState(0);
 
@@ -530,12 +539,12 @@ export default function TVScreenPage() {
               className="flex-1 grid gap-4 p-6 overflow-hidden min-h-0"
               style={{
                 gridTemplateColumns:
-                  rooms.length > 0 ? `repeat(${Math.min(rooms.length, 4)}, 1fr)` : '1fr',
+                  visibleRooms.length > 0 ? `repeat(${Math.min(visibleRooms.length, 4)}, 1fr)` : '1fr',
                 opacity: showRooms ? 1 : 0,
                 transition: 'opacity 0.5s ease',
               }}
             >
-              {rooms.length === 0 ? (
+              {visibleRooms.length === 0 ? (
                 <div
                   className="flex items-center justify-center opacity-15"
                   style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}
@@ -545,12 +554,12 @@ export default function TVScreenPage() {
                   </p>
                 </div>
               ) : (
-                rooms.map((room) => (
+                visibleRooms.map((room) => (
                   <RoomColumn
                     key={room.calendarId}
                     room={room}
                     settings={settings}
-                    totalRooms={rooms.length}
+                    totalRooms={visibleRooms.length}
                   />
                 ))
               )}
@@ -562,7 +571,7 @@ export default function TVScreenPage() {
               style={{ opacity: showRooms ? 1 : 0, transition: 'opacity 0.5s ease' }}
             >
               {(() => {
-                const allAppts = rooms
+                const allAppts = visibleRooms
                   .flatMap((room) =>
                     room.appointments.map((appt) => ({
                       appt,
