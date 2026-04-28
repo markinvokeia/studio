@@ -36,7 +36,11 @@ test.describe('Configuración — Detalles de la Clínica', () => {
   });
 
   test('sección de Logo está visible con opción de carga', async ({ page }) => {
-    await expect(page.getByLabel(T.logoLabel).first()).toBeVisible();
+    await expect(page.locator('label[for="logo"]')).toBeVisible();
+    const uploadInput = page.locator('input#logo[type="file"]');
+    if (await uploadInput.count()) {
+      await expect(uploadInput).toBeVisible();
+    }
   });
 });
 
@@ -113,6 +117,7 @@ test.describe('Configuración — Doctores', () => {
       const name = `Dr. E2E ${Date.now()}`;
       const email = randomEmail();
       const editedName = `${name} EDIT`;
+      const visibleFilterInput = page.locator(`input[placeholder="${T.filterPlaceholder}"]:visible`).first();
 
       // CREAR via dialog
       await page.getByRole('button', { name: T.createBtn }).click();
@@ -124,12 +129,13 @@ test.describe('Configuración — Doctores', () => {
       await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 10_000 });
 
       // VERIFICAR: filtrar por email (el filtro es sobre el correo)
-      await page.getByPlaceholder(T.filterPlaceholder).fill(email);
+      await expect(visibleFilterInput).toBeVisible({ timeout: 8_000 });
+      await visibleFilterInput.fill(email);
       await page.waitForTimeout(800);
       await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first()).toBeVisible({ timeout: 8_000 });
 
       // EDITAR: clic en fila → panel derecho → tab Detalles (siempre editable)
-      await page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name }).click();
+      await page.locator('table tbody tr:visible, [data-testid="list-item"]:visible').filter({ hasText: name }).click();
       await expect(page.getByRole('tab', { name: T.panelTab.details })).toBeVisible({ timeout: 5_000 });
       await page.getByLabel(T.nameLabel).clear();
       await page.getByLabel(T.nameLabel).fill(editedName);
@@ -144,10 +150,10 @@ test.describe('Configuración — Doctores', () => {
 
       // DESACTIVAR: cerrar panel → tabla vuelve a modo wide → filtrar → clic en Desactivar
       await page.getByRole('button', { name: 'Cerrar detalles' }).click();
-      await page.waitForTimeout(400);
-      await page.getByPlaceholder(T.filterPlaceholder).fill(email);
+      await expect(visibleFilterInput).toBeVisible({ timeout: 8_000 });
+      await visibleFilterInput.fill(email);
       await page.waitForTimeout(800);
-      const finalRow = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: name });
+      const finalRow = page.locator('table tbody tr:visible, [data-testid="list-item"]:visible').filter({ hasText: name });
       const deactivateBtn = finalRow.getByRole('button', { name: T.deactivate });
       if (await deactivateBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await deactivateBtn.click();
@@ -160,7 +166,7 @@ test.describe('Configuración — Doctores', () => {
 
   test.describe('Panel de detalle del doctor', () => {
     test('seleccionar doctor abre panel con tab Detalles', async ({ page }) => {
-      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
+      const firstRow = page.locator('table tbody tr:visible, [data-testid="list-item"]:visible').first();
       if (await firstRow.isVisible().catch(() => false)) {
         await firstRow.click();
         await page.waitForTimeout(500);

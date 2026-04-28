@@ -107,6 +107,7 @@ export function DataTable<TData, TValue>({
   onRowClick,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
+  const showCardList = Boolean(isNarrow && renderCard);
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -182,7 +183,7 @@ export function DataTable<TData, TValue>({
           createButtonIconOnly={createButtonIconOnly}
         />
       )}
-      {isNarrow && renderCard ? (
+      {showCardList ? (
         <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
@@ -193,7 +194,7 @@ export function DataTable<TData, TValue>({
                 }
                 onRowClick?.(row.original);
               }}>
-                {renderCard(row.original, row.getIsSelected())}
+                {renderCard!(row.original, row.getIsSelected())}
               </div>
             ))
           ) : (
@@ -201,7 +202,8 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       ) : null}
-      <div className={cn("rounded-md border overflow-auto flex-1 min-h-0 relative", isNarrow && renderCard ? 'hidden' : '')}>
+      {!showCardList ? (
+      <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
         <table className={cn("w-full caption-bottom text-sm")}>
           <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -261,6 +263,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </table>
       </div>
+      ) : null}
       <DataTablePagination table={table} />
     </div>
   );
