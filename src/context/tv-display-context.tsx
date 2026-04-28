@@ -195,11 +195,13 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       const allCalendars: Calendar[] = Array.isArray(calendarData) ? calendarData : [];
       setCalendars(allCalendars);
 
-      // Only keep IDs that match a real Calendar.id — discard any stale google_calendar_id values
-      const validCalendarIds = new Set(allCalendars.map((c) => String(c.id)));
+      // Only keep IDs that match an active Calendar — discard stale or inactive entries
+      const activeCalendarIds = new Set(
+        allCalendars.filter((c) => c.is_active !== false).map((c) => String(c.id))
+      );
       const resolvedCalendarIds = calendarSourceIds
         .map(String)
-        .filter((id) => validCalendarIds.has(id));
+        .filter((id) => activeCalendarIds.has(id));
 
       if (resolvedCalendarIds.length === 0) return;
 
@@ -304,6 +306,17 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     };
   }, [status, settings.refreshIntervalMinutes, fetchAppointments]);
+
+  // Re-fetch appointments whenever the selected calendars change
+  const prevCalendarIdsRef = React.useRef<string>(JSON.stringify(settings.selectedCalendarIds));
+  React.useEffect(() => {
+    const next = JSON.stringify(settings.selectedCalendarIds);
+    if (next === prevCalendarIdsRef.current) return;
+    prevCalendarIdsRef.current = next;
+    if (settings.selectedCalendarIds.length === 0) return;
+    const id = setTimeout(fetchAppointments, 300);
+    return () => clearTimeout(id);
+  }, [settings.selectedCalendarIds, fetchAppointments]);
 
   const updateSettings = React.useCallback((partial: Partial<TVDisplaySettings>) => {
     setSettings((prev) => {
