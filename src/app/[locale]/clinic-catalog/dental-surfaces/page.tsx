@@ -159,11 +159,11 @@ export default function DentalSurfacesPage() {
         if (!deletingSurface) return;
         try {
             await deleteDentalSurface(deletingSurface.id);
+            await loadSurfaces();
             toast({ title: t('toast.deleteSuccessTitle') });
             setIsDeleteDialogOpen(false);
             setDeletingSurface(null);
             handleClose();
-            loadSurfaces();
         } catch (error) {
             toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteErrorDescription') });
         }

@@ -161,11 +161,11 @@ export default function DentalConditionsPage() {
         if (!deletingCondition) return;
         try {
             await deleteDentalCondition(deletingCondition.id);
+            await loadConditions();
             toast({ title: t('toast.deleteSuccessTitle') });
             setIsDeleteDialogOpen(false);
             setDeletingCondition(null);
             handleClose();
-            loadConditions();
         } catch (error) {
             toast({ variant: 'destructive', title: t('toast.errorTitle'), description: error instanceof Error ? error.message : t('toast.deleteErrorDescription') });
         }
