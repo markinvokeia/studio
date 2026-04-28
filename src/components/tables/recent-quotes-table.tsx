@@ -640,10 +640,14 @@ export function RecentQuotesTable({
             )}
             {isNarrow ? (
               <div className="flex flex-1 min-h-0 flex-col">
-                <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
+                <div
+                  data-testid="card-list"
+                  className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5"
+                >
                   {table.getRowModel().rows.length > 0
                     ? table.getRowModel().rows.map((row) => (
-                      <DataCard
+                      <div key={row.id} data-testid="list-item">
+                        <DataCard
                           key={row.id}
                           title={row.original.doc_no || String(row.original.id)}
                           subtitle={[
@@ -674,6 +678,7 @@ export function RecentQuotesTable({
                             onRowClick?.(row.original);
                           }}
                         />
+                      </div>
                       ))
                     : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
                   }
