@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExistingAppointmentPanel } from '../../utils/appointments';
 
 // Translation strings from es.json — AppointmentsPage
 const T = {
@@ -307,16 +308,10 @@ test.describe('Citas', () => {
 
   test.describe('Panel de detalle', () => {
     test('clic en evento del calendario abre panel con tab Información activo', async ({ page }) => {
-      // The panel is opened by clicking a .event div in the calendar — there is no separate list view
-      const firstEvent = page.locator('.event').first();
-      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-        .then(() => true).catch(() => false);
-      test.skip(!hasEvents, 'No hay citas visibles en el calendario');
+      const opened = await openExistingAppointmentPanel(page, T.panelTabs.info);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
 
-      await firstEvent.click();
-
-      await expect(page.getByRole('button', { name: T.panelTabs.info }))
-        .toBeVisible({ timeout: 8_000 });
+      await expect(page.getByRole('button', { name: T.panelTabs.info })).toBeVisible({ timeout: 8_000 });
     });
   });
 
@@ -400,13 +395,7 @@ test.describe('Citas', () => {
 
   test.describe('Panel de detalle — tabs', () => {
     async function openFirstAppointmentPanel(page: import('@playwright/test').Page) {
-      const firstEvent = page.locator('.event').first();
-      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-        .then(() => true).catch(() => false);
-      if (!hasEvents) return false;
-      await firstEvent.click();
-      await page.waitForTimeout(400);
-      return true;
+      return openExistingAppointmentPanel(page, T.panelTabs.info);
     }
 
     test('tab Paciente muestra nombre y botón "Ver ficha del paciente"', async ({ page }) => {
@@ -455,15 +444,7 @@ test.describe('Citas', () => {
 
   test.describe('Acciones sobre cita existente', () => {
     async function openPanelFromCalendar(page: import('@playwright/test').Page) {
-      const firstEvent = page.locator('.event').first();
-      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-        .then(() => true).catch(() => false);
-      if (!hasEvents) return false;
-      await firstEvent.click();
-      // Wait for panel's info tab to confirm panel is open
-      await page.getByRole('button', { name: T.panelTabs.info })
-        .waitFor({ state: 'visible', timeout: 8_000 }).catch(() => { });
-      return true;
+      return openExistingAppointmentPanel(page, T.panelTabs.info);
     }
 
     test('botón Editar en panel abre formulario de edición con título "Editar"', async ({ page }) => {
@@ -543,13 +524,8 @@ test.describe('Citas', () => {
     });
 
     test('botón "Crear sesión" desde panel abre ClinicSessionDialog', async ({ page }) => {
-      const firstEvent = page.locator('.event').first();
-      const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-        .then(() => true).catch(() => false);
-      test.skip(!hasEvents, 'No hay citas visibles en el calendario');
-
-      await firstEvent.click();
-      await page.waitForTimeout(400);
+      const opened = await openExistingAppointmentPanel(page, T.panelTabs.info);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
 
       const sessionTab = page.getByRole('button', { name: T.panelTabs.session });
       if (!await sessionTab.isVisible().catch(() => false)) return;

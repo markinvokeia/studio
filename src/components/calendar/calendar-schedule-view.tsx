@@ -46,6 +46,7 @@ export function CalendarScheduleView({
             {groupedEvents[date].map((event) => (
               <div
                 key={event.id}
+                data-testid="calendar-schedule-event"
                 className="p-2 rounded-md cursor-pointer"
                 style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
                 onClick={(e) => {

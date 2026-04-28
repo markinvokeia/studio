@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openExistingAppointmentPanel } from '../../utils/appointments';
 
 /**
  * E2E flow: Flujo de Citas
@@ -69,12 +70,8 @@ test.describe('Flujo de Citas', () => {
   });
 
   test('seleccionar cita existente abre panel con tab Información', async ({ page }) => {
-    const firstEvent = page.locator('.event').first();
-    const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-      .then(() => true).catch(() => false);
-    test.skip(!hasEvents, 'No hay citas visibles en el calendario');
-
-    await firstEvent.click();
+    const opened = await openExistingAppointmentPanel(page, 'Información');
+    test.skip(!opened, 'No hay citas visibles en el calendario');
 
     await expect(page.getByRole('button', { name: 'Información' }))
       .toBeVisible({ timeout: 8_000 });
@@ -82,13 +79,8 @@ test.describe('Flujo de Citas', () => {
   });
 
   test('panel de cita muestra tabs: Información, Paciente, Doctor, Sesión Clínica', async ({ page }) => {
-    const firstEvent = page.locator('.event').first();
-    const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-      .then(() => true).catch(() => false);
-    test.skip(!hasEvents, 'No hay citas visibles en el calendario');
-
-    await firstEvent.click();
-    await page.waitForTimeout(400);
+    const opened = await openExistingAppointmentPanel(page, 'Información');
+    test.skip(!opened, 'No hay citas visibles en el calendario');
 
     const alwaysPresentTabs = ['Información', 'Paciente', 'Doctor', 'Sesión Clínica Enlazada'];
     for (const tabName of alwaysPresentTabs) {
@@ -104,13 +96,8 @@ test.describe('Flujo de Citas', () => {
   });
 
   test('tab Sesión Clínica muestra botón de crear o editar sesión', async ({ page }) => {
-    const firstEvent = page.locator('.event').first();
-    const hasEvents = await firstEvent.waitFor({ state: 'visible', timeout: 25_000 })
-      .then(() => true).catch(() => false);
-    test.skip(!hasEvents, 'No hay citas visibles en el calendario');
-
-    await firstEvent.click();
-    await page.waitForTimeout(400);
+    const opened = await openExistingAppointmentPanel(page, 'Información');
+    test.skip(!opened, 'No hay citas visibles en el calendario');
 
     await page.getByRole('button', { name: 'Sesión Clínica Enlazada' }).click();
     await page.waitForTimeout(300);

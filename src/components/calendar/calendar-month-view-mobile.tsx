@@ -168,6 +168,7 @@ export function CalendarMonthViewMobile({
               return (
                 <div
                   key={event.id}
+                  data-testid="calendar-month-agenda-event"
                   className="flex items-start gap-3 p-3 rounded-lg border border-border/50 cursor-pointer active:bg-muted/50 transition-colors"
                   onClick={() => onEventClick(event.data)}
                 >
