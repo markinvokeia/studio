@@ -350,46 +350,61 @@ export function ImportWizard() {
         )}
 
         {currentStep === 5 && importResult && (
-          <StepResult
-            result={importResult}
-            onClose={handleReset}
-            onImportAnother={handleReset}
-          />
+          <StepResult result={importResult} />
         )}
       </div>
 
-      {/* Navigation — always visible, hidden on result step */}
-      {currentStep !== 5 && (
-        <div className="flex-none px-4 py-3 border-t bg-card">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={currentStep === 0}
-              className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              {t('nav.back')}
-            </button>
-
-            {currentStep === 4 ? (
-              <p className="hidden sm:block flex-1 text-center text-xs text-muted-foreground">
-                Usá los botones de arriba para importar o corregir
-              </p>
-            ) : (
+      {/* Navigation — always visible */}
+      <div className="flex-none px-4 py-3 border-t bg-card">
+        <div className="flex items-center gap-3">
+          {currentStep === 5 ? (
+            <>
               <button
                 type="button"
-                onClick={handleNext}
-                disabled={!canGoNext()}
-                className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+                onClick={handleReset}
+                className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted"
               >
-                {t('nav.next')}
-                <ChevronRight className="h-4 w-4" />
+                {t('result.importAnother')}
               </button>
-            )}
-          </div>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              >
+                {t('result.close')}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={currentStep === 0}
+                className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                {t('nav.back')}
+              </button>
+
+              {currentStep === 4 ? (
+                <p className="hidden sm:block flex-1 text-center text-xs text-muted-foreground">
+                  Usá los botones de arriba para importar o corregir
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canGoNext()}
+                  className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
+                >
+                  {t('nav.next')}
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+            </>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
