@@ -2140,9 +2140,10 @@
       "order_doc_no": "Order Doc No.",
       "type": "Type",
       "paymentTypes": {
-        "payment": "Payment",
+        "direct_payment": "Direct Payment",
         "prepaid": "Prepaid",
-        "credit_note": "Credit Note"
+        "payment_allocation": "Payment Allocation",
+        "credit_note_allocation": "Credit Note Allocation"
       },
       "credit_note": "Credit Note",
       "invoice": "Invoice",
@@ -2266,6 +2267,7 @@
       "errors": {
         "title": "Error",
         "loadMethods": "Could not load payment methods.",
+        "notEditable": "Only direct payments and prepayments can be edited.",
         "closedCashSession": "This payment cannot be edited because it belongs to an old or closed cash session.",
         "notFound": "The payment or selected payment method was not found.",
         "generic": "Could not update the payment."

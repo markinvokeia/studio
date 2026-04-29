@@ -2117,9 +2117,10 @@
       "order_doc_no": "Orden Doc No.",
       "type": "Tipo",
       "paymentTypes": {
-        "payment": "Pago",
+        "direct_payment": "Pago Directo",
         "prepaid": "Prepago",
-        "credit_note": "Nota de Crédito"
+        "payment_allocation": "Asignación de Pago",
+        "credit_note_allocation": "Asignación de Nota de Crédito"
       },
       "credit_note": "Nota de Crédito",
       "invoice": "Factura",
@@ -2243,6 +2244,7 @@
       "errors": {
         "title": "Error",
         "loadMethods": "No se pudieron cargar los métodos de pago.",
+        "notEditable": "Solo se pueden editar pagos directos y prepagos.",
         "closedCashSession": "No se puede editar este pago porque pertenece a una caja antigua o cerrada.",
         "notFound": "No se encontró el pago o el método de pago seleccionado.",
         "generic": "No se pudo actualizar el pago."

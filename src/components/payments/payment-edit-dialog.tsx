@@ -14,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentMethod } from '@/lib/types';
 import api from '@/services/api';
-import { mapApiPaymentToPayment } from '@/services/payments-service';
+import { isPaymentEditable, mapApiPaymentToPayment } from '@/services/payments-service';
 
 interface PaymentEditDialogProps {
     open: boolean;
@@ -97,6 +97,15 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
 
         setPaymentMethodId(payment?.payment_method_id || '');
         setErrorMessage(null);
+
+        if (!isPaymentEditable(payment)) {
+            setPaymentMethods([]);
+            setErrorMessage(t('editDialog.errors.notEditable'));
+            return () => {
+                cancelled = true;
+            };
+        }
+
         setIsLoadingMethods(true);
 
         getPaymentMethods()
@@ -116,10 +125,21 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
         return () => {
             cancelled = true;
         };
-    }, [open, payment?.payment_method_id, t]);
+    }, [open, payment, payment?.payment_method_id, t]);
 
     const handleSave = async () => {
         if (!payment || !paymentMethodId) return;
+
+        if (!isPaymentEditable(payment)) {
+            const description = t('editDialog.errors.notEditable');
+            setErrorMessage(description);
+            toast({
+                variant: 'destructive',
+                title: t('editDialog.toasts.errorTitle'),
+                description,
+            });
+            return;
+        }
 
         setIsSaving(true);
         setErrorMessage(null);
@@ -194,7 +214,7 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                         <Select
                             value={paymentMethodId}
                             onValueChange={setPaymentMethodId}
-                            disabled={isLoadingMethods || isSaving}
+                            disabled={!isPaymentEditable(payment) || isLoadingMethods || isSaving}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder={isLoadingMethods ? t('editDialog.loadingMethods') : t('editDialog.selectMethod')} />
@@ -214,7 +234,7 @@ export function PaymentEditDialog({ open, onOpenChange, payment, onSuccess }: Pa
                     <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
                         {t('editDialog.cancel')}
                     </Button>
-                    <Button type="button" onClick={handleSave} disabled={!paymentMethodId || isLoadingMethods || isSaving}>
+                    <Button type="button" onClick={handleSave} disabled={!isPaymentEditable(payment) || !paymentMethodId || isLoadingMethods || isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('editDialog.save')}
                     </Button>

@@ -11,6 +11,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
+import { isPaymentEditable } from '@/services/payments-service';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -228,10 +229,12 @@ const getColumns = (
                 </DropdownMenuItem>
               )}
               {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(payment)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  <span>{tActions('edit')}</span>
-                </DropdownMenuItem>
+                isPaymentEditable(payment) ? (
+                  <DropdownMenuItem onClick={() => onEdit(payment)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    <span>{tActions('edit')}</span>
+                  </DropdownMenuItem>
+                ) : null
               )}
               {onSendEmail && (
                 <DropdownMenuItem onClick={() => onSendEmail(payment)}>
