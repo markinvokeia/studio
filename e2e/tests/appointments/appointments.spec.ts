@@ -28,8 +28,13 @@ const T = {
     patient: 'Paciente',
     doctor: 'Doctor',
     session: 'Sesión Clínica Enlazada',
+    quote: 'Presupuesto',
+    invoices: 'Facturas',
+    payments: 'Pagos',
     openPatient: 'Ver ficha del paciente',
     openDoctor: 'Ver perfil del doctor',
+    openQuote: 'Ver presupuesto',
+    viewPayments: 'Ver pagos',
   },
   createDialog: {
     title: 'Crear Nueva Cita',
@@ -41,10 +46,17 @@ const T = {
     dateLabel: 'Fecha',
     timeLabel: 'Hora',
     calendarLabel: 'Calendario',
+    selectUser: 'Seleccionar Usuario',
+    selectService: 'Seleccionar Servicio',
     save: 'Guardar',
     cancel: 'Cancelar',
     notes: 'Notas',
+    selectQuote: 'Seleccionar Presupuesto',
+    selectCalendar: 'Seleccionar Calendario',
+    createSessionOnSave: 'Crear sesión clínica al guardar',
   },
+  notInvoiced: 'Sin facturar',
+  treatmentSequenceTitle: 'Plan de Tratamiento',
   status: {
     completed: 'Completada',
     confirmed: 'Confirmada',
@@ -63,6 +75,18 @@ const T = {
     cancel: 'Cancelar',
   },
 };
+
+function pad2(value: number) {
+  return String(value).padStart(2, '0');
+}
+
+function formatDateForInput(date: Date) {
+  return `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()}`;
+}
+
+function formatDateForApi(date: Date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
 
 test.describe('Citas', () => {
   test.beforeEach(async ({ page }) => {
@@ -208,6 +232,131 @@ test.describe('Citas', () => {
 
       await page.getByRole('button', { name: T.createDialog.cancel }).click();
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+
+    test('formulario muestra selector de presupuesto deshabilitado hasta elegir paciente', async ({ page }) => {
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      await expect(dialog.getByRole('button', { name: T.createDialog.selectQuote })).toBeDisabled();
+      await expect(dialog.getByText(T.createDialog.createSessionOnSave)).toBeVisible();
+
+      await page.getByRole('button', { name: T.createDialog.cancel }).click();
+      await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+
+    test('selector de calendario inicia con "Seleccionar Calendario" y conserva esa opción', async ({ page }) => {
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const dialog = page.getByRole('dialog', { name: T.createDialog.title });
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      const calendarBtn = dialog.getByRole('button', { name: T.createDialog.selectCalendar }).first();
+      await expect(calendarBtn).toBeVisible();
+      await calendarBtn.click();
+      await expect(page.getByRole('option', { name: T.createDialog.selectCalendar }).first()).toBeVisible({ timeout: 5_000 });
+      await page.keyboard.press('Escape');
+
+      await page.getByRole('button', { name: T.createDialog.cancel }).click();
+      await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+  });
+
+  test.describe('CRUD de cita (con limpieza)', () => {
+    test('crear → verificar persistencia backend → limpiar', async ({ page, request }) => {
+      const seed = Date.now();
+      const scheduledDate = new Date();
+      scheduledDate.setDate(scheduledDate.getDate() + 1);
+      const scheduledDateInput = formatDateForInput(scheduledDate);
+      const scheduledDateApi = formatDateForApi(scheduledDate);
+      const scheduledTime = `${pad2(8 + (seed % 8))}:${pad2(5 + (Math.floor(seed / 1000) % 50))}`;
+      const initialNotes = `Notas cita E2E ${seed}`;
+      let appointmentId: string | undefined;
+      let googleEventId: string | undefined;
+      let calendarSourceId: string | undefined;
+      let apiBaseUrl: string | undefined;
+
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const createDialog = page.getByRole('dialog', { name: T.createDialog.title });
+      await expect(createDialog).toBeVisible({ timeout: 8_000 });
+
+      await createDialog.getByRole('button', { name: T.createDialog.selectUser }).click();
+      const patientOption = page.getByRole('option').first();
+      await expect(patientOption).toBeVisible({ timeout: 10_000 });
+      const patientName = (await patientOption.textContent())?.trim();
+      expect(patientName).toBeTruthy();
+      await patientOption.click();
+
+      await createDialog.getByRole('button', { name: T.createDialog.selectService }).click();
+      const serviceOption = page.getByRole('option').first();
+      await expect(serviceOption).toBeVisible({ timeout: 10_000 });
+      const serviceName = (await serviceOption.textContent())?.trim();
+      expect(serviceName).toBeTruthy();
+      await serviceOption.click();
+      await page.keyboard.press('Escape');
+      await expect(createDialog.getByText(serviceName!)).toBeVisible({ timeout: 5_000 });
+
+      const calendarTrigger = createDialog.getByRole('button', { name: T.createDialog.selectCalendar }).first();
+      await calendarTrigger.click();
+      const calendarOption = page.getByRole('option').nth(1);
+      await expect(calendarOption).toBeVisible({ timeout: 10_000 });
+      const calendarName = (await calendarOption.textContent())?.trim();
+      expect(calendarName).toBeTruthy();
+      await calendarOption.click();
+
+      const dateInput = createDialog.locator('input[placeholder="dd/mm/aaaa"]').first();
+      await dateInput.fill(scheduledDateInput);
+      await dateInput.blur();
+      await createDialog.locator('#time').fill(scheduledTime);
+      await createDialog.locator('#notes').fill(initialNotes);
+
+      const createResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+
+      await createDialog.getByRole('button', { name: T.createDialog.save }).click();
+      const createResponse = await createResponsePromise;
+      apiBaseUrl = createResponse.url().replace(/\/appointments\/upsert.*$/, '');
+
+      await expect(page.getByText('Cita creada', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+      await expect(createDialog).not.toBeVisible({ timeout: 20_000 });
+
+      const createPayload = await createResponse.json().catch(() => null);
+      const createdFromPost = createPayload?.data;
+      expect(createdFromPost).toBeTruthy();
+
+      const token = await page.evaluate(() => localStorage.getItem('token'));
+      expect(token).toBeTruthy();
+      expect(apiBaseUrl).toBeTruthy();
+
+      appointmentId = String(createdFromPost?.id ?? '');
+      googleEventId = createdFromPost?.google_event_id ? String(createdFromPost.google_event_id) : '';
+      calendarSourceId = String(createdFromPost?.calendar_source_id ?? '');
+      expect(appointmentId).toBeTruthy();
+      expect(calendarSourceId).toBeTruthy();
+      expect(createdFromPost.notes).toBe(initialNotes);
+      expect(String(createdFromPost.patient_id ?? '')).toBeTruthy();
+      expect(String(createdFromPost.start_datetime ?? '')).toContain(`${scheduledDateApi}T${scheduledTime}:00`);
+      expect(String(createdFromPost.summary ?? '')).toContain(patientName!);
+      expect(String(createdFromPost.summary ?? '')).toContain(serviceName!);
+
+      const deleteResponse = await request.delete(`${apiBaseUrl}/appointments/delete`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        data: {
+          appointment_id: appointmentId,
+          google_event_id: googleEventId,
+          calendar_source_id: calendarSourceId,
+        },
+      });
+      expect(deleteResponse.ok()).toBeTruthy();
+
+      const deletePayload = await deleteResponse.json().catch(() => null);
+      const deleteResult = Array.isArray(deletePayload) ? deletePayload[0] : deletePayload;
+      expect(Boolean(deleteResult?.message || deleteResult?.success || deleteResult?.code === 200)).toBeTruthy();
     });
   });
 
@@ -438,6 +587,43 @@ test.describe('Citas', () => {
         .isVisible().catch(() => false);
       expect(hasCreate || hasEdit).toBeTruthy();
     });
+
+    test('tab Presupuesto muestra acceso al presupuesto enlazado cuando existe', async ({ page }) => {
+      if (!await openFirstAppointmentPanel(page)) return;
+
+      const quoteTab = page.getByRole('button', { name: T.panelTabs.quote, exact: true });
+      test.skip(!await quoteTab.isVisible().catch(() => false), 'No hay cita visible con presupuesto enlazado');
+
+      await quoteTab.click();
+      await page.waitForTimeout(300);
+      await expect(page.getByRole('button', { name: T.panelTabs.openQuote })).toBeVisible({ timeout: 5_000 });
+    });
+
+    test('tab Facturas muestra documentos o el estado "Sin facturar"', async ({ page }) => {
+      if (!await openFirstAppointmentPanel(page)) return;
+
+      const invoicesTab = page.getByRole('button', { name: T.panelTabs.invoices, exact: true });
+      test.skip(!await invoicesTab.isVisible().catch(() => false), 'No hay cita visible con tab de facturas');
+
+      await invoicesTab.click();
+      await page.waitForTimeout(300);
+
+      const hasInvoiceDoc = await page.locator('button').filter({ hasText: /[A-Z]{1,4}[-\s]?\d+/ }).first()
+        .isVisible({ timeout: 2_000 }).catch(() => false);
+      const hasNotInvoiced = await page.getByText(T.notInvoiced).isVisible({ timeout: 2_000 }).catch(() => false);
+      expect(hasInvoiceDoc || hasNotInvoiced).toBeTruthy();
+    });
+
+    test('tab Pagos expone acción "Ver pagos" cuando existe información de facturación', async ({ page }) => {
+      if (!await openFirstAppointmentPanel(page)) return;
+
+      const paymentsTab = page.getByRole('button', { name: T.panelTabs.payments, exact: true });
+      test.skip(!await paymentsTab.isVisible().catch(() => false), 'No hay cita visible con tab de pagos');
+
+      await paymentsTab.click();
+      await page.waitForTimeout(300);
+      await expect(page.getByRole('button', { name: T.panelTabs.viewPayments }).first()).toBeVisible({ timeout: 5_000 });
+    });
   });
 
   // ── Acciones sobre cita existente ─────────────────────────────────────
@@ -542,6 +728,17 @@ test.describe('Citas', () => {
       await expect(page.getByRole('dialog').getByText('Crear Sesión')).toBeVisible({ timeout: 20_000 });
 
       await page.keyboard.press('Escape');
+    });
+
+    test('panel muestra referencia a plan de tratamiento cuando la cita está ligada a una secuencia', async ({ page }) => {
+      const opened = await openExistingAppointmentPanel(page, T.panelTabs.info);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
+
+      const hasTreatmentPlan = await page.getByText(T.treatmentSequenceTitle).isVisible({ timeout: 2_000 }).catch(() => false);
+      test.skip(!hasTreatmentPlan, 'La cita visible no está ligada a un plan de tratamiento');
+
+      await expect(page.getByText(T.treatmentSequenceTitle)).toBeVisible();
+      await expect(page.getByText(/Paso del plan #\d+/)).toBeVisible();
     });
   });
 });
