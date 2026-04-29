@@ -1,6 +1,13 @@
 'use client';
 
 import { ImportField, ImportSchema } from '@/config/import-schemas';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -82,22 +89,28 @@ export function StepMapColumns({ csvHeaders, schema, mapping, onChange }: StepMa
                   </span>
                 )}
               </div>
-              <select
-                value={currentValue ?? ''}
-                onChange={(e) => handleChange(header, e.target.value || null)}
-                className={cn(
-                  'w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50',
-                  unmapped ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-background'
-                )}
+              <Select
+                value={currentValue ?? '__none__'}
+                onValueChange={(val) => handleChange(header, val === '__none__' ? null : val)}
               >
-                <option value="">{t('noMap')}</option>
-                {schema.fields.map((field) => (
-                  <option key={field.key} value={field.key}>
-                    {field.label}
-                    {field.required ? ` (${t('required')})` : ''}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger
+                  className={cn(
+                    'w-full',
+                    unmapped ? 'border-destructive/50 bg-destructive/5' : ''
+                  )}
+                >
+                  <SelectValue placeholder={t('noMap')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{t('noMap')}</SelectItem>
+                  {schema.fields.map((field) => (
+                    <SelectItem key={field.key} value={field.key}>
+                      {field.label}
+                      {field.required ? ` (${t('required')})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           );
         })}
@@ -142,7 +155,7 @@ export function StepMapColumns({ csvHeaders, schema, mapping, onChange }: StepMa
                       value={currentValue ?? ''}
                       onChange={(e) => handleChange(header, e.target.value || null)}
                       className={cn(
-                        'w-full rounded-md border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50',
+                        'w-full rounded-md border px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50',
                         unmapped ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-background'
                       )}
                     >
