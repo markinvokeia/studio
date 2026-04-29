@@ -53,6 +53,42 @@ const T = {
   },
 };
 
+async function createQuoteForTesting(page: import('@playwright/test').Page) {
+  const createBtn = page.getByRole('button', { name: T.createBtn }).first();
+  test.skip(!await createBtn.isVisible({ timeout: 5_000 }).catch(() => false), 'No existe botón Crear');
+
+  await createBtn.click();
+  const dialog = page.getByRole('dialog');
+  test.skip(!await dialog.isVisible({ timeout: 8_000 }).catch(() => false), 'No abrió diálogo de creación');
+
+  const userCombobox = dialog.getByRole('combobox', { name: /usuario|paciente/i }).first();
+  if (await userCombobox.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await userCombobox.click();
+  } else {
+    const userTrigger = dialog.getByRole('button', { name: /seleccionar usuario|usuario|paciente/i }).first();
+    test.skip(!await userTrigger.isVisible({ timeout: 3_000 }).catch(() => false), 'No hay selector de usuario/paciente');
+    await userTrigger.click();
+  }
+
+  const searchInput = page.getByPlaceholder(/buscar usuario|buscar paciente|buscar/i).last();
+  if (await searchInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await searchInput.fill('a');
+    await page.waitForTimeout(500);
+  }
+  const firstOption = page.getByRole('option').first();
+  test.skip(!await firstOption.isVisible({ timeout: 8_000 }).catch(() => false), 'No hay opciones de usuario/paciente');
+  await firstOption.click();
+
+  await dialog.getByRole('button', { name: T.save }).click();
+  await expect(dialog).not.toBeVisible({ timeout: 20_000 });
+
+  const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
+  await expect(firstRow).toBeVisible({ timeout: 15_000 });
+  const rowText = (await firstRow.innerText()).replace(/\s+/g, ' ');
+  const docNo = rowText.match(/QUO-\d{4}-\d{2}-\d{4}/)?.[0] ?? '';
+  return { docNo, row: firstRow };
+}
+
 test.describe('Presupuestos de Venta', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/es/sales/quotes', { waitUntil: 'domcontentloaded' });
@@ -259,6 +295,69 @@ test.describe('Presupuestos de Venta', () => {
           await page.getByRole('button', { name: T.deleteDialog.cancel }).click();
         }
       }
+    });
+
+    test('crear borrador propio y rechazarlo desde acciones', async ({ page }) => {
+      const { docNo, row } = await createQuoteForTesting(page);
+      test.skip(!docNo, 'No se pudo detectar Doc No del presupuesto creado');
+
+      await row.click();
+      await page.waitForTimeout(500);
+      const rejectBtn = page.getByRole('button', { name: T.rejectQuote }).first();
+      test.skip(!await rejectBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe acción Rechazar en este estado');
+
+      await rejectBtn.click();
+      const confirmReject = page.getByRole('dialog').getByRole('button', { name: /rechazar|confirmar/i }).first();
+      if (await confirmReject.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await confirmReject.click();
+      }
+      await expect(page.getByText(/rechazado|rejected/i).first()).toBeVisible({ timeout: 12_000 });
+    });
+
+    test('crear borrador propio y editar notas sin romper flujo', async ({ page }) => {
+      const { row } = await createQuoteForTesting(page);
+      await row.click();
+      await page.waitForTimeout(500);
+
+      const editBtn = page.getByRole('button', { name: /editar/i }).first();
+      test.skip(!await editBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe acción Editar');
+      await editBtn.click();
+
+      const dialog = page.getByRole('dialog');
+      test.skip(!await dialog.isVisible({ timeout: 6_000 }).catch(() => false), 'No abrió diálogo de edición');
+
+      const notesInput = page.getByLabel(T.quoteDialog.notes).or(dialog.getByRole('textbox', { name: /notas/i })).first();
+      test.skip(!await notesInput.isVisible({ timeout: 3_000 }).catch(() => false), 'No hay campo de notas para editar');
+      await notesInput.fill(`E2E edit ${Date.now()}`);
+      await dialog.getByRole('button', { name: T.editSave }).click();
+      await expect(dialog).not.toBeVisible({ timeout: 20_000 });
+      await expect(page.getByText(/actualizado|guardado|éxito/i).first()).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('crear borrador propio y eliminarlo para limpiar datos', async ({ page }) => {
+      const { docNo, row } = await createQuoteForTesting(page);
+      test.skip(!docNo, 'No se pudo detectar Doc No del presupuesto creado');
+
+      await row.click();
+      await page.waitForTimeout(500);
+
+      const deleteBtn = page.getByRole('button', { name: T.deleteQuote }).first();
+      if (await deleteBtn.isVisible({ timeout: 4_000 }).catch(() => false)) {
+        await deleteBtn.click();
+      } else {
+        const actionBtn = page.locator('table tbody tr, [data-testid="list-item"]').filter({ hasText: docNo }).first()
+          .getByRole('button', { name: /abrir menú/i }).first();
+        test.skip(!await actionBtn.isVisible({ timeout: 5_000 }).catch(() => false), 'No se encontró menú de acciones para eliminar');
+        await actionBtn.click();
+        const deleteItem = page.getByRole('menuitem', { name: T.deleteQuote }).first();
+        test.skip(!await deleteItem.isVisible({ timeout: 5_000 }).catch(() => false), 'No está disponible Eliminar');
+        await deleteItem.click();
+      }
+
+      const deleteDialog = page.getByRole('dialog');
+      await expect(deleteDialog).toBeVisible({ timeout: 8_000 });
+      await deleteDialog.getByRole('button', { name: /confirmar|eliminar/i }).first().click();
+      await expect(page.getByText(/eliminado|deleted|éxito/i).first()).toBeVisible({ timeout: 12_000 });
     });
   });
 });

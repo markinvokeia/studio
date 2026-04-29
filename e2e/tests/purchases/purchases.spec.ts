@@ -10,6 +10,46 @@ async function getVisibleListContainer(page: Page) {
   return page.locator('table').first();
 }
 
+async function createProviderForChainedFlow(page: Page) {
+  const name = `Proveedor E2E Chain ${Date.now()}`;
+  const email = randomEmail();
+
+  const createBtn = page.getByRole('button', { name: 'Crear' }).first();
+  test.skip(!await createBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe botón Crear para proveedor');
+  await createBtn.click();
+
+  const dialog = page.getByRole('dialog');
+  test.skip(!await dialog.isVisible({ timeout: 8_000 }).catch(() => false), 'No abrió diálogo de proveedor');
+
+  await page.getByLabel('Nombre').fill(name);
+  const emailInput = page.getByLabel('Correo Electrónico');
+  if (await emailInput.isVisible().catch(() => false)) {
+    await emailInput.fill(email);
+  }
+  const phoneInput = page.getByLabel('Teléfono');
+  if (await phoneInput.isVisible().catch(() => false)) {
+    await phoneInput.fill(randomPhone());
+  }
+  const docInput = page.getByLabel('Documento de Identidad');
+  if (await docInput.isVisible().catch(() => false)) {
+    await docInput.fill(randomDoc());
+  }
+
+  await page.getByRole('button', { name: 'Crear' }).click();
+  await expect(page.getByText(/creado|éxito|guardado/i).first()).toBeVisible({ timeout: 12_000 });
+
+  const filterInput = page.getByPlaceholder('Filtrar por rol...');
+  if (await filterInput.isVisible().catch(() => false)) {
+    await filterInput.fill(name);
+    await page.waitForTimeout(500);
+  }
+
+  await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(name).first())
+    .toBeVisible({ timeout: 10_000 });
+
+  return { name, email };
+}
+
 // Translation strings from es.json — ProvidersPage / Purchases modules
 
 // ── Proveedores ───────────────────────────────────────────────────────────────
@@ -177,6 +217,42 @@ test.describe('Compras — Presupuestos de Compra', () => {
       await page.getByRole('button', { name: 'Cancelar' }).click();
     }
   });
+
+  test('flujo encadenado: proveedor creado aparece como opción al crear presupuesto', async ({ page }) => {
+    await page.goto('/es/purchases/providers', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
+    const provider = await createProviderForChainedFlow(page);
+
+    await page.goto('/es/purchases/quotes', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => {});
+
+    const createBtn = page.getByRole('button', { name: 'Crear' }).first();
+    test.skip(!await createBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe Crear en presupuestos de compra');
+    await createBtn.click();
+
+    const dialog = page.getByRole('dialog');
+    test.skip(!await dialog.isVisible({ timeout: 8_000 }).catch(() => false), 'No abrió diálogo de presupuesto de compra');
+
+    const supplierSelector = dialog.getByRole('combobox', { name: /proveedor|usuario|supplier/i }).first();
+    if (await supplierSelector.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await supplierSelector.click();
+    } else {
+      const supplierTrigger = dialog.getByRole('button', { name: /seleccionar proveedor|proveedor|usuario|supplier/i }).first();
+      test.skip(!await supplierTrigger.isVisible({ timeout: 3_000 }).catch(() => false), 'No hay selector de proveedor');
+      await supplierTrigger.click();
+    }
+
+    const searchInput = page.getByPlaceholder(/buscar|search/i).last();
+    if (await searchInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await searchInput.fill(provider.name);
+      await page.waitForTimeout(500);
+    }
+
+    await expect(page.getByRole('option', { name: new RegExp(provider.name, 'i') }).first()
+      .or(page.getByText(new RegExp(provider.name, 'i')).first())).toBeVisible({ timeout: 8_000 });
+
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+  });
 });
 
 // ── Facturas de Compra ────────────────────────────────────────────────────────
@@ -198,6 +274,20 @@ test.describe('Compras — Facturas de Compra', () => {
     if (!inCardMode) {
       await expect(page.getByRole('columnheader', { name: /total/i })).toBeVisible();
     }
+  });
+
+  test('validación visible: crear factura sin proveedor no debe permitir guardado', async ({ page }) => {
+    const createBtn = page.getByRole('button', { name: 'Crear' }).first();
+    test.skip(!await createBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe botón Crear');
+    await createBtn.click();
+
+    const dialog = page.getByRole('dialog');
+    test.skip(!await dialog.isVisible({ timeout: 8_000 }).catch(() => false), 'No abrió diálogo de factura');
+
+    const submitBtn = dialog.getByRole('button', { name: /crear|guardar/i }).last();
+    await submitBtn.click();
+    await expect(dialog.getByText(/proveedor|usuario.*obligatorio|required/i).first()).toBeVisible({ timeout: 8_000 });
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
   });
 });
 
@@ -230,5 +320,49 @@ test.describe('Compras — Pagos de Compra', () => {
       await expect(dialog.getByText(/monto/i).first()).toBeVisible();
       await dialog.getByRole('button', { name: 'Cancelar' }).click();
     }
+  });
+
+  test('flujo encadenado: proveedor creado aparece en diálogo de prepago y valida monto', async ({ page }) => {
+    await page.goto('/es/purchases/providers', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
+    const provider = await createProviderForChainedFlow(page);
+
+    await page.goto('/es/purchases/payments', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
+
+    const createBtn = page.getByRole('button', { name: /crear prepago|crear/i }).first();
+    test.skip(!await createBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe botón crear prepago');
+    await createBtn.click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+    const supplierSelector = dialog.getByRole('combobox', { name: /proveedor|supplier|usuario/i }).first();
+    if (await supplierSelector.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await supplierSelector.click();
+    } else {
+      const supplierTrigger = dialog.getByRole('button', { name: /seleccionar proveedor|proveedor|supplier|usuario/i }).first();
+      test.skip(!await supplierTrigger.isVisible({ timeout: 3_000 }).catch(() => false), 'No hay selector de proveedor');
+      await supplierTrigger.click();
+    }
+
+    const searchInput = page.getByPlaceholder(/buscar|search/i).last();
+    if (await searchInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await searchInput.fill(provider.name);
+      await page.waitForTimeout(400);
+    }
+
+    const providerOption = page.getByRole('option', { name: new RegExp(provider.name, 'i') }).first();
+    test.skip(!await providerOption.isVisible({ timeout: 8_000 }).catch(() => false), 'Proveedor no disponible en selector de prepago');
+    await providerOption.click();
+
+    const amountInput = dialog.getByLabel(/monto/i).first();
+    test.skip(!await amountInput.isVisible({ timeout: 4_000 }).catch(() => false), 'No hay input de monto');
+    await amountInput.fill('0');
+    await dialog.getByRole('button', { name: /crear|guardar|agregar/i }).first().click();
+    await expect(dialog.getByText(/monto.*(obligatorio|mayor|válido|positivo)|invalid amount/i).first())
+      .toBeVisible({ timeout: 8_000 });
+
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
   });
 });

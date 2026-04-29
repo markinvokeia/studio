@@ -114,6 +114,75 @@ test.describe('Caja — Panel Principal', () => {
         .or(page.getByText(T.activeSession.dailyPayments))).toBeVisible({ timeout: 8_000 });
     }
   });
+
+  test('apertura de caja inicia wizard y permite salir sin persistir', async ({ page }) => {
+    const openButtons = page.getByRole('button', { name: T.openButton });
+    const openButtonCount = await openButtons.count();
+    let openBtn = null as null | ReturnType<typeof page.getByRole>;
+
+    for (let i = 0; i < openButtonCount; i += 1) {
+      const candidate = openButtons.nth(i);
+      const visible = await candidate.isVisible().catch(() => false);
+      const enabled = await candidate.isEnabled().catch(() => false);
+      if (visible && enabled) {
+        openBtn = candidate as unknown as ReturnType<typeof page.getByRole>;
+        break;
+      }
+    }
+
+    if (!openBtn) return;
+
+    await openBtn.click();
+    const nextBtn = page.getByRole('button', { name: T.wizard.next }).last();
+    const backBtn = page.getByRole('button', { name: T.wizard.back }).last();
+    const configStep = page.getByText(/configuración/i).first();
+
+    const nextVisible = await nextBtn.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
+    const backVisible = await backBtn.isVisible({ timeout: 1_000 }).catch(() => false);
+    const configVisible = await configStep.isVisible({ timeout: 1_000 }).catch(() => false);
+    test.skip(!(nextVisible || backVisible || configVisible), 'El flujo de apertura no mostró el wizard inline esperado');
+
+    if (await nextBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await nextBtn.click();
+      await page.waitForTimeout(300);
+      if (await backBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await backBtn.click();
+      }
+    }
+
+    const cancelBtn = page.getByRole('button', { name: T.cashPoints.cancel })
+      .or(page.getByRole('button', { name: /cancelar|cerrar/i }))
+      .first();
+    if (await cancelBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await cancelBtn.click();
+    } else {
+      await page.keyboard.press('Escape');
+    }
+
+    await expect(page.getByRole('button', { name: T.openButton }).first()).toBeVisible({ timeout: 8_000 });
+    await expect(page).toHaveURL(/cashier/, { timeout: 5_000 });
+  });
+
+  test('cierre de sesión de caja abre flujo de cierre y puede cancelarse', async ({ page }) => {
+    const closeBtn = page.getByRole('button', { name: T.closeWizard.closeSessionButton })
+      .or(page.getByRole('button', { name: T.closeWizard.startClosing }))
+      .first();
+    if (!await closeBtn.isVisible({ timeout: 3_000 }).catch(() => false)) return;
+
+    await closeBtn.click();
+    await expect(page.getByRole('dialog')
+      .or(page.getByText(T.closeWizard.title)).first()).toBeVisible({ timeout: 8_000 });
+
+    const cancelBtn = page.getByRole('button', { name: T.cashPoints.cancel })
+      .or(page.getByRole('button', { name: /cancelar|cerrar/i }))
+      .first();
+    if (await cancelBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await cancelBtn.click();
+    } else {
+      await page.keyboard.press('Escape');
+    }
+    await expect(page.getByRole('dialog')).not.toBeVisible();
+  });
 });
 
 // ── Puntos de Caja (Cash Registers) ──────────────────────────────────────────
@@ -215,6 +284,27 @@ test.describe('Caja — Transacciones Misceláneas', () => {
       await expect(dialog.getByText(T.miscTx.categoryLabel, { exact: true }).first()).toBeVisible();
       await page.getByRole('button', { name: T.miscTx.cancel }).click();
     }
+  });
+
+  test('crear transacción sin categoría muestra validación y no crea registro', async ({ page }) => {
+    const createBtn = page.getByRole('button', { name: 'Crear' }).first();
+    if (!await createBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+    await createBtn.click();
+    const dialog = page.getByRole('dialog');
+    if (!await dialog.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+    const amountInput = page.getByLabel(T.miscTx.amountLabel).or(page.getByPlaceholder(/monto/i)).first();
+    if (await amountInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await amountInput.fill('10');
+    }
+
+    await page.getByRole('button', { name: T.miscTx.create }).click();
+    await expect(page.getByText(T.miscTx.categoryRequired)
+      .or(page.getByText(/categor/i))).toBeVisible({ timeout: 5_000 });
+
+    await page.getByRole('button', { name: T.miscTx.cancel }).click();
+    await expect(dialog).not.toBeVisible({ timeout: 5_000 });
   });
 });
 

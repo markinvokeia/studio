@@ -353,4 +353,137 @@ test.describe('Pacientes', () => {
       await page.keyboard.press('Escape');
     });
   });
+
+  test.describe.serial('Paciente reutilizable entre módulos (con restauración)', () => {
+    let reusableName = '';
+    let reusableEmail = '';
+
+    test('crear paciente reutilizable y usarlo en selector de Citas', async ({ page }) => {
+      reusableName = `Paciente E2E Reuse ${Date.now()}`;
+      reusableEmail = randomEmail();
+      const reusableDoc = randomDoc();
+
+      const createBtn = page.getByRole('button', { name: T.createBtn }).first();
+      if (!await createBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await createBtn.click();
+      const dialog = page.getByRole('dialog');
+      if (!await dialog.isVisible({ timeout: 8_000 }).catch(() => false)) return;
+
+      await page.getByLabel(T.nameLabel).fill(reusableName);
+      await page.getByLabel(T.emailLabel).fill(reusableEmail);
+      await page.getByLabel(T.docLabel).fill(reusableDoc);
+      await page.getByRole('button', { name: T.saveCreate }).click();
+      await expect(page.getByText(/Paciente Creado|creado|éxito/i).first()).toBeVisible({ timeout: 12_000 });
+
+      await page.getByPlaceholder(T.filterPlaceholder).fill(reusableEmail);
+      await page.waitForTimeout(600);
+      await expect(page.locator('table tbody, [data-testid="card-list"]').getByText(reusableName).first()).toBeVisible({ timeout: 8_000 });
+
+      await page.goto('/appointments', { waitUntil: 'domcontentloaded' });
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const appointmentDialog = page.getByRole('dialog');
+      if (!await appointmentDialog.isVisible({ timeout: 8_000 }).catch(() => false)) return;
+
+      await appointmentDialog.getByRole('button', { name: 'Seleccionar Usuario' }).click();
+      await expect(page.getByRole('option').filter({ hasText: reusableName }).first()).toBeVisible({ timeout: 10_000 });
+      await page.keyboard.press('Escape');
+      await page.getByRole('button', { name: T.cancel }).click().catch(() => {});
+    });
+
+    test('paciente inactivo no aparece en filtro de solo activos y luego se reactiva', async ({ page }) => {
+      test.skip(!reusableEmail, 'No se creó paciente reutilizable en el test previo');
+
+      await page.goto('/patients', { waitUntil: 'domcontentloaded' });
+      await page.getByPlaceholder(T.filterPlaceholder).fill(reusableEmail);
+      await page.waitForTimeout(800);
+
+      const row = page.locator('table tbody tr, [data-testid="list-item"]').first();
+      if (!await row.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      const menuBtn = row.getByRole('button', { name: 'Abrir menú' });
+      if (!await menuBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await menuBtn.click();
+
+      const deactivateItem = page.getByRole('menuitem', { name: 'Desactivar' });
+      if (!await deactivateItem.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await page.keyboard.press('Escape');
+      } else {
+        await deactivateItem.click();
+        await expect(page.getByText(/inactiv|desactiv|actualizado|éxito/i).first()).toBeVisible({ timeout: 10_000 });
+      }
+
+      const filterBtn = page.locator('button').filter({ has: page.locator('svg.lucide-sliders-horizontal') }).first();
+      if (await filterBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await filterBtn.click();
+        const onlyActive = page.getByRole('menuitem', { name: 'Mostrar solo activos' });
+        if (await onlyActive.isVisible({ timeout: 3_000 }).catch(() => false)) {
+          await onlyActive.click();
+          await page.waitForTimeout(1_000);
+          const stillVisible = await page.locator('table tbody, [data-testid="card-list"]').getByText(reusableName).first()
+            .isVisible({ timeout: 2_000 }).catch(() => false);
+          expect(stillVisible).toBeFalsy();
+        }
+      }
+
+      await page.getByRole('button', { name: T.clearFilters }).click().catch(() => {});
+      await page.getByPlaceholder(T.filterPlaceholder).fill(reusableEmail);
+      await page.waitForTimeout(700);
+
+      const rowAfterFilter = page.locator('table tbody tr, [data-testid="list-item"]').first();
+      if (!await rowAfterFilter.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      const reopenMenuBtn = rowAfterFilter.getByRole('button', { name: 'Abrir menú' });
+      if (!await reopenMenuBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await reopenMenuBtn.click();
+      const activateItem = page.getByRole('menuitem', { name: T.activeLabel });
+      if (await activateItem.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await activateItem.click();
+        await expect(page.getByText(/activ|actualizado|éxito/i).first()).toBeVisible({ timeout: 10_000 });
+      } else {
+        await page.keyboard.press('Escape');
+      }
+    });
+  });
+
+  test.describe('Panel de detalle — profundidad pragmática', () => {
+    test('tab Notas permite ver contenido o estado vacío', async ({ page }) => {
+      await page.locator('table tbody tr, [data-testid="list-item"]').first().click();
+      const notesTab = page.getByRole('button', { name: T.tabs.notes });
+      if (!await notesTab.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await notesTab.click();
+      await page.waitForTimeout(400);
+
+      const hasNotesUi = await page.locator('textarea, [contenteditable="true"], [data-testid*="note"]').first()
+        .isVisible({ timeout: 2_500 }).catch(() => false);
+      const hasEmptyState = await page.getByText(/sin notas|no hay notas|vacío/i).first()
+        .isVisible({ timeout: 2_500 }).catch(() => false);
+      expect(hasNotesUi || hasEmptyState).toBeTruthy();
+    });
+
+    test('tab de documentos (Facturas u Órdenes) muestra listado o estado vacío', async ({ page }) => {
+      await page.locator('table tbody tr, [data-testid="list-item"]').first().click();
+      const documentsTab = page.getByRole('button', { name: T.tabs.invoices })
+        .or(page.getByRole('button', { name: T.tabs.orders }));
+      if (!await documentsTab.first().isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await documentsTab.first().click();
+      await page.waitForTimeout(400);
+
+      const hasList = await page.locator('table tbody tr, [data-testid="list-item"], [role="row"]').first()
+        .isVisible({ timeout: 2_500 }).catch(() => false);
+      const hasEmpty = await page.getByText(/sin resultados|sin facturas|sin órdenes|no hay/i).first()
+        .isVisible({ timeout: 2_500 }).catch(() => false);
+      expect(hasList || hasEmpty).toBeTruthy();
+    });
+
+    test('resumen financiero abre acción de impresión sin romper navegación', async ({ page }) => {
+      await page.locator('table tbody tr, [data-testid="list-item"]').first().click();
+      const printBtn = page.getByRole('button', { name: new RegExp(T.printFinancial, 'i') })
+        .or(page.getByRole('button', { name: /imprimir/i }));
+      if (!await printBtn.first().isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      await printBtn.first().click();
+      await page.waitForTimeout(500);
+      await expect(page).not.toHaveURL(/error/);
+    });
+  });
 });

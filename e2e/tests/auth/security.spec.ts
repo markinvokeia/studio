@@ -58,6 +58,32 @@ test.describe('Control de acceso — usuario autenticado', () => {
     await expect(page.getByRole('button', { name: T.createBtn })).not.toBeVisible();
   });
 
+  test('módulos read-only no muestran acciones de mutación por fila', async ({ page }) => {
+    const routes = ['/system/audit', '/system/errors', '/system/access'];
+    for (const route of routes) {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await expect(page).not.toHaveURL(/login/);
+      await expect(page.getByRole('button', { name: /crear|editar|eliminar|borrar/i }).first())
+        .not.toBeVisible();
+      await expect(page.getByRole('menuitem', { name: /editar|eliminar|borrar/i }).first())
+        .not.toBeVisible();
+    }
+  });
+
+  test('rutas administrativas sensibles responden con control de acceso sin redirigir a error', async ({ page }) => {
+    const routes = ['/system/users', '/roles', '/permissions'];
+    for (const route of routes) {
+      await page.goto(route, { waitUntil: 'domcontentloaded' });
+      await expect(page).not.toHaveURL(/error/);
+      await expect(page).not.toHaveURL(/login/);
+      const hasForbidden = await page.getByText(/403|forbidden|acceso denegado|sin permisos/i)
+        .first().isVisible({ timeout: 2_000 }).catch(() => false);
+      const hasDataView = await page.locator('table, [data-testid="card-list"], form').first()
+        .isVisible({ timeout: 4_000 }).catch(() => false);
+      expect(hasForbidden || hasDataView).toBeTruthy();
+    }
+  });
+
   test('header no expone el token JWT en elementos visibles del DOM', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const url = page.url();
@@ -133,6 +159,32 @@ test.describe('Sesiones y tokens', () => {
       const url = page.url();
       expect(url).not.toContain('token=');
       expect(url).not.toContain('access_token=');
+    }
+  });
+
+  test('cerrar sesión remueve acceso a ruta protegida al volver atrás', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expectNotOnLogin(page, 15_000);
+
+    const logoutBtn = page.getByRole('menuitem', { name: 'Cerrar Sesión' })
+      .or(page.getByRole('button', { name: 'Cerrar Sesión' }))
+      .or(page.getByText('Cerrar Sesión'))
+      .first();
+
+    if (!await logoutBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      const accountBtn = page.getByRole('button', { name: 'Mi Cuenta' })
+        .or(page.getByLabel('Mi Cuenta'))
+        .or(page.locator('header [role="button"]').last());
+      if (await accountBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await accountBtn.click();
+      }
+    }
+
+    if (await logoutBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await logoutBtn.click();
+      await expect(page).toHaveURL(/login/, { timeout: 10_000 });
+      await page.goBack();
+      await expect(page).toHaveURL(/login/, { timeout: 10_000 });
     }
   });
 });

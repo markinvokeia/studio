@@ -222,6 +222,64 @@ test.describe('Facturas de Venta', () => {
         }
       }
     });
+
+    test('validación de negocio: pago con monto cero o vacío no debe permitirse', async ({ page }) => {
+      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
+      test.skip(!await firstRow.isVisible({ timeout: 6_000 }).catch(() => false), 'No hay facturas visibles');
+      await firstRow.click();
+      await page.waitForTimeout(500);
+
+      const addPaymentBtn = page.getByRole('button', { name: T.addPayment }).first();
+      test.skip(!await addPaymentBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe acción Agregar Pago');
+      await addPaymentBtn.click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      const amountInput = page.getByLabel(T.paymentDialog.amount).first();
+      await expect(amountInput).toBeVisible();
+      await amountInput.fill('0');
+
+      const submitBtn = dialog.getByRole('button', { name: /agregar pago|guardar|confirmar/i }).first();
+      await submitBtn.click();
+
+      await expect(dialog.getByText(/monto.*(obligatorio|mayor|válido|positivo)|invalid amount/i).first())
+        .toBeVisible({ timeout: 8_000 });
+
+      await dialog.getByRole('button', { name: T.paymentDialog.cancel }).click();
+    });
+
+    test('si UI permite pagos parciales: monto menor al total pendiente se acepta en formulario', async ({ page }) => {
+      const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
+      test.skip(!await firstRow.isVisible({ timeout: 6_000 }).catch(() => false), 'No hay facturas visibles');
+      await firstRow.click();
+      await page.waitForTimeout(500);
+
+      const addPaymentBtn = page.getByRole('button', { name: T.addPayment }).first();
+      test.skip(!await addPaymentBtn.isVisible({ timeout: 6_000 }).catch(() => false), 'No existe acción Agregar Pago');
+      await addPaymentBtn.click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      const amountInput = page.getByLabel(T.paymentDialog.amount).first();
+      await amountInput.fill('1');
+
+      const methodInput = page.getByRole('combobox', { name: T.paymentDialog.method }).first();
+      if (await methodInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await methodInput.click();
+        const firstMethod = page.getByRole('option').first();
+        if (await firstMethod.isVisible({ timeout: 5_000 }).catch(() => false)) {
+          await firstMethod.click();
+        }
+      }
+
+      // Validamos comportamiento parcial sin confirmar para evitar datos sucios.
+      const submitBtn = dialog.getByRole('button', { name: /agregar pago|guardar|confirmar/i }).first();
+      const canSubmit = await submitBtn.isEnabled().catch(() => false);
+      expect(canSubmit).toBeTruthy();
+      await dialog.getByRole('button', { name: T.paymentDialog.cancel }).click();
+    });
   });
 
   // ── Importar factura (AI) ─────────────────────────────────────────────

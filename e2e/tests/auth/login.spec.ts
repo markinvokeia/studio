@@ -124,6 +124,57 @@ test.describe('Autenticación — Recuperar Contraseña', () => {
       .or(page.getByRole('button', { name: T.backToLogin })).click();
     await expect(page.locator('#email')).toBeVisible({ timeout: 5_000 });
   });
+
+  test('recuperación valida email obligatorio y formato inválido', async ({ page }) => {
+    await page.getByText(T.forgotPassword)
+      .or(page.getByRole('button', { name: T.forgotPassword })).click();
+
+    const recoveryEmail = page.locator('#recovery-email')
+      .or(page.getByPlaceholder(/correo|email/i))
+      .or(page.getByLabel(T.emailLabel))
+      .first();
+    await expect(recoveryEmail).toBeVisible({ timeout: 8_000 });
+
+    const submitRecovery = page.getByRole('button', { name: T.recoverPasswordButton })
+      .or(page.getByRole('button', { name: /recuperar/i }))
+      .first();
+    await submitRecovery.click();
+
+    const requiredInvalid = await recoveryEmail.evaluate(
+      (el: HTMLInputElement) => !el.validity.valid
+    );
+    expect(requiredInvalid).toBe(true);
+
+    await recoveryEmail.fill('correo-invalido');
+    await submitRecovery.click();
+    const formatInvalid = await recoveryEmail.evaluate(
+      (el: HTMLInputElement) => !el.validity.valid
+    );
+    expect(formatInvalid).toBe(true);
+  });
+
+  test('recuperación con email válido envía la solicitud sin romper la UI', async ({ page }) => {
+    await page.getByText(T.forgotPassword)
+      .or(page.getByRole('button', { name: T.forgotPassword })).click();
+
+    const recoveryEmail = page.locator('#recovery-email')
+      .or(page.getByPlaceholder(/correo|email/i))
+      .or(page.getByLabel(T.emailLabel))
+      .first();
+    await expect(recoveryEmail).toBeVisible({ timeout: 8_000 });
+
+    await recoveryEmail.fill(VALID_USER || 'qa_e2e_user@example.com');
+
+    const submitRecovery = page.getByRole('button', { name: T.recoverPasswordButton })
+      .or(page.getByRole('button', { name: /recuperar/i }))
+      .first();
+    await submitRecovery.click();
+
+    await expect(
+      page.getByText(/correo|email|enviado|revisa|bandeja|instrucciones|existe/i).first()
+        .or(page.locator('[data-variant="destructive"]').first())
+    ).toBeVisible({ timeout: 10_000 });
+  });
 });
 
 test.describe('Protección de rutas', () => {

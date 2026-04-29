@@ -667,6 +667,192 @@ test.describe('Citas', () => {
       await page.getByRole('button', { name: T.createDialog.close }).click();
       await expect(alertDialog).not.toBeVisible({ timeout: 5_000 });
     });
+
+    test('editar cita existente y restaurar notas originales', async ({ page }) => {
+      const opened = await openPanelFromCalendar(page);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
+
+      const editBtn = page.getByRole('button', { name: T.columns.edit });
+      if (!await editBtn.isVisible().catch(() => false)) return;
+      await editBtn.click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+
+      const notesInput = dialog.locator('#notes');
+      if (!await notesInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await page.getByRole('button', { name: T.createDialog.cancel }).click().catch(() => {});
+        return;
+      }
+
+      const originalNotes = await notesInput.inputValue();
+      const updatedNotes = `${originalNotes} [E2E-${Date.now()}]`.trim();
+
+      const saveResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+      await notesInput.fill(updatedNotes);
+      await dialog.getByRole('button', { name: T.createDialog.save }).click();
+      const saveResponse = await saveResponsePromise;
+      expect(saveResponse.ok()).toBeTruthy();
+      await expect(dialog).not.toBeVisible({ timeout: 20_000 });
+
+      if (!await editBtn.isVisible({ timeout: 8_000 }).catch(() => false)) {
+        const reopenedPanel = await openPanelFromCalendar(page);
+        test.skip(!reopenedPanel, 'No se pudo reabrir la cita tras guardar');
+      }
+      await expect(editBtn).toBeVisible({ timeout: 8_000 });
+      await editBtn.click();
+      const reopenedDialog = page.getByRole('dialog');
+      await expect(reopenedDialog).toBeVisible({ timeout: 8_000 });
+      await expect(reopenedDialog.locator('#notes')).toHaveValue(updatedNotes, { timeout: 5_000 });
+
+      const restoreResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+      await reopenedDialog.locator('#notes').fill(originalNotes);
+      await reopenedDialog.getByRole('button', { name: T.createDialog.save }).click();
+      const restoreResponse = await restoreResponsePromise;
+      expect(restoreResponse.ok()).toBeTruthy();
+      await expect(reopenedDialog).not.toBeVisible({ timeout: 20_000 });
+    });
+
+    test('reprogramar cita existente persiste hora y restaura valor original', async ({ page }) => {
+      const opened = await openPanelFromCalendar(page);
+      test.skip(!opened, 'No hay citas visibles en el calendario');
+
+      const editBtn = page.getByRole('button', { name: T.columns.edit });
+      if (!await editBtn.isVisible().catch(() => false)) return;
+      await editBtn.click();
+
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible({ timeout: 8_000 });
+      const timeInput = dialog.locator('#time');
+      if (!await timeInput.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await page.getByRole('button', { name: T.createDialog.cancel }).click().catch(() => {});
+        return;
+      }
+
+      const originalTime = await timeInput.inputValue();
+      const match = originalTime.match(/^(\d{2}):(\d{2})$/);
+      if (!match) {
+        await page.getByRole('button', { name: T.createDialog.cancel }).click().catch(() => {});
+        return;
+      }
+      const originalHour = Number(match[1]);
+      const originalMinute = Number(match[2]);
+      const bumpedMinute = (originalMinute + 5) % 60;
+      const bumpedHour = bumpedMinute < originalMinute ? (originalHour + 1) % 24 : originalHour;
+      const newTime = `${pad2(bumpedHour)}:${pad2(bumpedMinute)}`;
+
+      const saveResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+      await timeInput.fill(newTime);
+      await dialog.getByRole('button', { name: T.createDialog.save }).click();
+      const saveResponse = await saveResponsePromise;
+      expect(saveResponse.ok()).toBeTruthy();
+      const savePayload = await saveResponse.json().catch(() => null);
+      expect(String(savePayload?.data?.start_datetime ?? '')).toContain(`T${newTime}:00`);
+      await expect(dialog).not.toBeVisible({ timeout: 20_000 });
+
+      if (!await editBtn.isVisible({ timeout: 8_000 }).catch(() => false)) {
+        const reopenedPanel = await openPanelFromCalendar(page);
+        test.skip(!reopenedPanel, 'No se pudo reabrir la cita tras guardar');
+      }
+      await expect(editBtn).toBeVisible({ timeout: 8_000 });
+      await editBtn.click();
+      const reopenedDialog = page.getByRole('dialog');
+      await expect(reopenedDialog).toBeVisible({ timeout: 8_000 });
+      await expect(reopenedDialog.locator('#time')).toHaveValue(newTime, { timeout: 5_000 });
+
+      const restoreResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+      await reopenedDialog.locator('#time').fill(originalTime);
+      await reopenedDialog.getByRole('button', { name: T.createDialog.save }).click();
+      const restoreResponse = await restoreResponsePromise;
+      expect(restoreResponse.ok()).toBeTruthy();
+      await expect(reopenedDialog).not.toBeVisible({ timeout: 20_000 });
+    });
+
+    test('cancelar cita temporal la deja cancelada y no activa', async ({ page }) => {
+      const seed = Date.now();
+      const scheduledDate = new Date();
+      scheduledDate.setDate(scheduledDate.getDate() + 2);
+      const scheduledDateInput = formatDateForInput(scheduledDate);
+      const tempNotes = `Cancelación E2E ${seed}`;
+
+      await page.getByRole('button', { name: 'Crear' }).first().click();
+      const createDialog = page.getByRole('dialog', { name: T.createDialog.title });
+      if (!await createDialog.isVisible({ timeout: 8_000 }).catch(() => false)) return;
+
+      await createDialog.getByRole('button', { name: T.createDialog.selectUser }).click();
+      const patientOption = page.getByRole('option').first();
+      if (!await patientOption.isVisible({ timeout: 8_000 }).catch(() => false)) {
+        await page.getByRole('button', { name: T.createDialog.cancel }).click().catch(() => {});
+        return;
+      }
+      await patientOption.click();
+
+      await createDialog.getByRole('button', { name: T.createDialog.selectService }).click();
+      const serviceOption = page.getByRole('option').first();
+      if (!await serviceOption.isVisible({ timeout: 8_000 }).catch(() => false)) {
+        await page.getByRole('button', { name: T.createDialog.cancel }).click().catch(() => {});
+        return;
+      }
+      await serviceOption.click();
+      await page.keyboard.press('Escape');
+
+      const calendarTrigger = createDialog.getByRole('button', { name: T.createDialog.selectCalendar }).first();
+      await calendarTrigger.click();
+      const calendarOption = page.getByRole('option').nth(1);
+      if (!await calendarOption.isVisible({ timeout: 8_000 }).catch(() => false)) {
+        await page.keyboard.press('Escape');
+        await page.getByRole('button', { name: T.createDialog.cancel }).click().catch(() => {});
+        return;
+      }
+      await calendarOption.click();
+
+      await createDialog.locator('input[placeholder="dd/mm/aaaa"]').first().fill(scheduledDateInput);
+      await createDialog.locator('#time').fill('10:30');
+      await createDialog.locator('#notes').fill(tempNotes);
+
+      const createResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+      await createDialog.getByRole('button', { name: T.createDialog.save }).click();
+      const createResponse = await createResponsePromise;
+      expect(createResponse.ok()).toBeTruthy();
+      await expect(createDialog).not.toBeVisible({ timeout: 20_000 });
+
+      const opened = await openPanelFromCalendar(page);
+      if (!opened) return;
+
+      const cancelBtn = page.getByRole('button', { name: T.columns.cancel });
+      if (!await cancelBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await cancelBtn.click();
+
+      const alertDialog = page.getByRole('alertdialog');
+      await expect(alertDialog).toBeVisible({ timeout: 5_000 });
+      const confirmCancel = alertDialog.getByRole('button', { name: T.columns.cancel });
+      if (!await confirmCancel.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await page.getByRole('button', { name: T.createDialog.close }).click().catch(() => {});
+        return;
+      }
+
+      const cancelResponsePromise = page.waitForResponse((response) =>
+        response.url().includes('/appointments/upsert') && response.request().method() === 'POST'
+      );
+      await confirmCancel.click();
+      const cancelResponse = await cancelResponsePromise;
+      expect(cancelResponse.ok()).toBeTruthy();
+
+      const cancelPayload = await cancelResponse.json().catch(() => null);
+      const serialized = JSON.stringify(cancelPayload ?? {});
+      expect(/cancelad|cancelled/i.test(serialized)).toBeTruthy();
+      expect(/pendiente|confirmad|programad|active/i.test(serialized)).toBeFalsy();
+    });
   });
 
   // ── Funcionalidades avanzadas ─────────────────────────────────────────
