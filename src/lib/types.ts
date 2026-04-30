@@ -23,6 +23,9 @@ export type User = {
   bank_account?: string;
   mutual_society_id?: string | number;
   mutual_society_name?: string;
+  is_dependent?: boolean;
+  responsible_contact_id?: string;
+  responsible_contact_name?: string;
 };
 
 export type CurrencyFinancialData = {

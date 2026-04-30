@@ -56,6 +56,8 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'rut', label: 'RUT', required: false, type: 'text' },
       { key: 'bank_account', label: 'Cuenta Bancaria', required: false, type: 'text' },
       { key: 'is_active', label: 'Activo', required: false, type: 'boolean', hint: 'true/false (default: true)' },
+      { key: 'is_dependent', label: 'Es Dependiente', required: false, type: 'boolean', hint: 'true/false (default: false)' },
+      { key: 'responsible_contact_name', label: 'Nombre Contacto Responsable', required: false, type: 'text', hint: 'Nombre del paciente responsable (importar responsables primero y dependientes al final)' },
     ],
   },
   services: {

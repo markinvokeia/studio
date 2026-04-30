@@ -310,6 +310,7 @@ export const API_ROUTES = {
         DATA_IMPORT: '/system/data-import',
     },
     ORDER_INVOICE: '/order/invoice',
+    USER_DEPENDANT: '/user_dependant',
     USERS_UPSERT: '/users/upsert',
     USERS_ACTIVATE: '/users/activate',
     USERS_SEND_EMAIL: '/users/send_email',
