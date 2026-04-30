@@ -53,6 +53,13 @@ export function CalendarMonthViewMobile({
         // skip invalid
       }
     });
+    map.forEach((list) => {
+      list.sort((a, b) => {
+        const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
+        const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
+        return startA - startB;
+      });
+    });
     return map;
   }, [events]);
 
