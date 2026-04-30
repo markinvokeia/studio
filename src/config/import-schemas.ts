@@ -42,7 +42,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     type: 'patients',
     labelKey: 'patients',
     icon: Users,
-    exampleCsvUrl: 'https://drive.google.com/file/d/1fFHMDphpqCiKoT0EFEtAUeuu9cvjDDHL/view?usp=sharing',
+    exampleCsvUrl: 'https://drive.google.com/file/d/1k3xZIZlXWCLyp_aKdZIPQEWv64jmEabE/view?usp=sharing',
     fields: [
       { key: 'name', label: 'Nombre', required: true, type: 'text' },
       { key: 'email', label: 'Email', required: false, type: 'email', hint: 'email o teléfono requerido' },
