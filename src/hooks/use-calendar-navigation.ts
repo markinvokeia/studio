@@ -44,6 +44,11 @@ export function useCalendarNavigation({
   const [view, setView] = useState<CalendarView>(initialView);
   const [currentTime, setCurrentTime] = useState<Date>(SSR_STABLE_DATE);
 
+  // Sync view if initialView changes (e.g. from settings)
+  useEffect(() => {
+    setView(initialView);
+  }, [initialView]);
+
   // Initialize with real "now" after mount, then update every minute
   useEffect(() => {
     setCurrentDate(new Date());

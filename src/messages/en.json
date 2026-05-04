@@ -410,9 +410,27 @@
   "AppointmentsPage": {
     "title": "Appointments",
     "description": "Manage all appointments.",
+    "settings": {
+      "title": "Calendar Settings",
+      "defaultView": "Default view",
+      "groupBy": "Group by",
+      "checkAvailability": "Check availability",
+      "options": {
+        "day": "Day",
+        "2_days": "2 Days",
+        "3_days": "3 Days",
+        "week": "Week",
+        "month": "Month",
+        "agenda": "Agenda",
+        "doctor": "Doctors",
+        "calendar": "Consulting rooms",
+        "none": "No grouping"
+      }
+    },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
     "listView": "List View",
+    "refresh": "Refresh",
     "calendars": "Calendars",
     "selectAll": "Select All",
     "appointmentsFor": "Appointments for {date}",

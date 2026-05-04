@@ -39,6 +39,8 @@ export interface CalendarProps {
   children?: React.ReactNode;
   isLoading?: boolean;
   onEventClick: (event: any) => void;
+  view?: CalendarView;
+  defaultView?: CalendarView;
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];
@@ -47,4 +49,10 @@ export interface CalendarProps {
   onEventContextMenu?: (event: any) => React.ReactNode;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;
+  /** Content rendered in the header next to navigation controls (mobile) or alongside children (desktop) */
+  extraActions?: React.ReactNode;
+  /** Content rendered in the header after the Today button */
+  extraActionsAfterToday?: React.ReactNode;
+  /** Content rendered at the end of the desktop header actions */
+  trailingActions?: React.ReactNode;
 }

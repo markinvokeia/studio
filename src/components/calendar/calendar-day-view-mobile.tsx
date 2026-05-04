@@ -194,12 +194,17 @@ export function CalendarDayViewMobile({
 
       {/* Single-row indicator: non-grouped multi-day OR grouped single-day */}
       {!isMultiDayGrouped && slides.length > 1 && (
-        <div className="flex items-center justify-center gap-1 py-2 border-b border-border bg-card shrink-0 px-2">
+        <div
+          className={cn(
+            'flex items-center gap-1 py-2 border-b border-border bg-card shrink-0 px-2',
+            isGrouped ? 'justify-start overflow-x-auto' : 'justify-center'
+          )}
+        >
           {slides.map((slide, i) => {
             const isActive = i === activeIndex;
             const isDayToday = isToday(slide.day);
-            // Compact mode for many slides (week view with 7 days)
-            const compact = slides.length > 4;
+            // Compact mode for many slides (week view with 7 days) - only for non-grouped views
+            const compact = slides.length > 4 && !isGrouped;
 
             return (
               <button
@@ -207,6 +212,7 @@ export function CalendarDayViewMobile({
                 className={cn(
                   'flex flex-col items-center transition-colors rounded-lg',
                   compact ? 'px-2 py-1 gap-0 flex-1 min-w-0' : 'px-2.5 py-1 gap-0.5',
+                  isGrouped && 'shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : isDayToday
