@@ -410,9 +410,27 @@
   "AppointmentsPage": {
     "title": "Citas",
     "description": "Gestionar todas las citas.",
+    "settings": {
+      "title": "Configuración del Calendario",
+      "defaultView": "Vista predeterminada",
+      "groupBy": "Agrupar por",
+      "checkAvailability": "Verificar disponibilidad",
+      "options": {
+        "day": "Día",
+        "2_days": "2 Días",
+        "3_days": "3 Días",
+        "week": "Semana",
+        "month": "Mes",
+        "agenda": "Agenda",
+        "doctor": "Doctores",
+        "calendar": "Consultorios",
+        "none": "Sin agrupar"
+      }
+    },
     "newAppointment": "Nueva Cita",
     "calendarView": "Vista de Calendario",
     "listView": "Vista de Lista",
+    "refresh": "Actualizar",
     "calendars": "Calendarios",
     "selectAll": "Seleccionar Todo",
     "appointmentsFor": "Citas para el {date}",

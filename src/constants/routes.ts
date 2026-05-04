@@ -16,6 +16,8 @@ export const API_ROUTES = {
     CALENDARS: '/calendars',
     CALENDARS_UPSERT: '/calendarios/upsert',
     CALENDARS_DELETE: '/calendarios/delete',
+    CALENDAR_SETTINGS_SEARCH: '/calendar_settings/search',
+    CALENDAR_SETTINGS_UPSERT: '/calendar_settings/upsert',
     SERVICES: '/services',
     SERVICES_STEPS: '/services/steps',
     SERVICES_STEPS_UPSERT: '/services/steps/upsert',

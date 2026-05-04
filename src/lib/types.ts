@@ -546,6 +546,14 @@ export type AppointmentAttendanceRate = {
   changeType: KpiChangeType;
 };
 
+export type CalendarSettings = {
+  id?: string;
+  user_id?: string;
+  default_view: string;
+  grouped_by: string;
+  check_availability: boolean;
+};
+
 export type Calendar = {
   id: string;
   name: string;

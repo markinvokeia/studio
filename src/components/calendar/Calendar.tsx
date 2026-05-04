@@ -23,7 +23,7 @@ import { CalendarFab } from './calendar-fab';
 import { CalendarFilterSheet } from './calendar-filter-sheet';
 
 // Re-export types for backward compatibility
-export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn } from './calendar-types';
+export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarView } from './calendar-types';
 
 /** Resolve view to an effective variant based on breakpoint */
 function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): CalendarView {
@@ -41,6 +41,8 @@ const Calendar: React.FC<CalendarProps> = ({
   children,
   isLoading = false,
   onEventClick,
+  view: propsView,
+  defaultView,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
@@ -48,6 +50,9 @@ const Calendar: React.FC<CalendarProps> = ({
   onSlotClick,
   onEventContextMenu,
   filterSheet,
+  extraActions,
+  extraActionsAfterToday,
+  trailingActions,
 }) => {
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
@@ -65,7 +70,7 @@ const Calendar: React.FC<CalendarProps> = ({
     handleToday,
     handleViewChange,
     dateLocale,
-  } = useCalendarNavigation({ onDateChange, onViewChange });
+  } = useCalendarNavigation({ onDateChange, onViewChange, initialView: propsView || defaultView });
 
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
   const timeZoneLabel = t('timeZone');
@@ -196,6 +201,9 @@ const Calendar: React.FC<CalendarProps> = ({
         onToday={handleToday}
         onViewChange={handleViewChange}
         onOpenFilterSheet={isMobile && filterSheet ? () => setFilterSheetOpen(true) : undefined}
+        extraActions={extraActions}
+        extraActionsAfterToday={extraActionsAfterToday}
+        trailingActions={trailingActions}
       >
         {children}
       </CalendarHeader>

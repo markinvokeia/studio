@@ -31,6 +31,9 @@ interface CalendarHeaderProps {
   onToday: () => void;
   onViewChange: (view: CalendarView) => void;
   onOpenFilterSheet?: () => void;
+  extraActions?: React.ReactNode;
+  extraActionsAfterToday?: React.ReactNode;
+  trailingActions?: React.ReactNode;
   children?: React.ReactNode;
 }
 
@@ -43,6 +46,9 @@ export function CalendarHeader({
   onToday,
   onViewChange,
   onOpenFilterSheet,
+  extraActions,
+  extraActionsAfterToday,
+  trailingActions,
   children,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
@@ -72,6 +78,8 @@ export function CalendarHeader({
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
+            {extraActions}
+            {extraActionsAfterToday}
           </div>
         </div>
         {children ? (
@@ -101,7 +109,9 @@ export function CalendarHeader({
         </div>
         <h3 className="font-semibold text-sm whitespace-nowrap">{headerTitle}</h3>
       </div>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap ml-auto">
+        {extraActions}
+        {extraActionsAfterToday}
         {children}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -126,6 +136,7 @@ export function CalendarHeader({
             <DropdownMenuItem onSelect={() => onViewChange('schedule')}>{t('views.schedule')}</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        {trailingActions}
       </div>
     </div>
   );
