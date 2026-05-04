@@ -14,6 +14,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Invoice, Payment, QuoteItem } from '@/lib/types';
 import { api } from '@/services/api';
+import { calculateQuoteFinancialSummary } from '@/services/quote-financials';
 import { hasValidPayments } from '@/components/appointments/sheet-utils';
 import { FileText, ListChecks, Receipt, CreditCard } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -124,6 +125,7 @@ export function QuoteDetailSheet({
   onDataChange,
 }: QuoteDetailSheetProps) {
   const t = useTranslations('QuotesPage');
+  const tRoot = useTranslations();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = React.useState('items');
   const [isLoading, setIsLoading] = React.useState(true);
@@ -140,6 +142,12 @@ export function QuoteDetailSheet({
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [payments, setPayments] = React.useState<Payment[]>([]);
+  const quoteTotal = React.useMemo(() => items.reduce((sum, item) => sum + Number(item.total || 0), 0), [items]);
+  const quoteCurrency = invoices[0]?.currency || 'UYU';
+  const financialSummary = React.useMemo(
+    () => calculateQuoteFinancialSummary(quoteTotal, invoices),
+    [invoices, quoteTotal],
+  );
 
   React.useEffect(() => {
     if (!open || !quoteId) return;
@@ -195,6 +203,24 @@ export function QuoteDetailSheet({
               <SheetDescription className="text-xs text-muted-foreground mt-0.5">
                 {t('title')}
               </SheetDescription>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">{tRoot('QuoteColumns.amountInvoiced')}</p>
+              <p className="text-sm font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteCurrency }).format(financialSummary.amount_invoiced)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">{tRoot('QuoteColumns.pendingInvoice')}</p>
+              <p className="text-sm font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteCurrency }).format(financialSummary.amount_pending_invoice)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">{tRoot('QuoteColumns.amountPaid')}</p>
+              <p className="text-sm font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteCurrency }).format(financialSummary.amount_paid)}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">{tRoot('QuoteColumns.pendingPayment')}</p>
+              <p className="text-sm font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteCurrency }).format(financialSummary.amount_pending_payment)}</p>
             </div>
           </div>
         </div>

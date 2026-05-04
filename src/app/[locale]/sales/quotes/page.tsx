@@ -8,6 +8,7 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
+import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Badge } from '@/components/ui/badge';
 import { DataCard } from '@/components/ui/data-card';
@@ -52,7 +53,6 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -198,6 +198,36 @@ interface QuoteClinicSession {
     doctor_nombre: string | null;
 }
 
+function normalizeQuoteStatus(status: unknown): Quote['status'] {
+    const normalized = String(status || 'draft').toLowerCase();
+    switch (normalized) {
+        case 'draft':
+        case 'sent':
+        case 'accepted':
+        case 'rejected':
+        case 'pending':
+        case 'confirmed':
+            return normalized;
+        default:
+            return 'draft';
+    }
+}
+
+function normalizeQuotePaymentStatus(status: unknown): Quote['payment_status'] {
+    const normalized = String(status || 'unpaid').toLowerCase().trim();
+    switch (normalized) {
+        case 'paid':
+            return 'paid';
+        case 'partially_paid':
+            return 'partially_paid';
+        case 'partial':
+        case 'partially paid':
+            return 'partial';
+        default:
+            return 'unpaid';
+    }
+}
+
 async function getQuoteClinicSessions(quoteId: string): Promise<QuoteClinicSession[]> {
     try {
         const data = await api.get(API_ROUTES.SALES.QUOTE_CLINIC_SESSIONS, { quote_id: quoteId });
@@ -295,16 +325,20 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             id: apiQuote.id ? String(apiQuote.id) : t('defaults.notAvailable'),
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
-            total: apiQuote.total || 0,
-            status: apiQuote.status || 'draft',
-            payment_status: apiQuote.payment_status || 'unpaid',
-            billing_status: apiQuote.billing_status || 'not invoiced',
+            total: Number(apiQuote.total_presupuesto ?? apiQuote.total ?? 0),
+            status: normalizeQuoteStatus(apiQuote.status),
+            payment_status: normalizeQuotePaymentStatus(apiQuote.payment_status),
+            billing_status: String(apiQuote.billing_status || 'not invoiced').toLowerCase(),
             currency: apiQuote.currency || 'UYU',
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
             notes: apiQuote.notes || '',
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
             exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
+            amount_invoiced: Number(apiQuote.monto_facturado ?? apiQuote.amount_invoiced ?? 0),
+            amount_paid: Number(apiQuote.monto_pagado ?? apiQuote.amount_paid ?? 0),
+            amount_pending_invoice: Number(apiQuote.pendiente_facturar ?? apiQuote.amount_pending_invoice ?? 0),
+            amount_pending_payment: Number(apiQuote.pendiente_pago_facturado ?? apiQuote.amount_pending_payment ?? 0),
         }));
     } catch (error) {
         console.error("Failed to fetch quotes:", error);
@@ -444,6 +478,7 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            step_id: apiItem.step_id != null ? String(apiItem.step_id) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);
@@ -606,7 +641,7 @@ export default function QuotesPage() {
     const canViewPayments = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_PAYMENTS);
     const canScheduleItem = hasPermission(SALES_PERMISSIONS.ORDERS_SCHEDULE_ITEM);
     const canCompleteItem = hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
-    const canInvoice = hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
+    const canInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -615,8 +650,7 @@ export default function QuotesPage() {
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
     const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
-    const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
-    const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
+    const pendingInvoiceAmount = Number(selectedQuote?.amount_pending_invoice || 0);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
@@ -641,6 +675,7 @@ export default function QuotesPage() {
     const [isLoadingClinicSessions, setIsLoadingClinicSessions] = React.useState(false);
 
     const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
+    const [isQuoteBillingDialogOpen, setIsQuoteBillingDialogOpen] = React.useState(false);
     const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
     const [deletingQuote, setDeletingQuote] = React.useState<Quote | null>(null);
     const [isDeleteQuoteDialogOpen, setIsDeleteQuoteDialogOpen] = React.useState(false);
@@ -1307,30 +1342,13 @@ export default function QuotesPage() {
         await sendQuoteEmail(emails);
     }, [emailRecipients, sendQuoteEmail]);
 
-    const handleInvoiceFromQuote = async () => {
-        if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
-        try {
-            await invoiceOrder({
-                orderId: selectedOrder.id,
-                userId: selectedOrder.user_id,
-                mode: 'sales',
-            });
-            toast({
-                title: t('actions.invoiceSuccess'),
-                description: t('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }),
-            });
-            loadQuotes();
-            loadOrders();
-            loadOrderItems();
-            loadInvoices();
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('errors.errorTitle'),
-                description: error instanceof Error ? error.message : t('actions.invoiceError'),
-            });
+    const handleOpenBillingDialog = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        if (quoteItems.length === 0) {
+            await loadQuoteItems();
         }
-    };
+        setIsQuoteBillingDialogOpen(true);
+    }, [loadQuoteItems, quoteItems.length, selectedQuote]);
 
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
@@ -1428,6 +1446,38 @@ export default function QuotesPage() {
                                                     style: 'currency',
                                                     currency: selectedQuote.currency || 'USD',
                                                 }).format(selectedQuote.total),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.amountInvoiced'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_invoiced || 0)),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.pendingInvoice'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_pending_invoice || 0)),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.amountPaid'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_paid || 0)),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.pendingPayment'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_pending_payment || 0)),
                                                 variant: 'default',
                                             },
                                             {
@@ -1556,8 +1606,8 @@ export default function QuotesPage() {
                                             {t('sendEmail')}
                                         </Button>
                                     )}
-                                    {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceFromQuote}>
+                                    {canInvoice && isQuoteReadyToInvoice && pendingInvoiceAmount > 0.009 && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleOpenBillingDialog}>
                                             <Receipt className="h-3.5 w-3.5" />
                                             {t('actions.invoice')}
                                         </Button>
@@ -2459,6 +2509,25 @@ export default function QuotesPage() {
                 onOpenChange={setIsWarningDialogOpen}
                 disabledItems={disabledEmails}
                 onConfirm={handleWarningConfirm}
+            />
+            <QuoteBillingDialog
+                open={isQuoteBillingDialogOpen}
+                onOpenChange={setIsQuoteBillingDialogOpen}
+                quote={selectedQuote}
+                quoteItems={quoteItems}
+                orderId={selectedOrder?.id}
+                isSales={true}
+                onSuccess={async () => {
+                    await Promise.all([
+                        loadQuotes(),
+                        loadQuoteItems(),
+                        loadInvoices(),
+                        loadPayments(),
+                    ]);
+                    if (selectedOrder) {
+                        await loadOrderItems();
+                    }
+                }}
             />
         </>
     );

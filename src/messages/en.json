@@ -1023,11 +1023,57 @@
   "QuoteColumns": {
     "quoteId": "Quote ID",
     "total": "Total",
+    "amountInvoiced": "Amount Invoiced",
+    "pendingInvoice": "Pending Invoice",
+    "amountPaid": "Paid",
+    "pendingPayment": "Pending Payment",
     "billingStatus": "Billing Status",
     "createdAt": "Created At",
     "currency": "Currency",
     "exchangeRate": "Exchange Rate",
     "quoteDocNo": "Quote Doc No."
+  },
+  "QuoteBillingDialog": {
+    "title": "Invoice quote",
+    "description": "Define the amount to invoice for {quote}.",
+    "loading": "Loading billing context...",
+    "cancel": "Cancel",
+    "save": "Save invoice",
+    "summary": {
+      "quoteTotal": "Quote total",
+      "invoiced": "Invoiced",
+      "pendingInvoice": "Pending invoice",
+      "invoiceTotal": "This invoice total"
+    },
+    "items": {
+      "title": "Services to invoice",
+      "description": "Select the service and, if applicable, the workflow step.",
+      "add": "Add line",
+      "service": "Service",
+      "selectService": "Select service",
+      "step": "Step",
+      "selectStep": "Select step",
+      "noSteps": "No steps",
+      "amount": "Amount to invoice",
+      "maxAvailable": "Available: {amount}"
+    },
+    "validation": {
+      "serviceRequired": "Select a service from the quote.",
+      "amountPositive": "Enter an amount greater than zero.",
+      "atLeastOneItem": "Add at least one line.",
+      "totalExceeded": "The invoice total exceeds the quote pending amount.",
+      "itemExceeded": "The amount exceeds the pending amount for service {service}."
+    },
+    "errors": {
+      "title": "Invoice could not be created",
+      "generic": "An error occurred while generating the invoice.",
+      "missingQuote": "There is no selected quote to invoice.",
+      "missingOrder": "No order associated with the quote was found."
+    },
+    "success": {
+      "title": "Invoice created",
+      "description": "The invoice for {quote} was created successfully."
+    }
   },
   "OrderColumns": {
     "orderId": "Doc No.",
@@ -1765,6 +1811,7 @@
       "columns": {
         "id": "ID",
         "service": "Service",
+        "step": "Step",
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
         "total": "Subtotal"

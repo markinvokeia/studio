@@ -42,6 +42,13 @@ import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+function formatCurrency(amount: number | undefined, currency: string | undefined) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD',
+  }).format(Number(amount || 0));
+}
+
 interface QuoteActionsProps {
   quote: Quote;
   onEdit: (quote: Quote) => void;
@@ -195,6 +202,38 @@ const getColumns = (
         const rate = row.original.exchange_rate;
         return rate ? <div className="font-medium">{rate.toFixed(2)}</div> : <div className="text-muted-foreground">-</div>;
       },
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_invoiced',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.amountInvoiced')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_invoiced, row.original.currency)}</div>,
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_pending_invoice',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingInvoice')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_pending_invoice, row.original.currency)}</div>,
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_paid',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.amountPaid')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_paid, row.original.currency)}</div>,
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_pending_payment',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingPayment')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_pending_payment, row.original.currency)}</div>,
       enableHiding: !isCompact,
     },
     {
@@ -550,7 +589,7 @@ export function RecentQuotesTable({
   React.useEffect(() => {
     if (isCompact) {
       // Hide the columns that will be shown in detail header
-      const columnsToHide = ['total', 'currency', 'exchange_rate', 'status', 'billing_status', 'payment_status'];
+      const columnsToHide = ['total', 'currency', 'exchange_rate', 'amount_invoiced', 'amount_pending_invoice', 'amount_paid', 'amount_pending_payment', 'status', 'billing_status', 'payment_status'];
       columnsToHide.forEach(colId => {
         const column = table.getColumn(colId);
         if (column) {
@@ -559,7 +598,7 @@ export function RecentQuotesTable({
       });
     } else {
       // Show all columns when not compact
-      const columnsToShow = ['total', 'currency', 'exchange_rate', 'status', 'billing_status', 'payment_status'];
+      const columnsToShow = ['total', 'currency', 'exchange_rate', 'amount_invoiced', 'amount_pending_invoice', 'amount_paid', 'amount_pending_payment', 'status', 'billing_status', 'payment_status'];
       columnsToShow.forEach(colId => {
         const column = table.getColumn(colId);
         if (column) {
@@ -584,6 +623,10 @@ export function RecentQuotesTable({
     total: t('QuoteColumns.total'),
     currency: t('QuoteColumns.currency'),
     exchange_rate: t('QuoteColumns.exchangeRate'),
+    amount_invoiced: t('QuoteColumns.amountInvoiced'),
+    amount_pending_invoice: t('QuoteColumns.pendingInvoice'),
+    amount_paid: t('QuoteColumns.amountPaid'),
+    amount_pending_payment: t('QuoteColumns.pendingPayment'),
     status: t('UserColumns.status'),
     billing_status: t('QuoteColumns.billingStatus'),
     payment_status: t('Navigation.Payments'),
@@ -650,16 +693,16 @@ export function RecentQuotesTable({
                         <DataCard
                           key={row.id}
                           title={row.original.doc_no || String(row.original.id)}
-                          subtitle={[
-                            row.original.user_name,
-                            formatDateTime(row.original.createdAt).split(' ')[0],
-                            row.original.total != null
-                              ? [row.original.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.original.total))].filter(Boolean).join(' ')
-                              : undefined,
-                            row.original.status,
-                          ].filter(Boolean).join(' · ')}
+                          subtitle={[row.original.user_name, formatDateTime(row.original.createdAt).split(' ')[0], row.original.status].filter(Boolean).join(' · ')}
                           isSelected={row.getIsSelected()}
                           showArrow={!!(onRowClick || onRowSelectionChange)}
+                          fields={[
+                            { label: t('QuoteColumns.total'), value: formatCurrency(row.original.total, row.original.currency), primary: true },
+                            { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(row.original.amount_invoiced, row.original.currency) },
+                            { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(row.original.amount_pending_invoice, row.original.currency) },
+                            { label: t('QuoteColumns.amountPaid'), value: formatCurrency(row.original.amount_paid, row.original.currency) },
+                            { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(row.original.amount_pending_payment, row.original.currency) },
+                          ]}
                           actions={!isCompact && !viewportNarrow ? (
                             <QuoteActions
                               quote={row.original}

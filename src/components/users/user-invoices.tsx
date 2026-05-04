@@ -334,6 +334,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         unit_price: parseFloat(i.unit_price) || 0,
         quantity: parseInt(i.quantity) || 1,
         total: parseFloat(i.total) || 0,
+        step_id: i.step_id != null ? String(i.step_id) : undefined,
       })));
     } catch {
       setInvoiceItems([]);

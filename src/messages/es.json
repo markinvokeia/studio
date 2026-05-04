@@ -1023,11 +1023,57 @@
   "QuoteColumns": {
     "quoteId": "ID de Cotización",
     "total": "Total",
+    "amountInvoiced": "Monto Facturado",
+    "pendingInvoice": "Pendiente de Facturar",
+    "amountPaid": "Pagado",
+    "pendingPayment": "Pendiente de Pagar",
     "billingStatus": "Estado de Facturación",
     "createdAt": "Creado En",
     "currency": "Moneda",
     "exchangeRate": "Tasa de Cambio",
     "quoteDocNo": "Presupuesto Doc No."
+  },
+  "QuoteBillingDialog": {
+    "title": "Facturar presupuesto",
+    "description": "Define el monto a facturar para {quote}.",
+    "loading": "Cargando contexto de facturación...",
+    "cancel": "Cancelar",
+    "save": "Guardar factura",
+    "summary": {
+      "quoteTotal": "Total del presupuesto",
+      "invoiced": "Facturado",
+      "pendingInvoice": "Pendiente de facturar",
+      "invoiceTotal": "Total de esta factura"
+    },
+    "items": {
+      "title": "Servicios a facturar",
+      "description": "Selecciona el servicio y, si aplica, el paso del flujo.",
+      "add": "Agregar línea",
+      "service": "Servicio",
+      "selectService": "Seleccionar servicio",
+      "step": "Paso",
+      "selectStep": "Seleccionar paso",
+      "noSteps": "Sin pasos",
+      "amount": "Monto a facturar",
+      "maxAvailable": "Disponible: {amount}"
+    },
+    "validation": {
+      "serviceRequired": "Selecciona un servicio del presupuesto.",
+      "amountPositive": "Ingresa un monto mayor a cero.",
+      "atLeastOneItem": "Debes agregar al menos una línea.",
+      "totalExceeded": "El total de la factura supera el pendiente del presupuesto.",
+      "itemExceeded": "El monto supera el pendiente del servicio {service}."
+    },
+    "errors": {
+      "title": "No se pudo facturar",
+      "generic": "Ocurrió un error al generar la factura.",
+      "missingQuote": "No hay un presupuesto seleccionado para facturar.",
+      "missingOrder": "No se encontró una orden asociada al presupuesto."
+    },
+    "success": {
+      "title": "Factura creada",
+      "description": "La factura para {quote} se generó correctamente."
+    }
   },
   "OrderColumns": {
     "orderId": "No. Documento",
@@ -1742,6 +1788,7 @@
       "columns": {
         "id": "ID",
         "service": "Servicio",
+        "step": "Paso",
         "quantity": "Cantidad",
         "unitPrice": "Precio Unitario",
         "total": "Subtotal"

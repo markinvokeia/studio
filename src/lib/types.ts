@@ -153,6 +153,10 @@ export type Quote = {
   exchange_rate?: number;
   created_by?: string;
   updated_by?: string;
+  amount_invoiced?: number;
+  amount_pending_invoice?: number;
+  amount_paid?: number;
+  amount_pending_payment?: number;
 };
 
 export type QuoteItem = {
@@ -238,6 +242,8 @@ export type InvoiceItem = {
   quantity: number;
   unit_price: number;
   total: number;
+  quote_item_id?: string | number;
+  step_id?: string;
 };
 
 export type Payment = {
