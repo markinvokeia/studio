@@ -479,6 +479,7 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
             unit_price: apiItem.unit_price,
             total: apiItem.total,
             step_id: apiItem.step_id != null ? String(apiItem.step_id) : undefined,
+            steps: apiItem.steps != null ? String(apiItem.steps) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);

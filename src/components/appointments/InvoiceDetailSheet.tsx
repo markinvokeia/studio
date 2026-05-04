@@ -54,6 +54,7 @@ async function fetchInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
         unit_price: a.unit_price || a.price_unit || 0,
         total: a.total || a.price_total || 0,
         step_id: a.step_id != null ? String(a.step_id) : undefined,
+        steps: a.steps != null ? String(a.steps) : undefined,
       };
     });
   } catch { return []; }

@@ -72,13 +72,13 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
       ),
     },
     {
-      accessorKey: 'step_id',
+      accessorKey: 'steps',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.step')} />
       ),
       cell: ({ row }) => {
-        const stepId = row.original.step_id;
-        return <div className="font-medium">{stepId || '-'}</div>;
+        const steps = row.original.steps || row.original.step_id;
+        return <div className="font-medium">{steps || '-'}</div>;
       },
     },
     {
@@ -173,7 +173,7 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
               isSelected={isSelected}
               title={item.service_name || String(item.id)}
               subtitle={[
-                item.step_id ? `${t('columns.step')}: ${item.step_id}` : undefined,
+                (item.steps || item.step_id) ? `${t('columns.step')}: ${item.steps || item.step_id}` : undefined,
                 `${t('columns.quantity')}: ${item.quantity}`,
                 `${t('columns.total')}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}`,
               ].filter(Boolean).join(' · ')}
@@ -184,7 +184,7 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
           columnTranslations={{
             id: t('columns.id'),
             service_name: t('columns.service'),
-            step_id: t('columns.step'),
+            steps: t('columns.step'),
             quantity: t('columns.quantity'),
             unit_price: t('columns.unitPrice'),
             total: t('columns.total'),

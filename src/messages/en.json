@@ -1065,15 +1065,20 @@
     },
     "items": {
       "title": "Services to invoice",
-      "description": "Select the service and, if applicable, the workflow step.",
+      "description": "Select the service and, if applicable, the workflow steps.",
       "add": "Add line",
+      "lineLabel": "Line {number}",
       "service": "Service",
       "selectService": "Select service",
-      "step": "Step",
-      "selectStep": "Select step",
+      "step": "Steps",
+      "selectStep": "Select steps",
+      "searchStepPlaceholder": "Search step...",
+      "stepsSelected": "{count} selected steps",
+      "selectedSteps": "Selected steps",
       "noSteps": "No steps",
       "amount": "Amount to invoice",
-      "maxAvailable": "Available: {amount}"
+      "pending": "Pending invoice",
+      "invoiced": "Invoiced"
     },
     "validation": {
       "serviceRequired": "Select a service from the quote.",

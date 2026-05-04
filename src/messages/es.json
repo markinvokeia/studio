@@ -1065,15 +1065,20 @@
     },
     "items": {
       "title": "Servicios a facturar",
-      "description": "Selecciona el servicio y, si aplica, el paso del flujo.",
+      "description": "Selecciona el servicio y, si aplica, los pasos del flujo.",
       "add": "Agregar línea",
+      "lineLabel": "Línea {number}",
       "service": "Servicio",
       "selectService": "Seleccionar servicio",
-      "step": "Paso",
-      "selectStep": "Seleccionar paso",
+      "step": "Pasos",
+      "selectStep": "Seleccionar pasos",
+      "searchStepPlaceholder": "Buscar paso...",
+      "stepsSelected": "{count} pasos seleccionados",
+      "selectedSteps": "Pasos seleccionados",
       "noSteps": "Sin pasos",
       "amount": "Monto a facturar",
-      "maxAvailable": "Disponible: {amount}"
+      "pending": "Falta facturar",
+      "invoiced": "Facturado"
     },
     "validation": {
       "serviceRequired": "Selecciona un servicio del presupuesto.",

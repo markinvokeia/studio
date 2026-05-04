@@ -5,13 +5,17 @@ import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import * as z from 'zod';
-import { AlertTriangle, Loader2, Plus, Receipt, Trash2 } from 'lucide-react';
+import { AlertTriangle, ChevronsUpDown, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -24,6 +28,7 @@ import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 
 type ServiceStepOption = {
   id: string;
+  name: string;
   label: string;
 };
 
@@ -88,7 +93,7 @@ const getSchema = (t: (key: string) => string) => z.object({
   notes: z.string().optional(),
   items: z.array(z.object({
     quote_item_id: z.string().min(1, t('validation.serviceRequired')),
-    step_id: z.string().optional(),
+    step_ids: z.array(z.string()).default([]),
     amount: z.coerce.number().positive(t('validation.amountPositive')),
   })).min(1, t('validation.atLeastOneItem')),
 });
@@ -119,6 +124,7 @@ function normalizeInvoiceItem(apiItem: any): InvoiceItem {
     total: Number(apiItem.total || apiItem.price_total || 0),
     quote_item_id: apiItem.quote_item_id != null ? String(apiItem.quote_item_id) : undefined,
     step_id: apiItem.step_id != null ? String(apiItem.step_id) : undefined,
+    steps: apiItem.steps != null ? String(apiItem.steps) : undefined,
   };
 }
 
@@ -151,6 +157,7 @@ async function fetchServiceSteps(serviceId: string): Promise<ServiceStepOption[]
     return rawSteps
       .map((step: any) => ({
         id: String(step.position || ''),
+        name: step.step_name || step.name || 'Paso',
         label: [step.position ? `${step.position}.` : null, step.step_name || step.name || 'Paso'].filter(Boolean).join(' '),
       }))
       .filter((step: ServiceStepOption) => step.id);
@@ -191,6 +198,7 @@ export function QuoteBillingDialog({
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [resolvedOrderId, setResolvedOrderId] = React.useState<string | null>(orderId ?? null);
+  const [stepPopoverOpenIndex, setStepPopoverOpenIndex] = React.useState<number | null>(null);
 
   const watchedItems = useWatch({ control: form.control, name: 'items' });
   const selectedItems = React.useMemo(() => watchedItems ?? [], [watchedItems]);
@@ -214,9 +222,10 @@ export function QuoteBillingDialog({
 
     const loadDialogContext = async () => {
       const resolvedOrder = orderId ? null : await fetchOrderForQuoteBilling(quote.id, isSales);
-      const sourceQuoteItems = quoteItems.length > 0
-        ? quoteItems
-        : await fetchQuoteItemsForBilling(quote.id, isSales);
+      const fetchedQuoteItems = await fetchQuoteItemsForBilling(quote.id, isSales);
+      const sourceQuoteItems = fetchedQuoteItems.length > 0
+        ? fetchedQuoteItems
+        : quoteItems;
       const invoices = await fetchQuoteInvoicesForFinancials(quote.id, isSales);
       const invoiceItemsGroups = await Promise.all(
         invoices.map((invoice) => fetchInvoiceItems(invoice.id, isSales)),
@@ -256,10 +265,9 @@ export function QuoteBillingDialog({
       const summary = calculateQuoteFinancialSummary(Number(quote.total || 0), invoices);
       const defaultItems = options
         .filter((item) => item.pending_amount > 0)
-        .slice(0, 1)
         .map((item) => ({
           quote_item_id: item.quote_item_id,
-          step_id: '',
+          step_ids: [],
           amount: item.pending_amount,
         }));
 
@@ -303,8 +311,8 @@ export function QuoteBillingDialog({
           [selectedServiceId]: steps,
         }));
 
-        if (steps.length === 0 && form.getValues(`items.${index}.step_id`)) {
-          form.setValue(`items.${index}.step_id`, '');
+        if (steps.length === 0 && form.getValues(`items.${index}.step_ids`).length > 0) {
+          form.setValue(`items.${index}.step_ids`, []);
         }
       });
     });
@@ -313,6 +321,15 @@ export function QuoteBillingDialog({
   const getLineOption = React.useCallback((quoteItemId: string) => {
     return lineOptions.find((option) => option.quote_item_id === quoteItemId);
   }, [lineOptions]);
+
+  const getSelectedStepLabels = React.useCallback((serviceId: string | undefined, stepIds: string[] | undefined) => {
+    if (!serviceId || !stepIds?.length) return [];
+
+    const serviceSteps = stepOptions[serviceId] || [];
+    return stepIds
+      .map((stepId) => serviceSteps.find((step) => step.id === stepId))
+      .filter((step): step is ServiceStepOption => Boolean(step));
+  }, [stepOptions]);
 
   const validateDraft = (values: QuoteBillingFormValues): string | null => {
     if (!quote) return t('errors.missingQuote');
@@ -344,7 +361,7 @@ export function QuoteBillingDialog({
     const nextOption = lineOptions.find((option) => option.pending_amount > 0);
     append({
       quote_item_id: nextOption?.quote_item_id || '',
-      step_id: '',
+      step_ids: [],
       amount: nextOption?.pending_amount || 0,
     });
   };
@@ -373,10 +390,15 @@ export function QuoteBillingDialog({
         notes: values.notes || '',
         items: values.items.map((item) => {
           const selectedLine = getLineOption(item.quote_item_id);
+          const serviceSteps = selectedLine ? (stepOptions[selectedLine.service_id] || []) : [];
+          const stepNames = item.step_ids
+            .map((stepId) => serviceSteps.find((step) => step.id === stepId)?.name)
+            .filter((name): name is string => Boolean(name));
+
           return {
             quote_item_id: Number(item.quote_item_id),
             service_id: Number(selectedLine?.service_id || 0),
-            step_id: item.step_id ? Number(item.step_id) : null,
+            step_names: stepNames,
             amount: Number(item.amount || 0),
           };
         }),
@@ -438,7 +460,7 @@ export function QuoteBillingDialog({
                 </Alert>
               )}
 
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-lg border p-3">
                   <p className="text-xs text-muted-foreground">{t('summary.quoteTotal')}</p>
                   <p className="text-base font-semibold">
@@ -457,12 +479,6 @@ export function QuoteBillingDialog({
                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(pendingQuoteAmount)}
                   </p>
                 </div>
-                <div className="rounded-lg border p-3">
-                  <p className="text-xs text-muted-foreground">{t('summary.invoiceTotal')}</p>
-                  <p className="text-base font-semibold">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(invoiceTotal)}
-                  </p>
-                </div>
               </div>
 
               {isLoadingContext ? (
@@ -472,119 +488,222 @@ export function QuoteBillingDialog({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold">{t('items.title')}</p>
-                      <p className="text-xs text-muted-foreground">{t('items.description')}</p>
-                    </div>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddItem} disabled={lineOptions.every((item) => item.pending_amount <= 0)}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      {t('items.add')}
-                    </Button>
-                  </div>
+                  <Card>
+                    <CardContent className="space-y-3 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">{t('items.title')}</p>
+                          <p className="text-xs text-muted-foreground">{t('items.description')}</p>
+                        </div>
+                        <Button type="button" variant="outline" size="sm" onClick={handleAddItem} disabled={lineOptions.every((item) => item.pending_amount <= 0)}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          {t('items.add')}
+                        </Button>
+                      </div>
 
-                  <div className="space-y-3">
-                    {fields.map((field, index) => {
-                      const selectedLine = getLineOption(selectedItems[index]?.quote_item_id || '');
-                      const serviceSteps = selectedLine ? (stepOptions[selectedLine.service_id] || []) : [];
-                      return (
-                        <div key={field.id} className="grid gap-3 rounded-lg border p-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_160px_auto]">
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.quote_item_id`}
-                            render={({ field: lineField }) => (
-                              <FormItem>
-                                <FormLabel>{t('items.service')}</FormLabel>
-                                <Select
-                                  onValueChange={(value) => {
-                                    lineField.onChange(value);
-                                    form.setValue(`items.${index}.step_id`, '');
-                                    const option = getLineOption(value);
-                                    if (option && Number(form.getValues(`items.${index}.amount`) || 0) <= 0) {
-                                      form.setValue(`items.${index}.amount`, option.pending_amount);
-                                    }
-                                  }}
-                                  value={lineField.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder={t('items.selectService')} />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {lineOptions.map((option) => (
-                                      <SelectItem key={option.quote_item_id} value={option.quote_item_id}>
-                                        {option.service_name} · {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(option.pending_amount)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                      <div className="space-y-3">
+                        {fields.map((field, index) => {
+                          const selectedLine = getLineOption(selectedItems[index]?.quote_item_id || '');
+                          const serviceSteps = selectedLine ? (stepOptions[selectedLine.service_id] || []) : [];
+                          return (
+                            <div key={field.id}>
+                              <div className="space-y-2">
+                                <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_160px_auto] md:items-start">
+                                <FormField
+                                  control={form.control}
+                                  name={`items.${index}.quote_item_id`}
+                                  render={({ field: lineField }) => (
+                                    <FormItem className="space-y-2">
+                                      <FormLabel className="text-xs">{t('items.service')}</FormLabel>
+                                      <Select
+                                        onValueChange={(value) => {
+                                          lineField.onChange(value);
+                                          form.setValue(`items.${index}.step_ids`, []);
+                                          const option = getLineOption(value);
+                                          if (option) {
+                                            form.setValue(`items.${index}.amount`, option.pending_amount);
+                                          }
+                                        }}
+                                        value={lineField.value}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger className="h-10">
+                                            <SelectValue placeholder={t('items.selectService')} />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {lineOptions.map((option) => (
+                                            <SelectItem key={option.quote_item_id} value={option.quote_item_id}>
+                                              {option.service_name} · {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(option.pending_amount)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
 
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.step_id`}
-                            render={({ field: stepField }) => (
-                              <FormItem>
-                                <FormLabel>{t('items.step')}</FormLabel>
-                                <Select onValueChange={stepField.onChange} value={stepField.value || ''} disabled={!selectedLine || serviceSteps.length === 0}>
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder={serviceSteps.length > 0 ? t('items.selectStep') : t('items.noSteps')} />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {serviceSteps.map((step) => (
-                                      <SelectItem key={step.id} value={step.id}>
-                                        {step.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                <FormField
+                                  control={form.control}
+                                  name={`items.${index}.step_ids`}
+                                  render={({ field: stepField }) => (
+                                    <FormItem className="space-y-2">
+                                      <FormLabel className="text-xs">{t('items.step')}</FormLabel>
+                                      <FormControl>
+                                        <div className="space-y-2">
+                                          {!selectedLine || serviceSteps.length === 0 ? (
+                                            <Button variant="outline" className="h-10 w-full justify-start" disabled>
+                                              {t('items.noSteps')}
+                                              <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                          ) : (
+                                            <>
+                                              <Popover open={stepPopoverOpenIndex === index} onOpenChange={(openState) => setStepPopoverOpenIndex(openState ? index : null)}>
+                                                <PopoverTrigger asChild>
+                                                  <Button variant="outline" className="h-10 w-full justify-start">
+                                                    {stepField.value?.length
+                                                      ? t('items.stepsSelected', { count: stepField.value.length })
+                                                      : t('items.selectStep')}
+                                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+                                                  </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                                  <Command>
+                                                    <CommandInput placeholder={t('items.searchStepPlaceholder')} />
+                                                    <CommandList>
+                                                      <CommandEmpty>{t('items.noSteps')}</CommandEmpty>
+                                                      <CommandGroup>
+                                                        {serviceSteps.map((step) => {
+                                                          const isChecked = stepField.value?.includes(step.id) ?? false;
 
-                          <FormField
-                            control={form.control}
-                            name={`items.${index}.amount`}
-                            render={({ field: amountField }) => (
-                              <FormItem>
-                                <FormLabel>{t('items.amount')}</FormLabel>
-                                <FormControl>
-                                  <FormattedNumberInput
-                                    value={amountField.value}
-                                    onChange={amountField.onChange}
-                                  />
-                                </FormControl>
-                                {selectedLine && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {t('items.maxAvailable', {
-                                      amount: new Intl.NumberFormat('en-US', {
+                                                          return (
+                                                            <CommandItem
+                                                              key={step.id}
+                                                              value={step.label}
+                                                              onSelect={() => {
+                                                                const currentValue = stepField.value || [];
+                                                                stepField.onChange(
+                                                                  isChecked
+                                                                    ? currentValue.filter((value) => value !== step.id)
+                                                                    : [...currentValue, step.id],
+                                                                );
+                                                              }}
+                                                            >
+                                                              <Checkbox checked={isChecked} className="mr-2" />
+                                                              <span>{step.label}</span>
+                                                            </CommandItem>
+                                                          );
+                                                        })}
+                                                      </CommandGroup>
+                                                    </CommandList>
+                                                  </Command>
+                                                </PopoverContent>
+                                              </Popover>
+
+                                              {stepField.value?.length ? (
+                                                <div className="rounded-md border p-2">
+                                                  <p className="text-xs text-muted-foreground">{t('items.selectedSteps')}</p>
+                                                  <div className="mt-1 flex flex-wrap gap-1">
+                                                    {getSelectedStepLabels(selectedLine.service_id, stepField.value).map((step) => (
+                                                      <Badge key={step.id} variant="secondary">
+                                                        {step.label}
+                                                        <Button
+                                                          type="button"
+                                                          variant="ghost"
+                                                          size="icon"
+                                                          className="ml-1 h-4 w-4 hover:bg-transparent"
+                                                          onClick={() => {
+                                                            stepField.onChange((stepField.value || []).filter((value) => value !== step.id));
+                                                          }}
+                                                        >
+                                                          <X className="h-3 w-3" />
+                                                        </Button>
+                                                      </Badge>
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              ) : null}
+                                            </>
+                                          )}
+                                        </div>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name={`items.${index}.amount`}
+                                  render={({ field: amountField }) => (
+                                    <FormItem className="space-y-2">
+                                      <FormLabel className="text-xs">{t('items.amount')}</FormLabel>
+                                      <FormControl>
+                                        <FormattedNumberInput
+                                          value={amountField.value}
+                                          onChange={amountField.onChange}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <div className="flex items-start pt-6">
+                                  <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="bg-red-600 text-white hover:bg-red-700"
+                                    onClick={() => remove(index)}
+                                    disabled={fields.length === 1}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-white" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-0 text-xs text-muted-foreground md:pl-0">
+                                  <span>
+                                    {t('items.pending')}: <span className="font-medium text-foreground">
+                                      {new Intl.NumberFormat('en-US', {
                                         style: 'currency',
                                         currency: quote?.currency || 'USD',
-                                      }).format(selectedLine.pending_amount),
-                                    })}
-                                  </p>
-                                )}
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                                      }).format(selectedLine?.pending_amount || 0)}
+                                    </span>
+                                  </span>
+                                  <span>
+                                    {t('items.invoiced')}: <span className="font-medium text-foreground">
+                                      {new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: quote?.currency || 'USD',
+                                      }).format(selectedLine?.billed_amount || 0)}
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
 
-                          <div className="flex items-end">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length === 1}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                      <div className="flex justify-end border-t border-dashed border-border/80 pt-4">
+                        <div className="flex min-w-[260px] items-end justify-between gap-6 text-right">
+                          <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground/80">
+                            <Receipt className="h-3.5 w-3.5" />
+                            <span>{t('summary.invoiceTotal')}</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">total</p>
+                            <p className="text-2xl font-semibold leading-none text-foreground">
+                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(invoiceTotal)}
+                            </p>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   <FormField
                     control={form.control}

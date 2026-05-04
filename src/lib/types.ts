@@ -244,6 +244,7 @@ export type InvoiceItem = {
   total: number;
   quote_item_id?: string | number;
   step_id?: string;
+  steps?: string;
 };
 
 export type Payment = {
