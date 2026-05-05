@@ -253,7 +253,7 @@ async function searchGuardianPatients(searchQuery: string, currentUserId?: strin
 
     return usersData
       .map(mapApiUser)
-      .filter((user: User) => user.id !== currentUserId);
+      .filter((user: User) => user.id !== currentUserId && !user.is_dependent);
   } catch (error) {
     console.error('Failed to search guardian patients:', error);
     return [];
