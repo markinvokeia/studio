@@ -1072,14 +1072,15 @@
       "selectService": "Seleccionar servicio",
       "step": "Pasos",
       "selectStep": "Seleccionar pasos",
-      "searchStepPlaceholder": "Buscar paso...",
-      "stepsSelected": "{count} pasos seleccionados",
-      "selectedSteps": "Pasos seleccionados",
-      "noSteps": "Sin pasos",
-      "amount": "Monto a facturar",
-      "pending": "Falta facturar",
-      "invoiced": "Facturado"
-    },
+        "searchStepPlaceholder": "Buscar paso...",
+        "stepsSelected": "{count} pasos seleccionados",
+        "selectedSteps": "Pasos seleccionados",
+        "noSteps": "Sin pasos",
+        "fullyInvoiced": "Facturado completo",
+        "amount": "Monto a facturar",
+        "pending": "Falta facturar",
+        "invoiced": "Facturado"
+      },
     "validation": {
       "serviceRequired": "Selecciona un servicio del presupuesto.",
       "amountPositive": "Ingresa un monto mayor a cero.",

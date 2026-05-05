@@ -331,6 +331,25 @@ export function QuoteBillingDialog({
       .filter((step): step is ServiceStepOption => Boolean(step));
   }, [stepOptions]);
 
+  const selectedQuoteItemIds = React.useMemo(
+    () => new Set(selectedItems.map((item) => String(item?.quote_item_id || '')).filter(Boolean)),
+    [selectedItems],
+  );
+
+  const getSelectableLineOptions = React.useCallback((currentQuoteItemId?: string) => {
+    return lineOptions.filter((option) => (
+      option.pending_amount > 0 && (
+        option.quote_item_id === currentQuoteItemId ||
+        !selectedQuoteItemIds.has(option.quote_item_id)
+      )
+    ));
+  }, [lineOptions, selectedQuoteItemIds]);
+
+  const canAddMoreLines = React.useMemo(
+    () => getSelectableLineOptions().length > 0,
+    [getSelectableLineOptions],
+  );
+
   const validateDraft = (values: QuoteBillingFormValues): string | null => {
     if (!quote) return t('errors.missingQuote');
 
@@ -358,11 +377,13 @@ export function QuoteBillingDialog({
   };
 
   const handleAddItem = () => {
-    const nextOption = lineOptions.find((option) => option.pending_amount > 0);
+    const nextOption = getSelectableLineOptions()[0];
+    if (!nextOption) return;
+
     append({
-      quote_item_id: nextOption?.quote_item_id || '',
+      quote_item_id: nextOption.quote_item_id,
       step_ids: [],
-      amount: nextOption?.pending_amount || 0,
+      amount: nextOption.pending_amount,
     });
   };
 
@@ -495,7 +516,7 @@ export function QuoteBillingDialog({
                           <p className="text-sm font-semibold">{t('items.title')}</p>
                           <p className="text-xs text-muted-foreground">{t('items.description')}</p>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={handleAddItem} disabled={lineOptions.every((item) => item.pending_amount <= 0)}>
+                        <Button type="button" variant="outline" size="sm" onClick={handleAddItem} disabled={!canAddMoreLines}>
                           <Plus className="mr-2 h-4 w-4" />
                           {t('items.add')}
                         </Button>
@@ -504,6 +525,7 @@ export function QuoteBillingDialog({
                       <div className="space-y-3">
                         {fields.map((field, index) => {
                           const selectedLine = getLineOption(selectedItems[index]?.quote_item_id || '');
+                          const selectableOptions = getSelectableLineOptions(selectedLine?.quote_item_id);
                           const serviceSteps = selectedLine ? (stepOptions[selectedLine.service_id] || []) : [];
                           return (
                             <div key={field.id}>
@@ -533,8 +555,21 @@ export function QuoteBillingDialog({
                                         </FormControl>
                                         <SelectContent>
                                           {lineOptions.map((option) => (
-                                            <SelectItem key={option.quote_item_id} value={option.quote_item_id}>
-                                              {option.service_name} · {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(option.pending_amount)}
+                                            <SelectItem
+                                              key={option.quote_item_id}
+                                              value={option.quote_item_id}
+                                              disabled={!selectableOptions.some((selectableOption) => selectableOption.quote_item_id === option.quote_item_id)}
+                                            >
+                                              <div className="flex w-full items-center justify-between gap-2">
+                                                <span>
+                                                  {option.service_name} · {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(option.pending_amount)}
+                                                </span>
+                                                {option.pending_amount <= 0 ? (
+                                                  <Badge variant="outline" className="text-[10px] uppercase tracking-[0.16em]">
+                                                    {t('items.fullyInvoiced')}
+                                                  </Badge>
+                                                ) : null}
+                                              </div>
                                             </SelectItem>
                                           ))}
                                         </SelectContent>
@@ -643,6 +678,7 @@ export function QuoteBillingDialog({
                                         <FormattedNumberInput
                                           value={amountField.value}
                                           onChange={amountField.onChange}
+                                          disabled={!selectedLine || selectedLine.pending_amount <= 0}
                                         />
                                       </FormControl>
                                       <FormMessage />

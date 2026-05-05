@@ -1072,14 +1072,15 @@
       "selectService": "Select service",
       "step": "Steps",
       "selectStep": "Select steps",
-      "searchStepPlaceholder": "Search step...",
-      "stepsSelected": "{count} selected steps",
-      "selectedSteps": "Selected steps",
-      "noSteps": "No steps",
-      "amount": "Amount to invoice",
-      "pending": "Pending invoice",
-      "invoiced": "Invoiced"
-    },
+        "searchStepPlaceholder": "Search step...",
+        "stepsSelected": "{count} selected steps",
+        "selectedSteps": "Selected steps",
+        "noSteps": "No steps",
+        "fullyInvoiced": "Fully invoiced",
+        "amount": "Amount to invoice",
+        "pending": "Pending invoice",
+        "invoiced": "Invoiced"
+      },
     "validation": {
       "serviceRequired": "Select a service from the quote.",
       "amountPositive": "Enter an amount greater than zero.",
