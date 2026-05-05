@@ -447,7 +447,7 @@ export function AppointmentFormDialog({
     }, [serviceSearchQuery, isServiceSearchOpen]);
 
     const checkAvailability = React.useCallback(async (formData: typeof appointment) => {
-        console.log(`Evaluating availability check. CHECK_CALENDAR_AVAILABILITY is: ${checkCalendarAvailability}`);
+        console.log(`Evaluating calendar availability check. calendar_settings.check_availability is: ${checkCalendarAvailability}`);
         if (!checkCalendarAvailability) {
             setAvailabilityStatus('available');
             return;
@@ -936,7 +936,7 @@ export function AppointmentFormDialog({
     };
 
     const filteredDoctors = React.useMemo(() => {
-        console.log(`Evaluating doctor filtering. CHECK_DOCTOR_AVAILABILITY is: ${checkDoctorAvailability}`);
+        console.log(`Evaluating doctor filtering. calendar_settings.filter_doctors_by_service is: ${checkDoctorAvailability}`);
         if (!checkDoctorAvailability) {
             return allDoctors;
         }
@@ -1483,4 +1483,3 @@ export function AppointmentFormDialog({
         </>
     );
 }
-

@@ -43,6 +43,7 @@ import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
@@ -1036,8 +1037,8 @@ export default function UsersPage() {
   const [apptCalendars, setApptCalendars] = React.useState<CalendarType[]>([]);
   const [apptDoctors, setApptDoctors] = React.useState<User[]>([]);
   const [apptDoctorServiceMap, setApptDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
-  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
-  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
+  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
+  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
   const [isLoadingApptData, setIsLoadingApptData] = React.useState(false);
   const apptDataLoaded = React.useRef(false);
   const router = useRouter();
@@ -1060,20 +1061,16 @@ export default function UsersPage() {
     if (apptDataLoaded.current) return;
     setIsLoadingApptData(true);
     try {
-      const [calendars, doctors, services, config] = await Promise.all([
+      const [calendars, doctors, services, calendarSettings] = await Promise.all([
         fetchCalendarsForAppt(),
         fetchDoctorsForAppt(),
         getSalesServices({ limit: 100 }).then(r => r.items.map((s: any) => ({ ...s, id: String(s.id) }))).catch(() => [] as Service[]),
-        api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => []),
+        getCalendarSettings(),
       ]);
       setApptCalendars(calendars);
       setApptDoctors(doctors);
-      if (Array.isArray(config)) {
-        const calCfg = config.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
-        const docCfg = config.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
-        if (calCfg) setCheckCalendarAvailability(String(calCfg.value).toLowerCase() === 'true');
-        if (docCfg) setCheckDoctorAvailability(String(docCfg.value).toLowerCase() === 'true');
-      }
+      setCheckCalendarAvailability(calendarSettings.check_availability);
+      setCheckDoctorAvailability(calendarSettings.filter_doctors_by_service);
       const doctorIds = doctors.map(d => d.id).filter(Boolean);
       const serviceMap = await getUsersServicesBatch(doctorIds);
       setApptDoctorServiceMap(serviceMap);

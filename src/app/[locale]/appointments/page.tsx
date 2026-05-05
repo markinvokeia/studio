@@ -5,7 +5,7 @@ import { AppointmentFormDialog } from '@/components/appointments/AppointmentForm
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView } from '@/components/calendar/Calendar';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
-import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import {
     AlertDialog,
@@ -88,23 +88,6 @@ const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     month: 'month',
     agenda: 'schedule',
 };
-
-async function getCalendarSettings(): Promise<CalendarSettings> {
-    try {
-        const data = await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH);
-        const existingSettings = normalizeCalendarSettings(data);
-        const nextSettings = existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
-
-        if (!existingSettings) {
-            await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, nextSettings);
-        }
-
-        return nextSettings;
-    } catch (error) {
-        console.error("Failed to fetch calendar settings:", error);
-        return DEFAULT_CALENDAR_SETTINGS;
-    }
-}
 
 const isWhite = (color: string | null | undefined) => {
     if (!color) return true;
@@ -330,8 +313,8 @@ export default function AppointmentsPage() {
     const [isCreateOpen, setCreateOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
-    const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
-    const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
+    const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
+    const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
 
     const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
     const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
@@ -349,10 +332,12 @@ export default function AppointmentsPage() {
         setCurrentView(mappedView);
         setGroupBy(settings.grouped_by as CalendarGroupBy);
         setCheckCalendarAvailability(settings.check_availability);
+        setCheckDoctorAvailability(settings.filter_doctors_by_service);
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
         setCheckCalendarAvailability(settings.check_availability);
+        setCheckDoctorAvailability(settings.filter_doctors_by_service);
     }, []);
 
     // Clinic Session Dialog state
@@ -646,32 +631,15 @@ export default function AppointmentsPage() {
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
-        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedConfig, fetchedSettings] = await Promise.all([
+        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedSettings] = await Promise.all([
             getCalendars(),
             getServices(),
             getDoctors(),
-            api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => []),
             getCalendarSettings(),
         ]);
         setCalendars(fetchedCalendars);
         setServices(fetchedServices);
         setDoctors(fetchedDoctors);
-
-        if (Array.isArray(fetchedConfig)) {
-            const calendarConfig = fetchedConfig.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
-            const doctorConfig = fetchedConfig.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
-
-            if (calendarConfig) {
-                const val = String(calendarConfig.value).toLowerCase() === 'true';
-                console.log(`Config: CHECK_CALENDAR_AVAILABILITY = ${val} (raw value: ${calendarConfig.value})`);
-                setCheckCalendarAvailability(val);
-            }
-            if (doctorConfig) {
-                const val = String(doctorConfig.value).toLowerCase() === 'true';
-                console.log(`Config: CHECK_DOCTOR_AVAILABILITY = ${val} (raw value: ${doctorConfig.value})`);
-                setCheckDoctorAvailability(val);
-            }
-        }
 
         handleSettingsChange(fetchedSettings);
 

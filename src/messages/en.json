@@ -415,6 +415,7 @@
       "defaultView": "Default view",
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
+      "filterDoctorsByService": "Filter doctors by service",
       "options": {
         "day": "Day",
         "2_days": "2 Days",

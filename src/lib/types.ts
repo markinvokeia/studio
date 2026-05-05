@@ -559,6 +559,7 @@ export type CalendarSettings = {
   default_view: string;
   grouped_by: string;
   check_availability: boolean;
+  filter_doctors_by_service: boolean;
 };
 
 export type Calendar = {
