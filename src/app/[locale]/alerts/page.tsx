@@ -110,6 +110,24 @@ const renderDisplayFields = (alert: AlertInstance, fields: DisplayField[]) => {
     );
 };
 
+const getPatientName = (alert: any): string | undefined => {
+    const patientName = alert.details_json?.patient?.full_name;
+    if (typeof patientName === 'string' && patientName.trim() !== '') {
+        return patientName.trim();
+    }
+
+    return undefined;
+};
+
+const buildAlertTitle = (title: string, patientName?: string): string => {
+    const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+    if (!patientName) {
+        return normalizedTitle;
+    }
+
+    return normalizedTitle ? `${normalizedTitle} - ${patientName}` : patientName;
+};
+
 const fetchAlerts = async (status?: string, priority?: string, page: number = 1, limit: number = 50) => {
     try {
         const query: Record<string, string> = {};
@@ -121,11 +139,16 @@ const fetchAlerts = async (status?: string, priority?: string, page: number = 1,
         if (!response || (Array.isArray(response) && response.length === 1 && Object.keys(response[0]).length === 0)) {
             return { alerts: [], totalRecords: 0 };
         }
-        const alerts: AlertInstance[] = response.map((alert: any) => ({
-            ...alert,
-            rule_name: alert.rule_name || 'DEFAULT',
-            patient_name: alert.details_json?.patient?.full_name || 'Unknown',
-        }));
+        const alerts: AlertInstance[] = response.map((alert: any) => {
+            const patientName = getPatientName(alert);
+
+            return {
+                ...alert,
+                title: buildAlertTitle(alert.title, patientName),
+                rule_name: alert.rule_name || 'DEFAULT',
+                patient_name: patientName || 'Unknown',
+            };
+        });
         const totalRecords = response[0]?.total_records || alerts.length;
         return { alerts, totalRecords };
     } catch (error) {
