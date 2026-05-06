@@ -99,7 +99,6 @@ const userFormSchema = (t: (key: string) => string) => z.object({
     return isValidPhoneNumber(val);
   }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
-    .min(1, { message: t('UsersPage.createDialog.validation.identityRequired') })
     .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
   birth_date: z.string().optional(),
