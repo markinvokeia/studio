@@ -410,9 +410,28 @@
   "AppointmentsPage": {
     "title": "Citas",
     "description": "Gestionar todas las citas.",
+    "settings": {
+      "title": "Configuración del Calendario",
+      "defaultView": "Vista predeterminada",
+      "groupBy": "Agrupar por",
+      "checkAvailability": "Verificar disponibilidad",
+      "filterDoctorsByService": "Filtrar doctores por servicio",
+      "options": {
+        "day": "Día",
+        "2_days": "2 Días",
+        "3_days": "3 Días",
+        "week": "Semana",
+        "month": "Mes",
+        "agenda": "Agenda",
+        "doctor": "Doctores",
+        "calendar": "Consultorios",
+        "none": "Sin agrupar"
+      }
+    },
     "newAppointment": "Nueva Cita",
     "calendarView": "Vista de Calendario",
     "listView": "Vista de Lista",
+    "refresh": "Actualizar",
     "calendars": "Calendarios",
     "selectAll": "Seleccionar Todo",
     "appointmentsFor": "Citas para el {date}",
@@ -498,7 +517,6 @@
     "noSuggestions": "Sin sugerencias",
     "search": "Buscar",
     "selectedServices": "Servicios Seleccionados",
-    "suggestionFormat": "{date} a las {time} con {doctor} en {calendar}",
     "toasts": {
       "appointmentCancelled": "Cita cancelada",
       "appointmentCancelledDesc": "La cita ha sido cancelada.",
@@ -805,6 +823,8 @@
     "filterByPatient": "Filtrar por paciente...",
     "detailsFor": "Detalles para {name}",
     "close": "Cerrar detalles",
+    "dependentPatient": "Paciente dependiente",
+    "dependentOf": "Dependiente de {name}",
     "preferencesButton": "Preferencias",
     "dischargeButton": "Dar Alta",
     "readmitButton": "Reingreso",
@@ -815,6 +835,7 @@
       "quotes": "Presupuestos",
       "appointments": "Citas",
       "treatmentPlans": "Planes de Trat.",
+      "medicalRecord": "Expediente",
       "messages": "Mensajes",
       "preferences": "Preferencias",
       "logs": "Registros",
@@ -840,6 +861,12 @@
       "emailPlaceholder": "juan.perez@ejemplo.com",
       "phone": "Teléfono",
       "phonePlaceholder": "123-456-7890",
+      "isDependent": "Paciente dependiente (menor, adulto mayor, a cargo de tutor)",
+      "responsibleContact": "Contacto responsable (tutor/padre)",
+      "responsibleContactPlaceholder": "Sin asignar",
+      "searchGuardianPlaceholder": "Buscar por nombre...",
+      "noGuardianResults": "No se encontraron pacientes",
+      "clearResponsibleContact": "Limpiar",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej., 12345678",
       "isActive": "Está Activo",
@@ -1015,11 +1042,63 @@
   "QuoteColumns": {
     "quoteId": "ID de Cotización",
     "total": "Total",
+    "amountInvoiced": "Monto Facturado",
+    "pendingInvoice": "Pendiente de Facturar",
+    "amountPaid": "Pagado",
+    "pendingPayment": "Pendiente de Pagar",
     "billingStatus": "Estado de Facturación",
     "createdAt": "Creado En",
     "currency": "Moneda",
     "exchangeRate": "Tasa de Cambio",
     "quoteDocNo": "Presupuesto Doc No."
+  },
+  "QuoteBillingDialog": {
+    "title": "Facturar presupuesto",
+    "description": "Define el monto a facturar para {quote}.",
+    "loading": "Cargando contexto de facturación...",
+    "cancel": "Cancelar",
+    "save": "Guardar factura",
+    "summary": {
+      "quoteTotal": "Total del presupuesto",
+      "invoiced": "Facturado",
+      "pendingInvoice": "Pendiente de facturar",
+      "invoiceTotal": "Total de esta factura"
+    },
+    "items": {
+      "title": "Servicios a facturar",
+      "description": "Selecciona el servicio y, si aplica, los pasos del flujo.",
+      "add": "Agregar línea",
+      "lineLabel": "Línea {number}",
+      "service": "Servicio",
+      "selectService": "Seleccionar servicio",
+      "step": "Pasos",
+      "selectStep": "Seleccionar pasos",
+        "searchStepPlaceholder": "Buscar paso...",
+        "stepsSelected": "{count} pasos seleccionados",
+        "selectedSteps": "Pasos seleccionados",
+        "noSteps": "Sin pasos",
+        "fullyInvoiced": "Facturado completo",
+        "amount": "Monto a facturar",
+        "pending": "Falta facturar",
+        "invoiced": "Facturado"
+      },
+    "validation": {
+      "serviceRequired": "Selecciona un servicio del presupuesto.",
+      "amountPositive": "Ingresa un monto mayor a cero.",
+      "atLeastOneItem": "Debes agregar al menos una línea.",
+      "totalExceeded": "El total de la factura supera el pendiente del presupuesto.",
+      "itemExceeded": "El monto supera el pendiente del servicio {service}."
+    },
+    "errors": {
+      "title": "No se pudo facturar",
+      "generic": "Ocurrió un error al generar la factura.",
+      "missingQuote": "No hay un presupuesto seleccionado para facturar.",
+      "missingOrder": "No se encontró una orden asociada al presupuesto."
+    },
+    "success": {
+      "title": "Factura creada",
+      "description": "La factura para {quote} se generó correctamente."
+    }
   },
   "OrderColumns": {
     "orderId": "No. Documento",
@@ -1154,6 +1233,8 @@
     "title": "Presupuestos",
     "description": "Gestione todos sus presupuestos aquí.",
     "actions": {
+      "openMenu": "Abrir menú",
+      "title": "Acciones",
       "print": "Imprimir",
       "sendEmail": "Enviar Correo",
       "confirm": "Confirmar",
@@ -1242,7 +1323,8 @@
         "unitPrice": "Precio Unitario",
         "total": "Total",
         "selectService": "Seleccionar Servicio",
-        "toothNumber": "Número de Diente"
+        "toothNumber": "Número de Diente",
+        "empty": "Aún no se han agregado artículos."
       },
       "notes": "Notas",
       "notesPlaceholder": "Agregue notas adicionales aquí..."
@@ -1310,6 +1392,9 @@
       "total": "Total",
       "appointments": "Citas",
       "clinicSessions": "Sesiones Clínicas"
+    },
+    "columns": {
+      "docNo": "Doc No."
     },
     "appointments": {
       "columns": {
@@ -1653,7 +1738,12 @@
       },
       "validation": {
         "errorTitle": "Error de Envío",
-        "checkFields": "Por favor, revise los campos marcados en rojo."
+        "checkFields": "Por favor, revise los campos marcados en rojo.",
+        "userRequired": "Un usuario o proveedor es obligatorio.",
+        "totalNonNegative": "El total debe ser un número no negativo.",
+        "serviceRequired": "El nombre del servicio es obligatorio.",
+        "quantityMin": "La cantidad debe ser al menos 1.",
+        "unitPriceNonNegative": "El precio unitario no puede ser negativo."
       },
       "errors": {
         "title": "Error",
@@ -1723,6 +1813,7 @@
       "columns": {
         "id": "ID",
         "service": "Servicio",
+        "step": "Paso",
         "quantity": "Cantidad",
         "unitPrice": "Precio Unitario",
         "total": "Subtotal"
@@ -2033,6 +2124,8 @@
     "title": "Cajas Registradoras Físicas",
     "description": "Una lista de Cajas Registradoras Físicas",
     "filterPlaceholder": "Filtrar aquí...",
+    "active": "Activa",
+    "inactive": "Inactiva",
     "columns": {
       "id": "ID",
       "name": "Nombre",
@@ -2104,9 +2197,10 @@
       "order_doc_no": "Orden Doc No.",
       "type": "Tipo",
       "paymentTypes": {
-        "payment": "Pago",
+        "direct_payment": "Pago Directo",
         "prepaid": "Prepago",
-        "credit_note": "Nota de Crédito"
+        "payment_allocation": "Asignación de Pago",
+        "credit_note_allocation": "Asignación de Nota de Crédito"
       },
       "credit_note": "Nota de Crédito",
       "invoice": "Factura",
@@ -2230,6 +2324,7 @@
       "errors": {
         "title": "Error",
         "loadMethods": "No se pudieron cargar los métodos de pago.",
+        "notEditable": "Solo se pueden editar pagos directos y prepagos.",
         "closedCashSession": "No se puede editar este pago porque pertenece a una caja antigua o cerrada.",
         "notFound": "No se encontró el pago o el método de pago seleccionado.",
         "generic": "No se pudo actualizar el pago."
@@ -2785,6 +2880,7 @@
         "emailInvalid": "Correo electrónico inválido.",
         "phoneInvalid": "Número de teléfono inválido.",
         "identityInvalid": "Documento de identidad inválido.",
+        "identityRequired": "La cedula de identidad es requerida.",
         "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
       }
@@ -4574,7 +4670,10 @@
     "openChat": "Abrir Chat",
     "openMenu": "Abrir Menú",
     "closeMenu": "Cerrar Menú",
-    "chatbotTitle": "Asistente"
+    "chatbotTitle": "Asistente",
+    "minimizeChat": "Minimizar chat",
+    "restoreChat": "Restaurar chat",
+    "closeChat": "Cerrar chat"
   },
   "ResetPasswordPage": {
     "title": "Restablecer contraseña",
@@ -5177,6 +5276,108 @@
     "toast": {
       "openErrorTitle": "No se pudo abrir WhatsApp",
       "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
+    }
+  },
+  "DentalRecord": {
+    "title": "Expediente Médico",
+    "tab": { "odontogram": "Odontograma", "periodontogram": "Periodontograma", "periodontogramSoon": "Próximamente" },
+    "newSession": "Nueva Sesión",
+    "noSessions": "Sin sesiones registradas",
+    "noSessionsDesc": "Inicia una nueva sesión para comenzar el odontograma.",
+    "readOnly": "Solo lectura",
+    "editing": "Editando",
+    "prevSession": "Sesión anterior",
+    "nextSession": "Sesión siguiente",
+    "selectToothHint": "Toca un diente para ver detalles y aplicar condiciones",
+    "clearTooth": "Limpiar diente",
+    "clearAll": "Limpiar odontograma",
+    "activeTool": "Herramienta activa",
+    "fullscreen": "Pantalla completa",
+    "exitFullscreen": "Salir de pantalla completa",
+    "layoutMouth": "Vista boca abierta",
+    "layoutFlat": "Vista plana",
+    "backToMouth": "Volver a la boca",
+    "conditionsPanel": "Condiciones",
+    "odontogramSection": "Odontograma",
+    "conditionCategory": {
+      "surface": "Superficies",
+      "whole": "Pieza",
+      "overlay": "Superposición"
+    },
+    "hint": {
+      "surface": "Haz clic en una zona del diente",
+      "whole": "Haz clic en el diente para aplicar a la pieza completa",
+      "overlay": "Haz clic en el diente para agregar/quitar superposición"
+    },
+    "conditions": {
+      "healthy": "Sano",
+      "caries": "Caries",
+      "filling": "Obturación",
+      "pulp": "Tratamiento Pulpar",
+      "dyschromic": "Discromía",
+      "worn": "Desgaste",
+      "crown": "Corona",
+      "crown-tmp": "Corona Temporal",
+      "missing": "Ausente",
+      "root-remnant": "Resto Radicular",
+      "prosthesis": "Prótesis Removible",
+      "fixed-prosth": "Prótesis Fija",
+      "implant": "Implante",
+      "edentulism": "Edentulismo",
+      "endodontics": "Endodoncia",
+      "fracture": "Fractura",
+      "diastema": "Diastema",
+      "rem-prost": "Prot. Removible",
+      "drifting": "Migración",
+      "rotation": "Rotación",
+      "fusion": "Fusión",
+      "eruption": "Erupción",
+      "transposition": "Transposición",
+      "supernumerary": "Supernumerario",
+      "bolt": "Tornillo",
+      "fixed-ortho": "Ortod. Fija",
+      "macrodontia": "Macrodoncia",
+      "microdontia": "Microdoncia",
+      "impacted-semi": "Semiretenido",
+      "intrusion": "Intrusión",
+      "ectopic": "Ectópico",
+      "impacted": "Retenido",
+      "rem-orthodo": "Ortod. Removible",
+      "extrusion": "Extrusión",
+      "post": "Perno"
+    },
+    "perio": {
+      "probing": "Profundidad de bolsa",
+      "recession": "Recesión",
+      "bleeding": "Sangrado",
+      "suppuration": "Supuración",
+      "mobility": "Movilidad",
+      "furcation": "Furca",
+      "bop": "ISS",
+      "nic": "NIC"
+    },
+    "session": {
+      "newTitle": "Registrar Sesión",
+      "date": "Fecha",
+      "description": "Título",
+      "descriptionPlaceholder": "Ej. Endodoncia pieza 16",
+      "descriptionRequired": "Por favor ingresa un título para la sesión",
+      "notes": "Procedimientos",
+      "notesPlaceholder": "Procedimientos realizados, observaciones, medicación recetada...",
+      "files": "Archivos adjuntos",
+      "filesDrop": "Arrastra archivos aquí o haz clic para seleccionar (imágenes, PDF)",
+      "untitled": "Sesión sin título",
+      "cancel": "Cancelar",
+      "save": "Registrar Sesión",
+      "saveSuccess": "Sesión registrada",
+      "saveError": "No se pudo guardar la sesión. Inténtalo nuevamente.",
+      "attachment": "Adjunto",
+      "stateSummary": "Dientes y condiciones",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Seleccionar doctor",
+      "doctorRequired": "Por favor selecciona un doctor",
+      "delete": "Eliminar sesión",
+      "deleteConfirm": "Esta sesión será eliminada permanentemente. ¿Continuar?"
     }
   }
 }

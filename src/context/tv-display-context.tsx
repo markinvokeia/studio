@@ -195,20 +195,30 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
       const allCalendars: Calendar[] = Array.isArray(calendarData) ? calendarData : [];
       setCalendars(allCalendars);
 
+      // Only keep IDs that match an active Calendar — discard stale or inactive entries
+      const activeCalendarIds = new Set(
+        allCalendars.filter((c) => c.is_active !== false).map((c) => String(c.id))
+      );
+      const resolvedCalendarIds = calendarSourceIds
+        .map(String)
+        .filter((id) => activeCalendarIds.has(id));
+
+      if (resolvedCalendarIds.length === 0) return;
+
       const apptData = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
         startingDateAndTime: format(startOfDay, 'yyyy-MM-dd HH:mm:ss'),
         endingDateAndTime: format(endOfDay, 'yyyy-MM-dd HH:mm:ss'),
-        calendar_source_ids: calendarSourceIds.join(','),
+        calendar_source_ids: resolvedCalendarIds.join(','),
       });
 
       const appointments: Appointment[] = Array.isArray(apptData)
         ? apptData.map(mapRawAppointment)
         : [];
 
-      const newRooms: TVRoomState[] = calendarSourceIds.map((calendarSourceId) => {
+      const newRooms: TVRoomState[] = resolvedCalendarIds.map((calendarSourceId) => {
         const cal = allCalendars.find((c) => String(c.id) === calendarSourceId);
         const calAppts = appointments
-          .filter((a) => a.calendar_source_id === calendarSourceId)
+          .filter((a) => String(a.calendar_source_id) === calendarSourceId)
           .filter((a) => a.status !== 'cancelled')
           .sort((a, b) => {
             const ta = a.time ?? a.start?.dateTime ?? '';
@@ -297,6 +307,17 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     };
   }, [status, settings.refreshIntervalMinutes, fetchAppointments]);
 
+  // Re-fetch appointments whenever the selected calendars change
+  const prevCalendarIdsRef = React.useRef<string>(JSON.stringify(settings.selectedCalendarIds));
+  React.useEffect(() => {
+    const next = JSON.stringify(settings.selectedCalendarIds);
+    if (next === prevCalendarIdsRef.current) return;
+    prevCalendarIdsRef.current = next;
+    if (settings.selectedCalendarIds.length === 0) return;
+    const id = setTimeout(fetchAppointments, 300);
+    return () => clearTimeout(id);
+  }, [settings.selectedCalendarIds, fetchAppointments]);
+
   const updateSettings = React.useCallback((partial: Partial<TVDisplaySettings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...partial };
@@ -309,6 +330,9 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
   }, [broadcast]);
 
   const setStatus = React.useCallback((s: TVDisplayStatus) => {
+    // Update the ref synchronously so REQUEST_STATE responses see the correct status
+    // before React's async re-render cycle completes.
+    statusRef.current = s;
     setStatusState(s);
     broadcast({ type: 'STATUS_CHANGE', status: s });
   }, [broadcast]);
@@ -317,7 +341,8 @@ export function TVDisplayProvider({ children }: { children: React.ReactNode }) {
     setRooms((prev) => {
       const updated = prev.map((room) => {
         if (room.calendarId !== calendarId) return room;
-        const nextIdx = room.currentIndex + 1 < room.appointments.length
+        // Allow advancing one past the last appointment (shows empty state)
+        const nextIdx = room.currentIndex < room.appointments.length
           ? room.currentIndex + 1
           : room.currentIndex;
         return { ...room, currentIndex: nextIdx };

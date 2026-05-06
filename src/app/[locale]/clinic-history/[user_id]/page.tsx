@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import type { Ailment, AttachedFile, Document, Medication, PatientSession, User as UserType } from '@/lib/types';
@@ -59,7 +60,6 @@ import {
     Heart,
     Image as ImageIcon,
     Loader2,
-    Maximize, Minimize,
     MoreHorizontal,
     Pill,
     Plus,
@@ -2209,7 +2209,6 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const userId = (params?.user_id as string) || initialUserId;
 
     const [activeView, setActiveView] = useState('anamnesis');
-    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Patient Search State
     const [patientSearchOpen, setPatientSearchOpen] = useState(false);
@@ -2734,69 +2733,67 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     };
 
     return (
-        <div className={cn("flex-1 flex flex-col min-h-0", !isFullscreen && "bg-background")}>
+        <div className="flex-1 flex flex-col min-h-0 bg-background">
             {/* Header */}
-            {!isFullscreen && (
-                <div className="flex-none bg-card shadow-sm border-b border-border px-6 py-4">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                            <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
-                            {selectedPatient && (
-                                <div className="flex items-center gap-2">
-                                    <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
-                                    <Button variant="ghost" size="icon" onClick={refreshAllData}>
-                                        <RefreshCw className="h-5 w-5" />
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex justify-between items-center mt-4">
-                        <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                            <PopoverTrigger asChild>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        value={searchQuery}
-                                        onChange={(e) => {
-                                            setSearchQuery(e.target.value)
-                                            if (!patientSearchOpen) setPatientSearchOpen(true)
-                                        }}
-                                        placeholder={t('searchPlaceholder')}
-                                        className="pl-9 w-96"
-                                    />
-                                </div>
-                            </PopoverTrigger>
-                            <PopoverContent className="p-0 w-96" align="start">
-                                <Command>
-                                    <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery} />
-                                    <CommandList>
-                                        <CommandEmpty>
-                                            {isSearching ? t('searching') : t('noPatientsFound')}
-                                        </CommandEmpty>
-                                        <CommandGroup>
-                                            {searchResults.map((user) => (
-                                                <CommandItem
-                                                    key={user.id}
-                                                    value={user.name}
-                                                    onSelect={() => handleSelectPatient(user)}
-                                                >
-                                                    {user.name}
-                                                </CommandItem>
-                                            ))}
-                                        </CommandGroup>
-                                    </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
-                        <Navigation />
+            <div className="flex-none bg-card shadow-sm border-b border-border px-6 py-4">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-2xl font-bold text-card-foreground">{t('title')}</h1>
+                        {selectedPatient && (
+                            <div className="flex items-center gap-2">
+                                <p className="text-2xl font-bold text-foreground">{selectedPatient.name}</p>
+                                <Button variant="ghost" size="icon" onClick={refreshAllData}>
+                                    <RefreshCw className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
+                <div className="flex justify-between items-center mt-4">
+                    <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                        <PopoverTrigger asChild>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value)
+                                        if (!patientSearchOpen) setPatientSearchOpen(true)
+                                    }}
+                                    placeholder={t('searchPlaceholder')}
+                                    className="pl-9 w-96"
+                                />
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-96" align="start">
+                            <Command>
+                                <CommandInput placeholder={t('searchPlaceholder')} value={searchQuery} onValueChange={setSearchQuery} />
+                                <CommandList>
+                                    <CommandEmpty>
+                                        {isSearching ? t('searching') : t('noPatientsFound')}
+                                    </CommandEmpty>
+                                    <CommandGroup>
+                                        {searchResults.map((user) => (
+                                            <CommandItem
+                                                key={user.id}
+                                                value={user.name}
+                                                onSelect={() => handleSelectPatient(user)}
+                                            >
+                                                {user.name}
+                                            </CommandItem>
+                                        ))}
+                                    </CommandGroup>
+                                </CommandList>
+                            </Command>
+                        </PopoverContent>
+                    </Popover>
+                    <Navigation />
+                </div>
+            </div>
 
             {selectedPatient ? (
                 <>
-                    <div className={cn("flex-1 flex flex-col min-h-0", !isFullscreen && "px-6 py-4")}>
+                    <div className="flex-1 flex flex-col min-h-0 px-6 py-4">
                         <div className={cn(
                             "flex-1 flex flex-col min-h-0 rounded-xl border overflow-hidden",
                             activeView === 'odontogram' ? 'bg-background' : 'bg-gradient-to-br from-muted/20 to-muted/5'
@@ -2827,16 +2824,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                             }
                             {activeView === 'timeline' && <ScrollArea className='flex-1 p-4'><div className="pr-4 space-y-6"><TreatmentTimeline sessions={patientSessions} onAction={handleSessionAction} /></div></ScrollArea>}
                             {activeView === 'odontogram' && (
-                                <div className={cn("relative", isFullscreen ? "fixed inset-0 z-50 bg-background" : "flex-1 min-h-0 w-full")}>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-2 right-2 z-10 bg-background/50 hover:bg-background/80"
-                                        onClick={() => setIsFullscreen(!isFullscreen)}
-                                    >
-                                        {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-                                    </Button>
-                                    <iframe src={`${process.env.NEXT_PUBLIC_ONDONTOGRAMA_URL || 'https://odontogramiia.invokeia.com'}?lang=${locale}&user_id=${userId}&token=${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`} className="w-full h-full border-0" title="Odontograma"></iframe>
+                                <div className="flex-1 min-h-0 overflow-auto p-4">
+                                    <DentalRecordViewer
+                                        patientId={userId}
+                                        patientName={selectedPatient?.name}
+                                    />
                                 </div>
                             )}
                             {activeView === 'documents' && <ScrollArea className='flex-1 p-4'><div className="pr-4 space-y-6"><ImageGallery userId={userId} onViewDocument={handleViewDocument} /></div></ScrollArea>}
@@ -2844,13 +2836,11 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     </div>
                 </>
             ) : (
-                !isFullscreen && (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
-                        <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
-                        <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
-                        <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
-                    </div>
-                )
+                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <SearchCheck className="w-24 h-24 text-muted-foreground/30 mb-4" />
+                    <h2 className="text-2xl font-semibold text-foreground/80">{t('selectPatientTitle')}</h2>
+                    <p className="text-muted-foreground mt-2">{t('selectPatientDescription')}</p>
+                </div>
             )}
 
             <SessionDialog

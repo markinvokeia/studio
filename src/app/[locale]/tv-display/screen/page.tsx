@@ -46,6 +46,9 @@ export default function TVScreenPage() {
   const [clinicInfo, setClinicInfo] = React.useState<TVClinicInfo | null>(null);
   const channelRef = React.useRef<BroadcastChannel | null>(null);
 
+  // True until STATE_SYNC arrives (or timeout) — shows "Inicializando" overlay
+  const [initializing, setInitializing] = React.useState(true);
+
   // Announcement overlay state
   const [announcement, setAnnouncement] = React.useState<TVAnnouncement | null>(null);
   const [isAnnouncementClosing, setIsAnnouncementClosing] = React.useState(false);
@@ -54,6 +57,15 @@ export default function TVScreenPage() {
 
   // Pending room index updates — applied when announcement finishes closing
   const pendingRoomIndexRef = React.useRef<Record<string, number>>({});
+
+  // Derive visible rooms from selectedCalendarIds so the screen reacts instantly
+  // to SETTINGS_CHANGE (calendar toggle) without waiting for a REFRESH_DATA.
+  const visibleRooms = React.useMemo<TVRoomState[]>(() => {
+    if (settings.selectedCalendarIds.length === 0) return rooms;
+    return settings.selectedCalendarIds
+      .map((id) => rooms.find((r) => r.calendarId === id))
+      .filter((r): r is TVRoomState => r !== undefined);
+  }, [rooms, settings.selectedCalendarIds]);
 
   // Persistent promo video index — remembers where we left off
   const [promoVideoIndex, setPromoVideoIndex] = React.useState(0);
@@ -70,6 +82,15 @@ export default function TVScreenPage() {
         setSettings({ ...DEFAULT_SETTINGS, ...parsed });
       }
     } catch { /* ignore */ }
+  }, []);
+
+  // ── Fallback: if STATE_SYNC never arrives within 4s, start anyway ───────────
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitializing(false);
+      setStatus('on');
+    }, 4000);
+    return () => clearTimeout(timer);
   }, []);
 
   // ── Announcement: dismiss with close animation then apply pending updates ──
@@ -111,12 +132,16 @@ export default function TVScreenPage() {
     ch.onmessage = (event: MessageEvent<TVBroadcastMessage>) => {
       const msg = event.data;
       switch (msg.type) {
-        case 'STATE_SYNC':
+        case 'STATE_SYNC': {
           setRooms(msg.rooms);
-          setStatus(msg.status);
+          // The screen is opened intentionally — always start playing regardless
+          // of what status the parent reports (avoids race-condition black screen).
+          setStatus(msg.status === 'off' ? 'on' : msg.status);
           setSettings(msg.settings);
           setClinicInfo(msg.clinicInfo);
+          setInitializing(false);
           break;
+        }
         case 'STATUS_CHANGE':
           setStatus(msg.status);
           break;
@@ -129,20 +154,32 @@ export default function TVScreenPage() {
         case 'NEXT_PATIENT': {
           // Interrupt promo and return to rooms
           setStatus((s) => (s === 'promo' ? 'on' : s));
-          // Store pending index update — applied AFTER announcement closes
-          setRooms((currentRooms) => {
-            const room = currentRooms.find((r) => r.calendarId === msg.calendarId);
-            if (room) {
-              const nextIdx =
-                room.currentIndex + 1 < room.appointments.length
+          if (msg.announcement?.patientName) {
+            // There is a next patient: store the pending index and show the
+            // announcement — the index will apply once the overlay closes.
+            setRooms((currentRooms) => {
+              const room = currentRooms.find((r) => r.calendarId === msg.calendarId);
+              if (room) {
+                const nextIdx = room.currentIndex < room.appointments.length
                   ? room.currentIndex + 1
                   : room.currentIndex;
-              pendingRoomIndexRef.current[msg.calendarId] = nextIdx;
-            }
-            return currentRooms;
-          });
-          if (msg.announcement?.patientName) {
+                pendingRoomIndexRef.current[msg.calendarId] = nextIdx;
+              }
+              return currentRooms;
+            });
             showAnnouncement(msg.announcement);
+          } else {
+            // No next patient (advancing to empty state): update index immediately
+            // so the room transitions straight to "Sin turnos" with no overlay.
+            setRooms((currentRooms) =>
+              currentRooms.map((room) => {
+                if (room.calendarId !== msg.calendarId) return room;
+                const nextIdx = room.currentIndex < room.appointments.length
+                  ? room.currentIndex + 1
+                  : room.currentIndex;
+                return { ...room, currentIndex: nextIdx };
+              })
+            );
           }
           break;
         }
@@ -250,12 +287,50 @@ export default function TVScreenPage() {
           0%   { opacity: 0; transform: translateY(10px); }
           100% { opacity: 1; transform: translateY(0); }
         }
+        @keyframes init-pulse {
+          0%, 100% { opacity: 0.3; }
+          50%       { opacity: 0.7; }
+        }
+        @keyframes init-fade-out {
+          0%   { opacity: 1; }
+          100% { opacity: 0; pointer-events: none; }
+        }
       `}</style>
 
       <div
         className="fixed inset-0 z-[9999] flex flex-col overflow-hidden"
         style={{ background: bg, color: fg, fontFamily: "'Outfit', 'Inter', system-ui, sans-serif" }}
       >
+        {/* ── INITIALIZING OVERLAY ───────────────────────────────── */}
+        {initializing && (
+          <div
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6"
+            style={{ background: bg }}
+          >
+            {/* Dot spinner */}
+            <div className="flex items-center gap-3">
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  className="rounded-full"
+                  style={{
+                    width: 'clamp(8px, 1.2vw, 14px)',
+                    height: 'clamp(8px, 1.2vw, 14px)',
+                    background: '#3B82F6',
+                    animation: `init-pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+            <p
+              className="uppercase tracking-[0.25em] font-bold"
+              style={{ fontSize: 'clamp(0.75rem, 1.4vw, 1.1rem)', opacity: 0.45 }}
+            >
+              Inicializando pantalla…
+            </p>
+          </div>
+        )}
+
         {/* ── PROMO MODE ─────────────────────────────────────────── */}
         {status === 'promo' && (
           <PromoPlayer
@@ -464,12 +539,12 @@ export default function TVScreenPage() {
               className="flex-1 grid gap-4 p-6 overflow-hidden min-h-0"
               style={{
                 gridTemplateColumns:
-                  rooms.length > 0 ? `repeat(${Math.min(rooms.length, 4)}, 1fr)` : '1fr',
+                  visibleRooms.length > 0 ? `repeat(${Math.min(visibleRooms.length, 4)}, 1fr)` : '1fr',
                 opacity: showRooms ? 1 : 0,
                 transition: 'opacity 0.5s ease',
               }}
             >
-              {rooms.length === 0 ? (
+              {visibleRooms.length === 0 ? (
                 <div
                   className="flex items-center justify-center opacity-15"
                   style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1.2rem)' }}
@@ -479,12 +554,12 @@ export default function TVScreenPage() {
                   </p>
                 </div>
               ) : (
-                rooms.map((room) => (
+                visibleRooms.map((room) => (
                   <RoomColumn
                     key={room.calendarId}
                     room={room}
                     settings={settings}
-                    totalRooms={rooms.length}
+                    totalRooms={visibleRooms.length}
                   />
                 ))
               )}
@@ -496,7 +571,7 @@ export default function TVScreenPage() {
               style={{ opacity: showRooms ? 1 : 0, transition: 'opacity 0.5s ease' }}
             >
               {(() => {
-                const allAppts = rooms
+                const allAppts = visibleRooms
                   .flatMap((room) =>
                     room.appointments.map((appt) => ({
                       appt,

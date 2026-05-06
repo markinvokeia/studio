@@ -25,7 +25,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
 import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
-import { mapApiPaymentToPayment } from '@/services/payments-service';
+import { isPaymentEditable, mapApiPaymentToPayment } from '@/services/payments-service';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -35,15 +35,20 @@ import * as React from 'react';
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
 
 // ── Type helpers ──────────────────────────────────────────────────────────────
-const getPaymentType = (payment: Payment): { type: 'payment' | 'prepaid' | 'credit_note'; variant: 'default' | 'secondary' | 'outline' } => {
+const getPaymentType = (payment: Payment): { type: 'direct_payment' | 'prepaid' | 'payment_allocation' | 'credit_note_allocation'; variant: 'default' | 'secondary' | 'outline' } => {
   if (payment.transaction_type === 'credit_note_allocation') {
-    return { type: 'credit_note', variant: 'secondary' };
+    return { type: 'credit_note_allocation', variant: 'secondary' };
+  }
+  if (payment.transaction_type === 'payment_allocation') {
+    return { type: 'payment_allocation', variant: 'secondary' };
   }
   if (payment.transaction_type === 'direct_payment' && !payment.invoice_id) {
     return { type: 'prepaid', variant: 'outline' };
   }
-  return { type: 'payment', variant: 'default' };
+  return { type: 'direct_payment', variant: 'default' };
 };
+
+const historicalBadgeClassName = 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300';
 
 // ── Columns ───────────────────────────────────────────────────────────────────
 const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
@@ -100,9 +105,16 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
       const payment = row.original;
       const { type, variant } = getPaymentType(payment);
       return (
-        <Badge variant={variant}>
-          {t(`PaymentsPage.columns.paymentTypes.${type}`)}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge variant={variant}>
+            {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+          </Badge>
+          {payment.is_historical && (
+            <Badge variant="outline" className={historicalBadgeClassName}>
+              {t('PaymentsPage.columns.isHistorical')}
+            </Badge>
+          )}
+        </div>
       );
     },
   },
@@ -204,7 +216,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     if (refreshTrigger && refreshTrigger > 0) {
       loadPayments(true);
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, loadPayments]);
 
   // ── Row selection ────────────────────────────────────────────────────────────
   const handleRowSelectionChange = React.useCallback((selectedRows: Payment[]) => {
@@ -232,9 +244,14 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   };
 
   const handleEditPaymentClick = React.useCallback((payment: Payment) => {
+    if (!isPaymentEditable(payment)) {
+      toast({ title: tPayments('editDialog.errors.notEditable'), variant: 'destructive' });
+      return;
+    }
+
     setSelectedPaymentForEdit(payment);
     setIsEditDialogOpen(true);
-  }, []);
+  }, [tPayments, toast]);
 
   const handleConfirmSendEmail = async () => {
     if (!selectedPaymentForEmail) return;
@@ -347,7 +364,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               <Send className="h-4 w-4 mr-2" />
               Enviar
             </DropdownMenuItem>
-            {canEditPayment && (
+            {canEditPayment && isPaymentEditable(selectedPayment) && (
               <DropdownMenuItem onClick={() => handleEditPaymentClick(selectedPayment)}>
                 <Pencil className="h-4 w-4 mr-2" />
                 {tPayments('actions.edit')}
@@ -402,10 +419,16 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               const statusLower = payment.status?.toLowerCase();
               return (
                 <DataCard isSelected={_isSelected}
+                  className={payment.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
                   title={payment.doc_no || `PAY-${payment.id}`}
                   subtitle={formatDateTime(payment.createdAt)}
                   badge={
                     <div className="flex gap-1 flex-wrap justify-end">
+                      {payment.is_historical && (
+                        <Badge variant="outline" className={`${historicalBadgeClassName} text-[10px]`}>
+                          {t('PaymentsPage.columns.isHistorical')}
+                        </Badge>
+                      )}
                       <Badge variant={variant} className="capitalize text-[10px]">
                         {t(`PaymentsPage.columns.paymentTypes.${type}`)}
                       </Badge>
@@ -470,9 +493,16 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                   {(() => {
                     const { type, variant } = getPaymentType(selectedPayment);
                     return (
-                      <Badge variant={variant}>
-                        {t(`PaymentsPage.columns.paymentTypes.${type}`)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <Badge variant={variant}>
+                          {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                        </Badge>
+                        {selectedPayment.is_historical && (
+                          <Badge variant="outline" className={historicalBadgeClassName}>
+                            {t('PaymentsPage.columns.isHistorical')}
+                          </Badge>
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
@@ -527,7 +557,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                 <Send className="h-3.5 w-3.5" />
                 Enviar
               </Button>
-              {canEditPayment && (
+              {canEditPayment && isPaymentEditable(selectedPayment) && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditPaymentClick(selectedPayment)}>
                   <Pencil className="h-3.5 w-3.5" />
                   {tPayments('actions.edit')}

@@ -19,14 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -40,7 +33,7 @@ import { Quote } from '@/lib/types';
 import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { Loader2, MoreHorizontal, Printer, Send } from 'lucide-react';
+import { CheckCircle, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
@@ -49,6 +42,81 @@ import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
+function formatCurrency(amount: number | undefined, currency: string | undefined) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD',
+  }).format(Number(amount || 0));
+}
+
+interface QuoteActionsProps {
+  quote: Quote;
+  onEdit: (quote: Quote) => void;
+  onDelete: (quote: Quote) => void;
+  onQuoteActionRequest: (quote: Quote, action: 'confirm' | 'reject') => void;
+  onPrint: (quote: Quote) => void;
+  onSendEmail: (quote: Quote) => void;
+  canEdit: boolean;
+  canDelete: boolean;
+  canConfirm: boolean;
+  canReject: boolean;
+  canPrint: boolean;
+  canSendEmail: boolean;
+}
+
+function QuoteActions({
+  quote,
+  onEdit,
+  onDelete,
+  onQuoteActionRequest,
+  onPrint,
+  onSendEmail,
+  canEdit,
+  canDelete,
+  canConfirm,
+  canReject,
+  canPrint,
+  canSendEmail,
+}: QuoteActionsProps) {
+  const tQuotes = useTranslations('QuotesPage');
+  const status = (quote.status || '').toLowerCase();
+  const isDraft = status === 'draft';
+  const isPending = status === 'pending';
+
+  const actions = [
+    { icon: Printer, label: tQuotes('print'), onClick: () => onPrint(quote), visible: canPrint },
+    { icon: Send, label: tQuotes('sendEmail'), onClick: () => onSendEmail(quote), visible: canSendEmail },
+    { icon: Pencil, label: tQuotes('edit'), onClick: () => onEdit(quote), visible: canEdit && isDraft },
+    { icon: CheckCircle, label: tQuotes('confirm'), onClick: () => onQuoteActionRequest(quote, 'confirm'), visible: canConfirm && (isDraft || isPending) },
+    { icon: XCircle, label: tQuotes('reject'), onClick: () => onQuoteActionRequest(quote, 'reject'), visible: canReject && (isDraft || isPending) },
+    { icon: Trash2, label: tQuotes('delete'), onClick: () => onDelete(quote), visible: canDelete && isDraft },
+  ].filter((action) => action.visible);
+
+  if (actions.length === 0) return null;
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-8 w-8 p-0">
+            <span className="sr-only">{tQuotes('actions.openMenu')}</span>
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>{tQuotes('actions.title')}</DropdownMenuLabel>
+          {actions.map(({ icon: Icon, label, onClick }) => (
+            <DropdownMenuItem key={label} onClick={onClick}>
+              <Icon className="mr-2 h-4 w-4" />
+              <span>{label}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
+
 const getColumns = (
   t: (key: string) => string,
   onEdit: (quote: Quote) => void,
@@ -56,8 +124,10 @@ const getColumns = (
   onQuoteActionRequest: (quote: Quote, action: 'confirm' | 'reject') => void,
   onPrint: (quote: Quote) => void,
   onSendEmail: (quote: Quote) => void,
-  isCompact: boolean = false
-): ColumnDef<Quote>[] => [
+  isCompact: boolean = false,
+  actionPermissions: QuoteActionPermissions,
+): ColumnDef<Quote>[] => {
+  const columns: ColumnDef<Quote>[] = [
     {
       id: 'select',
       header: () => null,
@@ -132,6 +202,38 @@ const getColumns = (
         const rate = row.original.exchange_rate;
         return rate ? <div className="font-medium">{rate.toFixed(2)}</div> : <div className="text-muted-foreground">-</div>;
       },
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_invoiced',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.amountInvoiced')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_invoiced, row.original.currency)}</div>,
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_pending_invoice',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingInvoice')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_pending_invoice, row.original.currency)}</div>,
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_paid',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.amountPaid')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_paid, row.original.currency)}</div>,
+      enableHiding: !isCompact,
+    },
+    {
+      accessorKey: 'amount_pending_payment',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingPayment')} />
+      ),
+      cell: ({ row }) => <div className="font-medium">{formatCurrency(row.original.amount_pending_payment, row.original.currency)}</div>,
       enableHiding: !isCompact,
     },
     {
@@ -237,52 +339,26 @@ const getColumns = (
     {
       id: 'actions',
       cell: ({ row }) => {
-        const t = useTranslations('UserColumns');
-        const tQuotes = useTranslations('QuotesPage');
         const quote = row.original;
-        const status = (quote.status || '').toLowerCase();
-        const isDraft = status === 'draft';
-        const isPending = status === 'pending';
 
         return (
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{tQuotes('itemDialog.actions')}</DropdownMenuLabel>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPrint(quote); }}>
-                <Printer className="mr-2 h-4 w-4" />
-                <span>{tQuotes('print')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSendEmail(quote); }}>
-                <Send className="mr-2 h-4 w-4" />
-                <span>{tQuotes('sendEmail')}</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(quote); }} disabled={!isDraft}>
-                {tQuotes('edit')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDelete(quote); }} className="text-destructive" disabled={!isDraft}>
-                {tQuotes('delete')}
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteActionRequest(quote, 'confirm'); }} disabled={!isDraft && !isPending}>
-                {tQuotes('confirm')}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onQuoteActionRequest(quote, 'reject'); }} className="text-destructive" disabled={!isDraft && !isPending}>
-                {tQuotes('reject')}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <QuoteActions
+            quote={quote}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onQuoteActionRequest={onQuoteActionRequest}
+            onPrint={onPrint}
+            onSendEmail={onSendEmail}
+            {...actionPermissions}
+          />
         );
       },
       enableHiding: false,
+      size: 50,
     },
   ];
+  return columns.filter((column) => !isCompact || column.id !== 'actions');
+};
 
 
 interface RecentQuotesTableProps {
@@ -305,6 +381,21 @@ interface RecentQuotesTableProps {
   isSendingEmail?: boolean;
   setIsSendingEmail?: (sending: boolean) => void;
   isSales?: boolean;
+  canEditQuote?: boolean;
+  canDeleteQuote?: boolean;
+  canConfirmQuote?: boolean;
+  canRejectQuote?: boolean;
+  canPrintQuote?: boolean;
+  canSendQuoteEmail?: boolean;
+}
+
+interface QuoteActionPermissions {
+  canEdit: boolean;
+  canDelete: boolean;
+  canConfirm: boolean;
+  canReject: boolean;
+  canPrint: boolean;
+  canSendEmail: boolean;
 }
 
 export function RecentQuotesTable({
@@ -327,6 +418,12 @@ export function RecentQuotesTable({
   isSendingEmail = false,
   setIsSendingEmail,
   isSales = false,
+  canEditQuote = false,
+  canDeleteQuote = false,
+  canConfirmQuote = false,
+  canRejectQuote = false,
+  canPrintQuote = true,
+  canSendQuoteEmail = true,
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
@@ -342,7 +439,7 @@ export function RecentQuotesTable({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-  const handlePrintQuote = async (quote: Quote) => {
+  const handlePrintQuote = React.useCallback(async (quote: Quote) => {
     const fileName = getDocumentFileName(quote, 'quote');
     toast({
       title: t('QuotesPage.generatingPdf'),
@@ -372,7 +469,7 @@ export function RecentQuotesTable({
         description: error instanceof Error ? error.message : t('QuotesPage.couldNotPrint'),
       });
     }
-  };
+  }, [t, toast]);
 
   const handleSendEmailClick = (quote: Quote) => {
     setSelectedQuoteForEmail(quote);
@@ -455,7 +552,19 @@ export function RecentQuotesTable({
     setIsWarningDialogOpen(false);
   };
 
-  const columns = React.useMemo(() => getColumns(t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, handleSendEmailClick, isCompact), [t, onEdit, onDelete, onQuoteActionRequest, isCompact]);
+  const actionPermissions = React.useMemo<QuoteActionPermissions>(() => ({
+    canEdit: canEditQuote,
+    canDelete: canDeleteQuote,
+    canConfirm: canConfirmQuote,
+    canReject: canRejectQuote,
+    canPrint: canPrintQuote,
+    canSendEmail: canSendQuoteEmail,
+  }), [canEditQuote, canDeleteQuote, canConfirmQuote, canRejectQuote, canPrintQuote, canSendQuoteEmail]);
+
+  const columns = React.useMemo(
+    () => getColumns(t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, handleSendEmailClick, isCompact, actionPermissions),
+    [t, onEdit, onDelete, onQuoteActionRequest, handlePrintQuote, isCompact, actionPermissions],
+  );
 
   const table = useReactTable({
     data: quotes,
@@ -480,7 +589,7 @@ export function RecentQuotesTable({
   React.useEffect(() => {
     if (isCompact) {
       // Hide the columns that will be shown in detail header
-      const columnsToHide = ['total', 'currency', 'exchange_rate', 'status', 'billing_status', 'payment_status'];
+      const columnsToHide = ['total', 'currency', 'exchange_rate', 'amount_invoiced', 'amount_pending_invoice', 'amount_paid', 'amount_pending_payment', 'status', 'billing_status', 'payment_status'];
       columnsToHide.forEach(colId => {
         const column = table.getColumn(colId);
         if (column) {
@@ -489,7 +598,7 @@ export function RecentQuotesTable({
       });
     } else {
       // Show all columns when not compact
-      const columnsToShow = ['total', 'currency', 'exchange_rate', 'status', 'billing_status', 'payment_status'];
+      const columnsToShow = ['total', 'currency', 'exchange_rate', 'amount_invoiced', 'amount_pending_invoice', 'amount_paid', 'amount_pending_payment', 'status', 'billing_status', 'payment_status'];
       columnsToShow.forEach(colId => {
         const column = table.getColumn(colId);
         if (column) {
@@ -514,6 +623,10 @@ export function RecentQuotesTable({
     total: t('QuoteColumns.total'),
     currency: t('QuoteColumns.currency'),
     exchange_rate: t('QuoteColumns.exchangeRate'),
+    amount_invoiced: t('QuoteColumns.amountInvoiced'),
+    amount_pending_invoice: t('QuoteColumns.pendingInvoice'),
+    amount_paid: t('QuoteColumns.amountPaid'),
+    amount_pending_payment: t('QuoteColumns.pendingPayment'),
     status: t('UserColumns.status'),
     billing_status: t('QuoteColumns.billingStatus'),
     payment_status: t('Navigation.Payments'),
@@ -536,28 +649,6 @@ export function RecentQuotesTable({
           </CardHeader>
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
-          {isNarrow ? (
-            <div className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5">
-              {table.getRowModel().rows.length > 0
-                ? table.getRowModel().rows.map((row) => (
-                    <DataCard
-                      key={row.id}
-                      title={row.original.doc_no || String(row.original.id)}
-                      subtitle={[row.original.user_name, row.original.status].filter(Boolean).join(' · ')}
-                      isSelected={row.getIsSelected()}
-                      showArrow={!!(onRowClick || onRowSelectionChange)}
-                      onClick={() => {
-                        table.toggleAllPageRowsSelected(false);
-                        row.toggleSelected(true);
-                        onRowSelectionChange?.([row.original]);
-                        onRowClick?.(row.original);
-                      }}
-                    />
-                  ))
-                : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
-              }
-            </div>
-          ) : (
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
             {standalone ? (
               <DataTableAdvancedToolbar
@@ -590,69 +681,121 @@ export function RecentQuotesTable({
                 columnTranslations={columnTranslations}
               />
             )}
-            <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
-              <table className={cn("w-full caption-bottom text-sm")}>
-                <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        return (
-                          <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                          </TableHead>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                        onClick={() => {
-                          if (onRowSelectionChange) {
+            {isNarrow ? (
+              <div className="flex flex-1 min-h-0 flex-col">
+                <div
+                  data-testid="card-list"
+                  className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5"
+                >
+                  {table.getRowModel().rows.length > 0
+                    ? table.getRowModel().rows.map((row) => (
+                      <div key={row.id} data-testid="list-item">
+                        <DataCard
+                          key={row.id}
+                          title={row.original.doc_no || String(row.original.id)}
+                          subtitle={[row.original.user_name, formatDateTime(row.original.createdAt).split(' ')[0], row.original.status].filter(Boolean).join(' · ')}
+                          isSelected={row.getIsSelected()}
+                          showArrow={!!(onRowClick || onRowSelectionChange)}
+                          fields={[
+                            { label: t('QuoteColumns.total'), value: formatCurrency(row.original.total, row.original.currency), primary: true },
+                            { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(row.original.amount_invoiced, row.original.currency) },
+                            { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(row.original.amount_pending_invoice, row.original.currency) },
+                            { label: t('QuoteColumns.amountPaid'), value: formatCurrency(row.original.amount_paid, row.original.currency) },
+                            { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(row.original.amount_pending_payment, row.original.currency) },
+                          ]}
+                          actions={!isCompact && !viewportNarrow ? (
+                            <QuoteActions
+                              quote={row.original}
+                              onEdit={onEdit}
+                              onDelete={onDelete}
+                              onQuoteActionRequest={onQuoteActionRequest}
+                              onPrint={handlePrintQuote}
+                              onSendEmail={handleSendEmailClick}
+                              {...actionPermissions}
+                            />
+                          ) : undefined}
+                          onClick={() => {
                             table.toggleAllPageRowsSelected(false);
                             row.toggleSelected(true);
-                          }
-                          onRowClick?.(row.original);
-                        }}
-                        className={onRowSelectionChange || onRowClick ? 'cursor-pointer' : ''}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
+                            onRowSelectionChange?.([row.original]);
+                            onRowClick?.(row.original);
+                          }}
+                        />
+                      </div>
+                      ))
+                    : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
+                  }
+                </div>
+                <div className="flex-none px-0.5 pb-0.5 pt-2">
+                  <DataTablePagination table={table} />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
+                  <table className={cn("w-full caption-bottom text-sm")}>
+                    <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => {
+                            return (
+                              <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                              </TableHead>
+                            )
+                          })}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            data-state={row.getIsSelected() && 'selected'}
+                            onClick={() => {
+                              if (onRowSelectionChange) {
+                                table.toggleAllPageRowsSelected(false);
+                                row.toggleSelected(true);
+                              }
+                              onRowClick?.(row.original);
+                            }}
+                            className={onRowSelectionChange || onRowClick ? 'cursor-pointer' : ''}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id}>
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={columns.length}
+                            className="h-24 text-center"
+                          >
+                            {t('General.noResults')}
                           </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={columns.length}
-                        className="h-24 text-center"
-                      >
-                        {t('General.noResults')}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </table>
-            </div>
-            <div className="flex-none">
-              <DataTablePagination table={table} />
-            </div>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </table>
+                </div>
+                <div className="flex-none">
+                  <DataTablePagination table={table} />
+                </div>
+              </>
+            )}
           </div>
-          )}
         </CardContent>
       </Card>
 

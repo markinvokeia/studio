@@ -2,15 +2,19 @@
 'use client';
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Calendar as CalendarType, OrderItem, Service, User as UserType } from '@/lib/types';
 import { formatDateTime, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -59,12 +63,16 @@ interface OrderItemsTableProps {
 export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = panelNarrow || viewportNarrow;
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [isClinicSessionDialogOpen, setIsClinicSessionDialogOpen] = React.useState(false);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OrderItem | null>(null);
   const [actionType, setActionType] = React.useState<ActionType | null>(null);
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
+  React.useEffect(() => { setSelectedDate(new Date()); }, []);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
   const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
@@ -72,8 +80,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [allServices, setAllServices] = React.useState<Service[]>([]);
   const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
   const [patientUser, setPatientUser] = React.useState<UserType | null>(null);
-  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
-  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
+  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
+  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
 
   const hasPatientName = React.useMemo(() => {
     return Boolean(patient?.name && patient.name.trim().length > 0);
@@ -84,19 +92,15 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
     const fetchData = async () => {
       try {
-        const [calData, docData, srvData, configData] = await Promise.all([
+        const [calData, docData, srvData, calendarSettings] = await Promise.all([
           api.get(API_ROUTES.CALENDARS),
           api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' }),
           isSales ? getSalesServices({ limit: 100 }) : getPurchaseServices({ limit: 100 }),
-          api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => [])
+          getCalendarSettings()
         ]);
 
-        if (Array.isArray(configData)) {
-          const calConfig = configData.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
-          const docConfig = configData.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
-          if (calConfig) setCheckCalendarAvailability(String(calConfig.value).toLowerCase() === 'true');
-          if (docConfig) setCheckDoctorAvailability(String(docConfig.value).toLowerCase() === 'true');
-        }
+        setCheckCalendarAvailability(calendarSettings.check_availability);
+        setCheckDoctorAvailability(calendarSettings.filter_doctors_by_service);
 
         const cals = Array.isArray(calData) ? calData : (calData.calendars || []);
         setCalendars(cals.map((c: any) => ({ ...c, id: String(c.id) })));
@@ -505,9 +509,18 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
       </div>
     );
   }
+  const isSelectedItemCompleted =
+    selectedItem?.status === 'completed' || Boolean(selectedItem?.completed_date);
+  const canScheduleSelectedItem = selectedItem
+    ? canSchedule && !selectedItem.scheduled_date && !isSelectedItemCompleted
+    : false;
+  const canCompleteSelectedItem = selectedItem
+    ? canComplete && !selectedItem.completed_date
+    : false;
+
   const toolbarActions = selectedItem ? (
     <div className="ml-auto flex items-center gap-1.5">
-      {canSchedule && !selectedItem.scheduled_date && (
+      {canScheduleSelectedItem && (
         <Button
           variant="outline"
           size="sm"
@@ -518,7 +531,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           {t('actions.schedule')}
         </Button>
       )}
-      {canComplete && !selectedItem.completed_date && (
+      {canCompleteSelectedItem && (
         <Button
           variant="default"
           size="sm"
@@ -540,15 +553,34 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
             columns={columns}
             data={items}
             filterColumnId="service_name"
-            filterPlaceholder={t('filterPlaceholder')}
-            onRowSelectionChange={handleRowSelectionChange}
-            enableSingleRowSelection
-            rowSelection={rowSelection}
-            setRowSelection={setRowSelection}
-            extraButtons={toolbarActions}
-            columnTranslations={{
-              id: t('columns.id'),
-              service_name: t('columns.service'),
+          filterPlaceholder={t('filterPlaceholder')}
+          onRowSelectionChange={handleRowSelectionChange}
+          enableSingleRowSelection
+          rowSelection={rowSelection}
+          setRowSelection={setRowSelection}
+          extraButtons={toolbarActions}
+          isNarrow={isNarrow}
+          renderCard={(item: OrderItem, isSelected: boolean) => (
+            <DataCard
+              isSelected={isSelected}
+              title={item.service_name || String(item.id)}
+              subtitle={[
+                item.tooth_number ? `${t('columns.toothNumber')}: ${item.tooth_number}` : null,
+                `${t('columns.quantity')}: ${item.quantity}`,
+                item.status ? t(`status.${item.status.toLowerCase()}`) : null,
+              ].filter(Boolean).join(' · ')}
+              badge={item.total != null ? (
+                <Badge variant="outline">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total)}
+                </Badge>
+              ) : undefined}
+              showArrow
+              onClick={() => handleRowSelectionChange([item])}
+            />
+          )}
+          columnTranslations={{
+            id: t('columns.id'),
+            service_name: t('columns.service'),
               tooth_number: t('columns.toothNumber'),
               quantity: t('columns.quantity'),
               unit_price: t('columns.unitPrice'),

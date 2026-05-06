@@ -74,7 +74,7 @@ export function TVDisplayWidget() {
 
         {/* Next patient per room */}
         {rooms.map((room) => {
-          const hasNext = room.currentIndex < room.appointments.length - 1;
+          const hasNext = room.currentIndex < room.appointments.length;
           return (
             <DropdownMenuItem
               key={room.calendarId}

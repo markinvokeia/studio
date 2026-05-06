@@ -34,6 +34,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { ExchangeRate } from './exchange-rate';
 import { TelegramIcon } from './icons/telegram-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
@@ -127,11 +128,27 @@ export function Header() {
 
     const [isExpanded, setIsExpanded] = React.useState(false);
     const [isChatOpen, setIsChatOpen] = React.useState(false);
+    const [isChatMinimized, setIsChatMinimized] = React.useState(false);
     const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
     const [isSending, setIsSending] = React.useState(false);
     const [ttsEnabled, setTtsEnabled] = React.useState(true);
+    const [isClient, setIsClient] = React.useState(false);
 
     const sessionId = React.useRef(`sid-${Date.now()}`);
+
+    React.useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    const openChatPanel = React.useCallback(() => {
+        setIsChatOpen(true);
+        setIsChatMinimized(false);
+    }, []);
+
+    const closeChatPanel = React.useCallback(() => {
+        setIsChatOpen(false);
+        setIsChatMinimized(false);
+    }, []);
 
     // ── Send a message (text or voice) to the webhook ─────────────────────────
 
@@ -209,7 +226,7 @@ export function Header() {
 
     const handleAudioReady = React.useCallback(
         (blob: Blob) => {
-            setIsChatOpen(true);
+            openChatPanel();
             setChatMessages((prev) => [
                 ...prev,
                 {
@@ -222,7 +239,7 @@ export function Header() {
             ]);
             sendToWebhook(tChat('voiceMessage'), blob);
         },
-        [sendToWebhook, tChat],
+        [openChatPanel, sendToWebhook, tChat],
     );
 
     // ── Text chat callback ────────────────────────────────────────────────────
@@ -296,7 +313,7 @@ export function Header() {
                         <span>Telegram</span>
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setIsChatOpen(true)}>
+                <DropdownMenuItem onClick={openChatPanel}>
                     <MessageSquare className="mr-2 h-4 w-4 text-purple-500" />
                     <span>{tFloating('openChat')}</span>
                 </DropdownMenuItem>
@@ -485,57 +502,83 @@ export function Header() {
             </div>
 
             {/* ── Chat panel ─────────────────────────────────────────────── */}
-            {isChatOpen && (
-                <div className="fixed bottom-0 right-0 sm:bottom-4 sm:right-4 z-[60] w-full sm:max-w-sm animate-in slide-in-from-bottom-4 duration-300">
-                    <Card className="h-[60vh] flex flex-col shadow-2xl border-primary/20 overflow-hidden">
-                        <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-primary text-primary-foreground shrink-0">
-                            <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4" />
+            {isClient && isChatOpen && createPortal(
+                <div className="fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-4 sm:w-auto sm:p-0 pointer-events-none">
+                    {isChatMinimized ? (
+                        <div className="pointer-events-auto px-3 pb-3 sm:px-0 sm:pb-0">
+                            <Button
+                                type="button"
+                                onClick={() => setIsChatMinimized(false)}
+                                className="h-12 rounded-full px-4 shadow-2xl"
+                                title={tFloating('restoreChat')}
+                            >
+                                <MessageSquare className="mr-2 h-4 w-4" />
                                 {tFloating('chatbotTitle')}
-                            </CardTitle>
-                            <div className="flex items-center gap-1">
-                                {/* TTS toggle */}
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                        setTtsEnabled((v) => {
-                                            if (v) window.speechSynthesis?.cancel();
-                                            return !v;
-                                        });
-                                    }}
-                                    className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                    title={
-                                        ttsEnabled
-                                            ? tChat('ttsDisable')
-                                            : tChat('ttsEnable')
-                                    }
-                                >
-                                    {ttsEnabled ? (
-                                        <Volume2 className="h-4 w-4" />
-                                    ) : (
-                                        <VolumeX className="h-4 w-4" />
-                                    )}
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsChatOpen(false)}
-                                    className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0 flex-1 overflow-hidden">
-                            <VoiceChat
-                                messages={chatMessages}
-                                onSendText={handleSendText}
-                                isSending={isSending}
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="pointer-events-auto w-full px-0 md:w-[24rem] lg:w-[26rem]">
+                            <Card className="h-[60vh] w-full rounded-none border-primary/20 shadow-2xl overflow-hidden sm:rounded-2xl">
+                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-primary text-primary-foreground shrink-0">
+                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4" />
+                                        {tFloating('chatbotTitle')}
+                                    </CardTitle>
+                                    <div className="flex items-center gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                                setTtsEnabled((v) => {
+                                                    if (v) window.speechSynthesis?.cancel();
+                                                    return !v;
+                                                });
+                                            }}
+                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                                            title={
+                                                ttsEnabled
+                                                    ? tChat('ttsDisable')
+                                                    : tChat('ttsEnable')
+                                            }
+                                        >
+                                            {ttsEnabled ? (
+                                                <Volume2 className="h-4 w-4" />
+                                            ) : (
+                                                <VolumeX className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setIsChatMinimized(true)}
+                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                                            title={tFloating('minimizeChat')}
+                                        >
+                                            <ChevronRight className="h-4 w-4 rotate-90" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={closeChatPanel}
+                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                                            title={tFloating('closeChat')}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-0 flex-1 overflow-hidden">
+                                    <VoiceChat
+                                        messages={chatMessages}
+                                        onSendText={handleSendText}
+                                        isSending={isSending}
+                                    />
+                                </CardContent>
+                            </Card>
+                        </div>
+                    )}
+                </div>,
+                document.body
             )}
         </>
     );

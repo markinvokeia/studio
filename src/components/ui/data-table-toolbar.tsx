@@ -121,6 +121,7 @@ export function DataTableToolbar<TData>({
                         !createButtonIconOnly && "sm:w-auto sm:px-3 sm:gap-1.5"
                       )}
                       onClick={onCreate}
+                      aria-label={createButtonLabel || t('create')}
                     >
                       <PlusCircle className="h-4 w-4" />
                       {createButtonIconOnly ? (
@@ -137,6 +138,8 @@ export function DataTableToolbar<TData>({
               </TooltipProvider>
             </div>
           )}
+          {/* Extra buttons — desktop only (inline) */}
+          {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
           {onRefresh && (
             <Button
               variant="outline"
@@ -179,10 +182,8 @@ export function DataTableToolbar<TData>({
                     </DropdownMenuCheckboxItem>
                   );
                 })}
-            </DropdownMenuContent>
+              </DropdownMenuContent>
           </DropdownMenu>
-          {/* Extra buttons — desktop only (inline) */}
-          {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
         </div>
       </div>
       {/* Row 2 — mobile only: extra action buttons */}

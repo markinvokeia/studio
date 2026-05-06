@@ -9,3 +9,4 @@ README.md
 !.env.example
 .vscode
 .DS_Store
+database/drivers/

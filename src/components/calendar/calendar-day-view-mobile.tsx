@@ -13,7 +13,8 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 
-import type { CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarView } from './calendar-types';
+import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import type { CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
   filterEventsByDayAndGroup,
@@ -37,7 +38,7 @@ interface CalendarDayViewMobileProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarDayViewMobile({
@@ -63,19 +64,21 @@ export function CalendarDayViewMobile({
 
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
 
-  // Build slides: if grouped, one slide per resource column; if not, one slide per day
+  // Build slides: if grouped, one slide per (day × resource); if not, one slide per day
   const slides = React.useMemo(() => {
     if (isGrouped) {
-      // For grouped view, show resources for the first day (single-day mobile)
-      const day = days[0];
-      return groupingColumns.map((col) => ({
-        key: `${format(day, 'yyyy-MM-dd')}-${col.id}`,
-        day,
-        column: col,
-        label: col.label,
-        color: col.color,
-        events: getEventsWithLayout(filterEventsByDayAndGroup(events, day, groupBy, col.value)),
-      }));
+      return days.flatMap((day) =>
+        groupingColumns.map((col) => ({
+          key: `${format(day, 'yyyy-MM-dd')}-${col.id}`,
+          day,
+          column: col,
+          label: days.length > 1
+            ? `${format(day, 'EEE d', { locale: dateLocale })} · ${col.label}`
+            : col.label,
+          color: col.color,
+          events: getEventsWithLayout(filterEventsByDayAndGroup(events, day, groupBy, col.value)),
+        }))
+      );
     }
     // Non-grouped: one slide per day
     return days.map((day) => ({
@@ -90,6 +93,13 @@ export function CalendarDayViewMobile({
 
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
 
+  const timeGridScrollRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    if (timeGridScrollRef.current) {
+      timeGridScrollRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+    }
+  }, []);
+
   React.useEffect(() => {
     if (!api) return;
     const onSelect = () => setActiveIndex(api.selectedScrollSnap());
@@ -97,7 +107,7 @@ export function CalendarDayViewMobile({
     return () => { api.off('select', onSelect); };
   }, [api]);
 
-  const handleSlotClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
+  const handleSlotClick = (day: Date, column: CalendarGroupingColumn | null, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -105,20 +115,96 @@ export function CalendarDayViewMobile({
       const hour = Math.floor(y / 60);
       const minute = Math.floor((y % 60) / 15) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
-      onSlotClick(clickedDate);
+      const context = column && groupBy !== 'none' ? { groupBy, value: column.value } : undefined;
+      onSlotClick(clickedDate, context);
     }
+  };
+
+  const activeSlide = slides[activeIndex];
+  const isMultiDayGrouped = isGrouped && days.length > 1;
+
+  const scrollToSlide = (day: Date, colId: string | null) => {
+    const idx = slides.findIndex((s) =>
+      isSameDay(s.day, day) && (colId === null || s.column?.id === colId)
+    );
+    if (idx >= 0) api?.scrollTo(idx);
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Day/resource indicator strip */}
-      {slides.length > 1 && (
-        <div className="flex items-center justify-center gap-1 py-2 border-b border-border bg-card shrink-0 px-2">
+      {/* Two-row indicator when grouped across multiple days: days + resources */}
+      {isMultiDayGrouped && (
+        <div className="border-b border-border bg-card shrink-0">
+          {/* Day row */}
+          <div className="flex items-center justify-center gap-1 py-1.5 px-2">
+            {days.map((day) => {
+              const isActiveDay = activeSlide && isSameDay(activeSlide.day, day);
+              const isDayToday = isToday(day);
+              return (
+                <button
+                  key={format(day, 'yyyy-MM-dd')}
+                  className={cn(
+                    'flex flex-col items-center px-2 py-1 gap-0 flex-1 min-w-0 rounded-lg transition-colors',
+                    isActiveDay
+                      ? 'bg-primary text-primary-foreground'
+                      : isDayToday
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground',
+                  )}
+                  onClick={() => scrollToSlide(day, activeSlide?.column?.id ?? groupingColumns[0]?.id ?? null)}
+                >
+                  <span className="text-[10px] font-medium uppercase leading-tight">
+                    {format(day, 'EEEEE', { locale: dateLocale })}
+                  </span>
+                  <span className={cn('text-sm font-bold leading-tight', isActiveDay && 'text-primary-foreground')}>
+                    {format(day, 'd')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Resource row (for the active day) */}
+          <div className="flex items-center gap-1 py-1.5 px-2 overflow-x-auto border-t border-border/50">
+            {groupingColumns.map((col) => {
+              const isActiveCol = activeSlide?.column?.id === col.id;
+              return (
+                <button
+                  key={col.id}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-colors',
+                    isActiveCol
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground',
+                  )}
+                  onClick={() => activeSlide && scrollToSlide(activeSlide.day, col.id)}
+                >
+                  {col.color && (
+                    <span
+                      className="inline-block w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: col.color }}
+                    />
+                  )}
+                  <span className="truncate max-w-[120px]">{col.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Single-row indicator: non-grouped multi-day OR grouped single-day */}
+      {!isMultiDayGrouped && slides.length > 1 && (
+        <div
+          className={cn(
+            'flex items-center gap-1 py-2 border-b border-border bg-card shrink-0 px-2',
+            isGrouped ? 'justify-start overflow-x-auto' : 'justify-center'
+          )}
+        >
           {slides.map((slide, i) => {
             const isActive = i === activeIndex;
             const isDayToday = isToday(slide.day);
-            // Compact mode for many slides (week view with 7 days)
-            const compact = slides.length > 4;
+            // Compact mode for many slides (week view with 7 days) - only for non-grouped views
+            const compact = slides.length > 4 && !isGrouped;
 
             return (
               <button
@@ -126,6 +212,7 @@ export function CalendarDayViewMobile({
                 className={cn(
                   'flex flex-col items-center transition-colors rounded-lg',
                   compact ? 'px-2 py-1 gap-0 flex-1 min-w-0' : 'px-2.5 py-1 gap-0.5',
+                  isGrouped && 'shrink-0',
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : isDayToday
@@ -161,7 +248,7 @@ export function CalendarDayViewMobile({
       )}
 
       {/* Scrollable time grid with carousel */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" ref={timeGridScrollRef}>
         <div className="flex min-h-[1440px]">
           {/* Sticky time column */}
           <div className="sticky left-0 z-10 bg-card w-12 shrink-0">
@@ -200,7 +287,7 @@ export function CalendarDayViewMobile({
                     >
                       <div
                         className="relative h-full border-r border-border/50"
-                        onClick={(e) => handleSlotClick(slide.day, e)}
+                        onClick={(e) => handleSlotClick(slide.day, slide.column, e)}
                       >
                         <TimeSlotDividers keyPrefix={slide.key} />
                         {slide.events.map((event) => (

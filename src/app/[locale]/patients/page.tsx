@@ -29,6 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,8 +40,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
+import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
@@ -53,6 +56,7 @@ import { UserInvoices } from '@/components/users/user-invoices';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
+import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
@@ -69,7 +73,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -77,7 +81,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
-import { useForm } from 'react-hook-form';
+import { useForm, UseFormReturn } from 'react-hook-form';
 import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
@@ -102,7 +106,10 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   notes: z.string().optional(),
   is_active: z.boolean().default(false),
   mutual_society_id: z.string().optional(),
+  is_dependent: z.boolean().default(false),
+  responsible_contact_id: z.string().nullable().optional(),
 }).refine((data) => {
+  if (data.is_dependent) return true;
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
   return hasEmail || hasPhone;
@@ -116,6 +123,14 @@ type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
 type GetUsersResponse = {
   users: User[];
   total: number;
+};
+
+type DependantContactInfo = {
+  id: string;
+  name: string;
+  address?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
 };
 
 
@@ -144,6 +159,29 @@ function formatBirthDate(dateStr: string | undefined): string {
   }
 
   return dateStr; // Return as is if can't format
+}
+
+function mapApiUser(apiUser: any): User {
+  return {
+    id: String(apiUser.id),
+    name: apiUser.name || '',
+    email: apiUser.email || '',
+    phone_number: apiUser.phone_number || '',
+    is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
+    identity_document: apiUser.identity_document,
+    birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
+    avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
+    total_invoiced: apiUser.total_invoiced,
+    total_paid: apiUser.total_paid,
+    current_debt: apiUser.current_debt,
+    available_balance: apiUser.available_balance,
+    notes: apiUser.notes,
+    mutual_society_id: apiUser.mutual_society_id,
+    mutual_society_name: apiUser.mutual_society_name,
+    is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
+    responsible_contact_id: apiUser.responsible_contact_id ? String(apiUser.responsible_contact_id) : undefined,
+    responsible_contact_name: apiUser.responsible_contact_name || undefined,
+  };
 }
 
 async function getUsers(pagination: PaginationState, searchQuery: string, onlyDebtors: boolean, onlyActive: boolean, dateRange?: DateRange): Promise<GetUsersResponse> {
@@ -188,28 +226,38 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
       total = Number(responseData.total) || usersData.length;
     }
 
-    const mappedUsers = usersData.map((apiUser: any) => ({
-      id: String(apiUser.id),
-      name: apiUser.name || '',
-      email: apiUser.email || '',
-      phone_number: apiUser.phone_number || '',
-      is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-      identity_document: apiUser.identity_document,
-      birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
-      avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-      total_invoiced: apiUser.total_invoiced,
-      total_paid: apiUser.total_paid,
-      current_debt: apiUser.current_debt,
-      available_balance: apiUser.available_balance,
-      notes: apiUser.notes,
-      mutual_society_id: apiUser.mutual_society_id,
-      mutual_society_name: apiUser.mutual_society_name,
-    }));
+    const mappedUsers = usersData.map(mapApiUser);
 
     return { users: mappedUsers, total };
   } catch (error) {
     console.error("Failed to fetch users:", error);
     return { users: [], total: 0 };
+  }
+}
+
+async function searchGuardianPatients(searchQuery: string, currentUserId?: string): Promise<User[]> {
+  try {
+    const responseData = await api.get(API_ROUTES.USERS, { search: searchQuery, filter_type: 'PACIENTE' });
+
+    let usersData = [];
+
+    if (Array.isArray(responseData) && responseData.length > 0) {
+      const firstElement = responseData[0];
+      if (firstElement.json && typeof firstElement.json === 'object') {
+        usersData = firstElement.json.data || [];
+      } else if (firstElement.data) {
+        usersData = firstElement.data;
+      }
+    } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
+      usersData = responseData.data;
+    }
+
+    return usersData
+      .map(mapApiUser)
+      .filter((user: User) => user.id !== currentUserId && !user.is_dependent);
+  } catch (error) {
+    console.error('Failed to search guardian patients:', error);
+    return [];
   }
 }
 
@@ -241,9 +289,45 @@ async function fetchDoctorsForAppt(): Promise<User[]> {
   } catch { return []; }
 }
 
+async function getDependantContactInfo(userId: string): Promise<DependantContactInfo | null> {
+  try {
+    const responseData = await api.get(API_ROUTES.USER_DEPENDANT, { user_id: userId });
+
+    let dependantData: any[] = [];
+    if (Array.isArray(responseData)) {
+      dependantData = responseData;
+    } else if (responseData?.data && Array.isArray(responseData.data)) {
+      dependantData = responseData.data;
+    }
+
+    const dependant = dependantData[0];
+    if (!dependant) return null;
+
+    return {
+      id: String(dependant.id),
+      name: dependant.name || '',
+      address: dependant.address ?? null,
+      email: dependant.email ?? null,
+      phone_number: dependant.phone_number ?? null,
+    };
+  } catch (error) {
+    console.error('Failed to fetch dependant contact info:', error);
+    return null;
+  }
+}
+
 
 async function upsertUser(userData: UserFormValues) {
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, filter_type: 'PACIENTE', is_sales: true });
+  const payload = {
+    ...userData,
+    mutual_society_id: userData.mutual_society_id && userData.mutual_society_id !== 'none'
+      ? userData.mutual_society_id
+      : null,
+    responsible_contact_id: userData.responsible_contact_id || null,
+    filter_type: 'PACIENTE',
+    is_sales: true,
+  };
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload);
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -420,6 +504,142 @@ const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) =>
   );
 };
 
+const ResponsibleContactField = ({
+  form,
+  currentUserId,
+  initialDisplayName,
+  onDisplayNameChange,
+}: {
+  form: UseFormReturn<UserFormValues>;
+  currentUserId?: string;
+  initialDisplayName?: string;
+  onDisplayNameChange?: (name: string) => void;
+}) => {
+  const t = useTranslations();
+  const [guardianSearchQuery, setGuardianSearchQuery] = React.useState('');
+  const [guardianSearchResults, setGuardianSearchResults] = React.useState<User[]>([]);
+  const [isSearchingGuardians, setIsSearchingGuardians] = React.useState(false);
+  const [isGuardianSearchOpen, setIsGuardianSearchOpen] = React.useState(false);
+  const [guardianDisplayName, setGuardianDisplayName] = React.useState(initialDisplayName || '');
+
+  React.useEffect(() => {
+    setGuardianDisplayName(initialDisplayName || '');
+  }, [initialDisplayName, currentUserId]);
+
+  React.useEffect(() => {
+    onDisplayNameChange?.(guardianDisplayName);
+  }, [guardianDisplayName, onDisplayNameChange]);
+
+  React.useEffect(() => {
+    const handler = setTimeout(async () => {
+      if (!isGuardianSearchOpen) {
+        setGuardianSearchResults([]);
+        return;
+      }
+
+      setIsSearchingGuardians(true);
+      const results = await searchGuardianPatients(guardianSearchQuery, currentUserId);
+      setGuardianSearchResults(results);
+      setIsSearchingGuardians(false);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [guardianSearchQuery, currentUserId, isGuardianSearchOpen]);
+
+  return (
+    <FormField
+      control={form.control}
+      name="responsible_contact_id"
+      render={({ field }) => (
+        <FormItem>
+          <div className="flex items-center justify-between gap-3">
+            <FormLabel>{t('UsersPage.createDialog.responsibleContact')}</FormLabel>
+            {field.value && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto px-2 py-1 text-xs"
+                onClick={() => {
+                  field.onChange(null);
+                  setGuardianDisplayName('');
+                }}
+              >
+                {t('UsersPage.createDialog.clearResponsibleContact')}
+              </Button>
+            )}
+          </div>
+          <Popover
+            open={isGuardianSearchOpen}
+            onOpenChange={(open) => {
+              setIsGuardianSearchOpen(open);
+              if (!open) {
+                setGuardianSearchQuery('');
+              }
+            }}
+          >
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  type="button"
+                  variant="outline"
+                  role="combobox"
+                  className="w-full justify-between"
+                >
+                  <span className="truncate">
+                    {guardianDisplayName || t('UsersPage.createDialog.responsibleContactPlaceholder')}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <Command shouldFilter={false}>
+                <CommandInput
+                  placeholder={t('UsersPage.createDialog.searchGuardianPlaceholder')}
+                  value={guardianSearchQuery}
+                  onValueChange={setGuardianSearchQuery}
+                />
+                <CommandList>
+                  <CommandEmpty>{t('UsersPage.createDialog.noGuardianResults')}</CommandEmpty>
+                  <CommandGroup>
+                    {isSearchingGuardians ? (
+                      <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>{t('UsersPage.createDialog.searchGuardianPlaceholder')}</span>
+                      </div>
+                    ) : null}
+                    {guardianSearchResults.map((guardian) => (
+                      <CommandItem
+                        key={guardian.id}
+                        value={`${guardian.name} ${guardian.email} ${guardian.phone_number}`}
+                        onSelect={() => {
+                          field.onChange(guardian.id);
+                          setGuardianDisplayName(guardian.name);
+                          setIsGuardianSearchOpen(false);
+                        }}
+                      >
+                        <Check className={cn('mr-2 h-4 w-4', field.value === guardian.id ? 'opacity-100' : 'opacity-0')} />
+                        <div className="min-w-0">
+                          <div className="truncate">{guardian.name}</div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {guardian.email || guardian.phone_number || guardian.identity_document || guardian.id}
+                          </div>
+                        </div>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+};
+
 const UserInfoTab = ({
   user,
   mutualSocieties,
@@ -433,6 +653,7 @@ const UserInfoTab = ({
   const { toast } = useToast();
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  const [responsibleContactName, setResponsibleContactName] = React.useState(user.responsible_contact_name || '');
 
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
@@ -446,8 +667,11 @@ const UserInfoTab = ({
       notes: user.notes || '',
       is_active: user.is_active,
       mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
+      is_dependent: user.is_dependent ?? false,
+      responsible_contact_id: user.responsible_contact_id || null,
     },
   });
+  const isDependent = infoForm.watch('is_dependent');
 
   React.useEffect(() => {
     infoForm.reset({
@@ -460,9 +684,39 @@ const UserInfoTab = ({
       notes: user.notes || '',
       is_active: user.is_active,
       mutual_society_id: user.mutual_society_id ? String(user.mutual_society_id) : '',
+      is_dependent: user.is_dependent ?? false,
+      responsible_contact_id: user.responsible_contact_id || null,
     });
+    setResponsibleContactName(user.responsible_contact_name || '');
     setSaveError(null);
-  }, [user.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [infoForm, user]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadResponsibleContactName = async () => {
+      if (!user.is_dependent || user.responsible_contact_name || !user.responsible_contact_id) {
+        return;
+      }
+
+      const contactInfo = await getDependantContactInfo(user.id);
+      if (!cancelled && contactInfo?.name) {
+        setResponsibleContactName(contactInfo.name);
+      }
+    };
+
+    loadResponsibleContactName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id, user.is_dependent, user.responsible_contact_id, user.responsible_contact_name]);
+
+  React.useEffect(() => {
+    if (!isDependent && infoForm.getValues('responsible_contact_id') !== null) {
+      infoForm.setValue('responsible_contact_id', null);
+    }
+  }, [infoForm, isDependent]);
 
   const handleSave = async (data: UserFormValues) => {
     setIsSaving(true);
@@ -473,7 +727,20 @@ const UserInfoTab = ({
         title: t('UsersPage.createDialog.editSuccessTitle'),
         description: t('UsersPage.createDialog.editSuccessDescription'),
       });
-      onSaved({ ...user, name: data.name, email: data.email || '', phone_number: data.phone || user.phone_number, identity_document: data.identity_document, birth_date: data.birth_date, notes: data.notes, is_active: data.is_active, mutual_society_id: data.mutual_society_id });
+      onSaved({
+        ...user,
+        name: data.name,
+        email: data.email || '',
+        phone_number: data.phone || '',
+        identity_document: data.identity_document,
+        birth_date: data.birth_date,
+        notes: data.notes,
+        is_active: data.is_active,
+        mutual_society_id: data.mutual_society_id,
+        is_dependent: data.is_dependent,
+        responsible_contact_id: data.responsible_contact_id || undefined,
+        responsible_contact_name: data.is_dependent ? responsibleContactName || undefined : undefined,
+      });
     } catch (e: any) {
       setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
     } finally {
@@ -547,6 +814,20 @@ const UserInfoTab = ({
               <FormMessage />
             </FormItem>
           )} />
+          <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+              <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
+            </FormItem>
+          )} />
+          {isDependent ? (
+            <ResponsibleContactField
+              form={infoForm}
+              currentUserId={user.id}
+              initialDisplayName={responsibleContactName}
+              onDisplayNameChange={setResponsibleContactName}
+            />
+          ) : null}
           <FormField control={infoForm.control} name="is_active" render={({ field }) => (
             <FormItem className="flex flex-row items-center space-x-3 space-y-0">
               <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -694,6 +975,7 @@ export default function UsersPage() {
   const [isLoadingFinancialData, setIsLoadingFinancialData] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const latestUsersRequestRef = React.useRef(0);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
@@ -751,15 +1033,22 @@ export default function UsersPage() {
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
   const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+  const [dependantContactInfo, setDependantContactInfo] = React.useState<DependantContactInfo | null>(null);
   const [apptCalendars, setApptCalendars] = React.useState<CalendarType[]>([]);
   const [apptDoctors, setApptDoctors] = React.useState<User[]>([]);
   const [apptDoctorServiceMap, setApptDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
-  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
-  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
+  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
+  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
   const [isLoadingApptData, setIsLoadingApptData] = React.useState(false);
   const apptDataLoaded = React.useRef(false);
   const router = useRouter();
   const locale = useLocale();
+  const effectivePatientEmail = selectedUser?.is_dependent
+    ? dependantContactInfo?.email || selectedUser.email
+    : selectedUser?.email;
+  const effectivePatientPhone = selectedUser?.is_dependent
+    ? dependantContactInfo?.phone_number || selectedUser.phone_number
+    : selectedUser?.phone_number;
 
   const loadMutualSocieties = React.useCallback(async () => {
     setIsLoadingMutualSocieties(true);
@@ -772,20 +1061,16 @@ export default function UsersPage() {
     if (apptDataLoaded.current) return;
     setIsLoadingApptData(true);
     try {
-      const [calendars, doctors, services, config] = await Promise.all([
+      const [calendars, doctors, services, calendarSettings] = await Promise.all([
         fetchCalendarsForAppt(),
         fetchDoctorsForAppt(),
         getSalesServices({ limit: 100 }).then(r => r.items.map((s: any) => ({ ...s, id: String(s.id) }))).catch(() => [] as Service[]),
-        api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => []),
+        getCalendarSettings(),
       ]);
       setApptCalendars(calendars);
       setApptDoctors(doctors);
-      if (Array.isArray(config)) {
-        const calCfg = config.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
-        const docCfg = config.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
-        if (calCfg) setCheckCalendarAvailability(String(calCfg.value).toLowerCase() === 'true');
-        if (docCfg) setCheckDoctorAvailability(String(docCfg.value).toLowerCase() === 'true');
-      }
+      setCheckCalendarAvailability(calendarSettings.check_availability);
+      setCheckDoctorAvailability(calendarSettings.filter_doctors_by_service);
       const doctorIds = doctors.map(d => d.id).filter(Boolean);
       const serviceMap = await getUsersServicesBatch(doctorIds);
       setApptDoctorServiceMap(serviceMap);
@@ -908,13 +1193,51 @@ export default function UsersPage() {
       birth_date: '',
       notes: '',
       is_active: true,
+      mutual_society_id: '',
+      is_dependent: false,
+      responsible_contact_id: null,
     },
   });
+  const isDependent = form.watch('is_dependent');
+  const [selectedGuardianDisplayName, setSelectedGuardianDisplayName] = React.useState('');
+
+  React.useEffect(() => {
+    if (!isDependent && form.getValues('responsible_contact_id') !== null) {
+      form.setValue('responsible_contact_id', null);
+      setSelectedGuardianDisplayName('');
+    }
+  }, [form, isDependent]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadEditingGuardianName = async () => {
+      if (!editingUser?.is_dependent || editingUser.responsible_contact_name || !editingUser.responsible_contact_id) {
+        return;
+      }
+
+      const contactInfo = await getDependantContactInfo(editingUser.id);
+      if (!cancelled && contactInfo?.name) {
+        setSelectedGuardianDisplayName(contactInfo.name);
+      }
+    };
+
+    loadEditingGuardianName();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingUser]);
 
   const loadUsers = React.useCallback(async () => {
+    const requestId = latestUsersRequestRef.current + 1;
+    latestUsersRequestRef.current = requestId;
     setIsRefreshing(true);
     const searchQuery = (columnFilters.find(f => f.id === 'email')?.value as string) || '';
     const { users: fetchedUsers, total } = await getUsers(pagination, searchQuery, showDebtors, showOnlyActive, date);
+    if (latestUsersRequestRef.current !== requestId) {
+      return;
+    }
     setUsers(fetchedUsers);
     setUserCount(total);
     setIsRefreshing(false);
@@ -1027,6 +1350,28 @@ export default function UsersPage() {
     return () => clearTimeout(debounce);
   }, [loadUsers]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadDependantContact = async () => {
+      if (!selectedUser?.is_dependent) {
+        setDependantContactInfo(null);
+        return;
+      }
+
+      const contactInfo = await getDependantContactInfo(selectedUser.id);
+      if (!cancelled) {
+        setDependantContactInfo(contactInfo);
+      }
+    };
+
+    loadDependantContact();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedUser?.id, selectedUser?.is_dependent]);
+
   const handleToggleActivate = async (user: User) => {
     try {
       await api.put(API_ROUTES.USERS_ACTIVATE, {
@@ -1108,7 +1453,10 @@ export default function UsersPage() {
       notes: '',
       is_active: true,
       mutual_society_id: '',
+      is_dependent: false,
+      responsible_contact_id: null,
     });
+    setSelectedGuardianDisplayName('');
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
@@ -1126,7 +1474,10 @@ export default function UsersPage() {
       notes: user.notes || '',
       is_active: user.is_active,
       mutual_society_id: user.mutual_society_id?.toString() || '',
+      is_dependent: user.is_dependent ?? false,
+      responsible_contact_id: user.responsible_contact_id || null,
     });
+    setSelectedGuardianDisplayName(user.responsible_contact_name || '');
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
@@ -1236,6 +1587,9 @@ export default function UsersPage() {
         birth_date: selectedUser.birth_date || '',
         notes,
         is_active: selectedUser.is_active,
+        mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
+        is_dependent: selectedUser.is_dependent ?? false,
+        responsible_contact_id: selectedUser.responsible_contact_id || null,
       });
 
       setSelectedUser(updatedUserData);
@@ -1279,6 +1633,22 @@ export default function UsersPage() {
         title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
         description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
       });
+      if (selectedUser && savedUserId === selectedUser.id) {
+        setSelectedUser({
+          ...selectedUser,
+          name: data.name,
+          email: data.email || '',
+          phone_number: data.phone || '',
+          identity_document: data.identity_document,
+          birth_date: data.birth_date,
+          notes: data.notes,
+          is_active: data.is_active,
+          mutual_society_id: data.mutual_society_id,
+          is_dependent: data.is_dependent,
+          responsible_contact_id: data.responsible_contact_id || undefined,
+          responsible_contact_name: data.is_dependent ? selectedGuardianDisplayName || undefined : undefined,
+        });
+      }
       setIsDialogOpen(false);
       loadUsers();
 
@@ -1350,7 +1720,6 @@ export default function UsersPage() {
       'Anamnesis': 'anamnesis',
       'Timeline': 'timeline',
       'Linea-de-Tiempo': 'timeline',
-      'Odontograma': 'odontogram',
       'Documentos': 'documents',
     },
     onFilter: (value) => {
@@ -1572,19 +1941,19 @@ export default function UsersPage() {
                         </DropdownMenu>
 
                         {/* Email */}
-                        {selectedUser.email && (
+                        {effectivePatientEmail && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                                 <Mail className="h-4 w-4" />
                               </button>
                             </TooltipTrigger>
-                            <TooltipContent>{selectedUser.email}</TooltipContent>
+                            <TooltipContent>{effectivePatientEmail}</TooltipContent>
                           </Tooltip>
                         )}
 
                         {/* WhatsApp */}
-                        {selectedUser.phone_number && (
+                        {effectivePatientPhone && (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <button
@@ -1595,7 +1964,7 @@ export default function UsersPage() {
                                 <WhatsAppIcon className="h-4 w-4" />
                               </button>
                             </TooltipTrigger>
-                            <TooltipContent>{selectedUser.phone_number}</TooltipContent>
+                            <TooltipContent>{effectivePatientPhone}</TooltipContent>
                           </Tooltip>
                         )}
 
@@ -1695,6 +2064,26 @@ export default function UsersPage() {
                         {selectedUser.identity_document}
                       </span>
                     )}
+                    {selectedUser.is_dependent && (
+                      <Badge variant="secondary" className="gap-1 text-xs font-normal">
+                        <Users className="h-3 w-3" />
+                        {selectedUser.responsible_contact_name || dependantContactInfo?.name
+                          ? t('UsersPage.dependentOf', { name: selectedUser.responsible_contact_name || dependantContactInfo?.name })
+                          : t('UsersPage.dependentPatient')}
+                      </Badge>
+                    )}
+                    {selectedUser.is_dependent && effectivePatientEmail ? (
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {effectivePatientEmail}
+                      </span>
+                    ) : null}
+                    {selectedUser.is_dependent && effectivePatientPhone ? (
+                      <span className="flex items-center gap-1">
+                        <WhatsAppIcon className="h-3 w-3" />
+                        {effectivePatientPhone}
+                      </span>
+                    ) : null}
                     {currentDischarge && (
                       <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 gap-1 text-xs font-normal">
                         <CheckCircle className="h-3 w-3" />
@@ -1754,6 +2143,7 @@ export default function UsersPage() {
                             { id: 'info', icon: Users, label: 'Información' },
                             ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
                             { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
+                            { id: 'medical-record', icon: ToothIcon, label: t('UsersPage.tabs.medicalRecord') },
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
                             // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
@@ -1870,6 +2260,12 @@ export default function UsersPage() {
                                 setEditSessionId(sesionId);
                                 setActiveTab('clinical-history');
                               }}
+                            />
+                          )}
+                          {activeTab === 'medical-record' && (
+                            <DentalRecordViewer
+                              patientId={selectedUser.id}
+                              patientName={selectedUser.name}
                             />
                           )}
                           {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}
@@ -2021,6 +2417,26 @@ export default function UsersPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="is_dependent"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                      <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
+                    </FormItem>
+                  )}
+                />
+                {isDependent ? (
+                  <ResponsibleContactField
+                    form={form}
+                    currentUserId={editingUser?.id}
+                    initialDisplayName={selectedGuardianDisplayName}
+                    onDisplayNameChange={setSelectedGuardianDisplayName}
+                  />
+                ) : null}
                 <FormField
                   control={form.control}
                   name="is_active"
@@ -2244,7 +2660,7 @@ export default function UsersPage() {
         <EmailComposerDialog
           open={isEmailDialogOpen}
           onOpenChange={setIsEmailDialogOpen}
-          to={selectedUser.email || ''}
+          to={effectivePatientEmail || ''}
           userId={selectedUser.id}
           recipientName={selectedUser.name}
         />
@@ -2254,7 +2670,7 @@ export default function UsersPage() {
         <WhatsAppComposerDialog
           open={isWhatsAppDialogOpen}
           onOpenChange={setIsWhatsAppDialogOpen}
-          phone={selectedUser.phone_number || ''}
+          phone={effectivePatientPhone || ''}
           recipientName={selectedUser.name}
         />
       )}

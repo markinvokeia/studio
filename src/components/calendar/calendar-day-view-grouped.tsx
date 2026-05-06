@@ -1,15 +1,15 @@
 'use client';
 
+import React from 'react';
 import { cn } from '@/lib/utils';
 
 import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
 
-import { GROUPED_COLUMN_MIN_WIDTH, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
-import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarView } from './calendar-types';
+import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
+import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
 import {
   filterEventsByDayAndGroup,
-  generateTimeSlots,
   getEventStyle,
   getEventsWithLayout,
 } from './calendar-utils';
@@ -31,7 +31,7 @@ interface CalendarDayViewGroupedProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarDayViewGrouped({
@@ -52,7 +52,6 @@ export function CalendarDayViewGrouped({
 }: CalendarDayViewGroupedProps) {
   const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
   const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
-  const timeSlots = generateTimeSlots();
 
   const columns = groupingColumns;
   const isTablet = breakpoint === 'tablet';
@@ -66,7 +65,14 @@ export function CalendarDayViewGrouped({
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * 60;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  const handleSlotClick = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = DEFAULT_SCROLL_HOUR * HOUR_SLOT_HEIGHT;
+    }
+  }, []);
+
+  const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -74,12 +80,13 @@ export function CalendarDayViewGrouped({
       const hour = Math.floor(y / 60);
       const minute = Math.floor((y % 60) / 15) * 15;
       const clickedDate = set(day, { hours: hour, minutes: minute, seconds: 0, milliseconds: 0 });
-      onSlotClick(clickedDate);
+      const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
+      onSlotClick(clickedDate, context);
     }
   };
 
   return (
-    <div className="day-view-container">
+    <div className="day-view-container" ref={scrollContainerRef}>
       <div
         className="day-view-scroll-content"
         style={{ minWidth: contentMinWidth }}
@@ -149,7 +156,7 @@ export function CalendarDayViewGrouped({
                   <div
                     key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
                     className="day-column"
-                    onClick={(e) => handleSlotClick(day, e)}
+                    onClick={(e) => handleSlotClick(day, col, e)}
                   >
                     <TimeSlotDividers keyPrefix={col.id} />
                     {eventsWithLayout.map((event) => (

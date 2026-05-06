@@ -42,6 +42,8 @@ const DATE_VARIABLES: DateVariable[] = [
   { id: 'DOW', label: 'Day of Week', value: '{{DOW}}', description: 'Compare day of the week only (1=Monday-7=Sunday)' },
 ];
 
+const DATE_VARIABLE_PATTERN = /^\{\{([A-Z_]+)([+-]\d+)?\}\}$/;
+
 export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   value,
   onChange,
@@ -49,15 +51,20 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   placeholder,
   className
 }) => {
+  const [quickVariableValue, setQuickVariableValue] = React.useState<string>('');
+
+  const parseDateVariable = (val: string) => {
+    const match = val.match(DATE_VARIABLE_PATTERN);
+    if (!match) return null;
+
+    return {
+      base: match[1],
+      days: match[2] ? parseInt(match[2], 10) : 0
+    };
+  };
+
   const isVariableValue = (val: string) => {
-    return DATE_VARIABLES.some(v => v.value === val) ||
-           val.match(/\{\{.*\}\}/) ||
-           val.startsWith('{{TODAY') ||
-           val.startsWith('{{WEEK_') ||
-           val.startsWith('{{MONTH_') ||
-           val.startsWith('{{YEAR_') ||
-           val.startsWith('{{TODAY_NO_YEAR') ||
-           val.startsWith('{{DOW');
+    return !!parseDateVariable(val);
   };
 
   const getInitialTab = () => {
@@ -70,14 +77,9 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
 
   const [activeTab, setActiveTab] = React.useState<'date' | 'variable'>(getInitialTab);
   const getInitialCustom = () => {
-    if (value && value.match(/\{\{([A-Z_]+)([+-]\d+)?\}\}/)) {
-      const match = value.match(/\{\{([A-Z_]+)([+-]\d+)?\}\}/);
-      if (match) {
-        return {
-          base: match[1],
-          days: match[2] ? parseInt(match[2]) : 0
-        };
-      }
+    const parsedVariable = value ? parseDateVariable(value) : null;
+    if (parsedVariable) {
+      return parsedVariable;
     }
     return { base: 'TODAY', days: 0 };
   };
@@ -86,10 +88,7 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   const [customDays, setCustomDays] = React.useState(initialCustom.days);
   const [selectedBase, setSelectedBase] = React.useState<string>(initialCustom.base);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(() => {
-    if (value && !value.match(/\{\{.*\}\}/) &&
-        !value.startsWith('{{TODAY') && !value.startsWith('{{WEEK_') &&
-        !value.startsWith('{{MONTH_') && !value.startsWith('{{YEAR_') &&
-        !value.startsWith('{{TODAY_NO_YEAR') && !value.startsWith('{{DOW')) {
+    if (value && !parseDateVariable(value)) {
       const date = new Date(value);
       return isNaN(date.getTime()) ? undefined : date;
     }
@@ -97,13 +96,81 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   });
 
   React.useEffect(() => {
-    setActiveTab(getInitialTab());
-    const custom = getInitialCustom();
+    const nextActiveTab = value && parseDateVariable(value) ? 'variable' : 'date';
+    setActiveTab(nextActiveTab);
+
+    const parsedVariable = value ? parseDateVariable(value) : null;
+    const custom = parsedVariable ?? { base: 'TODAY', days: 0 };
     setSelectedBase(custom.base);
     setCustomDays(custom.days);
+    if (!parsedVariable && value) {
+      const nextDate = new Date(value);
+      setSelectedDate(isNaN(nextDate.getTime()) ? undefined : nextDate);
+    } else if (parsedVariable) {
+      setSelectedDate(undefined);
+    }
   }, [value]);
 
   const t = useTranslations('DateVariableInput');
+
+  const appendVariableToken = React.useCallback((token: string) => {
+    if (operator === 'BETWEEN') {
+      if (!value.trim()) {
+        onChange(token);
+        return;
+      }
+
+      if (!/\s+AND\s+/i.test(value)) {
+        onChange(`${value.trim()} AND ${token}`);
+        return;
+      }
+
+      onChange(`${value.trim()} ${token}`);
+      return;
+    }
+
+    if (operator === 'IN' || operator === 'NOT IN') {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        onChange(token);
+        return;
+      }
+
+      const separator = trimmed.endsWith(',') ? ' ' : ', ';
+      onChange(`${trimmed}${separator}${token}`);
+      return;
+    }
+
+    onChange(token);
+  }, [onChange, operator, value]);
+
+  const renderQuickVariablePicker = () => (
+    <div className="space-y-1">
+      <label className="text-xs font-medium text-gray-700">{t('chooseDateVariable')}</label>
+      <Select
+        value={quickVariableValue}
+        onValueChange={(selectedValue) => {
+          setQuickVariableValue(selectedValue);
+          appendVariableToken(selectedValue);
+          setTimeout(() => setQuickVariableValue(''), 0);
+        }}
+      >
+        <SelectTrigger className="h-9 w-full">
+          <SelectValue placeholder={t('chooseVariable')} />
+        </SelectTrigger>
+        <SelectContent>
+          {DATE_VARIABLES.map(variable => (
+            <SelectItem key={variable.id} value={variable.value}>
+              <div className="flex flex-col items-start gap-0.5">
+                <span className="font-medium text-sm">{variable.label}</span>
+                <span className="text-xs text-gray-500 font-mono">{variable.value}</span>
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   // Don't show input for IS NULL and IS NOT NULL operators
   if (operator === 'IS NULL' || operator === 'IS NOT NULL') {
@@ -114,6 +181,7 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   if (operator === 'IN' || operator === 'NOT IN') {
     return (
       <div className="space-y-2">
+        {renderQuickVariablePicker()}
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -131,6 +199,7 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
   if (operator === 'BETWEEN') {
     return (
       <div className="space-y-2">
+        {renderQuickVariablePicker()}
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -173,6 +242,9 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
    };
 
    const getBaseDisplay = (base: string) => {
+    const exactVariable = DATE_VARIABLES.find(variable => variable.id === base);
+    if (exactVariable) return exactVariable.label;
+
     switch (base) {
       case 'TODAY': return 'Today';
       case 'WEEK_START': return 'Week Start';
@@ -191,14 +263,11 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
     const variable = DATE_VARIABLES.find(v => v.value === value);
     if (variable) return variable.label;
 
-    // Handle {{BASE+n}} format
-    const match = value.match(/\{\{([^+]+)([+-]\d+)?\}\}/);
-    if (match) {
-      const base = match[1];
-      const days = match[2] ? parseInt(match[2]) : 0;
-      const baseDisplay = getBaseDisplay(base);
-      if (days === 0) return baseDisplay;
-      return `${days > 0 ? '+' : ''}${days} days from ${baseDisplay.toLowerCase()}`;
+    const parsedVariable = parseDateVariable(value);
+    if (parsedVariable) {
+      const baseDisplay = getBaseDisplay(parsedVariable.base);
+      if (parsedVariable.days === 0) return baseDisplay;
+      return `${parsedVariable.days > 0 ? '+' : ''}${parsedVariable.days} days from ${baseDisplay.toLowerCase()}`;
     }
 
     return value;
@@ -247,14 +316,18 @@ export const DateVariableInput: React.FC<DateVariableInputProps> = ({
             <div className="space-y-1">
               <label className="text-xs font-medium text-gray-700">{t('chooseDateVariable')}</label>
               <Select value={(() => {
-              if (value && isVariableValue(value)) {
-                const match = value.match(/\{\{([^+]+)([+-]\d+)?\}\}/);
-                if (match) {
-                  return `{{${match[1]}}}`;
+                if (!value || !isVariableValue(value)) {
+                  return '';
                 }
-              }
-              return '';
-            })()} onValueChange={handleVariableSelect}>
+
+                const exactVariable = DATE_VARIABLES.find(variable => variable.value === value);
+                if (exactVariable) {
+                  return exactVariable.value;
+                }
+
+                const parsedVariable = parseDateVariable(value);
+                return parsedVariable ? `{{${parsedVariable.base}}}` : '';
+              })()} onValueChange={handleVariableSelect}>
                 <SelectTrigger className="w-full h-9">
                   <SelectValue placeholder={t('chooseVariable')} className="text-sm">
                   {value && isVariableValue(value) && (

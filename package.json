@@ -9,7 +9,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "db:setup": "./db-manager.sh setup",
+    "db:baseline": "./db-manager.sh init-baseline",
+    "db:snapshot": "./db-manager.sh snapshot",
+    "db:migrate": "./db-manager.sh deploy",
+    "db:rollback": "./db-manager.sh rollback",
+    "db:sync": "./db-manager.sh sync"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
@@ -58,6 +67,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.54.2",
+    "react-odontogram": "^0.5.5",
     "react-phone-number-input": "^3.4.4",
     "react-resizable-panels": "^4.4.1",
     "recharts": "^2.15.1",
@@ -66,6 +76,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

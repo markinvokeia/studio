@@ -23,6 +23,9 @@ export type User = {
   bank_account?: string;
   mutual_society_id?: string | number;
   mutual_society_name?: string;
+  is_dependent?: boolean;
+  responsible_contact_id?: string;
+  responsible_contact_name?: string;
 };
 
 export type CurrencyFinancialData = {
@@ -150,6 +153,10 @@ export type Quote = {
   exchange_rate?: number;
   created_by?: string;
   updated_by?: string;
+  amount_invoiced?: number;
+  amount_pending_invoice?: number;
+  amount_paid?: number;
+  amount_pending_payment?: number;
 };
 
 export type QuoteItem = {
@@ -235,6 +242,9 @@ export type InvoiceItem = {
   quantity: number;
   unit_price: number;
   total: number;
+  quote_item_id?: string | number;
+  step_id?: string;
+  steps?: string;
 };
 
 export type Payment = {
@@ -541,6 +551,15 @@ export type AppointmentAttendanceRate = {
   value: number;
   change: number;
   changeType: KpiChangeType;
+};
+
+export type CalendarSettings = {
+  id?: string;
+  user_id?: string;
+  default_view: string;
+  grouped_by: string;
+  check_availability: boolean;
+  filter_doctors_by_service: boolean;
 };
 
 export type Calendar = {
@@ -1189,4 +1208,103 @@ export type QuoteClinicSession = {
   quote_id: number;
   paciente_nombre: string;
   doctor_nombre: string | null;
+};
+
+// ──── Dental Record (Expediente Médico) ────
+
+export type ToothConditionType =
+  | 'healthy' | 'caries' | 'filling' | 'crown' | 'missing'
+  | 'implant' | 'root_canal' | 'bridge' | 'impacted' | 'extracted';
+
+export type ToothCondition = {
+  toothId: string;
+  condition: ToothConditionType;
+  surfaces?: ('occlusal' | 'mesial' | 'distal' | 'buccal' | 'lingual')[];
+  color?: string;
+  notes?: string;
+};
+
+export type SixPointMeasure = { MB: number; B: number; DB: number; ML: number; L: number; DL: number };
+export type SixPointBool = { MB: boolean; B: boolean; DB: boolean; ML: boolean; L: boolean; DL: boolean };
+
+export type ToothPerioData = {
+  toothId: string;
+  missing?: boolean;
+  implant?: boolean;
+  probing: SixPointMeasure;
+  recession: SixPointMeasure;
+  bleeding: SixPointBool;
+  suppuration: SixPointBool;
+  mobility: 0 | 1 | 2 | 3;
+  furcation: 0 | 1 | 2 | 3;
+};
+
+export type DentalRecordSession = {
+  id: string;
+  patient_id: string;
+  date: string;
+  label?: string;
+  doctor_id?: string;
+  doctor_name?: string;
+  odontogram: ToothCondition[];
+  periodontogram: ToothPerioData[];
+  notes?: string;
+  created_at: string;
+};
+
+// ──── Odontogram (interactive, session-based) ────
+
+/** All possible conditions that can be applied to a tooth or surface */
+export type OdontogramCondition =
+  // Surface conditions (apply per face)
+  | 'healthy' | 'caries' | 'filling' | 'pulp' | 'dyschromic' | 'worn'
+  // Whole-tooth conditions
+  | 'crown' | 'crown-tmp' | 'missing' | 'root-remnant' | 'prosthesis'
+  | 'fixed-prosth' | 'implant' | 'edentulism' | 'endodontics'
+  // Overlay conditions (stack on top)
+  | 'fracture' | 'diastema' | 'rem-prost' | 'drifting' | 'rotation'
+  | 'fusion' | 'eruption' | 'transposition' | 'supernumerary' | 'bolt'
+  | 'fixed-ortho' | 'macrodontia' | 'microdontia' | 'impacted-semi'
+  | 'intrusion' | 'ectopic' | 'impacted' | 'rem-orthodo' | 'extrusion' | 'post';
+
+/** 5 surfaces of a tooth */
+export type OdontogramSurface = 'center' | 'top' | 'bottom' | 'left' | 'right';
+
+export type OdontogramToothState = {
+  /** Oclusal / Incisal surface */
+  center?: OdontogramCondition;
+  /** Vestibular surface */
+  top?: OdontogramCondition;
+  /** Lingual / Palatino surface */
+  bottom?: OdontogramCondition;
+  /** Mesial surface */
+  left?: OdontogramCondition;
+  /** Distal surface */
+  right?: OdontogramCondition;
+  /** Condition affecting the whole tooth (corona, ausente, etc.) */
+  whole?: OdontogramCondition;
+  /** Stacked overlays (fractura, ortodoncia, etc.) */
+  overlays?: OdontogramCondition[];
+};
+
+/** Keyed by FDI tooth ID string (e.g. "16", "48") */
+export type OdontogramState = {
+  [toothId: string]: OdontogramToothState;
+};
+
+export type OdontogramAttachment = {
+  diente_asociado: number | null;
+  ruta: string;
+  thumbnail?: string;
+  tipo: string;
+};
+
+export type OdontogramSnapshot = {
+  date: string;          // ISO date string (YYYY-MM-DD) for storage
+  description: string;   // Session title
+  state: OdontogramState;
+  notes?: string;
+  doctorId?: string;
+  doctorName?: string;
+  archivosAdjuntos?: OdontogramAttachment[];
 };

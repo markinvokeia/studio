@@ -8,14 +8,17 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
+import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
+import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Badge } from '@/components/ui/badge';
+import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { ActionButton } from '@/components/ui/action-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DetailHeader } from '@/components/ui/detail-header';
 import {
@@ -30,6 +33,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import {
     Select,
     SelectContent,
@@ -38,23 +42,24 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
+import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
-import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, FileText, Loader2, Pencil, Receipt, RefreshCw, ShoppingCart, Stethoscope, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -193,6 +198,36 @@ interface QuoteClinicSession {
     doctor_nombre: string | null;
 }
 
+function normalizeQuoteStatus(status: unknown): Quote['status'] {
+    const normalized = String(status || 'draft').toLowerCase();
+    switch (normalized) {
+        case 'draft':
+        case 'sent':
+        case 'accepted':
+        case 'rejected':
+        case 'pending':
+        case 'confirmed':
+            return normalized;
+        default:
+            return 'draft';
+    }
+}
+
+function normalizeQuotePaymentStatus(status: unknown): Quote['payment_status'] {
+    const normalized = String(status || 'unpaid').toLowerCase().trim();
+    switch (normalized) {
+        case 'paid':
+            return 'paid';
+        case 'partially_paid':
+            return 'partially_paid';
+        case 'partial':
+        case 'partially paid':
+            return 'partial';
+        default:
+            return 'unpaid';
+    }
+}
+
 async function getQuoteClinicSessions(quoteId: string): Promise<QuoteClinicSession[]> {
     try {
         const data = await api.get(API_ROUTES.SALES.QUOTE_CLINIC_SESSIONS, { quote_id: quoteId });
@@ -290,16 +325,20 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             id: apiQuote.id ? String(apiQuote.id) : t('defaults.notAvailable'),
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
-            total: apiQuote.total || 0,
-            status: apiQuote.status || 'draft',
-            payment_status: apiQuote.payment_status || 'unpaid',
-            billing_status: apiQuote.billing_status || 'not invoiced',
+            total: Number(apiQuote.total_presupuesto ?? apiQuote.total ?? 0),
+            status: normalizeQuoteStatus(apiQuote.status),
+            payment_status: normalizeQuotePaymentStatus(apiQuote.payment_status),
+            billing_status: String(apiQuote.billing_status || 'not invoiced').toLowerCase(),
             currency: apiQuote.currency || 'UYU',
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
             notes: apiQuote.notes || '',
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
             exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
+            amount_invoiced: Number(apiQuote.monto_facturado ?? apiQuote.amount_invoiced ?? 0),
+            amount_paid: Number(apiQuote.monto_pagado ?? apiQuote.amount_paid ?? 0),
+            amount_pending_invoice: Number(apiQuote.pendiente_facturar ?? apiQuote.amount_pending_invoice ?? 0),
+            amount_pending_payment: Number(apiQuote.pendiente_pago_facturado ?? apiQuote.amount_pending_payment ?? 0),
         }));
     } catch (error) {
         console.error("Failed to fetch quotes:", error);
@@ -439,6 +478,8 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            step_id: apiItem.step_id != null ? String(apiItem.step_id) : undefined,
+            steps: apiItem.steps != null ? String(apiItem.steps) : undefined,
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);
@@ -575,9 +616,11 @@ async function getClinic(): Promise<Clinic | null> {
 export default function QuotesPage() {
     const t = useTranslations('QuotesPage');
     const tRoot = useTranslations();
+    const tInvoiceStatus = useTranslations('InvoicesPage.status');
     const tVal = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { user, activeCashSession } = useAuth();
+    const viewportNarrow = useViewportNarrow();
     const { hasPermission } = usePermissions();
 
     // Permission checks for UI elements (used in this page and child components)
@@ -599,7 +642,7 @@ export default function QuotesPage() {
     const canViewPayments = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_PAYMENTS);
     const canScheduleItem = hasPermission(SALES_PERMISSIONS.ORDERS_SCHEDULE_ITEM);
     const canCompleteItem = hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
-    const canInvoice = hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
+    const canInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
     const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -608,14 +651,16 @@ export default function QuotesPage() {
     const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
     const [orderItems, setOrderItems] = React.useState<OrderItem[]>([]);
     const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
-    const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
-    const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
+    const pendingInvoiceAmount = Number(selectedQuote?.amount_pending_invoice || 0);
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+    const [invoiceRowSelection, setInvoiceRowSelection] = React.useState<RowSelectionState>({});
     const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
 
     const [payments, setPayments] = React.useState<Payment[]>([]);
+    const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
+    const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
     const [quoteAppointments, setQuoteAppointments] = React.useState<QuoteAppointment[]>([]);
     const [quoteClinicSessions, setQuoteClinicSessions] = React.useState<QuoteClinicSession[]>([]);
 
@@ -631,6 +676,7 @@ export default function QuotesPage() {
     const [isLoadingClinicSessions, setIsLoadingClinicSessions] = React.useState(false);
 
     const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
+    const [isQuoteBillingDialogOpen, setIsQuoteBillingDialogOpen] = React.useState(false);
     const [editingQuote, setEditingQuote] = React.useState<Quote | null>(null);
     const [deletingQuote, setDeletingQuote] = React.useState<Quote | null>(null);
     const [isDeleteQuoteDialogOpen, setIsDeleteQuoteDialogOpen] = React.useState(false);
@@ -643,6 +689,8 @@ export default function QuotesPage() {
     const [isDeleteQuoteItemDialogOpen, setIsDeleteQuoteItemDialogOpen] = React.useState(false);
     const [quoteItemSubmissionError, setQuoteItemSubmissionError] = React.useState<string | null>(null);
     const [isSubmittingQuoteItem, setIsSubmittingQuoteItem] = React.useState(false);
+    const [selectedQuoteItem, setSelectedQuoteItem] = React.useState<QuoteItem | null>(null);
+    const [quoteItemRowSelection, setQuoteItemRowSelection] = React.useState<RowSelectionState>({});
 
     const [allUsers, setAllUsers] = React.useState<User[]>([]);
     const [userSearchTerm, setUserSearchTerm] = React.useState('');
@@ -653,7 +701,14 @@ export default function QuotesPage() {
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [isSendingEmail, setIsSendingEmail] = React.useState(false);
+    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
+    const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
+    const [emailRecipients, setEmailRecipients] = React.useState('');
+    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
+    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+    const [activeTab, setActiveTab] = React.useState('items');
+    const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
     const [isConfirmQuoteDialogOpen, setIsConfirmQuoteDialogOpen] = React.useState(false);
     const [confirmingQuote, setConfirmingQuote] = React.useState<Quote | null>(null);
@@ -693,6 +748,22 @@ export default function QuotesPage() {
     React.useEffect(() => {
         loadQuotes();
     }, [loadQuotes]);
+
+    React.useEffect(() => {
+        if (!selectedQuote) return;
+
+        const refreshedSelectedQuote = quotes.find((quote) => quote.id === selectedQuote.id) || null;
+
+        if (!refreshedSelectedQuote) {
+            setSelectedQuote(null);
+            setRowSelection({});
+            return;
+        }
+
+        if (refreshedSelectedQuote !== selectedQuote) {
+            setSelectedQuote(refreshedSelectedQuote);
+        }
+    }, [quotes, selectedQuote]);
 
     React.useEffect(() => {
         getClinic().then(setClinic);
@@ -772,6 +843,12 @@ export default function QuotesPage() {
             setQuoteAppointments([]);
             setQuoteClinicSessions([]);
         }
+        setSelectedInvoice(null);
+        setInvoiceRowSelection({});
+        setSelectedPayment(null);
+        setPaymentRowSelection({});
+        setSelectedQuoteItem(null);
+        setQuoteItemRowSelection({});
     }, [selectedQuote, loadQuoteItems, loadOrders, loadInvoices, loadPayments, loadQuoteAppointments, loadQuoteClinicSessions]);
 
     React.useEffect(() => {
@@ -1109,6 +1186,9 @@ export default function QuotesPage() {
 
     const handleRowSelectionChange = (selectedRows: Quote[]) => {
         const quote = selectedRows.length > 0 ? selectedRows[0] : null;
+        if (quote?.id !== selectedQuote?.id) {
+            setActiveTab('items');
+        }
         setSelectedQuote(quote);
     };
 
@@ -1122,35 +1202,154 @@ export default function QuotesPage() {
         setSelectedInvoice(invoice);
     };
 
+    const handleQuoteItemSelectionChange = (selectedRows: QuoteItem[]) => {
+        const item = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedQuoteItem(item);
+    };
+
+    const handlePaymentSelectionChange = (selectedRows: Payment[]) => {
+        const payment = selectedRows.length > 0 ? selectedRows[0] : null;
+        setSelectedPayment(payment);
+    };
+
+    const closeInvoiceDetails = () => {
+        setSelectedInvoice(null);
+        setInvoiceRowSelection({});
+    };
+
+    const closePaymentDetails = () => {
+        setSelectedPayment(null);
+        setPaymentRowSelection({});
+    };
+
     const handleCloseDetails = () => {
         setSelectedQuote(null);
         setRowSelection({});
+        setIsRightExpanded(false);
     };
 
-    const handleInvoiceFromQuote = async () => {
-        if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
+    const handlePrintQuote = React.useCallback(async (quote: Quote) => {
+        const fileName = getDocumentFileName(quote, 'quote');
+
+        toast({
+            title: t('generatingPdf'),
+            description: t('pleaseWait', { id: fileName }),
+        });
+
         try {
-            await invoiceOrder({
-                orderId: selectedOrder.id,
-                userId: selectedOrder.user_id,
-                mode: 'sales',
-            });
+            const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
+            const url = window.URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = `${fileName}.pdf`;
+            document.body.appendChild(anchor);
+            anchor.click();
+            window.URL.revokeObjectURL(url);
+            anchor.remove();
+
             toast({
-                title: t('actions.invoiceSuccess'),
-                description: t('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }),
+                title: t('downloadStarted'),
+                description: t('pdfDownloading', { id: fileName }),
             });
-            loadQuotes();
-            loadOrders();
-            loadOrderItems();
-            loadInvoices();
         } catch (error) {
             toast({
                 variant: 'destructive',
-                title: t('errors.errorTitle'),
-                description: error instanceof Error ? error.message : t('actions.invoiceError'),
+                title: t('printError'),
+                description: error instanceof Error ? error.message : t('couldNotPrint'),
             });
         }
-    };
+    }, [t, toast]);
+
+    const handleSendEmailClick = React.useCallback((quote: Quote) => {
+        setSelectedQuoteForEmail(quote);
+        setEmailRecipients(quote.userEmail || '');
+        setIsSendEmailDialogOpen(true);
+    }, []);
+
+    const sendQuoteEmail = React.useCallback(async (emails: string[]) => {
+        if (!selectedQuoteForEmail) return;
+
+        setIsSendingEmail(true);
+        try {
+            await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, {
+                quote_id: selectedQuoteForEmail.id,
+                is_sales: true,
+                emails,
+            });
+
+            toast({
+                title: t('emailSent'),
+                description: t('emailSentSuccess', { emails: emails.join(', ') }),
+            });
+
+            setIsSendEmailDialogOpen(false);
+            setSelectedQuoteForEmail(null);
+            setEmailRecipients('');
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: t('emailError'),
+                description: error instanceof Error ? error.message : t('unexpectedError'),
+            });
+        } finally {
+            setIsSendingEmail(false);
+        }
+    }, [selectedQuoteForEmail, t, toast]);
+
+    const handleConfirmSendEmail = React.useCallback(async () => {
+        if (!selectedQuoteForEmail) return;
+
+        const emails = emailRecipients
+            .split(',')
+            .map((email) => email.trim())
+            .filter((email) => email);
+
+        if (emails.length === 0) {
+            toast({ variant: 'destructive', title: t('emailError'), description: t('atLeastOneEmail') });
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = emails.filter((email) => !emailRegex.test(email));
+
+        if (invalidEmails.length > 0) {
+            toast({
+                variant: 'destructive',
+                title: t('invalidEmail'),
+                description: t('invalidEmails', { emails: invalidEmails.join(', ') }),
+            });
+            return;
+        }
+
+        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
+        const disabled = getDisabledEmails(preferences);
+
+        if (disabled.length > 0) {
+            setDisabledEmails(disabled);
+            setIsWarningDialogOpen(true);
+            return;
+        }
+
+        await sendQuoteEmail(emails);
+    }, [emailRecipients, selectedQuoteForEmail, sendQuoteEmail, t, toast]);
+
+    const handleWarningConfirm = React.useCallback(async () => {
+        const emails = emailRecipients
+            .split(',')
+            .map((email) => email.trim())
+            .filter((email) => email);
+
+        setIsWarningDialogOpen(false);
+        await sendQuoteEmail(emails);
+    }, [emailRecipients, sendQuoteEmail]);
+
+    const handleOpenBillingDialog = React.useCallback(async () => {
+        if (!selectedQuote) return;
+        if (quoteItems.length === 0) {
+            await loadQuoteItems();
+        }
+        setIsQuoteBillingDialogOpen(true);
+    }, [loadQuoteItems, quoteItems.length, selectedQuote]);
 
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
@@ -1171,12 +1370,40 @@ export default function QuotesPage() {
         }
     }, [isClinicCurrency, watchedQuoteExchangeRate, quoteForm, getSessionExchangeRate]);
 
+    const quoteTabs = React.useMemo<VerticalTab[]>(() => [
+        { id: 'items', icon: FileText, label: t('tabs.items') },
+        // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('tabs.orders') },
+        { id: 'invoices', icon: Receipt, label: t('tabs.invoices') },
+        { id: 'payments', icon: CreditCard, label: t('tabs.payments') },
+        { id: 'notes', icon: StickyNote, label: t('tabs.notes') },
+        { id: 'appointments', icon: CalendarDays, label: t('tabs.appointments') },
+        { id: 'clinicSessions', icon: Stethoscope, label: t('tabs.clinicSessions') },
+    ], [t]);
+
+    const quoteItemToolbarActions = selectedQuoteItem && canEditQuote && (canUpdateItem || canDeleteItem) ? (
+        <div className="flex items-center gap-1.5">
+            {canUpdateItem && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuoteItem(selectedQuoteItem)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    {t('edit')}
+                </Button>
+            )}
+            {canDeleteItem && (
+                <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleDeleteQuoteItem(selectedQuoteItem)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {t('delete')}
+                </Button>
+            )}
+        </div>
+    ) : null;
+
     return (
         <>
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
                 <TwoPanelLayout
                     isRightPanelOpen={!!selectedQuote}
                     onBack={handleCloseDetails}
+                    forceRightOnly={isRightExpanded}
                     leftPanel={
                         <RecentQuotesTable
                             quotes={quotes}
@@ -1197,12 +1424,18 @@ export default function QuotesPage() {
                             isSendingEmail={isSendingEmail}
                             setIsSendingEmail={setIsSendingEmail}
                             isSales={true}
+                            canEditQuote={canUpdateQuote}
+                            canDeleteQuote={canDeleteQuote}
+                            canConfirmQuote={canConfirmQuote}
+                            canRejectQuote={canRejectQuote}
+                            canPrintQuote={canPrint}
+                            canSendQuoteEmail={canSendEmail}
                         />
                     }
                     rightPanel={
                         selectedQuote && (
                             <Card className="h-full border-0 lg:border shadow-none lg:shadow-sm flex flex-col min-h-0">
-                                <CardHeader className="flex-none p-4">
+                                <CardHeader className="flex-none px-6 py-4 border-b border-border/50">
                                     <DetailHeader
                                         icon={FileText}
                                         title={t('detailsFor', { name: selectedQuote.user_name })}
@@ -1214,6 +1447,38 @@ export default function QuotesPage() {
                                                     style: 'currency',
                                                     currency: selectedQuote.currency || 'USD',
                                                 }).format(selectedQuote.total),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.amountInvoiced'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_invoiced || 0)),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.pendingInvoice'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_pending_invoice || 0)),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.amountPaid'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_paid || 0)),
+                                                variant: 'default',
+                                            },
+                                            {
+                                                label: tRoot('QuoteColumns.pendingPayment'),
+                                                value: new Intl.NumberFormat('en-US', {
+                                                    style: 'currency',
+                                                    currency: selectedQuote.currency || 'USD',
+                                                }).format(Number(selectedQuote.amount_pending_payment || 0)),
                                                 variant: 'default',
                                             },
                                             {
@@ -1270,68 +1535,94 @@ export default function QuotesPage() {
                                                     selectedQuote.payment_status === 'partially_paid' ? 'info' : 'outline',
                                             },
                                         ]}
-                                        actions={
-                                            <>
-                                                {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                    <ActionButton
-                                                        icon={Pencil}
-                                                        label={t('edit')}
-                                                        tooltip={t('editTooltip') || t('edit')}
-                                                        onClick={() => handleEditQuote(selectedQuote)}
-                                                    />
-                                                )}
-                                                {(canConfirmQuote || canRejectQuote) && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                    <>
-                                                        <ActionButton
-                                                            icon={CheckCircle}
-                                                            label={t('confirm')}
-                                                            tooltip={t('confirmTooltip') || t('confirm')}
-                                                            onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
-                                                        />
-                                                        <ActionButton
-                                                            icon={XCircle}
-                                                            label={t('reject')}
-                                                            tooltip={t('rejectTooltip') || t('reject')}
-                                                            destructive
-                                                            onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
-                                                        />
-                                                    </>
-                                                )}
-                                                {canDeleteQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                                    <ActionButton
-                                                        icon={Trash2}
-                                                        label={t('delete')}
-                                                        tooltip={t('deleteTooltip') || t('delete')}
-                                                        destructive
-                                                        onClick={() => handleDeleteQuote(selectedQuote)}
-                                                    />
-                                                )}
-                                                {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
-                                                    <ActionButton
-                                                        icon={Receipt}
-                                                        label={t('actions.invoice')}
-                                                        tooltip={t('actions.invoice')}
-                                                        onClick={handleInvoiceFromQuote}
-                                                    />
-                                                )}
-                                            </>
+                                        headerActions={
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                title={isRightExpanded ? 'Restaurar' : 'Expandir'}
+                                                aria-label={isRightExpanded ? 'Restaurar' : 'Expandir'}
+                                                onClick={() => setIsRightExpanded(v => !v)}
+                                                className="shrink-0"
+                                            >
+                                                {isRightExpanded ? <Minimize2 className="h-5 w-5" /> : <Maximize2 className="h-5 w-5" />}
+                                            </Button>
                                         }
                                         onClose={handleCloseDetails}
                                     />
                                 </CardHeader>
-                                <CardContent className="flex-1 flex flex-col overflow-hidden p-4 pt-0 min-h-0 bg-card">
-                                    <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                                        <TabsList>
-                                            <TabsTrigger value="items" className="text-xs">{t('tabs.items')}</TabsTrigger>
-                                            {/* hidden: orders tab <TabsTrigger value="orders" className="text-xs">{t('tabs.orders')}</TabsTrigger> */}
-                                            <TabsTrigger value="invoices" className="text-xs">{t('tabs.invoices')}</TabsTrigger>
-                                            <TabsTrigger value="payments" className="text-xs">{t('tabs.payments')}</TabsTrigger>
-                                            <TabsTrigger value="notes" className="text-xs">{t('tabs.notes')}</TabsTrigger>
-                                            <TabsTrigger value="appointments" className="text-xs">{t('tabs.appointments')}</TabsTrigger>
-                                            <TabsTrigger value="clinicSessions" className="text-xs">{t('tabs.clinicSessions')}</TabsTrigger>
-                                        </TabsList>
-                                        <div className="flex-1 min-h-0 mt-4 flex flex-col">
-                                            <TabsContent value="items" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                    {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuote(selectedQuote)}>
+                                            <Pencil className="h-3.5 w-3.5" />
+                                            {t('edit')}
+                                        </Button>
+                                    )}
+                                    {(canConfirmQuote || canRejectQuote) && selectedQuote.status.toLowerCase() === 'draft' && (
+                                        <>
+                                            {canConfirmQuote && (
+                                                <Button
+                                                    variant="default"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 bg-green-600 text-xs text-white hover:bg-green-700"
+                                                    onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
+                                                >
+                                                    <CheckCircle className="h-3.5 w-3.5" />
+                                                    {t('confirm')}
+                                                </Button>
+                                            )}
+                                            {canRejectQuote && (
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="h-8 gap-1.5 text-xs text-white"
+                                                    onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
+                                                >
+                                                    <XCircle className="h-3.5 w-3.5" />
+                                                    {t('reject')}
+                                                </Button>
+                                            )}
+                                        </>
+                                    )}
+                                    {canDeleteQuote && selectedQuote.status.toLowerCase() === 'draft' && (
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="h-8 gap-1.5 text-xs text-white"
+                                            onClick={() => handleDeleteQuote(selectedQuote)}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            {t('delete')}
+                                        </Button>
+                                    )}
+                                    {canPrint && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintQuote(selectedQuote)}>
+                                            <Printer className="h-3.5 w-3.5" />
+                                            {t('print')}
+                                        </Button>
+                                    )}
+                                    {canSendEmail && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
+                                            <Send className="h-3.5 w-3.5" />
+                                            {t('sendEmail')}
+                                        </Button>
+                                    )}
+                                    {canInvoice && isQuoteReadyToInvoice && pendingInvoiceAmount > 0.009 && (
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleOpenBillingDialog}>
+                                            <Receipt className="h-3.5 w-3.5" />
+                                            {t('actions.invoice')}
+                                        </Button>
+                                    )}
+                                </div>
+                                <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
+                                    <VerticalTabStrip
+                                        tabs={quoteTabs}
+                                        activeTabId={activeTab}
+                                        onTabClick={(tab) => setActiveTab(tab.id)}
+                                    />
+                                    <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
+                                            {activeTab === 'items' && (
+                                            <div className="m-0 h-full flex flex-col">
                                                 {isQuoteReadyToInvoice ? (
                                                     <OrderItemsTable
                                                         items={orderItems}
@@ -1363,9 +1654,14 @@ export default function QuotesPage() {
                                                         onEdit={canUpdateItem ? handleEditQuoteItem : () => { }}
                                                         onDelete={canDeleteItem ? handleDeleteQuoteItem : () => { }}
                                                         showToothNumber={true}
+                                                        onRowSelectionChange={handleQuoteItemSelectionChange}
+                                                        rowSelection={quoteItemRowSelection}
+                                                        setRowSelection={setQuoteItemRowSelection}
+                                                        extraButtons={quoteItemToolbarActions}
                                                     />
                                                 )}
-                                            </TabsContent>
+                                            </div>
+                                            )}
                                             {/* hidden: orders tab
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
@@ -1415,103 +1711,183 @@ export default function QuotesPage() {
                                                 )}
                                             </TabsContent>
                                             */}
-                                            <TabsContent value="invoices" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px]">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <Receipt className="h-4 w-4" />
-                                                            {t('tabs.invoices')}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0">
-                                                        <InvoicesTable
-                                                            invoices={invoices}
-                                                            isLoading={isLoadingInvoices}
-                                                            onRowSelectionChange={handleInvoiceSelectionChange}
-                                                            onRefresh={loadInvoices}
-                                                            isRefreshing={isLoadingInvoices}
-                                                            isCompact={true}
-                                                            canCreate={false}
-                                                            columnTranslations={{
-                                                                doc_no: tRoot('InvoicesPage.columns.docNo'),
-                                                                user_name: tRoot('InvoicesPage.columns.userName'),
-                                                                total: tRoot('InvoicesPage.columns.total'),
-                                                                currency: tRoot('InvoicesPage.columns.currency'),
-                                                                status: tRoot('InvoicesPage.columns.status'),
-                                                                type: tRoot('InvoicesPage.columns.type'),
-                                                                payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
-                                                                paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
-                                                                createdAt: tRoot('InvoicesPage.columns.createdAt'),
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                {selectedInvoice && (
-                                                    <div className="mt-4 border-t pt-4 flex-1 flex flex-col min-h-[400px]">
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <h4 className="text-sm font-semibold">{tRoot('InvoicesPage.InvoiceItemsTable.titleWithId', { id: selectedInvoice.doc_no || selectedInvoice.id })}</h4>
-                                                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
-                                                                <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
-                                                            </Button>
+                                            {activeTab === 'invoices' && (
+                                            <div className="relative m-0 h-full overflow-hidden flex flex-col">
+                                                <InvoicesTable
+                                                    invoices={invoices}
+                                                    isLoading={isLoadingInvoices}
+                                                    onRowSelectionChange={handleInvoiceSelectionChange}
+                                                    onRefresh={loadInvoices}
+                                                    isRefreshing={isLoadingInvoices}
+                                                    rowSelection={invoiceRowSelection}
+                                                    setRowSelection={setInvoiceRowSelection}
+                                                    isCompact={true}
+                                                    canCreate={false}
+                                                    columnTranslations={{
+                                                        doc_no: tRoot('InvoicesPage.columns.docNo'),
+                                                        user_name: tRoot('InvoicesPage.columns.userName'),
+                                                        total: tRoot('InvoicesPage.columns.total'),
+                                                        currency: tRoot('InvoicesPage.columns.currency'),
+                                                        status: tRoot('InvoicesPage.columns.status'),
+                                                        type: tRoot('InvoicesPage.columns.type'),
+                                                        payment_status: tRoot('InvoicesPage.columns.paymentStatus'),
+                                                        paid_amount: tRoot('InvoicesPage.columns.paidAmount'),
+                                                        createdAt: tRoot('InvoicesPage.columns.createdAt'),
+                                                    }}
+                                                />
+                                                <ResizableSheet
+                                                    open={!!selectedInvoice}
+                                                    onOpenChange={(open) => { if (!open) closeInvoiceDetails(); }}
+                                                    defaultWidth={720}
+                                                    minWidth={560}
+                                                    maxWidth={1100}
+                                                    storageKey="sales-quotes-invoice-detail-width"
+                                                >
+                                                    {selectedInvoice && (
+                                                        <div className="flex h-full flex-col overflow-hidden bg-card">
+                                                            <SheetHeader className="border-b border-border px-6 py-4 text-left">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="header-icon-circle mt-0.5"><Receipt className="h-5 w-5" /></div>
+                                                                    <div className="min-w-0">
+                                                                        <SheetTitle className="truncate text-2xl font-bold">{selectedInvoice.doc_no || selectedInvoice.id}</SheetTitle>
+                                                                        <SheetDescription className="truncate text-sm">{selectedInvoice.user_name}</SheetDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </SheetHeader>
+                                                            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.status')}</p><Badge variant="outline" className="capitalize">{tInvoiceStatus(selectedInvoice.status.toLowerCase())}</Badge></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.paymentStatus')}</p><Badge variant="secondary" className="capitalize">{selectedInvoice.payment_status ? tInvoiceStatus(selectedInvoice.payment_status.toLowerCase()) : ''}</Badge></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDateTime(selectedInvoice.createdAt)}</p></div>
+                                                                </div>
+                                                                {selectedInvoice.notes && <div className="rounded-lg border border-border p-3 text-sm whitespace-pre-wrap">{selectedInvoice.notes}</div>}
+                                                                <div className="flex items-center justify-end">
+                                                                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadInvoiceItems} disabled={isLoadingInvoiceItems}>
+                                                                        <RefreshCw className={`h-4 w-4 ${isLoadingInvoiceItems ? 'animate-spin' : ''}`} />
+                                                                    </Button>
+                                                                </div>
+                                                                <div className="min-h-[320px]">
+                                                                    <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                        <InvoiceItemsTable items={invoiceItems} isLoading={isLoadingInvoiceItems} />
-                                                    </div>
-                                                )}
-                                            </TabsContent>
-                                            <TabsContent value="payments" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                                                    )}
+                                                </ResizableSheet>
+                                            </div>
+                                            )}
+                                            {activeTab === 'payments' && (
+                                            <div className="relative m-0 h-full flex flex-col overflow-hidden">
                                                 <PaymentsTable
                                                     payments={payments}
                                                     isLoading={isLoadingPayments}
                                                     onRefresh={loadPayments}
                                                     isRefreshing={isLoadingPayments}
                                                     columnsToHide={['quote_id', 'order_id', 'user_name']}
+                                                    onRowSelectionChange={handlePaymentSelectionChange}
+                                                    rowSelection={paymentRowSelection}
+                                                    setRowSelection={setPaymentRowSelection}
                                                 />
-                                            </TabsContent>
-                                            <TabsContent value="notes" className="m-0 h-full p-4">
+                                                <ResizableSheet
+                                                    open={!!selectedPayment}
+                                                    onOpenChange={(open) => { if (!open) closePaymentDetails(); }}
+                                                    defaultWidth={640}
+                                                    minWidth={520}
+                                                    maxWidth={960}
+                                                    storageKey="sales-quotes-payment-detail-width"
+                                                >
+                                                    {selectedPayment && (
+                                                        <div className="flex h-full flex-col overflow-hidden bg-card">
+                                                            <SheetHeader className="border-b border-border px-6 py-4 text-left">
+                                                                <div className="flex items-start gap-3">
+                                                                    <div className="header-icon-circle mt-0.5"><CreditCard className="h-5 w-5" /></div>
+                                                                    <div className="min-w-0">
+                                                                        <SheetTitle className="truncate text-2xl font-bold">{selectedPayment.doc_no || selectedPayment.id}</SheetTitle>
+                                                                        <SheetDescription className="truncate text-sm">{selectedPayment.user_name}</SheetDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </SheetHeader>
+                                                            <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 text-sm">
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{selectedPayment.payment_date}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.transaction_type')}</p><Badge variant="secondary" className="capitalize">{selectedPayment.transaction_type}</Badge></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>
+                                                                {selectedPayment.notes && <div className="col-span-2 rounded-lg border border-border p-3 whitespace-pre-wrap">{selectedPayment.notes}</div>}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </ResizableSheet>
+                                            </div>
+                                            )}
+                                            {activeTab === 'notes' && (
+                                            <div className="m-0 h-full p-4">
                                                 {selectedQuote?.notes ? (
                                                     <div className="whitespace-pre-wrap text-sm">{selectedQuote.notes}</div>
                                                 ) : (
                                                     <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                                 )}
-                                            </TabsContent>
-                                            <TabsContent value="appointments" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <CalendarDays className="h-4 w-4" />
-                                                            {t('tabs.appointments')}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0">
-                                                        <DataTable
-                                                            columns={getAppointmentColumns(t, (key) => tRoot(`AppointmentStatus.${key}`))}
-                                                            data={quoteAppointments}
-                                                            isRefreshing={isLoadingAppointments}
-                                                            onRefresh={loadQuoteAppointments}
+                                            </div>
+                                            )}
+                                            {activeTab === 'appointments' && (
+                                            <div className="m-0 h-full flex flex-col">
+                                                <DataTable
+                                                    columns={getAppointmentColumns(t, (key) => tRoot(`AppointmentStatus.${key}`))}
+                                                    data={quoteAppointments}
+                                                    isRefreshing={isLoadingAppointments}
+                                                    onRefresh={loadQuoteAppointments}
+                                                    isNarrow={viewportNarrow}
+                                                    renderCard={(appointment: QuoteAppointment) => {
+                                                        const statusKey = appointment.status?.toLowerCase() || '';
+                                                        const translatedStatus = statusKey ? tRoot(`AppointmentStatus.${statusKey}`) : '';
+                                                        const statusVariant: 'default' | 'secondary' | 'destructive' =
+                                                            statusKey === 'confirmed' || statusKey === 'completed'
+                                                                ? 'default'
+                                                                : statusKey === 'cancelled'
+                                                                    ? 'destructive'
+                                                                    : 'secondary';
+
+                                                        return (
+                                                            <DataCard
+                                                                title={appointment.summary || t('appointments.columns.summary')}
+                                                                subtitle={[
+                                                                    appointment.start_datetime ? formatDateTime(appointment.start_datetime) : null,
+                                                                    appointment.end_datetime ? formatDateTime(appointment.end_datetime) : null,
+                                                                ].filter(Boolean).join(' · ')}
+                                                                badge={translatedStatus ? (
+                                                                    <Badge variant={statusVariant} className="capitalize">
+                                                                        {translatedStatus}
+                                                                    </Badge>
+                                                                ) : undefined}
+                                                            />
+                                                        );
+                                                    }}
+                                                />
+                                            </div>
+                                            )}
+                                            {activeTab === 'clinicSessions' && (
+                                            <div className="m-0 h-full flex flex-col">
+                                                <DataTable
+                                                    columns={getClinicSessionColumns(t)}
+                                                    data={quoteClinicSessions}
+                                                    isRefreshing={isLoadingClinicSessions}
+                                                    onRefresh={loadQuoteClinicSessions}
+                                                    isNarrow={viewportNarrow}
+                                                    renderCard={(session: QuoteClinicSession) => (
+                                                        <DataCard
+                                                            title={session.procedimiento_realizado || t('clinicSessions.columns.procedure')}
+                                                            subtitle={[
+                                                                session.fecha_sesion ? formatDateTime(session.fecha_sesion) : null,
+                                                                session.doctor_nombre || null,
+                                                                session.fecha_proxima_cita ? `${t('clinicSessions.columns.nextDate')}: ${formatDateTime(session.fecha_proxima_cita)}` : null,
+                                                            ].filter(Boolean).join(' · ')}
                                                         />
-                                                    </div>
-                                                </div>
-                                            </TabsContent>
-                                            <TabsContent value="clinicSessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
-                                                <div className="flex-1 min-h-[400px] flex flex-col">
-                                                    <div className="flex items-center justify-between mb-2 flex-none">
-                                                        <h4 className="text-sm font-semibold flex items-center gap-2">
-                                                            <Stethoscope className="h-4 w-4" />
-                                                            {t('tabs.clinicSessions')}
-                                                        </h4>
-                                                    </div>
-                                                    <div className="flex-1 min-h-0">
-                                                        <DataTable
-                                                            columns={getClinicSessionColumns(t)}
-                                                            data={quoteClinicSessions}
-                                                            isRefreshing={isLoadingClinicSessions}
-                                                            onRefresh={loadQuoteClinicSessions}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </TabsContent>
-                                        </div>
-                                    </Tabs>
+                                                    )}
+                                                />
+                                            </div>
+                                            )}
+                                    </div>
                                 </CardContent>
                             </Card>
                         )
@@ -1673,6 +2049,97 @@ export default function QuotesPage() {
                                     </CardHeader>
                                     <CardContent className="bg-card">
                                         <div className="space-y-4">
+                                            {/* Mobile: stacked card per item */}
+                                            <div className="md:hidden space-y-3">
+                                                {quoteFormFields.map((fieldItem, index) => (
+                                                    <div key={fieldItem.id} className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                                                        <div className="flex items-center justify-between gap-2">
+                                                            <span className="text-xs font-medium text-muted-foreground">{t('quoteDialog.items.title')} #{index + 1}</span>
+                                                            <Button type="button" variant="destructive" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRemoveQuoteItem(index)}>
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                        <FormField control={quoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                                            <FormItem>
+                                                                <FormLabel className="text-xs">{t('quoteDialog.items.service')}</FormLabel>
+                                                                <ServiceSelector
+                                                                    isSales={true}
+                                                                    value={field.value}
+                                                                    onValueChange={(serviceId, service) => {
+                                                                        field.onChange(serviceId);
+                                                                        if (service) {
+                                                                            const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                            const servicePrice = Number(service.price);
+                                                                            quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
+                                                                            quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                        }
+                                                                    }}
+                                                                    placeholder={t('itemDialog.searchService')}
+                                                                    noResultsText={t('itemDialog.noServiceFound')}
+                                                                    triggerText={t('quoteDialog.items.selectService')}
+                                                                />
+                                                                <FormMessage />
+                                                            </FormItem>
+                                                        )} />
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <FormField control={quoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.quantity')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="1" min="1" {...field} onChange={(e) => {
+                                                                            const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
+                                                                            field.onChange(e);
+                                                                            const price = quoteForm.getValues(`items.${index}.unit_price`) || 0;
+                                                                            const newQty = rounded === '' ? 0 : rounded;
+                                                                            quoteForm.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
+                                                                            quoteForm.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
+                                                                        }} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={quoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.unitPrice')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" step="0.01" min="0" {...field} onChange={(e) => {
+                                                                            field.onChange(e);
+                                                                            const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                            const newPrice = Number(e.target.value);
+                                                                            quoteForm.setValue(`items.${index}.total`, Math.round((newPrice * quantity) * 100) / 100, { shouldDirty: true });
+                                                                        }} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <FormField control={quoteForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.total')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" {...field} readOnly disabled />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                            <FormField control={quoteForm.control} name={`items.${index}.tooth_number`} render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel className="text-xs">{t('quoteDialog.items.toothNumber')}</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="number" placeholder="-" {...field} onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {quoteFormFields.length === 0 && (
+                                                    <p className="text-center text-sm text-muted-foreground py-4">{t('quoteDialog.items.empty')}</p>
+                                                )}
+                                            </div>
+                                            {/* Desktop: table */}
                                             <table className="hidden md:table w-full text-sm">
                                                 <thead>
                                                     <tr className="text-muted-foreground text-center">
@@ -2005,6 +2472,64 @@ export default function QuotesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
+                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <label htmlFor="quote-email-recipients" className="text-sm font-medium">{t('sendEmailDialog.recipients')}</label>
+                        <Input
+                            id="quote-email-recipients"
+                            value={emailRecipients}
+                            onChange={(e) => setEmailRecipients(e.target.value)}
+                            placeholder={t('sendEmailDialog.placeholder')}
+                        />
+                        <p className="mt-1 text-sm text-muted-foreground">{t('sendEmailDialog.helperText')}</p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>
+                            {t('quoteDialog.cancel')}
+                        </Button>
+                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t('sendEmailDialog.sending')}
+                                </>
+                            ) : (
+                                t('sendEmail')
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <CommunicationWarningDialog
+                open={isWarningDialogOpen}
+                onOpenChange={setIsWarningDialogOpen}
+                disabledItems={disabledEmails}
+                onConfirm={handleWarningConfirm}
+            />
+            <QuoteBillingDialog
+                open={isQuoteBillingDialogOpen}
+                onOpenChange={setIsQuoteBillingDialogOpen}
+                quote={selectedQuote}
+                quoteItems={quoteItems}
+                orderId={selectedOrder?.id}
+                isSales={true}
+                onSuccess={async () => {
+                    await Promise.all([
+                        loadQuotes(),
+                        loadQuoteItems(),
+                        loadInvoices(),
+                        loadPayments(),
+                    ]);
+                    if (selectedOrder) {
+                        await loadOrderItems();
+                    }
+                }}
+            />
         </>
     );
 }

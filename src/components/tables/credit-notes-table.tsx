@@ -2,10 +2,13 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { DataCard } from '@/components/ui/data-card';
+import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { CreditNote } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 import { ColumnDef, PaginationState } from '@tanstack/react-table';
 import { MoreHorizontal, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -40,7 +43,7 @@ const getColumns = (
       cell: ({ row }) => {
         const date = row.getValue('createdAt');
         if (!date) return 'N/A';
-        return new Date(date as string).toLocaleDateString();
+        return formatDateTime(String(date));
       },
     },
     {
@@ -150,6 +153,9 @@ interface CreditNotesTableProps {
 export function CreditNotesTable({ creditNotes, isLoading = false, onRefresh, isRefreshing, onPrint, onSendEmail, className, pagination, onPaginationChange, pageCount, manualPagination = false }: CreditNotesTableProps) {
   const t = useTranslations('InvoicesPage.creditNotesTable');
   const tActions = useTranslations('InvoicesPage.actions');
+  const { isNarrow: panelNarrow } = useNarrowMode();
+  const viewportNarrow = useViewportNarrow();
+  const isNarrow = panelNarrow || viewportNarrow;
   const columns = React.useMemo(() => getColumns(t, tActions, onPrint, onSendEmail), [t, tActions, onPrint, onSendEmail]);
 
   if (isLoading) {
@@ -184,6 +190,27 @@ export function CreditNotesTable({ creditNotes, isLoading = false, onRefresh, is
           onPaginationChange={onPaginationChange}
           pageCount={pageCount}
           manualPagination={manualPagination}
+          isNarrow={isNarrow}
+          renderCard={(creditNote: CreditNote) => (
+            <DataCard
+              title={creditNote.doc_no || String(creditNote.id)}
+              subtitle={[
+                creditNote.createdAt ? formatDateTime(creditNote.createdAt) : null,
+                creditNote.currency || null,
+                creditNote.status ? t(`statuses.${creditNote.status}`) : null,
+              ].filter(Boolean).join(' · ')}
+              badge={
+                creditNote.total != null ? (
+                  <Badge variant="outline">
+                    {new Intl.NumberFormat('en-US', {
+                      style: 'currency',
+                      currency: creditNote.currency || 'USD',
+                    }).format(Math.abs(Number(creditNote.total)))}
+                  </Badge>
+                ) : undefined
+              }
+            />
+          )}
         />
       </CardContent>
     </Card>

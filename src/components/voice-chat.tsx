@@ -27,10 +27,32 @@ export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
     const t = useTranslations('VoiceChat');
     const [input, setInput] = React.useState('');
     const bottomRef = React.useRef<HTMLDivElement>(null);
+    const viewportRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isSending]);
+
+    const handleMessagesWheel = React.useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+
+        const canScrollVertically = viewport.scrollHeight > viewport.clientHeight;
+        const canScrollHorizontally = viewport.scrollWidth > viewport.clientWidth;
+
+        if (!canScrollVertically && !canScrollHorizontally) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (canScrollVertically) {
+            viewport.scrollTop += event.deltaY;
+        }
+
+        if (canScrollHorizontally && event.deltaX !== 0) {
+            viewport.scrollLeft += event.deltaX;
+        }
+    }, []);
 
     const handleSend = () => {
         const text = input.trim();
@@ -41,7 +63,11 @@ export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
 
     return (
         <div className="flex flex-col h-full">
-            <ScrollArea className="flex-1 px-3 py-2">
+            <ScrollArea
+                className="flex-1 px-3 py-2"
+                viewportRef={viewportRef}
+                onWheelCapture={handleMessagesWheel}
+            >
                 <div className="flex flex-col gap-2">
                     {messages.length === 0 && (
                         <p className="text-center text-xs text-muted-foreground mt-10 px-4">

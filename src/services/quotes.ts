@@ -2,6 +2,34 @@ import { API_ROUTES } from '@/constants/routes';
 import { QuoteItem, Quote, Service } from '@/lib/types';
 import { api } from './api';
 
+async function getWorkflowStepsByServiceId(serviceId: string): Promise<Service['treatment_steps']> {
+    if (!serviceId) return [];
+
+    try {
+        const response = await api.get(API_ROUTES.SERVICES_STEPS, { service_id: serviceId });
+        const rawSteps: any[] = Array.isArray(response)
+            ? response
+            : Array.isArray(response?.[0]?.items)
+                ? response[0].items
+                : Array.isArray(response?.items)
+                    ? response.items
+                    : [];
+
+        return rawSteps
+            .map((step: any) => ({
+                position: Number(step.position ?? 0),
+                name: step.step_name || step.name || '',
+                offset_days_from_prev: Number(step.offset_days_from_prev ?? step.offset_min_days ?? 0),
+                duration_minutes: Number(step.duration_minutes ?? 60),
+                notes: step.notes || '',
+            }))
+            .filter(step => step.position > 0 && step.name);
+    } catch (error) {
+        console.error(`Failed to fetch workflow steps for service ${serviceId}:`, error);
+        return [];
+    }
+}
+
 /**
  * Get services from a quote's items directly.
  * Fetches the quote items (which already contain service info) and maps them to Service objects.
@@ -23,16 +51,34 @@ export async function getServicesByQuoteId(quoteId: string): Promise<Service[]> 
             ? data
             : (data.items || data.data || []);
 
+        const uniqueServiceIds = [...new Set(
+            itemsRaw
+                .filter((item: any) => item && item.service_id != null)
+                .map((item: any) => String(item.service_id))
+        )];
+
+        const workflowStepsEntries = await Promise.all(
+            uniqueServiceIds.map(async serviceId => [serviceId, await getWorkflowStepsByServiceId(serviceId)] as const)
+        );
+        const workflowStepsByServiceId = new Map<string, Service['treatment_steps']>(workflowStepsEntries);
+
         const services: Service[] = itemsRaw
             .filter((item: any) => item && item.service_id != null)
-            .map((item: any): Service => ({
-                id: String(item.service_id),
-                name: item.service_name || '',
-                category: 'general',
-                duration_minutes: 30,
-                price: parseFloat(item.unit_price) || 0,
-                is_active: true,
-            }));
+            .map((item: any): Service => {
+                const serviceId = String(item.service_id);
+                const treatmentSteps = workflowStepsByServiceId.get(serviceId) || [];
+
+                return {
+                    id: serviceId,
+                    name: item.service_name || '',
+                    category: 'general',
+                    duration_minutes: Number(item.duration_minutes || 30),
+                    price: parseFloat(item.unit_price) || 0,
+                    is_active: true,
+                    service_type: treatmentSteps.length > 0 ? 'workflow' : 'single',
+                    treatment_steps: treatmentSteps,
+                };
+            });
 
         return services;
     } catch (error) {

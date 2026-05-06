@@ -32,6 +32,14 @@ export function CalendarScheduleView({
     return acc;
   }, {});
 
+  Object.values(groupedEvents).forEach((list) => {
+    list.sort((a, b) => {
+      const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
+      const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
+      return startA - startB;
+    });
+  });
+
   const sortedDates = Object.keys(groupedEvents).sort();
   const isMobile = breakpoint === 'mobile';
 
@@ -46,6 +54,7 @@ export function CalendarScheduleView({
             {groupedEvents[date].map((event) => (
               <div
                 key={event.id}
+                data-testid="calendar-schedule-event"
                 className="p-2 rounded-md cursor-pointer"
                 style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
                 onClick={(e) => {

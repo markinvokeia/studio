@@ -13,11 +13,9 @@ export interface ImportResult {
 
 interface StepResultProps {
   result: ImportResult;
-  onClose: () => void;
-  onImportAnother: () => void;
 }
 
-export function StepResult({ result, onClose, onImportAnother }: StepResultProps) {
+export function StepResult({ result }: StepResultProps) {
   const t = useTranslations('ImportPage.result');
   const total = result.inserted + result.updated + result.skipped + result.errors;
   const allSuccessful = result.errors === 0 && result.skipped === 0;
@@ -69,13 +67,13 @@ export function StepResult({ result, onClose, onImportAnother }: StepResultProps
         </div>
       </div>
 
-      {/* Error details */}
+      {/* Error details — scrollable, no expande ilimitado */}
       {result.error_details && result.error_details.length > 0 && (
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2">Registros con error</p>
 
           {/* Mobile: error cards */}
-          <div className="flex flex-col gap-2 sm:hidden">
+          <div className="flex flex-col gap-2 sm:hidden max-h-48 overflow-y-auto pr-1">
             {result.error_details.map((err, i) => (
               <div key={i} className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 space-y-1">
                 <div className="flex items-center justify-between gap-2">
@@ -112,24 +110,6 @@ export function StepResult({ result, onClose, onImportAnother }: StepResultProps
           </div>
         </div>
       )}
-
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button
-          type="button"
-          onClick={onImportAnother}
-          className="flex-1 sm:flex-none rounded-md border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-muted text-center"
-        >
-          {t('importAnother')}
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 sm:flex-none rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 text-center"
-        >
-          {t('close')}
-        </button>
-      </div>
     </div>
   );
 }

@@ -9,12 +9,12 @@ Versión 2.0 · Abril 2026
 | Módulo | Path |
 |--------|------|
 | Dashboard | `/` |
-| Pacientes | `/users` |
+| Pacientes | `/patients` |
 | Historia Clínica | `/clinic-history/{user_id}` |
 | Citas | `/appointments` |
 | Alertas | `/alerts` |
 | Ventas › Presupuestos | `/sales/quotes` |
-| Ventas › Órdenes | `/sales/orders` |
+| Ventas › Órdenes | `/sales/orders` *(oculto del menú — gestionado desde tabs del Presupuesto)* |
 | Ventas › Facturas | `/sales/invoices` |
 | Ventas › Pagos | `/sales/payments` |
 | Ventas › Servicios | `/sales/services` |
@@ -25,7 +25,7 @@ Versión 2.0 · Abril 2026
 | Caja › Transacciones misc. | `/cashier/miscellaneous-transactions` |
 | Caja › Categorías misc. | `/cashier/miscellaneous-categories` |
 | Compras › Presupuestos | `/purchases/quotes` |
-| Compras › Órdenes | `/purchases/orders` |
+| Compras › Órdenes | `/purchases/orders` *(oculto del menú — gestionado desde tabs del Presupuesto de Compra)* |
 | Compras › Facturas | `/purchases/invoices` |
 | Compras › Pagos | `/purchases/payments` |
 | Compras › Proveedores | `/purchases/providers` |
@@ -37,6 +37,7 @@ Versión 2.0 · Abril 2026
 | Config › Horarios | `/config/schedules` |
 | Config › Calendarios | `/config/calendars` |
 | Config › Feriados | `/config/holidays` |
+| Config › Servicios | `/config/services` |
 | Config › Monedas | `/config/currencies` |
 | Config › Secuencias | `/config/sequences` |
 | Config › Mutualistas | `/config/mutual-societies` |
@@ -167,7 +168,13 @@ Formulario: Medicamento (búsqueda en catálogo, debounced 300ms, requerido) + D
 Campos: Tabaquismo, Alcohol, Bruxismo — con modo edición/vista.
 
 #### Odontograma
-Visualización interactiva de piezas dentales con condiciones y superficies.
+Visualización interactiva de piezas dentales con condiciones y superficies. Implementado con el paquete `react-odontogram`.
+
+**Vistas disponibles:**
+- **Vista estándar:** representación esquemática de todas las piezas dentales superiores e inferiores.
+- **Vista de boca abierta:** representación fotorrealista de la boca con las piezas dentales en posición natural (nueva).
+
+Se puede asignar condiciones dentales (del catálogo) y superficies a cada pieza. Las condiciones se muestran con el color definido en el catálogo.
 
 ---
 
@@ -262,12 +269,14 @@ Selector de tamaño (10, 25, 50, 100). Navegación primera/anterior/siguiente/ú
 - Ítems: Servicio (del catálogo), Cantidad, Precio unitario (multipleOf 0.01), Total, Número de pieza dental (11–85, opcional para odontología)
 
 **Tabs del detalle:**
-1. Ítems (agregar/editar/eliminar)
-2. Órdenes generadas
-3. Facturas generadas
-4. Sesiones clínicas vinculadas
-5. Citas vinculadas
-6. Notas
+1. **Ítems** — agregar/editar/eliminar líneas del presupuesto
+2. **Órdenes** — lista de órdenes generadas; por cada ítem: botón **PROGRAMAR** (cambia estado a "Programado") y botón **COMPLETAR** (abre diálogo de sesión clínica — registra el procedimiento). Solo ítems "Completado" pueden incluirse en factura
+3. **Facturas** — facturas generadas; botón "Convertir a Factura" disponible cuando hay ítems completados
+4. **Sesiones clínicas** — sesiones vinculadas al presupuesto
+5. **Citas** — citas vinculadas al presupuesto
+6. **Notas**
+
+> **Nota:** La página `/sales/orders` sigue existiendo técnicamente pero está **oculta del menú de navegación**. Todo el flujo de gestión de órdenes (programar, completar ítems, convertir a factura) se realiza desde las tabs del Presupuesto.
 
 ### 6.2 Órdenes de Venta
 **Path:** `/sales/orders`
@@ -692,9 +701,9 @@ Permite compartir estudios con pacientes via enlace externo.
 
 ### Flujo de Venta Completo
 1. **Crear presupuesto** → `/sales/quotes` → Nuevo presupuesto → agregar paciente e ítems → Guardar (borrador) → Cambiar estado a "Enviado".
-2. **Aceptar presupuesto** → Cambiar estado a "Aceptado" → "Convertir a Orden" → aparece en `/sales/orders`.
-3. **Completar ítems** → `/sales/orders` → abrir orden → en cada ítem hacer clic en COMPLETAR → registrar sesión clínica.
-4. **Generar factura** → "Convertir a Factura" → aparece en `/sales/invoices` como "Pendiente de pago".
+2. **Aceptar presupuesto** → Cambiar estado a "Aceptado" → "Convertir a Orden" → la orden queda visible en la tab **Órdenes** del mismo presupuesto.
+3. **Completar ítems** → dentro del presupuesto → tab **Órdenes** → por cada ítem: clic en **PROGRAMAR** → luego **COMPLETAR** → registrar sesión clínica en el diálogo.
+4. **Generar factura** → tab **Facturas** del presupuesto → "Convertir a Factura" (disponible cuando hay ítems completados) → aparece en `/sales/invoices` como "Pendiente de pago".
 5. **Registrar pago** → abrir factura → "Registrar pago" → ingresar monto, fecha, método → Guardar.
 
 ### Flujo de Caja Diario
@@ -737,3 +746,120 @@ El sistema convierte automáticamente usando el tipo de cambio configurado en `/
 ## SISTEMA DE PERMISOS
 
 Todos los módulos están protegidos por roles y permisos. Los permisos se asignan a roles en `/roles` y los roles a usuarios en `/system/users`. La UI oculta automáticamente botones y secciones para los que el usuario no tiene permiso. Los permisos siguen el patrón `MODULO_ACCION` (ej. `SALES_QUOTES_CREATE`, `CASHIER_OPEN_SESSION`).
+
+---
+
+## SUITE DE TESTS AUTOMATIZADOS (Playwright E2E)
+
+La aplicación cuenta con una suite completa de tests E2E usando **Playwright 1.59+**. Los tests están ubicados en el directorio `e2e/` del proyecto.
+
+### Infraestructura
+
+```
+e2e/
+├── fixtures/
+│   ├── auth.setup.ts         # Login automático — guarda sesión en e2e/.auth/user.json
+│   └── test.fixture.ts       # Fixture base con helpers
+├── pages/
+│   ├── base.page.ts          # POM base con helpers de DataTable
+│   ├── login.page.ts         # POM del login (skipIntroVideo, login, expectRedirect)
+│   ├── patients.page.ts      # POM de pacientes
+│   ├── appointments.page.ts  # POM de citas
+│   └── quotes.page.ts        # POM de presupuestos
+├── tests/
+│   ├── auth/                 # Login, seguridad, protección de rutas, logout
+│   ├── patients/             # CRUD completo + 10 tabs + filtros + acciones
+│   ├── appointments/         # Calendario + formulario + panel detalle
+│   ├── alerts/               # KPIs + filtros + paginación + acciones
+│   ├── sales/
+│   │   ├── quotes.spec.ts    # CRUD + 7 tabs + confirmación + rechazo + email
+│   │   ├── invoices.spec.ts  # CRUD + tabs + pago + importar AI + email
+│   │   ├── payments.spec.ts  # Prepago + tabs + editar método
+│   │   ├── services.spec.ts  # CRUD completo con limpieza
+│   │   └── payment-methods.spec.ts  # CRUD completo con limpieza
+│   ├── cashier/              # Panel + cajas registradoras + transacciones + sesiones
+│   ├── purchases/            # Proveedores + presupuestos + facturas + pagos
+│   ├── config/               # Clínica + doctores + horarios + calendarios + feriados + monedas
+│   ├── clinic-catalog/       # Padecimientos + medicamentos + condiciones dentales + superficies
+│   ├── system/               # Usuarios + roles + auditoría + plantillas + configuraciones
+│   └── flows/                # Flujos E2E completos cruzando múltiples módulos
+└── utils/
+    └── helpers.ts            # randomEmail(), randomDoc(), randomPhone()
+```
+
+### Configuración
+
+```bash
+# Ejecutar todos los tests
+npm run test:e2e
+
+# Ejecutar con interfaz visual
+npm run test:e2e:ui
+
+# Ver reporte HTML
+npm run test:e2e:report
+```
+
+Variables de entorno requeridas en `.env.local`:
+```
+E2E_USER=<usuario_de_prueba>
+E2E_PASS=<contraseña_de_prueba>
+```
+
+### Proyectos Playwright
+
+| Proyecto | Dispositivo | Cobertura |
+|----------|-------------|-----------|
+| `setup` | — | Autenticación y guardado de sesión |
+| `chromium` | Desktop Chrome | Suite completa |
+| `mobile-chrome` | Pixel 5 | Suite completa (responsive) |
+
+### Patrones de test
+
+**CRUD con auto-limpieza:** Cada test que crea un registro también lo elimina al finalizar (o restaura el valor original si edita). Esto garantiza idempotencia entre ejecuciones.
+
+**Selectores basados en traducciones:** Los tests usan los textos exactos de `src/messages/es.json` (ej. `getByRole('button', { name: 'Crear Paciente' })`) para que fallen de forma descriptiva si la UI cambia.
+
+**Patrón de espera inteligente:** Los tests esperan `waitForSelector` / `waitForLoadState('networkidle')` en lugar de `waitForTimeout` fijos, excepto donde hay debounce conocido.
+
+**Video intro en login:** La página de login muestra un video de introducción antes del formulario. El setup de auth despacha el evento `ended` del video vía `page.evaluate()` para omitir la espera.
+
+### Cobertura por módulo
+
+| Módulo | Casos cubiertos |
+|--------|----------------|
+| Autenticación | Login ✓, credenciales inválidas ✓, protección de rutas ✓, logout ✓, XSS ✓, type=password ✓ |
+| Pacientes | Tabla ✓, búsqueda ✓, CRUD completo ✓, 10 tabs del panel ✓, activar/desactivar ✓ |
+| Citas | Calendario ✓, vistas (día/semana/mes) ✓, crear cita ✓, validaciones ✓, panel detalle ✓ |
+| Alertas | KPIs ✓, filtros estado/prioridad ✓, paginación ✓, acciones ✓ |
+| Presupuestos | Tabla ✓, búsqueda ✓, formulario ✓, 7 tabs ✓, confirmar/rechazar/eliminar ✓ |
+| Facturas | Tabla ✓, crear ✓, tabs ✓, pago ✓, confirmar ✓, importar AI ✓, email ✓ |
+| Pagos | Tabla ✓, prepago ✓, editar método ✓, tabs ✓ |
+| Servicios | CRUD completo con auto-limpieza ✓ |
+| Métodos de pago | CRUD completo con auto-limpieza ✓ |
+| Caja (panel) | Estado ✓, sesión activa ✓, ingresos/egresos ✓ |
+| Cajas registradoras | CRUD completo con auto-limpieza ✓ |
+| Transacciones misc. | KPIs ✓, tabla ✓, formulario ✓ |
+| Sesiones de caja | Tabla ✓, detalle ✓ |
+| Proveedores | CRUD completo con auto-limpieza ✓, tabs del panel ✓ |
+| Presupuestos compra | Tabla ✓, formulario ✓ |
+| Facturas compra | Tabla ✓ |
+| Pagos compra | Tabla ✓, prepago ✓ |
+| Config › Clínica | Formulario ✓, campos ✓, logo ✓ |
+| Config › Doctores | CRUD completo ✓, panel detalle ✓ |
+| Config › Horarios | Tabla ✓, formulario ✓ |
+| Config › Calendarios | CRUD completo con auto-limpieza ✓ |
+| Config › Feriados | Tabla ✓, formulario ✓ |
+| Config › Monedas | Vista read-only ✓ |
+| Catálogo › Padecimientos | CRUD completo con auto-limpieza ✓ |
+| Catálogo › Medicamentos | CRUD completo con auto-limpieza ✓ |
+| Catálogo › Condiciones dentales | CRUD completo ✓, color picker ✓ |
+| Catálogo › Superficies dentales | CRUD completo con auto-limpieza ✓ |
+| Sistema › Usuarios | Tabla ✓, formulario ✓ |
+| Sistema › Roles | Tabla ✓ |
+| Sistema › Auditoría | Read-only ✓, sin botón Crear ✓ |
+| Sistema › Plantillas | Tabla ✓, duplicar ✓ |
+| Seguridad | XSS en búsqueda ✓, token en URL ✓, headers HTTP ✓ |
+| Flujo venta completo | Presupuesto → Órdenes → Facturas → Pagos ✓ |
+| Flujo citas | Crear → Sesión clínica → Panel detalle ✓ |
+| Flujo caja diario | Panel → Wizard → Transacciones → Sesiones ✓ |

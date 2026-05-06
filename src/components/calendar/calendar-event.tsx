@@ -33,6 +33,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
     <ContextMenu>
       <ContextMenuTrigger>
         <div
+          data-testid="calendar-event"
           className="event"
           style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
           onClick={(e) => {

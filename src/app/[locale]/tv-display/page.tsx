@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useTVDisplay } from '@/context/tv-display-context';
 import { SettingsForm } from '@/components/tv-display/settings-form';
@@ -48,7 +47,7 @@ export default function TVDisplayPage() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-4 overflow-hidden">
+    <div className="flex flex-col h-full gap-4 overflow-hidden px-4 pb-4 sm:px-0 sm:pb-0">
       {/* Page header */}
       <div className="flex items-center justify-between shrink-0">
         <div>
@@ -73,32 +72,30 @@ export default function TVDisplayPage() {
               <CardTitle className="text-base">{t('settings.title')}</CardTitle>
             </CardHeader>
             <Separator />
-            <ScrollArea className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
               <CardContent className="pt-4 pb-6">
                 <SettingsForm calendars={calendars} />
               </CardContent>
-            </ScrollArea>
+            </div>
           </Card>
         )}
 
         {/* ── RIGHT: Preview + controls ── */}
-        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto pr-0.5">
+        <div className="flex flex-col gap-4 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5 min-w-0">
 
           {/* Preview */}
-          <Card className="shrink-0">
+          <Card className="shrink-0 min-w-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">{t('preview.title')}</CardTitle>
             </CardHeader>
             <CardContent className="pb-3">
-              <div className="max-w-xs">
-                <TVPreview />
-              </div>
+              <TVPreview />
             </CardContent>
           </Card>
 
           {/* Control bar */}
           <Can anyPermissions={[TV_DISPLAY_PERMISSIONS.VIEW_SCREEN, TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY]}>
-            <Card className="shrink-0">
+            <Card className="shrink-0 min-w-0">
               <CardContent className="pt-4">
                 <div className="flex flex-wrap gap-2">
                   <Can permission={TV_DISPLAY_PERMISSIONS.VIEW_SCREEN}>
@@ -153,10 +150,11 @@ export default function TVDisplayPage() {
                       size="sm"
                       disabled={isLoading}
                       onClick={fetchAppointments}
-                      className="gap-2 ml-auto"
+                      className="ml-auto"
+                      title={t('controls.refresh')}
                     >
                       <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
-                      {t('controls.refresh')}
+                      <span className="sr-only sm:not-sr-only sm:ml-2">{t('controls.refresh')}</span>
                     </Button>
                   </Can>
                 </div>
@@ -166,7 +164,7 @@ export default function TVDisplayPage() {
 
           {/* Quick actions per room */}
           {rooms.length > 0 && status !== 'off' && hasPermission(TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY) && (
-            <Card className="shrink-0">
+            <Card className="shrink-0 min-w-0">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   Acciones rápidas
@@ -181,7 +179,7 @@ export default function TVDisplayPage() {
                       variant="outline"
                       onClick={() => nextPatient(room.calendarId)}
                       className="gap-2"
-                      disabled={room.currentIndex >= room.appointments.length - 1}
+                      disabled={room.currentIndex >= room.appointments.length}
                     >
                       {room.calendarColor && (
                         <span className="w-2 h-2 rounded-full shrink-0" style={{ background: room.calendarColor }} />

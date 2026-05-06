@@ -1,0 +1,189 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="liquibase (generated)" id="1777296275454-52">
+        <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="cash_movements_id_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-53">
+        <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="cash_points_id_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-54">
+        <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="cash_sessions_id_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-55">
+        <createSequence cacheSize="1" cycle="false" dataType="bigint" incrementBy="1" maxValue="2147483647" minValue="1" sequenceName="payment_methods_id_seq" startValue="1"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-1">
+        <addDefaultValue columnDataType="timestamp" columnName="changed_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="audit_log"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-2">
+        <modifyDataType columnName="color" newDataType="varchar" tableName="calendar_sources"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-3">
+        <modifyDataType columnName="color" newDataType="varchar" tableName="service_catalog"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-4">
+        <modifyDataType columnName="color" newDataType="varchar" tableName="users"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-5">
+        <modifyDataType columnName="color_hex" newDataType="varchar(10)" tableName="catalogo_condiciones_dentales"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-6">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="ai_generated_appointments"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-7">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_categories"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-8">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_instances"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-9">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_rules"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-10">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="calendar_sources"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-11">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="clinics"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-12">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="communication_channels"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-13">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="communication_templates"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-14">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="error_logs"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-15">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="logout_log"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-16">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="mutual_societies"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-17">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="roles"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-18">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="sequence_notes"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-19">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="sequences"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-20">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="service_catalog"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-21">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="token_blacklist"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-22">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="treatment_sequences"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-23">
+        <addDefaultValue columnDataType="timestamp" columnName="created_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="users"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-24">
+        <addDefaultValue columnDataType="varchar(50)" columnName="doc_no" defaultValue="generate_sequence_value('miscellaneous'::document_type_enum)" tableName="miscellaneous_transactions"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-25">
+        <addDefaultValue columnDataType="clob" columnName="doc_no" defaultValue="generate_sequence_value('order'::document_type_enum)" tableName="orders"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-26">
+        <addDefaultValue columnDataType="clob" columnName="doc_no" defaultValue="generate_sequence_value('payment'::document_type_enum)" tableName="payments"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-27">
+        <addDefaultValue columnDataType="varchar(50)" columnName="doc_no" defaultValue="generate_sequence_value('quote'::document_type_enum)" tableName="quotes"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-28">
+        <addDefaultValue columnDataType="timestamp" columnName="fecha_actualizacion" defaultValueComputed="CURRENT_TIMESTAMP" tableName="habitos_paciente"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-29">
+        <addDefaultValue columnDataType="timestamp" columnName="performed_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_actions"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-30">
+        <addDefaultValue columnDataType="timestamp" columnName="started_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_schedule_runs"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-31">
+        <addDefaultValue columnDataType="timestamp" columnName="started_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="conversations"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-32">
+        <addDefaultValue columnDataType="timestamp" columnName="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" tableName="access_logs"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-33">
+        <addDefaultValue columnDataType="timestamp" columnName="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" tableName="chat_registered"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-34">
+        <addDefaultValue columnDataType="timestamp" columnName="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" tableName="conversation_audit_logs"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-35">
+        <addDefaultValue columnDataType="timestamp" columnName="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" tableName="mensajes_entrada"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-36">
+        <addDefaultValue columnDataType="timestamp" columnName="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" tableName="mensajes_prueba"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-37">
+        <addDefaultValue columnDataType="timestamp" columnName="timestamp" defaultValueComputed="CURRENT_TIMESTAMP" tableName="messages"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-38">
+        <addDefaultValue columnDataType="timestamp" columnName="triggered_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="abandonment_alerts"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-39">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="ai_generated_appointments"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-40">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_categories"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-41">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_instances"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-42">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_rules"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-43">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="alert_system_config"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-44">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="calendar_sources"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-45">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="communication_templates"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-46">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="mutual_societies"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-47">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="sequences"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-48">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="system_configurations"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-49">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="user_communication_preferences"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-50">
+        <addDefaultValue columnDataType="timestamp" columnName="updated_at" defaultValueComputed="CURRENT_TIMESTAMP" tableName="users"/>
+    </changeSet>
+    <changeSet author="liquibase (generated)" id="1777296275454-51">
+        <createView fullDefinition="false" replaceIfExists="true" viewName="view_invoice_status">SELECT id,
+    type,
+    is_sales,
+    total,
+    status AS doc_status,
+    (COALESCE(( SELECT sum(payment_allocations.amount) AS sum
+           FROM payment_allocations
+          WHERE (payment_allocations.invoice_id = i.id)), (0)::numeric) + COALESCE(( SELECT sum(payments.amount) AS sum
+           FROM payments
+          WHERE (payments.invoice_id = i.id)), (0)::numeric)) AS paid_amount,
+    COALESCE(( SELECT sum(invoice_allocations.amount) AS sum
+           FROM invoice_allocations
+          WHERE (invoice_allocations.target_id = i.id)), (0)::numeric) AS credited_amount,
+    ((total - (COALESCE(( SELECT sum(payment_allocations.amount) AS sum
+           FROM payment_allocations
+          WHERE (payment_allocations.invoice_id = i.id)), (0)::numeric) + COALESCE(( SELECT sum(payments.amount) AS sum
+           FROM payments
+          WHERE (payments.invoice_id = i.id)), (0)::numeric))) - COALESCE(( SELECT sum(invoice_allocations.amount) AS sum
+           FROM invoice_allocations
+          WHERE (invoice_allocations.target_id = i.id)), (0)::numeric)) AS residual_amount
+   FROM invoices i
+  WHERE ((type)::text = 'invoice'::text);</createView>
+    </changeSet>
+</databaseChangeLog>

@@ -23,6 +23,8 @@ export interface DetailHeaderProps {
     subtitle?: string;
     /** Fields to display in the header */
     fields?: DetailField[];
+    /** Actions to show beside the close button */
+    headerActions?: React.ReactNode;
     /** Actions to show in the header */
     actions?: React.ReactNode;
     /** Callback to close the detail panel */
@@ -36,6 +38,7 @@ export function DetailHeader({
     title,
     subtitle,
     fields = [],
+    headerActions,
     actions,
     onClose,
     className,
@@ -55,16 +58,21 @@ export function DetailHeader({
                         )}
                     </div>
                 </div>
-                {onClose && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        className="ml-2 shrink-0"
-                    >
-                        <X className="h-5 w-5" />
-                        <span className="sr-only">Cerrar detalles</span>
-                    </Button>
+                {(headerActions || onClose) && (
+                    <div className="ml-2 flex shrink-0 items-center gap-1">
+                        {headerActions}
+                        {onClose && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={onClose}
+                                className="shrink-0"
+                            >
+                                <X className="h-5 w-5" />
+                                <span className="sr-only">Cerrar detalles</span>
+                            </Button>
+                        )}
+                    </div>
                 )}
             </div>
 

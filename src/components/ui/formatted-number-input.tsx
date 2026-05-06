@@ -5,13 +5,27 @@ import { Input } from './input';
 import { cn } from '@/lib/utils';
 
 interface FormattedNumberInputProps {
-  value: number | undefined;
+  value: number | string | null | undefined;
   onChange: (value: number) => void;
   allowNegative?: boolean;
   className?: string;
   placeholder?: string;
   disabled?: boolean;
   id?: string;
+}
+
+function toNumber(value: number | string | null | undefined) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
+function formatValue(value: number | string | null | undefined) {
+  const numericValue = toNumber(value);
+  return numericValue !== undefined ? numericValue.toFixed(2) : '';
 }
 
 export function FormattedNumberInput({
@@ -23,10 +37,14 @@ export function FormattedNumberInput({
   disabled,
   id,
 }: FormattedNumberInputProps) {
-  const [inputValue, setInputValue] = React.useState(value ? String(value) : '');
+  const isFocused = React.useRef(false);
+
+  const [inputValue, setInputValue] = React.useState(() => formatValue(value));
 
   React.useEffect(() => {
-    setInputValue(value ? String(value) : '');
+    if (!isFocused.current) {
+      setInputValue(formatValue(value));
+    }
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,6 +64,7 @@ export function FormattedNumberInput({
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    isFocused.current = false;
     const numValue = parseFloat(e.target.value);
     if (!isNaN(numValue) && (allowNegative ? true : numValue >= 0)) {
       onChange(numValue);
@@ -64,6 +83,7 @@ export function FormattedNumberInput({
       disabled={disabled}
       value={inputValue}
       onChange={handleChange}
+      onFocus={() => { isFocused.current = true; }}
       onBlur={handleBlur}
     />
   );

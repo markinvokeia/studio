@@ -22,7 +22,7 @@ import { CashPoint } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
-import { AlertTriangle, Archive } from 'lucide-react';
+import { AlertTriangle, Archive, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import * as React from 'react';
@@ -93,6 +93,7 @@ async function deleteCashPoint(id: string) {
 
 export default function CashPointsPage() {
     const t = useTranslations('PhysicalCashRegistersPage');
+    const tColumns = useTranslations('PhysicalCashRegistersPage.columns');
     const tValidation = useTranslations('PhysicalCashRegistersPage.validation');
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
@@ -226,6 +227,36 @@ export default function CashPointsPage() {
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                         {row.is_active ? t('active') : t('inactive')}
                                     </span>
+                                }
+                                actions={
+                                    <>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 gap-1.5"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                handleEdit(row);
+                                            }}
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                            <span>{tColumns('edit')}</span>
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                handleDelete(row);
+                                            }}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                            <span>{tColumns('delete')}</span>
+                                        </Button>
+                                    </>
                                 }
                                 showArrow
                             />

@@ -64,8 +64,6 @@ import {
     Heart,
     Link2,
     Loader2,
-    Maximize,
-    Minimize,
     MoreHorizontal,
     Pill,
     Plus,
@@ -98,7 +96,7 @@ interface ClinicHistoryViewerProps {
     deepLinkView?: string;
 }
 
-type ActiveView = 'anamnesis' | 'timeline' | 'odontogram' | 'documents';
+type ActiveView = 'anamnesis' | 'timeline' | 'documents';
 
 export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, deepLinkView }: ClinicHistoryViewerProps) {
     const t = useTranslations('ClinicHistoryPage');
@@ -109,13 +107,12 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
     const deepLinkApplied = React.useRef(false);
     React.useEffect(() => {
         if (deepLinkApplied.current || !deepLinkView) return;
-        const valid: ActiveView[] = ['anamnesis', 'timeline', 'odontogram', 'documents'];
+        const valid: ActiveView[] = ['anamnesis', 'timeline', 'documents'];
         if (valid.includes(deepLinkView as ActiveView)) {
             deepLinkApplied.current = true;
             setActiveView(deepLinkView as ActiveView);
         }
     }, [deepLinkView]);
-    const [isOdontogramFullscreen, setIsOdontogramFullscreen] = React.useState(false);
 
     const {
         personalHistory,
@@ -194,7 +191,6 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
     const navItems = [
         { id: 'anamnesis' as const, label: t('tabs.anamnesis'), icon: FileText },
         { id: 'timeline' as const, label: t('tabs.timeline'), icon: Clock },
-        { id: 'odontogram' as const, label: t('tabs.odontogram'), icon: Smile },
         { id: 'documents' as const, label: t('tabs.documents'), icon: FolderArchive },
     ];
 
@@ -282,29 +278,6 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                                 onSessionCreated={onSessionCreated}
                                 editSessionId={editSessionId}
                             />
-                        )}
-                        {activeView === 'odontogram' && (
-                            <div className={cn(
-                                "relative",
-                                isOdontogramFullscreen ? "fixed inset-0 z-50 bg-background p-4" : "h-[600px] w-full"
-                            )}>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={cn(
-                                        "absolute z-10 bg-background/50 hover:bg-background/80",
-                                        isOdontogramFullscreen ? "top-6 right-6" : "top-2 right-2"
-                                    )}
-                                    onClick={() => setIsOdontogramFullscreen(!isOdontogramFullscreen)}
-                                >
-                                    {isOdontogramFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
-                                </Button>
-                                <iframe
-                                    src={`${process.env.NEXT_PUBLIC_ONDONTOGRAMA_URL || 'https://odontogramiia.invokeia.com'}?lang=${locale}&user_id=${userId}&token=${typeof window !== 'undefined' ? localStorage.getItem('token') || '' : ''}`}
-                                    className="w-full h-full border-0 rounded-lg"
-                                    title="Odontograma"
-                                />
-                            </div>
                         )}
                         {activeView === 'documents' && (
                             <EnhancedDocumentsGallery

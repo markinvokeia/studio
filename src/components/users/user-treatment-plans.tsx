@@ -703,8 +703,8 @@ function ScheduleStepDialog({
                                     <SelectValue placeholder={t('schedule.calendarPlaceholder')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {calendars.map(c => (
-                                        <SelectItem key={c.id} value={c.google_calendar_id ?? c.id} className="text-sm">
+                                    {calendars.filter(c => c.google_calendar_id || c.id).map(c => (
+                                        <SelectItem key={c.id} value={c.google_calendar_id || String(c.id)} className="text-sm">
                                             {c.name}
                                         </SelectItem>
                                     ))}
@@ -1367,7 +1367,7 @@ function StepTimeline({
                         : s
                 ));
             }
-            if (status === 'completed' && updatedStep && !updatedStep.sesion_id) {
+            if (status === 'completed' && updatedStep && !originalStep?.sesion_id) {
                 openCreateSessionDialog(updatedStep);
             }
         } finally {

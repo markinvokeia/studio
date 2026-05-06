@@ -110,5 +110,4 @@ React Hook Form + Zod only. Define the schema first, then derive the TypeScript 
 
 ```
 NEXT_PUBLIC_API_URL            # Backend base URL (n8n webhooks)
-NEXT_PUBLIC_ONDONTOGRAMA_URL   # Odontogram external service
 ```

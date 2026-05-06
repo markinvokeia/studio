@@ -410,9 +410,28 @@
   "AppointmentsPage": {
     "title": "Appointments",
     "description": "Manage all appointments.",
+    "settings": {
+      "title": "Calendar Settings",
+      "defaultView": "Default view",
+      "groupBy": "Group by",
+      "checkAvailability": "Check availability",
+      "filterDoctorsByService": "Filter doctors by service",
+      "options": {
+        "day": "Day",
+        "2_days": "2 Days",
+        "3_days": "3 Days",
+        "week": "Week",
+        "month": "Month",
+        "agenda": "Agenda",
+        "doctor": "Doctors",
+        "calendar": "Consulting rooms",
+        "none": "No grouping"
+      }
+    },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
     "listView": "List View",
+    "refresh": "Refresh",
     "calendars": "Calendars",
     "selectAll": "Select All",
     "appointmentsFor": "Appointments for {date}",
@@ -498,7 +517,6 @@
     "noSuggestions": "No suggestions",
     "search": "Search",
     "selectedServices": "Selected Services",
-    "suggestionFormat": "{date} at {time} with {doctor} in {calendar}",
     "toasts": {
       "appointmentCancelled": "Appointment cancelled",
       "appointmentCancelledDesc": "Appointment has been cancelled.",
@@ -805,6 +823,8 @@
     "filterByPatient": "Filter by patient...",
     "detailsFor": "Details for {name}",
     "close": "Close details",
+    "dependentPatient": "Dependent patient",
+    "dependentOf": "Dependent of {name}",
     "preferencesButton": "Preferences",
     "dischargeButton": "Discharge",
     "readmitButton": "Readmit",
@@ -815,6 +835,7 @@
       "quotes": "Quotes",
       "appointments": "Appointments",
       "treatmentPlans": "Treat. Plans",
+      "medicalRecord": "Dental Chart",
       "messages": "Messages",
       "preferences": "Preferences",
       "logs": "Logs",
@@ -840,6 +861,12 @@
       "emailPlaceholder": "john.doe@example.com",
       "phone": "Phone",
       "phonePlaceholder": "123-456-7890",
+      "isDependent": "Dependent patient (child, elderly, caregiver-managed)",
+      "responsibleContact": "Responsible contact (guardian)",
+      "responsibleContactPlaceholder": "Not assigned",
+      "searchGuardianPlaceholder": "Search by name...",
+      "noGuardianResults": "No patients found",
+      "clearResponsibleContact": "Clear",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
       "isActive": "Is Active",
@@ -1015,11 +1042,63 @@
   "QuoteColumns": {
     "quoteId": "Quote ID",
     "total": "Total",
+    "amountInvoiced": "Amount Invoiced",
+    "pendingInvoice": "Pending Invoice",
+    "amountPaid": "Paid",
+    "pendingPayment": "Pending Payment",
     "billingStatus": "Billing Status",
     "createdAt": "Created At",
     "currency": "Currency",
     "exchangeRate": "Exchange Rate",
     "quoteDocNo": "Quote Doc No."
+  },
+  "QuoteBillingDialog": {
+    "title": "Invoice quote",
+    "description": "Define the amount to invoice for {quote}.",
+    "loading": "Loading billing context...",
+    "cancel": "Cancel",
+    "save": "Save invoice",
+    "summary": {
+      "quoteTotal": "Quote total",
+      "invoiced": "Invoiced",
+      "pendingInvoice": "Pending invoice",
+      "invoiceTotal": "This invoice total"
+    },
+    "items": {
+      "title": "Services to invoice",
+      "description": "Select the service and, if applicable, the workflow steps.",
+      "add": "Add line",
+      "lineLabel": "Line {number}",
+      "service": "Service",
+      "selectService": "Select service",
+      "step": "Steps",
+      "selectStep": "Select steps",
+        "searchStepPlaceholder": "Search step...",
+        "stepsSelected": "{count} selected steps",
+        "selectedSteps": "Selected steps",
+        "noSteps": "No steps",
+        "fullyInvoiced": "Fully invoiced",
+        "amount": "Amount to invoice",
+        "pending": "Pending invoice",
+        "invoiced": "Invoiced"
+      },
+    "validation": {
+      "serviceRequired": "Select a service from the quote.",
+      "amountPositive": "Enter an amount greater than zero.",
+      "atLeastOneItem": "Add at least one line.",
+      "totalExceeded": "The invoice total exceeds the quote pending amount.",
+      "itemExceeded": "The amount exceeds the pending amount for service {service}."
+    },
+    "errors": {
+      "title": "Invoice could not be created",
+      "generic": "An error occurred while generating the invoice.",
+      "missingQuote": "There is no selected quote to invoice.",
+      "missingOrder": "No order associated with the quote was found."
+    },
+    "success": {
+      "title": "Invoice created",
+      "description": "The invoice for {quote} was created successfully."
+    }
   },
   "OrderColumns": {
     "orderId": "Doc No.",
@@ -1154,6 +1233,8 @@
     "title": "Quotes",
     "description": "Manage all your quotes here.",
     "actions": {
+      "openMenu": "Open menu",
+      "title": "Actions",
       "print": "Print",
       "sendEmail": "Send Email",
       "confirm": "Confirm",
@@ -1242,7 +1323,8 @@
         "unitPrice": "Unit Price",
         "total": "Total",
         "selectService": "Select Service",
-        "toothNumber": "Tooth Number"
+        "toothNumber": "Tooth Number",
+        "empty": "No items added yet."
       },
       "notes": "Notes",
       "notesPlaceholder": "Add any additional notes here..."
@@ -1310,6 +1392,9 @@
       "total": "Total",
       "appointments": "Appointments",
       "clinicSessions": "Clinical Sessions"
+    },
+    "columns": {
+      "docNo": "Doc No."
     },
     "appointments": {
       "columns": {
@@ -1652,7 +1737,12 @@
       },
       "validation": {
         "errorTitle": "Submission Error",
-        "checkFields": "Please check the form for errors."
+        "checkFields": "Please check the form for errors.",
+        "userRequired": "A user or provider is required.",
+        "totalNonNegative": "Total must be a non-negative number.",
+        "serviceRequired": "Service name is required.",
+        "quantityMin": "Quantity must be at least 1.",
+        "unitPriceNonNegative": "Unit price cannot be negative."
       },
       "errors": {
         "title": "Error",
@@ -1746,6 +1836,7 @@
       "columns": {
         "id": "ID",
         "service": "Service",
+        "step": "Step",
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
         "total": "Subtotal"
@@ -2056,6 +2147,8 @@
     "title": "Physical Cash Registers",
     "description": "A list of Physical Cash Registers",
     "filterPlaceholder": "Filter here...",
+    "active": "Active",
+    "inactive": "Inactive",
     "columns": {
       "id": "ID",
       "name": "Name",
@@ -2127,9 +2220,10 @@
       "order_doc_no": "Order Doc No.",
       "type": "Type",
       "paymentTypes": {
-        "payment": "Payment",
+        "direct_payment": "Direct Payment",
         "prepaid": "Prepaid",
-        "credit_note": "Credit Note"
+        "payment_allocation": "Payment Allocation",
+        "credit_note_allocation": "Credit Note Allocation"
       },
       "credit_note": "Credit Note",
       "invoice": "Invoice",
@@ -2253,6 +2347,7 @@
       "errors": {
         "title": "Error",
         "loadMethods": "Could not load payment methods.",
+        "notEditable": "Only direct payments and prepayments can be edited.",
         "closedCashSession": "This payment cannot be edited because it belongs to an old or closed cash session.",
         "notFound": "The payment or selected payment method was not found.",
         "generic": "Could not update the payment."
@@ -2816,6 +2911,7 @@
         "emailInvalid": "Invalid email.",
         "phoneInvalid": "Invalid phone number.",
         "identityInvalid": "Invalid identity document.",
+        "identityRequired": "Identity is required.",
         "identityMaxLength": "Identity document must be at most 10 characters long.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
       },
@@ -4606,7 +4702,10 @@
     "openChat": "Open Chat",
     "openMenu": "Open Menu",
     "closeMenu": "Close Menu",
-    "chatbotTitle": "Assistant"
+    "chatbotTitle": "Assistant",
+    "minimizeChat": "Minimize chat",
+    "restoreChat": "Restore chat",
+    "closeChat": "Close chat"
   },
   "ResetPasswordPage": {
     "title": "Reset Password",
@@ -5209,6 +5308,108 @@
     "toast": {
       "openErrorTitle": "Could not open WhatsApp",
       "openErrorDescription": "Please allow pop-ups and try again."
+    }
+  },
+  "DentalRecord": {
+    "title": "Medical Record",
+    "tab": { "odontogram": "Odontogram", "periodontogram": "Periodontogram", "periodontogramSoon": "Coming soon" },
+    "newSession": "New Session",
+    "noSessions": "No sessions recorded",
+    "noSessionsDesc": "Start a new session to begin charting.",
+    "readOnly": "Read-only",
+    "editing": "Editing",
+    "prevSession": "Previous session",
+    "nextSession": "Next session",
+    "selectToothHint": "Click a tooth to see details and apply conditions",
+    "clearTooth": "Clear tooth",
+    "clearAll": "Clear chart",
+    "activeTool": "Active tool",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "layoutMouth": "Open mouth view",
+    "layoutFlat": "Flat view",
+    "backToMouth": "Back to mouth view",
+    "conditionsPanel": "Conditions",
+    "odontogramSection": "Odontogram",
+    "conditionCategory": {
+      "surface": "Surfaces",
+      "whole": "Whole",
+      "overlay": "Overlays"
+    },
+    "hint": {
+      "surface": "Click a surface zone on the tooth",
+      "whole": "Click the tooth to apply to the whole piece",
+      "overlay": "Click the tooth to add/remove overlay"
+    },
+    "conditions": {
+      "healthy": "Healthy",
+      "caries": "Caries",
+      "filling": "Filling",
+      "pulp": "Pulp Treatment",
+      "dyschromic": "Dyschromia",
+      "worn": "Wear",
+      "crown": "Crown",
+      "crown-tmp": "Temp. Crown",
+      "missing": "Missing",
+      "root-remnant": "Root Remnant",
+      "prosthesis": "Rem. Prosthesis",
+      "fixed-prosth": "Fixed Prosthesis",
+      "implant": "Implant",
+      "edentulism": "Edentulism",
+      "endodontics": "Endodontics",
+      "fracture": "Fracture",
+      "diastema": "Diastema",
+      "rem-prost": "Rem. Prosth.",
+      "drifting": "Drifting",
+      "rotation": "Rotation",
+      "fusion": "Fusion",
+      "eruption": "Eruption",
+      "transposition": "Transposition",
+      "supernumerary": "Supernumerary",
+      "bolt": "Bolt",
+      "fixed-ortho": "Fixed Ortho",
+      "macrodontia": "Macrodontia",
+      "microdontia": "Microdontia",
+      "impacted-semi": "Semi-impacted",
+      "intrusion": "Intrusion",
+      "ectopic": "Ectopic",
+      "impacted": "Impacted",
+      "rem-orthodo": "Rem. Ortho",
+      "extrusion": "Extrusion",
+      "post": "Post"
+    },
+    "perio": {
+      "probing": "Probing Depth",
+      "recession": "Recession",
+      "bleeding": "Bleeding",
+      "suppuration": "Suppuration",
+      "mobility": "Mobility",
+      "furcation": "Furcation",
+      "bop": "BOP",
+      "nic": "CAL"
+    },
+    "session": {
+      "newTitle": "Register Session",
+      "date": "Date",
+      "description": "Title",
+      "descriptionPlaceholder": "e.g. Root canal tooth 16",
+      "descriptionRequired": "Please enter a session title",
+      "notes": "Procedures",
+      "notesPlaceholder": "Procedures performed, observations, prescribed medication...",
+      "files": "Attachments",
+      "filesDrop": "Drag files here or click to select (images, PDF)",
+      "untitled": "Untitled session",
+      "cancel": "Cancel",
+      "save": "Register Session",
+      "saveSuccess": "Session registered",
+      "saveError": "Could not save session. Please try again.",
+      "attachment": "Attachment",
+      "stateSummary": "Teeth & conditions",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Select a doctor",
+      "doctorRequired": "Please select a doctor",
+      "delete": "Delete session",
+      "deleteConfirm": "This session will be permanently deleted. Continue?"
     }
   }
 }

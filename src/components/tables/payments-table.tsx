@@ -11,6 +11,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
 import { cn, formatDateTime } from '@/lib/utils';
+import { isPaymentEditable } from '@/services/payments-service';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -18,6 +19,14 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Skeleton } from '../ui/skeleton';
+
+function HistoricalBadge({ label }: { label: string }) {
+  return (
+    <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+      {label}
+    </Badge>
+  );
+}
 
 const getColumns = (
   t: (key: string) => string,
@@ -191,9 +200,7 @@ const getColumns = (
         const isHistorical = row.original.is_historical;
         if (!isHistorical) return null;
         return (
-          <Badge variant="outline" className="bg-muted text-muted-foreground border-dashed">
-            {t('isHistorical')}
-          </Badge>
+          <HistoricalBadge label={t('isHistorical')} />
         );
       },
     },
@@ -222,10 +229,12 @@ const getColumns = (
                 </DropdownMenuItem>
               )}
               {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(payment)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  <span>{tActions('edit')}</span>
-                </DropdownMenuItem>
+                isPaymentEditable(payment) ? (
+                  <DropdownMenuItem onClick={() => onEdit(payment)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    <span>{tActions('edit')}</span>
+                  </DropdownMenuItem>
+                ) : null
               )}
               {onSendEmail && (
                 <DropdownMenuItem onClick={() => onSendEmail(payment)}>
@@ -337,12 +346,23 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           onRowSelectionChange={onRowSelectionChange}
-          getRowClassName={(row: Payment) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
+          getRowClassName={(row: Payment) => row.is_historical ? 'border-l-4 border-l-amber-400 bg-amber-50/70 dark:border-l-amber-700 dark:bg-amber-950/30' : ''}
           isNarrow={isNarrow}
           renderCard={(row: Payment, _isSelected: boolean) => (
             <DataCard isSelected={_isSelected}
+              className={row.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
               title={row.doc_no || String(row.id)}
-              subtitle={[row.user_name, row.payment_method_code, row.transaction_type].filter(Boolean).join(' · ')}
+              subtitle={[
+                row.user_name,
+                formatDateTime(row.payment_date).split(' ')[0],
+                row.amount_applied != null
+                  ? [row.source_currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(Number(row.amount_applied)))].filter(Boolean).join(' ')
+                  : undefined,
+                row.payment_method_code,
+              ].filter(Boolean).join(' · ')}
+              badge={
+                row.is_historical ? <HistoricalBadge label={t('isHistorical')} /> : undefined
+              }
               showArrow
               onClick={() => onRowSelectionChange?.([row])}
             />

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import type { Locale } from 'date-fns';
 import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } from 'date-fns';
 
-import type { CalendarEvent } from './calendar-types';
+import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
 
 interface CalendarMonthViewMobileProps {
@@ -14,7 +14,7 @@ interface CalendarMonthViewMobileProps {
   events: CalendarEvent[];
   dateLocale: Locale;
   onEventClick: (data: any) => void;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarMonthViewMobile({
@@ -24,7 +24,9 @@ export function CalendarMonthViewMobile({
   onEventClick,
   onSlotClick,
 }: CalendarMonthViewMobileProps) {
-  const [selectedDay, setSelectedDay] = React.useState<Date>(new Date());
+  // Initialize stable for SSR; set real "today" after mount.
+  const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date(2000, 0, 1));
+  React.useEffect(() => { setSelectedDay(new Date()); }, []);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -50,6 +52,13 @@ export function CalendarMonthViewMobile({
       } catch {
         // skip invalid
       }
+    });
+    map.forEach((list) => {
+      list.sort((a, b) => {
+        const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
+        const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
+        return startA - startB;
+      });
     });
     return map;
   }, [events]);
@@ -166,6 +175,7 @@ export function CalendarMonthViewMobile({
               return (
                 <div
                   key={event.id}
+                  data-testid="calendar-month-agenda-event"
                   className="flex items-start gap-3 p-3 rounded-lg border border-border/50 cursor-pointer active:bg-muted/50 transition-colors"
                   onClick={() => onEventClick(event.data)}
                 >

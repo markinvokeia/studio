@@ -49,6 +49,7 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
     description: z.string().optional(),
     priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
     source_table: z.string().min(1, t('sourceTableRequired')),
+    query_template: z.string().min(1, t('queryTemplateRequired')),
     table_id_field: z.string().min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
@@ -164,7 +165,6 @@ export default function AlertRulesPage() {
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
     const [isTesting, setIsTesting] = React.useState(false);
-    const [isEditing, setIsEditing] = React.useState(false);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedRule, setSelectedRule] = React.useState<AlertRule | null>(null);
 
@@ -178,15 +178,15 @@ export default function AlertRulesPage() {
         return col?.type;
     };
 
-    const validateTableIdField = (tableIdField: string, tableName: string): boolean => {
+    const validateTableIdField = React.useCallback((tableIdField: string, tableName: string): boolean => {
         const tableCols = tablesAndColumns[tableName] || [];
         return tableCols.some(col => col.name === tableIdField);
-    };
+    }, [tablesAndColumns]);
 
-    const validateUserIdField = (userIdField: string, tableName: string): boolean => {
+    const validateUserIdField = React.useCallback((userIdField: string, tableName: string): boolean => {
         const tableCols = tablesAndColumns[tableName] || [];
         return tableCols.some(col => col.name === userIdField);
-    };
+    }, [tablesAndColumns]);
 
     const getPotentialTableIdFields = (tableName: string) => {
         const tableCols = tablesAndColumns[tableName] || [];
@@ -291,14 +291,14 @@ export default function AlertRulesPage() {
                 form.setValue('user_id_field', '');
             }
         }
-    }, [selectedTable, form, tablesAndColumns]);
+    }, [selectedTable, form, validateTableIdField, validateUserIdField]);
 
     const handleCreate = () => {
         setEditingRule(null);
         setSelectedTable('');
         setConditions([]);
         setDisplayFields([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', query_template: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -322,6 +322,7 @@ export default function AlertRulesPage() {
         form.reset({
             ...rule,
             category_id: String(rule.category_id || ''),
+            query_template: rule.query_template || '',
             table_id_field: (rule as any).table_id_field || '',
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
@@ -330,7 +331,7 @@ export default function AlertRulesPage() {
             user_id_field: (rule as any).user_id_field || '',
         });
         setSubmissionError(null);
-        setIsEditing(true);
+        setIsDialogOpen(true);
     };
 
     const handleDuplicate = (rule: AlertRule) => {
@@ -352,6 +353,7 @@ export default function AlertRulesPage() {
             name: `${rule.name} (Copy)`,
             code: `${rule.code}_COPY`,
             category_id: String(rule.category_id || ''),
+            query_template: rule.query_template || '',
             table_id_field: (rule as any).table_id_field || '',
             days_before: rule.days_before ?? 0,
             days_after: rule.days_after ?? 0,
@@ -431,11 +433,7 @@ export default function AlertRulesPage() {
             }
             await api.post(API_ROUTES.SYSTEM.ALERT_RULES, data);
             toast({ title: editingRule ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
-            if (editingRule) {
-                setIsEditing(false);
-            } else {
-                setIsDialogOpen(false);
-            }
+            setIsDialogOpen(false);
             loadData();
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : 'An error occurred');
@@ -454,18 +452,12 @@ export default function AlertRulesPage() {
 
     const handleRowSelection = (rows: AlertRule[]) => {
         setSelectedRule(rows[0] ?? null);
-        setIsEditing(false);
         setSubmissionError(null);
     };
 
     const handleBack = () => {
-        if (isEditing) {
-            setIsEditing(false);
-            setSubmissionError(null);
-        } else {
-            setSelectedRule(null);
-            setRowSelection({});
-        }
+        setSelectedRule(null);
+        setRowSelection({});
     };
 
     const columns: ColumnDef<AlertRule>[] = [
@@ -562,18 +554,16 @@ export default function AlertRulesPage() {
         </Card>
     );
 
-    const rightPanel = (selectedRule || isEditing) ? (
+    const rightPanel = selectedRule ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
             <CardHeader className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><BotMessageSquare className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
-                        <CardTitle className="text-base lg:text-lg truncate">
-                            {isEditing ? (editingRule?.name || t('dialog.editTitle')) : selectedRule?.name}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground truncate">{isEditing ? editingRule?.code : selectedRule?.code}</p>
+                        <CardTitle className="text-base lg:text-lg truncate">{selectedRule?.name}</CardTitle>
+                        <p className="text-xs text-muted-foreground truncate">{selectedRule?.code}</p>
                     </div>
-                    {!isEditing && selectedRule && (
+                    {selectedRule && (
                         <div className="flex gap-1 flex-none">
                             {canUpdate && (
                                 <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
@@ -590,329 +580,52 @@ export default function AlertRulesPage() {
                 </div>
             </CardHeader>
             <Separator />
-            {!isEditing ? (
-                <CardContent className="flex-1 overflow-auto p-4">
-                    <dl className="space-y-3 text-sm">
+            <CardContent className="flex-1 overflow-auto p-4">
+                <dl className="space-y-3 text-sm">
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.name')}</dt>
+                        <dd className="text-foreground">{selectedRule!.name}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Código</dt>
+                        <dd className="text-foreground font-mono text-xs">{selectedRule!.code}</dd>
+                    </div>
+                    {selectedRule!.description && (
                         <div>
-                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.name')}</dt>
-                            <dd className="text-foreground">{selectedRule!.name}</dd>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Descripción</dt>
+                            <dd className="text-foreground text-xs">{selectedRule!.description}</dd>
                         </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Código</dt>
-                            <dd className="text-foreground font-mono text-xs">{selectedRule!.code}</dd>
-                        </div>
-                        {selectedRule!.description && (
-                            <div>
-                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Descripción</dt>
-                                <dd className="text-foreground text-xs">{selectedRule!.description}</dd>
-                            </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.priority')}</dt>
-                                <dd><Badge variant={selectedRule!.priority === 'CRITICAL' ? 'destructive' : 'secondary'}>{selectedRule!.priority}</Badge></dd>
-                            </div>
-                            <div>
-                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.isActive')}</dt>
-                                <dd><Badge variant={selectedRule!.is_active ? 'success' : 'outline'}>{selectedRule!.is_active ? t('columns.yes') : t('columns.no')}</Badge></dd>
-                            </div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.priority')}</dt>
+                            <dd><Badge variant={selectedRule!.priority === 'CRITICAL' ? 'destructive' : 'secondary'}>{selectedRule!.priority}</Badge></dd>
                         </div>
                         <div>
-                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.category')}</dt>
-                            <dd className="text-foreground">{categories.find(c => String(c.id) === String(selectedRule!.category_id))?.name || selectedRule!.category_id}</dd>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.isActive')}</dt>
+                            <dd><Badge variant={selectedRule!.is_active ? 'success' : 'outline'}>{selectedRule!.is_active ? t('columns.yes') : t('columns.no')}</Badge></dd>
+                        </div>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.category')}</dt>
+                        <dd className="text-foreground">{categories.find(c => String(c.id) === String(selectedRule!.category_id))?.name || selectedRule!.category_id}</dd>
+                    </div>
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Tabla fuente</dt>
+                        <dd className="text-foreground font-mono text-xs">{selectedRule!.source_table || '-'}</dd>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoEmail')}</dt>
+                            <dd><Badge variant={selectedRule!.auto_send_email ? 'success' : 'outline'}>{selectedRule!.auto_send_email ? t('columns.yes') : t('columns.no')}</Badge></dd>
                         </div>
                         <div>
-                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">Tabla fuente</dt>
-                            <dd className="text-foreground font-mono text-xs">{selectedRule!.source_table || '-'}</dd>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoSms')}</dt>
+                            <dd><Badge variant={selectedRule!.auto_send_sms ? 'success' : 'outline'}>{selectedRule!.auto_send_sms ? t('columns.yes') : t('columns.no')}</Badge></dd>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoEmail')}</dt>
-                                <dd><Badge variant={selectedRule!.auto_send_email ? 'success' : 'outline'}>{selectedRule!.auto_send_email ? t('columns.yes') : t('columns.no')}</Badge></dd>
-                            </div>
-                            <div>
-                                <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('columns.autoSms')}</dt>
-                                <dd><Badge variant={selectedRule!.auto_send_sms ? 'success' : 'outline'}>{selectedRule!.auto_send_sms ? t('columns.yes') : t('columns.no')}</Badge></dd>
-                            </div>
-                        </div>
-                    </dl>
-                </CardContent>
-            ) : (
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
-                        <CardContent className="flex-1 overflow-auto p-4 space-y-4">
-                            {submissionError && (
-                                <Alert variant="destructive">
-                                    <AlertTriangle className="h-4 w-4" />
-                                    <AlertTitle>{t('toast.errorTitle')}</AlertTitle>
-                                    <AlertDescription>{submissionError}</AlertDescription>
-                                </Alert>
-                            )}
-                            <FormField control={form.control} name="name" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.name')}</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="code" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.code')}</FormLabel>
-                                    <FormControl><Input {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="category_id" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.category')}</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectCategory')} /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {categories.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="description" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.description')}</FormLabel>
-                                    <FormControl><Textarea {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="priority" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.priority')}</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectPriority')} /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="LOW">{t('priorities.low')}</SelectItem>
-                                            <SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem>
-                                            <SelectItem value="HIGH">{t('priorities.high')}</SelectItem>
-                                            <SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="source_table" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.sourceTable')}</FormLabel>
-                                    <Select onValueChange={(val) => { field.onChange(val); setSelectedTable(val); }} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectSourceTable')} /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {Object.keys(tablesAndColumns).map(table => (
-                                                <SelectItem key={table} value={table}>{table}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="table_id_field" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.tableIdField')}</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectTableIdField')} /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
-                                                <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <FormField control={form.control} name="user_id_field" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.userIdField')}</FormLabel>
-                                    <Select onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} value={field.value || 'none'}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectUserIdField')} /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="none">{t('dialog.noUserIdField')}</SelectItem>
-                                            {selectedTable && getPotentialUserIdFields(selectedTable).map(col => (
-                                                <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <div className="space-y-4">
-                                <Label>{t('dialog.conditions')}</Label>
-                                {conditions.map((cond, index) => (
-                                    <div key={cond.id} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:p-0 sm:border-0">
-                                        {index > 0 && (
-                                            <Select value={cond.logic} onValueChange={(val: any) => { const c = [...conditions]; c[index].logic = val; setConditions(c); }}>
-                                                <SelectTrigger className="w-full sm:w-16"><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="AND">AND</SelectItem>
-                                                    <SelectItem value="OR">OR</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                        <Select value={cond.column} onValueChange={(val) => { const c = [...conditions]; c[index].column = val; setConditions(c); }}>
-                                            <SelectTrigger className="w-full sm:flex-1"><SelectValue placeholder="Column" /></SelectTrigger>
-                                            <SelectContent>
-                                                {(tablesAndColumns[selectedTable] || []).map(col => (
-                                                    <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Select value={cond.operator} onValueChange={(val) => { const c = [...conditions]; c[index].operator = val; setConditions(c); }}>
-                                            <SelectTrigger className="w-full sm:w-24"><SelectValue placeholder="Op" /></SelectTrigger>
-                                            <SelectContent>
-                                                {getAvailableOperators(cond.column).map(op => (
-                                                    <SelectItem key={op} value={op}>{op}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <DynamicFieldInput
-                                            value={cond.value}
-                                            onChange={(val) => { const c = [...conditions]; c[index].value = val; setConditions(c); }}
-                                            fieldType={getColumnType(cond.column) || ''}
-                                            operator={cond.operator}
-                                            className="w-full sm:flex-1"
-                                        />
-                                        <Button type="button" variant="ghost" size="icon" className="self-end sm:self-auto" onClick={() => setConditions(conditions.filter((_, i) => i !== index))}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                                <Button type="button" variant="outline" size="sm" onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}>
-                                    Add Condition
-                                </Button>
-                            </div>
-                            <div className="space-y-4">
-                                <Label>{t('dialog.displayFields')}</Label>
-                                {displayFields.map((field, index) => {
-                                    const columnType = tablesAndColumns[selectedTable]?.find(c => c.name === field.source_column)?.type || '';
-                                    return (
-                                        <div key={field.id} className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:p-0 sm:border-0">
-                                            <Input placeholder={t('dialog.fieldLabel')} value={field.label} onChange={(e) => { const f = [...displayFields]; f[index].label = e.target.value; setDisplayFields(f); }} className="w-full sm:flex-1" />
-                                            <Select value={field.source_column} onValueChange={(val) => { const f = [...displayFields]; f[index].source_column = val; f[index].type = getColumnType(val) || 'text'; setDisplayFields(f); }}>
-                                                <SelectTrigger className="w-full sm:flex-1"><SelectValue placeholder={t('dialog.selectFieldColumn')} /></SelectTrigger>
-                                                <SelectContent>
-                                                    {(tablesAndColumns[selectedTable] || []).map(col => (
-                                                        <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <div className="w-full sm:w-28 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted">{columnType || '-'}</div>
-                                            <Button type="button" variant="ghost" size="icon" className="self-end sm:self-auto" onClick={() => setDisplayFields(displayFields.filter((_, i) => i !== index))}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    );
-                                })}
-                                <Button type="button" variant="outline" size="sm" onClick={() => setDisplayFields([...displayFields, { id: `field-${Date.now()}`, label: '', source_column: '', type: 'text' }])}>
-                                    {t('dialog.addDisplayField')}
-                                </Button>
-                            </div>
-                            <FormField control={form.control} name="recurrence_type" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('dialog.recurrenceType')}</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrenceType')} /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="ONCE">Once</SelectItem>
-                                            <SelectItem value="DAILY">Daily</SelectItem>
-                                            <SelectItem value="WEEKLY">Weekly</SelectItem>
-                                            <SelectItem value="MONTHLY">Monthly</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="email_template_id" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.emailTemplate')}</FormLabel>
-                                        <Select onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)} value={field.value?.toString()}>
-                                            <FormControl>
-                                                <SelectTrigger><SelectValue placeholder={t('dialog.selectEmailTemplate')} /></SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {emailTemplates.map(tmp => <SelectItem key={tmp.id} value={tmp.id.toString()}>{tmp.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="sms_template_id" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.smsTemplate')}</FormLabel>
-                                        <Select onValueChange={(val) => field.onChange(val ? parseInt(val) : undefined)} value={field.value?.toString()}>
-                                            <FormControl>
-                                                <SelectTrigger><SelectValue placeholder={t('dialog.selectSmsTemplate')} /></SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {smsTemplates.map(tmp => <SelectItem key={tmp.id} value={tmp.id.toString()}>{tmp.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="days_before" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.daysBefore')}</FormLabel>
-                                        <FormControl><Input type="number" {...field} /></FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="days_after" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.daysAfter')}</FormLabel>
-                                        <FormControl><Input type="number" {...field} /></FormControl>
-                                    </FormItem>
-                                )} />
-                            </div>
-                            <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                                <FormField control={form.control} name="auto_send_email" render={({ field }) => (
-                                    <FormItem className="flex items-center space-x-2 space-y-0 rounded-md border p-3 sm:border-0 sm:p-0">
-                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                        <FormLabel className="font-normal">{t('dialog.autoSendEmail')}</FormLabel>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="auto_send_sms" render={({ field }) => (
-                                    <FormItem className="flex items-center space-x-2 space-y-0 rounded-md border p-3 sm:border-0 sm:p-0">
-                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                        <FormLabel className="font-normal">{t('dialog.autoSendSms')}</FormLabel>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="is_active" render={({ field }) => (
-                                    <FormItem className="flex items-center space-x-2 space-y-0 rounded-md border p-3 sm:border-0 sm:p-0">
-                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                        <FormLabel className="font-normal">{t('dialog.isActive')}</FormLabel>
-                                    </FormItem>
-                                )} />
-                            </div>
-                        </CardContent>
-                        <div className="flex-none border-t bg-card px-4 py-3 flex gap-2">
-                            <Button type="submit" disabled={isSubmitting}>
-                                {isSubmitting ? t('dialog.saving') : t('dialog.save')}
-                            </Button>
-                            <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); }} disabled={isSubmitting}>
-                                {t('dialog.cancel')}
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
-            )}
+                    </div>
+                </dl>
+            </CardContent>
         </Card>
     ) : <div />;
 
@@ -922,20 +635,20 @@ export default function AlertRulesPage() {
                 <TwoPanelLayout
                     leftPanel={leftPanel}
                     rightPanel={rightPanel}
-                    isRightPanelOpen={!!selectedRule || isEditing}
+                    isRightPanelOpen={!!selectedRule}
                     onBack={handleBack}
                     leftPanelDefaultSize={50}
                     rightPanelDefaultSize={50}
                 />
             </div>
 
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+            <Dialog open={isDialogOpen} onOpenChange={(open) => { setIsDialogOpen(open); if (!open) setSubmissionError(null); }}>
+                <DialogContent maxWidth="6xl" className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] flex-col p-0">
                     <DialogHeader>
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-4 py-4 px-6">
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />
@@ -944,54 +657,80 @@ export default function AlertRulesPage() {
                                 </Alert>
                             )}
 
-                            <FormField
-                                control={form.control}
-                                name="name"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.name')}</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="code"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.code')}</FormLabel>
-                                        <FormControl>
-                                            <Input {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="category_id"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.category')}</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.name')}</FormLabel>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectCategory')} />
-                                                </SelectTrigger>
+                                                <Input {...field} />
                                             </FormControl>
-                                            <SelectContent>
-                                                {categories.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="code"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.code')}</FormLabel>
+                                            <FormControl>
+                                                <Input {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="category_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.category')}</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectCategory')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {categories.map(c => <SelectItem key={String(c.id)} value={String(c.id)}>{c.name}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="priority"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.priority')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectPriority')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="LOW">{t('priorities.low')}</SelectItem>
+                                                    <SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem>
+                                                    <SelectItem value="HIGH">{t('priorities.high')}</SelectItem>
+                                                    <SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
                             <FormField
                                 control={form.control}
@@ -1000,117 +739,161 @@ export default function AlertRulesPage() {
                                     <FormItem>
                                         <FormLabel>{t('dialog.description')}</FormLabel>
                                         <FormControl>
-                                            <Textarea {...field} />
+                                            <Textarea {...field} className="min-h-24" />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
-                            <FormField
-                                control={form.control}
-                                name="priority"
-                                render={({ field }) => (
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="source_table"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.sourceTable')}</FormLabel>
+                                            <Select
+                                                onValueChange={(val) => {
+                                                    field.onChange(val);
+                                                    setSelectedTable(val);
+                                                }}
+                                                value={field.value}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectSourceTable')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {Object.keys(tablesAndColumns).map(table => (
+                                                        <SelectItem key={table} value={table}>{table}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="recurrence_type"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.recurrenceType')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectRecurrenceType')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="ONCE">Once</SelectItem>
+                                                    <SelectItem value="DAILY">Daily</SelectItem>
+                                                    <SelectItem value="WEEKLY">Weekly</SelectItem>
+                                                    <SelectItem value="MONTHLY">Monthly</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="table_id_field"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.tableIdField')}</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectTableIdField')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
+                                                        <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="user_id_field"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.userIdField')}</FormLabel>
+                                            <Select onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} value={field.value || 'none'}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder={t('dialog.selectUserIdField')} />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="none">{t('dialog.noUserIdField')}</SelectItem>
+                                                    {selectedTable && getPotentialUserIdFields(selectedTable).map(col => (
+                                                        <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField control={form.control} name="days_before" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('dialog.priority')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectPriority')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="LOW">{t('priorities.low')}</SelectItem>
-                                                <SelectItem value="MEDIUM">{t('priorities.medium')}</SelectItem>
-                                                <SelectItem value="HIGH">{t('priorities.high')}</SelectItem>
-                                                <SelectItem value="CRITICAL">{t('priorities.critical')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
+                                        <FormLabel>{t('dialog.daysBefore')}</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" {...field} />
+                                        </FormControl>
                                     </FormItem>
-                                )}
-                            />
+                                )} />
+
+                                <FormField control={form.control} name="days_after" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('dialog.daysAfter')}</FormLabel>
+                                        <FormControl>
+                                            <Input type="number" {...field} />
+                                        </FormControl>
+                                    </FormItem>
+                                )} />
+                            </div>
 
                             <FormField
                                 control={form.control}
-                                name="source_table"
+                                name="query_template"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>{t('dialog.sourceTable')}</FormLabel>
-                                        <Select
-                                            onValueChange={(val) => {
-                                                field.onChange(val);
-                                                setSelectedTable(val);
-                                            }}
-                                            value={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectSourceTable')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {Object.keys(tablesAndColumns).map(table => (
-                                                    <SelectItem key={table} value={table}>{table}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="table_id_field"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.tableIdField')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectTableIdField')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                {selectedTable && getPotentialTableIdFields(selectedTable).map(col => (
-                                                    <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="user_id_field"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.userIdField')}</FormLabel>
-                                        <Select onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} value={field.value || 'none'}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectUserIdField')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="none">{t('dialog.noUserIdField')}</SelectItem>
-                                                {selectedTable && getPotentialUserIdFields(selectedTable).map(col => (
-                                                    <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        <FormLabel>{t('dialog.queryTemplate')}</FormLabel>
+                                        <FormControl>
+                                            <Textarea {...field} className="min-h-28 font-mono text-sm" />
+                                        </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
 
                             <div className="space-y-4">
-                                <Label>{t('dialog.conditions')}</Label>
+                                <div className="flex items-center justify-between gap-3">
+                                    <Label>{t('dialog.conditions')}</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}
+                                    >
+                                        Add Condition
+                                    </Button>
+                                </div>
                                 {conditions.map((cond, index) => (
-                                    <div key={cond.id} className="flex items-center space-x-2">
+                                    <div key={cond.id} className="flex min-w-0 flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center">
                                         {index > 0 && (
                                             <Select
                                                 value={cond.logic}
@@ -1120,7 +903,7 @@ export default function AlertRulesPage() {
                                                     setConditions(newConds);
                                                 }}
                                             >
-                                                <SelectTrigger className="w-16"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="w-full sm:w-16"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectItem value="AND">AND</SelectItem>
                                                     <SelectItem value="OR">OR</SelectItem>
@@ -1135,7 +918,7 @@ export default function AlertRulesPage() {
                                                 setConditions(newConds);
                                             }}
                                         >
-                                            <SelectTrigger className="flex-1"><SelectValue placeholder="Column" /></SelectTrigger>
+                                            <SelectTrigger className="w-full min-w-0 sm:flex-1"><SelectValue placeholder="Column" /></SelectTrigger>
                                             <SelectContent>
                                                 {(tablesAndColumns[selectedTable] || []).map(col => (
                                                     <SelectItem key={col.name} value={col.name}>{col.name}</SelectItem>
@@ -1150,7 +933,7 @@ export default function AlertRulesPage() {
                                                 setConditions(newConds);
                                             }}
                                         >
-                                            <SelectTrigger className="w-24"><SelectValue placeholder="Op" /></SelectTrigger>
+                                            <SelectTrigger className="w-full sm:w-24"><SelectValue placeholder="Op" /></SelectTrigger>
                                             <SelectContent>
                                                 {getAvailableOperators(cond.column).map(op => (
                                                     <SelectItem key={op} value={op}>{op}</SelectItem>
@@ -1166,34 +949,37 @@ export default function AlertRulesPage() {
                                             }}
                                             fieldType={getColumnType(cond.column) || ''}
                                             operator={cond.operator}
-                                            className="flex-1"
+                                            className="w-full min-w-0 sm:flex-1"
                                         />
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
+                                            className="self-end sm:self-auto"
                                             onClick={() => setConditions(conditions.filter((_, i) => i !== index))}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 ))}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setConditions([...conditions, { id: `cond-${Date.now()}`, column: '', operator: '=', value: '', ...(conditions.length > 0 ? { logic: 'AND' } : {}) }])}
-                                >
-                                    Add Condition
-                                </Button>
                             </div>
 
                             <div className="space-y-4">
-                                <Label>{t('dialog.displayFields')}</Label>
+                                <div className="flex items-center justify-between gap-3">
+                                    <Label>{t('dialog.displayFields')}</Label>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setDisplayFields([...displayFields, { id: `field-${Date.now()}`, label: '', source_column: '', type: 'text' }])}
+                                    >
+                                        {t('dialog.addDisplayField')}
+                                    </Button>
+                                </div>
                                 {displayFields.map((field, index) => {
                                     const columnType = tablesAndColumns[selectedTable]?.find(c => c.name === field.source_column)?.type || '';
                                     return (
-                                    <div key={field.id} className="flex items-center space-x-2">
+                                    <div key={field.id} className="flex min-w-0 flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center">
                                         <Input
                                             placeholder={t('dialog.fieldLabel')}
                                             value={field.label}
@@ -1202,7 +988,7 @@ export default function AlertRulesPage() {
                                                 newFields[index].label = e.target.value;
                                                 setDisplayFields(newFields);
                                             }}
-                                            className="flex-1"
+                                            className="w-full min-w-0 sm:flex-1"
                                         />
                                         <Select
                                             value={field.source_column}
@@ -1213,7 +999,7 @@ export default function AlertRulesPage() {
                                                 setDisplayFields(newFields);
                                             }}
                                         >
-                                            <SelectTrigger className="flex-1">
+                                            <SelectTrigger className="w-full min-w-0 sm:flex-1">
                                                 <SelectValue placeholder={t('dialog.selectFieldColumn')} />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -1222,13 +1008,14 @@ export default function AlertRulesPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        <div className="w-28 px-3 py-2 text-sm text-muted-foreground border rounded-md bg-muted">
+                                        <div className="w-full rounded-md border bg-muted px-3 py-2 text-sm text-muted-foreground sm:w-28">
                                             {columnType || '-'}
                                         </div>
                                         <Button
                                             type="button"
                                             variant="ghost"
                                             size="icon"
+                                            className="self-end sm:self-auto"
                                             onClick={() => setDisplayFields(displayFields.filter((_, i) => i !== index))}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -1236,41 +1023,9 @@ export default function AlertRulesPage() {
                                     </div>
                                     );
                                 })}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setDisplayFields([...displayFields, { id: `field-${Date.now()}`, label: '', source_column: '', type: 'text' }])}
-                                >
-                                    {t('dialog.addDisplayField')}
-                                </Button>
                             </div>
 
-                            <FormField
-                                control={form.control}
-                                name="recurrence_type"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.recurrenceType')}</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder={t('dialog.selectRecurrenceType')} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="ONCE">Once</SelectItem>
-                                                <SelectItem value="DAILY">Daily</SelectItem>
-                                                <SelectItem value="WEEKLY">Weekly</SelectItem>
-                                                <SelectItem value="MONTHLY">Monthly</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                                 <FormField
                                     control={form.control}
                                     name="email_template_id"
@@ -1313,26 +1068,7 @@ export default function AlertRulesPage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <FormField control={form.control} name="days_before" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.daysBefore')}</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" {...field} />
-                                        </FormControl>
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="days_after" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('dialog.daysAfter')}</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" {...field} />
-                                        </FormControl>
-                                    </FormItem>
-                                )} />
-                            </div>
-
-                            <div className="flex space-x-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
                                 <FormField control={form.control} name="auto_send_email" render={({ field }) => (
                                     <FormItem className="flex items-center space-x-2 space-y-0">
                                         <FormControl>
@@ -1360,9 +1096,9 @@ export default function AlertRulesPage() {
                             </div>
                         </form>
                     </Form>
-                    <DialogFooter>
-                        <Button disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
+                    <DialogFooter className="border-t px-4 py-3 sm:px-6">
+                        <Button className="w-full sm:w-auto" disabled={isSubmitting} onClick={form.handleSubmit(onSubmit)}>{isSubmitting ? t('dialog.saving') : (editingRule ? t('dialog.save') : t('dialog.create'))}</Button>
+                        <Button className="w-full sm:w-auto" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>{t('dialog.cancel')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

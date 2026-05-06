@@ -112,6 +112,10 @@ export function mapApiPaymentToPayment(apiPayment: any): Payment {
   };
 }
 
+export function isPaymentEditable(payment: Payment | null | undefined): payment is Payment {
+  return payment?.transaction_type === 'direct_payment';
+}
+
 export async function getSalesPayments(params: PaymentSearchParams = {}): Promise<PaymentListResponse> {
   try {
     const { page = 1, limit = 10, search = '' } = params;

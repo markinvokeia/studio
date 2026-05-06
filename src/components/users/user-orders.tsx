@@ -183,7 +183,8 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
 
   // Invoice dialog state
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
-  const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(new Date());
+  const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(undefined);
+  React.useEffect(() => { setInvoiceDate(new Date()); }, []);
   const [invoiceNotes, setInvoiceNotes] = React.useState('');
   const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
+import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -28,7 +29,6 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem } from '@/lib/types';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
-import { invoiceOrder } from '@/lib/invoice-actions';
 import { formatDateTime, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
@@ -214,8 +214,28 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.total')} />,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('total'));
-      return <div className="font-medium">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Math.round(amount * 100) / 100)}</div>;
+      return <div className="font-medium">{formatCurrency(Math.round(amount * 100) / 100, row.original.currency)}</div>;
     },
+  },
+  {
+    accessorKey: 'amount_invoiced',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.amountInvoiced')} />,
+    cell: ({ row }) => <div className="font-medium">{formatCurrency(Number(row.getValue('amount_invoiced')), row.original.currency)}</div>,
+  },
+  {
+    accessorKey: 'amount_pending_invoice',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingInvoice')} />,
+    cell: ({ row }) => <div className="font-medium">{formatCurrency(Number(row.getValue('amount_pending_invoice')), row.original.currency)}</div>,
+  },
+  {
+    accessorKey: 'amount_paid',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.amountPaid')} />,
+    cell: ({ row }) => <div className="font-medium">{formatCurrency(Number(row.getValue('amount_paid')), row.original.currency)}</div>,
+  },
+  {
+    accessorKey: 'amount_pending_payment',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.pendingPayment')} />,
+    cell: ({ row }) => <div className="font-medium">{formatCurrency(Number(row.getValue('amount_pending_payment')), row.original.currency)}</div>,
   },
   {
     accessorKey: 'status',
@@ -281,14 +301,18 @@ async function getQuotesForUser(userId: string): Promise<Quote[]> {
       user_id: q.user_id || 'N/A',
       user_name: q.user_name || q.userName || q.name || '',
       userEmail: q.userEmail || q.user_email || q.email || '',
-      total: q.total || 0,
-      status: q.status || 'draft',
-      payment_status: q.payment_status || 'unpaid',
-      billing_status: q.billing_status || 'not invoiced',
+      total: Number(q.total_presupuesto ?? q.total ?? 0),
+      status: normalizeQuoteStatus(q.status),
+      payment_status: normalizeQuotePaymentStatus(q.payment_status),
+      billing_status: String(q.billing_status || 'not invoiced').toLowerCase(),
       currency: q.currency || 'USD',
-      exchange_rate: q.exchange_rate || 1,
+      exchange_rate: Number(q.exchange_rate || 1),
       notes: q.notes || '',
       createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
+      amount_invoiced: Number(q.monto_facturado ?? q.amount_invoiced ?? 0),
+      amount_paid: Number(q.monto_pagado ?? q.amount_paid ?? 0),
+      amount_pending_invoice: Number(q.pendiente_facturar ?? q.amount_pending_invoice ?? 0),
+      amount_pending_payment: Number(q.pendiente_pago_facturado ?? q.amount_pending_payment ?? 0),
     }));
   } catch {
     return [];
@@ -314,6 +338,43 @@ const STATUS_BADGE: Record<string, any> = { accepted: 'success', confirmed: 'suc
 const PAYMENT_BADGE: Record<string, any> = { paid: 'success', partial: 'info', partially_paid: 'info', unpaid: 'outline' };
 const BILLING_BADGE: Record<string, any> = { invoiced: 'success', partially_invoiced: 'info', 'partially invoiced': 'info', 'not invoiced': 'outline', not_invoiced: 'outline' };
 
+function formatCurrency(amount: number | undefined, currency: string | undefined) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency || 'USD',
+  }).format(Number(amount || 0));
+}
+
+function normalizeQuoteStatus(status: unknown): Quote['status'] {
+  const normalized = String(status || 'draft').toLowerCase();
+  switch (normalized) {
+    case 'draft':
+    case 'sent':
+    case 'accepted':
+    case 'rejected':
+    case 'pending':
+    case 'confirmed':
+      return normalized;
+    default:
+      return 'draft';
+  }
+}
+
+function normalizeQuotePaymentStatus(status: unknown): Quote['payment_status'] {
+  const normalized = String(status || 'unpaid').toLowerCase().trim();
+  switch (normalized) {
+    case 'paid':
+      return 'paid';
+    case 'partially_paid':
+      return 'partially_paid';
+    case 'partial':
+    case 'partially paid':
+      return 'partial';
+    default:
+      return 'unpaid';
+  }
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 interface UserQuotesProps {
   userId: string;
@@ -337,6 +398,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [isQuoteBillingDialogOpen, setIsQuoteBillingDialogOpen] = React.useState(false);
 
   // Sync selectedQuote when userQuotes array changes
   React.useEffect(() => {
@@ -345,7 +407,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       if (updatedQuote) {
         const hasChanges =
           updatedQuote.status !== selectedQuote.status ||
-          updatedQuote.total !== selectedQuote.total;
+          updatedQuote.total !== selectedQuote.total ||
+          updatedQuote.billing_status !== selectedQuote.billing_status ||
+          updatedQuote.payment_status !== selectedQuote.payment_status ||
+          updatedQuote.amount_invoiced !== selectedQuote.amount_invoiced ||
+          updatedQuote.amount_pending_invoice !== selectedQuote.amount_pending_invoice ||
+          updatedQuote.amount_paid !== selectedQuote.amount_paid ||
+          updatedQuote.amount_pending_payment !== selectedQuote.amount_pending_payment;
         if (hasChanges) {
           setSelectedQuote(updatedQuote);
         }
@@ -354,7 +422,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         setRowSelection({});
       }
     }
-  }, [userQuotes]);
+  }, [selectedQuote, userQuotes]);
 
   // Items
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
@@ -410,21 +478,16 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canEditItems = canUpdateItem && ['draft', 'pending'].includes(selectedQuote?.status?.toLowerCase() || '');
   const canScheduleItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_SCHEDULE_ITEM);
   const canCompleteItem = isSales && hasPermission(SALES_PERMISSIONS.ORDERS_COMPLETE_ITEM);
-  const canInvoiceFromOrder = hasPermission(
-    isSales
-      ? SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER
-      : PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE
-  );
+  const canInvoiceQuote = isSales
+    ? hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER)
+    : hasPermission(PURCHASES_PERMISSIONS.INVOICES_CREATE) || hasPermission(PURCHASES_PERMISSIONS.ORDERS_CONVERT_INVOICE);
   const canSend = canSendQuote;
   const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
-  const selectedOrderBelongsToQuote = selectedQuote && selectedOrder && String(selectedOrder.quote_id) === selectedQuote.id;
-  const hasServicesPendingInvoice = orderItems.some(item => !item.invoiced_date);
+  const pendingInvoiceAmount = Number(selectedQuote?.amount_pending_invoice || 0);
   const showInvoiceFromOrderButton =
-    canInvoiceFromOrder &&
+    canInvoiceQuote &&
     isQuoteReadyToInvoice &&
-    !!selectedOrderBelongsToQuote &&
-    !isLoadingOrderItems &&
-    hasServicesPendingInvoice;
+    pendingInvoiceAmount > 0.009;
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadQuotes = React.useCallback(async (silent = false) => {
@@ -515,7 +578,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         loadQuoteClinicSessions(selectedQuote.id);
       }
     }
-  }, [refreshTrigger]);
+  }, [loadQuoteClinicSessions, loadQuotes, refreshTrigger, selectedQuote]);
 
   // ── Row selection ────────────────────────────────────────────────────────────
   const handleRowSelectionChange = React.useCallback((selectedRows: Quote[]) => {
@@ -545,6 +608,14 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       loadOrders(quote.id);
     }
   }, [loadItems, loadServices, loadQuoteClinicSessions, loadOrders]);
+
+  const handleOpenBillingDialog = React.useCallback(async () => {
+    if (!selectedQuote) return;
+    if (quoteItems.length === 0) {
+      await loadItems(selectedQuote.id);
+    }
+    setIsQuoteBillingDialogOpen(true);
+  }, [loadItems, quoteItems.length, selectedQuote]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
@@ -847,21 +918,6 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     }
   };
 
-  const handleInvoiceFromQuote = async () => {
-    if (!selectedQuote || !selectedOrderBelongsToQuote || !hasServicesPendingInvoice) return;
-    try {
-      await invoiceOrder({ orderId: selectedOrder.id, userId: selectedOrder.user_id, mode: isSales ? 'sales' : 'purchases' });
-      toast({ title: tQuotes('actions.invoiceSuccess'), description: tQuotes('actions.invoiceSuccessDesc', { orderId: selectedOrder.doc_no }) });
-      await Promise.all([
-        loadQuotes(true),
-        loadOrders(selectedQuote.id),
-        loadOrderItems(selectedOrder.id),
-      ]);
-    } catch (error) {
-      toast({ variant: 'destructive', title: tQuotes('errors.errorTitle'), description: error instanceof Error ? error.message : tQuotes('actions.invoiceError') });
-    }
-  };
-
   // ── Toolbar actions ───────────────────────────────────────────────────────────
   const toolbarActions = selectedQuote ? (
     <div className="flex items-center gap-1.5">
@@ -897,7 +953,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           variant="outline"
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          onClick={handleInvoiceFromQuote}
+          onClick={handleOpenBillingDialog}
         >
           <Receipt className="h-3.5 w-3.5" />
           {tQuotes('actions.invoice')}
@@ -982,6 +1038,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             columnTranslations={{
               doc_no: t('QuoteColumns.quoteId'),
               total: t('QuoteColumns.total'),
+              amount_invoiced: t('QuoteColumns.amountInvoiced'),
+              amount_pending_invoice: t('QuoteColumns.pendingInvoice'),
+              amount_paid: t('QuoteColumns.amountPaid'),
+              amount_pending_payment: t('QuoteColumns.pendingPayment'),
               status: t('UserColumns.status'),
               payment_status: t('Navigation.Payments'),
               billing_status: t('QuoteColumns.billingStatus'),
@@ -995,7 +1055,11 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 subtitle={formatDateTime(quote.createdAt)}
                 badge={<Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>}
                 fields={[
-                  { label: t('QuoteColumns.total'), value: `${quote.currency || 'USD'} ${Number(quote.total).toFixed(2)}`, primary: true },
+                  { label: t('QuoteColumns.total'), value: formatCurrency(quote.total, quote.currency), primary: true },
+                  { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(quote.amount_invoiced, quote.currency) },
+                  { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(quote.amount_pending_invoice, quote.currency) },
+                  { label: t('QuoteColumns.amountPaid'), value: formatCurrency(quote.amount_paid, quote.currency) },
+                  { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(quote.amount_pending_payment, quote.currency) },
                   { label: t('Navigation.Payments'), value: quote.payment_status || '-' },
                   { label: t('QuoteColumns.billingStatus'), value: quote.billing_status || '-' },
                 ]}
@@ -1049,11 +1113,11 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               <div className="px-6 py-3">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Total:</span>
-                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(selectedQuote.total)}</span>
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.total')}:</span>
+                    <span className="font-semibold text-sm">{formatCurrency(selectedQuote.total, selectedQuote.currency)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Facturación:</span>
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.billingStatus')}:</span>
                     <Badge variant={(BILLING_BADGE[selectedQuote.billing_status.toLowerCase()] ?? 'outline') as any} className="text-xs font-normal capitalize">
                       {(() => {
                         const status = selectedQuote.billing_status.toLowerCase().trim();
@@ -1063,12 +1127,28 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Creado:</span>
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.createdAt')}:</span>
                     <span className="text-sm">{formatDateTime(selectedQuote.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.amountInvoiced')}:</span>
+                    <span className="text-sm">{formatCurrency(selectedQuote.amount_invoiced, selectedQuote.currency)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.pendingInvoice')}:</span>
+                    <span className="text-sm">{formatCurrency(selectedQuote.amount_pending_invoice, selectedQuote.currency)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.amountPaid')}:</span>
+                    <span className="text-sm">{formatCurrency(selectedQuote.amount_paid, selectedQuote.currency)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('QuoteColumns.pendingPayment')}:</span>
+                    <span className="text-sm">{formatCurrency(selectedQuote.amount_pending_payment, selectedQuote.currency)}</span>
                   </div>
                   {selectedQuote.notes && (
                     <div className="flex items-center gap-2 w-full mt-1">
-                      <span className="text-xs text-muted-foreground">Notas:</span>
+                      <span className="text-xs text-muted-foreground">{t('UserQuotes.columns.notes')}:</span>
                       <span className="text-sm text-muted-foreground italic">{selectedQuote.notes}</span>
                     </div>
                   )}
@@ -1089,6 +1169,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setConfirmAction('reject'); setActionNotes(''); }}>
                   <XCircle className="h-3.5 w-3.5" />
                   {t('UserQuotes.actions.reject')}
+                </Button>
+              )}
+              {showInvoiceFromOrderButton && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleOpenBillingDialog}>
+                  <Receipt className="h-3.5 w-3.5" />
+                  {tQuotes('actions.invoice')}
                 </Button>
               )}
               {(canPrintQuote || canSend || (isDraft && (canUpdateQuote || canDeleteQuote))) && (
@@ -1193,6 +1279,25 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           </>
         )}
       </ResizableSheet>
+
+      <QuoteBillingDialog
+        open={isQuoteBillingDialogOpen}
+        onOpenChange={setIsQuoteBillingDialogOpen}
+        quote={selectedQuote}
+        quoteItems={quoteItems}
+        orderId={selectedOrder?.id}
+        isSales={isSales}
+        onSuccess={async () => {
+          await loadQuotes(true);
+          if (selectedQuote) {
+            await loadItems(selectedQuote.id);
+            if (selectedOrder?.id) {
+              await loadOrderItems(selectedOrder.id);
+            }
+          }
+          onDataChange?.();
+        }}
+      />
 
       {/* ── Edit quote dialog ── */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>

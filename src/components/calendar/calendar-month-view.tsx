@@ -7,7 +7,7 @@ import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } fro
 
 import { Skeleton } from '@/components/ui/skeleton';
 
-import type { CalendarEvent } from './calendar-types';
+import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { CalendarEventChip } from './calendar-event';
 
 interface CalendarMonthViewProps {
@@ -18,7 +18,7 @@ interface CalendarMonthViewProps {
   onEventClick: (data: any) => void;
   onEventColorChange: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
-  onSlotClick?: (date: Date) => void;
+  onSlotClick?: CalendarSlotClickHandler;
 }
 
 export function CalendarMonthView({
@@ -51,14 +51,20 @@ export function CalendarMonthView({
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-      const dayEvents = events.filter((e) => {
-        if (!e.start) return false;
-        try {
-          return isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, date);
-        } catch {
-          return false;
-        }
-      });
+      const dayEvents = events
+        .filter((e) => {
+          if (!e.start) return false;
+          try {
+            return isSameDay(typeof e.start === 'string' ? parseISO(e.start) : e.start, date);
+          } catch {
+            return false;
+          }
+        })
+        .sort((a, b) => {
+          const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
+          const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
+          return startA - startB;
+        });
 
       dayElements.push(
         <div
