@@ -137,6 +137,19 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           className="scale-90"
         />
       </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
+        <Label htmlFor="filter-doctors-by-service" className="text-xs font-medium cursor-pointer">
+          {t('filterDoctorsByService')}
+        </Label>
+        <Switch
+          id="filter-doctors-by-service"
+          checked={settings.filter_doctors_by_service}
+          onCheckedChange={(checked) => updateSettings({ filter_doctors_by_service: checked })}
+          disabled={isLoading}
+          className="scale-90"
+        />
+      </div>
     </div>
   );
 }

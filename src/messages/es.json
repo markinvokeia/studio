@@ -415,6 +415,7 @@
       "defaultView": "Vista predeterminada",
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
+      "filterDoctorsByService": "Filtrar doctores por servicio",
       "options": {
         "day": "Día",
         "2_days": "2 Días",

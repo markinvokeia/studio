@@ -2,6 +2,7 @@
 'use client';
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,8 +80,8 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const [allServices, setAllServices] = React.useState<Service[]>([]);
   const [doctorServiceMap, setDoctorServiceMap] = React.useState<Map<string, Service[]>>(new Map());
   const [patientUser, setPatientUser] = React.useState<UserType | null>(null);
-  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(true);
-  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(true);
+  const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
+  const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
 
   const hasPatientName = React.useMemo(() => {
     return Boolean(patient?.name && patient.name.trim().length > 0);
@@ -91,19 +92,15 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
 
     const fetchData = async () => {
       try {
-        const [calData, docData, srvData, configData] = await Promise.all([
+        const [calData, docData, srvData, calendarSettings] = await Promise.all([
           api.get(API_ROUTES.CALENDARS),
           api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' }),
           isSales ? getSalesServices({ limit: 100 }) : getPurchaseServices({ limit: 100 }),
-          api.get(API_ROUTES.SYSTEM.CONFIGS).catch(() => [])
+          getCalendarSettings()
         ]);
 
-        if (Array.isArray(configData)) {
-          const calConfig = configData.find((c: any) => c.key === 'CHECK_CALENDAR_AVAILABILITY');
-          const docConfig = configData.find((c: any) => c.key === 'CHECK_DOCTOR_AVAILABILITY');
-          if (calConfig) setCheckCalendarAvailability(String(calConfig.value).toLowerCase() === 'true');
-          if (docConfig) setCheckDoctorAvailability(String(docConfig.value).toLowerCase() === 'true');
-        }
+        setCheckCalendarAvailability(calendarSettings.check_availability);
+        setCheckDoctorAvailability(calendarSettings.filter_doctors_by_service);
 
         const cals = Array.isArray(calData) ? calData : (calData.calendars || []);
         setCalendars(cals.map((c: any) => ({ ...c, id: String(c.id) })));
