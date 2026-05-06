@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import type { InvoiceItem, Order, Quote, QuoteItem, Service } from '@/lib/types';
-import { toLocalISOString } from '@/lib/utils';
+import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +48,7 @@ async function fetchQuoteItemsForBilling(quoteId: string, isSales: boolean): Pro
     const endpoint = isSales ? API_ROUTES.SALES.QUOTES_ITEMS : API_ROUTES.PURCHASES.QUOTES_ITEMS;
     const data = await api.get(endpoint, { quote_id: quoteId, is_sales: isSales ? 'true' : 'false' });
     const rawItems = Array.isArray(data) ? data : (data.items || data.data || data.result || []);
-    return rawItems.map((item: any) => ({
+    const quoteItems = rawItems.map((item: any) => ({
       id: item.id ? String(item.id) : '',
       service_id: String(item.service_id || ''),
       service_name: item.service_name || '',
@@ -57,6 +57,7 @@ async function fetchQuoteItemsForBilling(quoteId: string, isSales: boolean): Pro
       total: Number(item.total || 0),
       tooth_number: item.tooth_number ? Number(item.tooth_number) : undefined,
     }));
+    return sortQuoteItems(quoteItems);
   } catch {
     return [];
   }
@@ -225,7 +226,7 @@ export function QuoteBillingDialog({
       const fetchedQuoteItems = await fetchQuoteItemsForBilling(quote.id, isSales);
       const sourceQuoteItems = fetchedQuoteItems.length > 0
         ? fetchedQuoteItems
-        : quoteItems;
+        : sortQuoteItems(quoteItems);
       const invoices = await fetchQuoteInvoicesForFinancials(quote.id, isSales);
       const invoiceItemsGroups = await Promise.all(
         invoices.map((invoice) => fetchInvoiceItems(invoice.id, isSales)),

@@ -50,7 +50,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDateTime, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -133,7 +133,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
         const normalized = normalizeApiResponse(data);
         const itemsData = normalized.items;
 
-        return itemsData.map((apiItem: any) => ({
+        const quoteItems = itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
             service_id: apiItem.service_id || t('defaults.notAvailable'),
             service_name: apiItem.service_name || t('defaults.notAvailable'),
@@ -142,6 +142,8 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
             total: apiItem.total || 0,
             tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
         }));
+
+        return sortQuoteItems(quoteItems);
     } catch (error) {
         console.error("Failed to fetch quote items:", error);
         return [];

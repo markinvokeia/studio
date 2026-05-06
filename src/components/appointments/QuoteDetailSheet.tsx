@@ -13,6 +13,7 @@ import { Can } from '@/components/auth/Can';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Invoice, Payment, QuoteItem } from '@/lib/types';
+import { sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary } from '@/services/quote-financials';
 import { hasValidPayments } from '@/components/appointments/sheet-utils';
@@ -27,7 +28,7 @@ async function fetchQuoteItems(quoteId: string): Promise<QuoteItem[]> {
   try {
     const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: quoteId, is_sales: 'true' });
     const { items } = normalizeApiResponse<any>(data);
-    return items.map((a: any) => ({
+    const quoteItems = items.map((a: any) => ({
       id: String(a.id || ''),
       service_id: String(a.service_id || ''),
       service_name: a.service_name || '',
@@ -36,6 +37,7 @@ async function fetchQuoteItems(quoteId: string): Promise<QuoteItem[]> {
       total: Number(a.total) || 0,
       tooth_number: a.tooth_number ? Number(a.tooth_number) : undefined,
     }));
+    return sortQuoteItems(quoteItems);
   } catch { return []; }
 }
 

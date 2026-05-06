@@ -1,5 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import { QuoteItem, Quote, Service } from '@/lib/types';
+import { sortQuoteItems } from '@/lib/utils';
 import { api } from './api';
 
 async function getWorkflowStepsByServiceId(serviceId: string): Promise<Service['treatment_steps']> {
@@ -107,7 +108,7 @@ export async function getQuoteItems(quoteId: string): Promise<QuoteItem[]> {
             ? data
             : (data.items || data.data || []);
 
-        return items;
+        return sortQuoteItems(items);
     } catch (error) {
         console.error('Failed to fetch quote items:', error);
         throw error;

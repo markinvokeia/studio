@@ -29,7 +29,7 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem } from '@/lib/types';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
-import { formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { formatDateTime, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -506,7 +506,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         { quote_id: quoteId, is_sales: isSales ? 'true' : 'false' }
       );
       const raw = Array.isArray(data) ? data : (data.items || data.data || []);
-      setQuoteItems(raw.map((i: any) => ({
+      const quoteItems = raw.map((i: any) => ({
         id: String(i.id),
         service_id: String(i.service_id),
         service_name: i.service_name || '',
@@ -514,7 +514,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         quantity: parseInt(i.quantity) || 1,
         total: parseFloat(i.total) || 0,
         tooth_number: i.tooth_number ?? undefined,
-      })));
+      }));
+      setQuoteItems(sortQuoteItems(quoteItems));
     } catch {
       setQuoteItems([]);
     } finally {
