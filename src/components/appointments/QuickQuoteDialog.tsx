@@ -11,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,7 +20,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Quote, Service, User } from '@/lib/types';
+import { formatDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
+import { parseISO } from 'date-fns';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -48,6 +51,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const [items, setItems] = React.useState<QuoteItem[]>([]);
   const [currency, setCurrency] = React.useState<'USD' | 'UYU'>('UYU');
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
+  const [createdAt, setCreatedAt] = React.useState<string>(formatDate(new Date()));
   const [notes, setNotes] = React.useState('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -57,6 +61,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       setItems([]);
       setCurrency('UYU');
       setExchangeRate(1);
+      setCreatedAt(formatDate(new Date()));
       setNotes('');
     }
   }, [open]);
@@ -128,6 +133,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         user_id: user.id,
         currency,
         exchange_rate: currency === 'UYU' ? 1 : exchangeRate,
+        created_at: toLocalISOString(parseISO(createdAt || formatDate(new Date()))),
         notes: notes || '',
         total,
         status: 'draft',
@@ -234,6 +240,13 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
                   disabled
                   className="bg-muted cursor-not-allowed font-semibold"
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{t('QuotesPage.quoteDialog.createdAt')}</Label>
+                <DatePickerInput value={createdAt} onChange={(value) => setCreatedAt(value || formatDate(new Date()))} />
               </div>
             </div>
 

@@ -30,7 +30,7 @@ import { DataCard } from '@/components/ui/data-card';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
 import { CheckCircle, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
@@ -167,7 +167,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />
       ),
-      cell: ({ row }) => formatDateTime(row.original.createdAt),
+      cell: ({ row }) => formatDisplayDate(row.original.createdAt),
     },
     {
       accessorKey: 'total',
@@ -693,7 +693,7 @@ export function RecentQuotesTable({
                         <DataCard
                           key={row.id}
                           title={row.original.doc_no || String(row.original.id)}
-                          subtitle={[row.original.user_name, formatDateTime(row.original.createdAt).split(' ')[0], row.original.status].filter(Boolean).join(' · ')}
+                          subtitle={[row.original.user_name, formatDisplayDate(row.original.createdAt), row.original.status].filter(Boolean).join(' · ')}
                           isSelected={row.getIsSelected()}
                           showArrow={!!(onRowClick || onRowSelectionChange)}
                           fields={[

@@ -21,14 +21,17 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Clinic, User } from '@/lib/types';
+import { toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -47,6 +50,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced',
         'not_invoiced', 'partially_invoiced', 'Pending']),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
+    created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
     items: z.array(z.object({
         id: z.string().optional(),
@@ -139,6 +143,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 payment_status: 'unpaid',
                 billing_status: 'not invoiced',
                 exchange_rate: 1,
+                created_at: new Date(),
                 notes: '',
                 items: [],
             },
@@ -204,7 +209,12 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
             const normalizeBilling = (s: string) =>
                 s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
 
-            const payload = { ...values, billing_status: normalizeBilling(values.billing_status), items: itemsToSubmit };
+            const payload = {
+                ...values,
+                billing_status: normalizeBilling(values.billing_status),
+                created_at: toLocalISOString(values.created_at),
+                items: itemsToSubmit,
+            };
             await upsertQuote(payload as any, isSales, t);
             toast({ title: t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             onOpenChange(false);
@@ -236,37 +246,55 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                 </Alert>
                             )}
 
-                            {/* User field — locked if pre-filled from context */}
-                            {prefilledUser ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* User field — locked if pre-filled from context */}
+                                {prefilledUser ? (
+                                    <FormField
+                                        control={form.control}
+                                        name="user_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.user')}</FormLabel>
+                                                <FormControl>
+                                                    <Input value={prefilledUser.name} readOnly disabled className="bg-muted cursor-not-allowed" />
+                                                </FormControl>
+                                                <input type="hidden" {...field} value={prefilledUser.id} />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ) : (
+                                    <FormField
+                                        control={form.control}
+                                        name="user_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.user')}</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder={t('quoteDialog.selectUser')} {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                                 <FormField
                                     control={form.control}
-                                    name="user_id"
+                                    name="created_at"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>{t('quoteDialog.user')}</FormLabel>
+                                            <FormLabel>{t('quoteDialog.createdAt')}</FormLabel>
                                             <FormControl>
-                                                <Input value={prefilledUser.name} readOnly disabled className="bg-muted cursor-not-allowed" />
+                                                <DatePickerInput
+                                                    value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                    onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                                                />
                                             </FormControl>
-                                            <input type="hidden" {...field} value={prefilledUser.id} />
                                             <FormMessage />
                                         </FormItem>
                                     )}
                                 />
-                            ) : (
-                                <FormField
-                                    control={form.control}
-                                    name="user_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('quoteDialog.user')}</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder={t('quoteDialog.selectUser')} {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
+                            </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <FormField

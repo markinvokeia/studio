@@ -29,7 +29,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDateTime, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { api } from '@/services/api';
@@ -156,7 +156,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
   {
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.createdAt')} />,
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    cell: ({ row }) => formatDisplayDate(row.original.createdAt),
   },
 ];
 
@@ -700,7 +700,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             renderCard={(invoice: Invoice, _isSelected: boolean) => (
               <DataCard isSelected={_isSelected}
                 title={invoice.doc_no || `INV-${invoice.id}`}
-                subtitle={formatDateTime(invoice.createdAt)}
+                subtitle={formatDisplayDate(invoice.createdAt)}
                 badge={
                   <div className="flex gap-1 flex-wrap justify-end">
                     <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
@@ -784,7 +784,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Creado:</span>
-                    <span className="text-sm">{formatDateTime(selectedInvoice.createdAt)}</span>
+                    <span className="text-sm">{formatDisplayDate(selectedInvoice.createdAt)}</span>
                   </div>
                   {selectedInvoice.notes && (
                     <div className="flex items-center gap-2 w-full mt-1">

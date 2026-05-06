@@ -21,7 +21,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { Can } from '@/components/auth/Can';
 import { API_ROUTES } from '@/constants/routes';
 import { Invoice, InvoiceItem, Payment, PaymentMethod } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { confirmInvoice, sendInvoiceEmail } from '@/services/invoices';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +31,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
-import { format, formatISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -122,7 +122,7 @@ const paymentFormSchema = (t: (key: string) => string) => z.object({
   amount: z.coerce.number().min(0, t('validation.amountPositive')),
   method: z.string().optional(),
   status: z.enum(['pending', 'completed', 'failed']),
-  payment_date: z.date({
+  created_at: z.date({
     required_error: t('validation.dateRequired'),
   }),
   invoice_currency: z.string(),
@@ -247,7 +247,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
       amount: invoice.total - (invoice.paid_amount || 0),
       method: '',
       status: 'completed',
-      payment_date: new Date(),
+      created_at: new Date(),
       invoice_currency: invoice.currency || 'USD',
       payment_currency: invoice.currency || 'USD',
       exchange_rate: 1,
@@ -283,7 +283,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
         client_user: { id: invoice.user_id, name: invoice.user_name },
         query: {
           invoice_id: parseInt(invoice.id, 10),
-          payment_date: formatISO(values.payment_date),
+          payment_date: toLocalISOString(values.created_at),
           amount: values.amount,
           converted_amount: showExchangeRate && equivalentAmount ? equivalentAmount : values.amount,
           method: selectedMethod?.name || 'Credit',
@@ -552,7 +552,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
                     />
                     <FormField
                       control={paymentForm.control}
-                      name="payment_date"
+                      name="created_at"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('paymentDialog.date')}</FormLabel>

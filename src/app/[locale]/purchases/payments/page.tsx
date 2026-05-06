@@ -21,7 +21,7 @@ import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation } from '@/lib/types';
-import { formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments } from '@/services/payments-service';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -298,7 +298,7 @@ function PaymentsPageContent() {
                                             label: t('columns.date'),
                                             value: (
                                                 <span className="text-sm">
-                                                    {formatDateTime(selectedPayment.payment_date || selectedPayment.createdAt)}
+                                                    {formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}
                                                 </span>
                                             ),
                                         },

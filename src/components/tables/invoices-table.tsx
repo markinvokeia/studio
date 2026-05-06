@@ -33,12 +33,12 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
 import { Invoice, Service, User } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -48,7 +48,7 @@ import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
-import { DatePicker } from '../ui/date-picker';
+import { DatePickerInput } from '../ui/date-picker';
 import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -62,6 +62,7 @@ const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
   currency: z.enum(['UYU', 'USD']),
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
+  created_at: z.date({ required_error: t('validation.dateRequired') }),
   notes: z.string().optional(),
   is_historical: z.boolean().optional(),
   items: z.array(z.object({
@@ -202,7 +203,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
       ),
-      cell: ({ row }) => formatDateTime(row.original.createdAt),
+      cell: ({ row }) => formatDisplayDate(row.original.createdAt),
     },
     {
       id: 'actions',
@@ -433,7 +434,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 title={row.doc_no || String(row.id)}
                 subtitle={[
                   row.user_name,
-                  formatDateTime(row.createdAt).split(' ')[0],
+                  formatDisplayDate(row.createdAt),
                   row.total != null
                     ? [row.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.total))].filter(Boolean).join(' ')
                     : undefined,
@@ -548,6 +549,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       currency: 'UYU',
       items: [],
       total: 0,
+      created_at: new Date(),
       notes: '',
       is_historical: false,
     },
@@ -681,6 +683,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               total: Number(invoice.total || 0),
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
               quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
+              created_at: invoice.createdAt ? parseISO(formatDate(invoice.createdAt)) : new Date(),
               items: itemsNormalized.map((item: any) => {
                 const rawServiceId = item.service_id || item.product_id;
                 const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
@@ -703,6 +706,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               currency: 'UYU',
               items: [],
               total: 0,
+              created_at: new Date(),
             });
           }
         } catch (error) {
@@ -790,8 +794,8 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
       const payload = isEditing && invoice
-        ? { ...values, id: invoice.id, is_sales: isSales }
-        : { ...values, is_sales: isSales };
+        ? { ...values, id: invoice.id, created_at: toLocalISOString(values.created_at), is_sales: isSales }
+        : { ...values, created_at: toLocalISOString(values.created_at), is_sales: isSales };
 
       const responseData = await api.post(endpoint, payload);
 
@@ -849,7 +853,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   <AlertDescription>{submissionError}</AlertDescription>
                 </Alert>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="type"
@@ -880,9 +884,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     <FormMessage />
                   </FormItem>
                 )} />
-                <div className="text-right pt-7">
-                  <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(calculatedTotal)}</span>
-                </div>
               </div>
               {invoiceType === 'credit_note' && (
                 <FormField
@@ -910,7 +911,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   )}
                 />
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField control={form.control} name="user_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>
@@ -980,7 +981,22 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     <FormMessage />
                   </FormItem>
                 )} />
-
+                <FormField
+                  control={form.control}
+                  name="created_at"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createdAt')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <FormField control={form.control} name="notes" render={({ field }) => (
@@ -1142,6 +1158,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   </div>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-end pt-2">
+                <span className="font-semibold text-lg">
+                  {t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(calculatedTotal)}
+                </span>
+              </div>
             </DialogBody>
 
             <DialogFooter>

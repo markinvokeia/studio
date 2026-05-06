@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
-import { formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -699,7 +699,7 @@ function InvoicesPageContent() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.createdAt')}:</span>
-                                                <span className="text-sm">{formatDateTime(selectedInvoice.createdAt)}</span>
+                                                <span className="text-sm">{formatDisplayDate(selectedInvoice.createdAt)}</span>
                                             </div>
                                             {selectedInvoice.notes && (
                                                 <div className="flex items-center gap-2 w-full mt-1">
@@ -790,7 +790,7 @@ function InvoicesPageContent() {
                                                             </SheetHeader>
                                                             <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDateTime(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('transaction_type')}</p><Badge variant="secondary" className="capitalize">{tPaymentTransactionType(selectedPayment.transaction_type || 'direct_payment')}</Badge></div>

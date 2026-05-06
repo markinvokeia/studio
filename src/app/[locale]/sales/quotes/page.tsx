@@ -30,6 +30,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -54,7 +55,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
+import { cn, formatDate, formatDateTime, formatDisplayDate, getDocumentFileName, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -78,6 +79,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced',
         'not_invoiced', 'partially_invoiced', 'Pending']),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
+    created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
     items: z.array(z.object({
         id: z.string().optional(),
@@ -919,7 +921,7 @@ export default function QuotesPage() {
             {
                 user_id: '', total: 0, currency: defaultCurrency, status: 'draft',
                 payment_status: 'unpaid', billing_status: 'not invoiced',
-                exchange_rate: exchangeRate, notes: '', items: []
+                exchange_rate: exchangeRate, created_at: new Date(), notes: '', items: []
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -977,7 +979,10 @@ export default function QuotesPage() {
                 id: quote.id, user_id: quote.user_id, total: quote.total,
                 currency: normalized.currency, status: normalized.status,
                 payment_status: normalized.payment_status, billing_status: normalized.billing_status,
-                exchange_rate: exchangeRate, notes: quote.notes || '', items: mappedItems
+                exchange_rate: exchangeRate,
+                created_at: quote.createdAt ? parseISO(formatDate(quote.createdAt)) : new Date(),
+                notes: quote.notes || '',
+                items: mappedItems
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -1033,6 +1038,7 @@ export default function QuotesPage() {
             const payload = {
                 ...values,
                 billing_status: normalizeBilling(values.billing_status),
+                created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit
             };
             await upsertQuote(payload as any, t);
@@ -1761,7 +1767,7 @@ export default function QuotesPage() {
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.status')}</p><Badge variant="outline" className="capitalize">{tInvoiceStatus(selectedInvoice.status.toLowerCase())}</Badge></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.paymentStatus')}</p><Badge variant="secondary" className="capitalize">{selectedInvoice.payment_status ? tInvoiceStatus(selectedInvoice.payment_status.toLowerCase()) : ''}</Badge></div>
-                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDateTime(selectedInvoice.createdAt)}</p></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDisplayDate(selectedInvoice.createdAt)}</p></div>
                                                                 </div>
                                                                 {selectedInvoice.notes && <div className="rounded-lg border border-border p-3 text-sm whitespace-pre-wrap">{selectedInvoice.notes}</div>}
                                                                 <div className="flex items-center justify-end">
@@ -1811,7 +1817,7 @@ export default function QuotesPage() {
                                                             </SheetHeader>
                                                             <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 text-sm">
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{selectedPayment.payment_date}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.transaction_type')}</p><Badge variant="secondary" className="capitalize">{selectedPayment.transaction_type}</Badge></div>
@@ -1919,48 +1925,66 @@ export default function QuotesPage() {
                                         <AlertDescription>{quoteSubmissionError}</AlertDescription>
                                     </Alert>
                                 )}
-                                <FormField
-                                    control={quoteForm.control}
-                                    name="user_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('quoteDialog.user')}</FormLabel>
-                                            <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command shouldFilter={false}>
-                                                        <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
-                                                        <CommandList>
-                                                            {isLoadingUsers ? (
-                                                                <CommandEmpty>Searching...</CommandEmpty>
-                                                            ) : (
-                                                                <>
-                                                                    <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {allUsers.map((user) => (
-                                                                            <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
-                                                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                {user.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </>
-                                                            )}
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="user_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.user')}</FormLabel>
+                                                <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                                {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                        <Command shouldFilter={false}>
+                                                            <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
+                                                            <CommandList>
+                                                                {isLoadingUsers ? (
+                                                                    <CommandEmpty>Searching...</CommandEmpty>
+                                                                ) : (
+                                                                    <>
+                                                                        <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
+                                                                        <CommandGroup>
+                                                                            {allUsers.map((user) => (
+                                                                                <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
+                                                                                    <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                                    {user.name}
+                                                                                </CommandItem>
+                                                                            ))}
+                                                                        </CommandGroup>
+                                                                    </>
+                                                                )}
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="created_at"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.createdAt')}</FormLabel>
+                                                <FormControl>
+                                                    <DatePickerInput
+                                                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                        onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <FormField
                                         control={quoteForm.control}

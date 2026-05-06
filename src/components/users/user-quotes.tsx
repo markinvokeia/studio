@@ -29,7 +29,7 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem } from '@/lib/types';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
-import { formatDateTime, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
+import { formatDisplayDate, getDocumentFileName, sortQuoteItems } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -285,7 +285,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Quote>[] => [
   {
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('QuoteColumns.createdAt')} />,
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    cell: ({ row }) => formatDisplayDate(row.original.createdAt),
   },
 ];
 
@@ -1053,7 +1053,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             renderCard={(quote: Quote, _isSelected: boolean) => (
               <DataCard isSelected={_isSelected}
                 title={quote.doc_no}
-                subtitle={formatDateTime(quote.createdAt)}
+                subtitle={formatDisplayDate(quote.createdAt)}
                 badge={<Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>}
                 fields={[
                   { label: t('QuoteColumns.total'), value: formatCurrency(quote.total, quote.currency), primary: true },
@@ -1129,7 +1129,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('QuoteColumns.createdAt')}:</span>
-                    <span className="text-sm">{formatDateTime(selectedQuote.createdAt)}</span>
+                    <span className="text-sm">{formatDisplayDate(selectedQuote.createdAt)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('QuoteColumns.amountInvoiced')}:</span>

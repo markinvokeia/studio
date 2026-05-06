@@ -33,12 +33,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useDebounce } from '@/hooks/use-debounce';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { format, formatISO, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -396,7 +396,7 @@ export default function PaymentsPage() {
                 user: user,
                 client_user: clientUser,
                 query: {
-                    payment_date: formatISO(prepaidData.created_at),
+                    payment_date: toLocalISOString(prepaidData.created_at),
                     amount: prepaidData.payment_amount,
                     method: selectedMethod?.name,
                     payment_method_id: prepaidData.payment_method_id,
@@ -487,7 +487,7 @@ export default function PaymentsPage() {
                                             label: t('columns.date'),
                                             value: (
                                                 <span className="text-sm">
-                                                    {formatDateTime(selectedPayment.payment_date || selectedPayment.createdAt)}
+                                                    {formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}
                                                 </span>
                                             ),
                                         },
