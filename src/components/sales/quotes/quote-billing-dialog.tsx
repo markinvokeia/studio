@@ -531,7 +531,7 @@ export function QuoteBillingDialog({
                           return (
                             <div key={field.id}>
                               <div className="space-y-2">
-                                <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_160px_auto] md:items-start">
+                                <div className="grid gap-3 md:grid-cols-[minmax(0,1.7fr)_minmax(280px,1.3fr)_160px_auto] md:items-start">
                                 <FormField
                                   control={form.control}
                                   name={`items.${index}.quote_item_id`}
@@ -589,23 +589,28 @@ export function QuoteBillingDialog({
                                       <FormControl>
                                         <div className="space-y-2">
                                           {!selectedLine || serviceSteps.length === 0 ? (
-                                            <Button variant="outline" className="h-10 w-full justify-start" disabled>
-                                              {t('items.noSteps')}
+                                            <Button variant="outline" className="h-10 w-full justify-start text-left" disabled>
+                                              <span className="truncate">{t('items.noSteps')}</span>
                                               <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                             </Button>
                                           ) : (
                                             <>
                                               <Popover open={stepPopoverOpenIndex === index} onOpenChange={(openState) => setStepPopoverOpenIndex(openState ? index : null)}>
                                                 <PopoverTrigger asChild>
-                                                  <Button variant="outline" className="h-10 w-full justify-start">
-                                                    {stepField.value?.length
-                                                      ? t('items.stepsSelected', { count: stepField.value.length })
-                                                      : t('items.selectStep')}
+                                                  <Button variant="outline" className="h-10 w-full justify-start gap-2 text-left">
+                                                    <span className="truncate">
+                                                      {stepField.value?.length
+                                                        ? t('items.stepsSelected', { count: stepField.value.length })
+                                                        : t('items.selectStep')}
+                                                    </span>
                                                     <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                                                   </Button>
                                                 </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                                  <Command>
+                                                <PopoverContent
+                                                  className="w-[min(30rem,calc(100vw-2rem))] min-w-[20rem] p-0"
+                                                  align="start"
+                                                >
+                                                  <Command className="max-h-[22rem]">
                                                     <CommandInput placeholder={t('items.searchStepPlaceholder')} />
                                                     <CommandList>
                                                       <CommandEmpty>{t('items.noSteps')}</CommandEmpty>
@@ -627,7 +632,7 @@ export function QuoteBillingDialog({
                                                               }}
                                                             >
                                                               <Checkbox checked={isChecked} className="mr-2" />
-                                                              <span>{step.label}</span>
+                                                              <span className="line-clamp-2">{step.label}</span>
                                                             </CommandItem>
                                                           );
                                                         })}
@@ -638,17 +643,17 @@ export function QuoteBillingDialog({
                                               </Popover>
 
                                               {stepField.value?.length ? (
-                                                <div className="rounded-md border p-2">
+                                                <div className="rounded-md border bg-muted/20 p-2">
                                                   <p className="text-xs text-muted-foreground">{t('items.selectedSteps')}</p>
                                                   <div className="mt-1 flex flex-wrap gap-1">
                                                     {getSelectedStepLabels(selectedLine.service_id, stepField.value).map((step) => (
-                                                      <Badge key={step.id} variant="secondary">
-                                                        {step.label}
+                                                      <Badge key={step.id} variant="secondary" className="max-w-full gap-1 pr-1">
+                                                        <span className="truncate">{step.label}</span>
                                                         <Button
                                                           type="button"
                                                           variant="ghost"
                                                           size="icon"
-                                                          className="ml-1 h-4 w-4 hover:bg-transparent"
+                                                          className="h-4 w-4 shrink-0 hover:bg-transparent"
                                                           onClick={() => {
                                                             stepField.onChange((stepField.value || []).filter((value) => value !== step.id));
                                                           }}

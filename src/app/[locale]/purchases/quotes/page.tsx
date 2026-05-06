@@ -1538,8 +1538,8 @@ function QuotesPageContent() {
                                                 <ResizableSheet
                                                     open={!!selectedInvoice}
                                                     onOpenChange={(open) => { if (!open) closeInvoiceDetails(); }}
-                                                    defaultWidth={720}
-                                                    minWidth={560}
+                                                    defaultWidth={820}
+                                                    minWidth={640}
                                                     maxWidth={1100}
                                                     storageKey="purchase-quotes-invoice-detail-width"
                                                 >
