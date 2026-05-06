@@ -1028,9 +1028,6 @@ export default function ServicesPage() {
                   </Alert>
                 )}
                 <ServiceFormFields form={createForm} categories={categories} t={t} />
-                {createForm.watch('service_type') === 'workflow' && (
-                  <TreatmentStepsFields form={createForm} t={t} />
-                )}
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('createDialog.save')}</Button>
