@@ -29,7 +29,7 @@ interface QuoteItem {
   service_id: string;
   service_name: string;
   quantity: number;
-  unit_price: number;
+  unit_price: number | '';
   total: number;
   tooth_number?: number;
 }
@@ -85,13 +85,13 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       item.service_id = value;
       item.service_name = service?.name || '';
       item.unit_price = service ? Number(service.price) : 0;
-      item.total = item.quantity * item.unit_price;
+      item.total = item.quantity * Number(item.unit_price || 0);
     } else if (field === 'quantity') {
       item.quantity = parseInt(value) || 0;
-      item.total = item.quantity * item.unit_price;
+      item.total = item.quantity * Number(item.unit_price || 0);
     } else if (field === 'unit_price') {
-      item.unit_price = parseFloat(value) || 0;
-      item.total = item.quantity * item.unit_price;
+      item.unit_price = value === '' ? '' : (parseFloat(value) || 0);
+      item.total = item.quantity * Number(item.unit_price || 0);
     } else if (field === 'tooth_number') {
       item.tooth_number = value ? parseInt(value) : undefined;
     }
@@ -136,7 +136,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         items: items.map(item => ({
           service_id: item.service_id,
           quantity: item.quantity,
-          unit_price: item.unit_price,
+          unit_price: Number(item.unit_price || 0),
           total: item.total,
           tooth_number: item.tooth_number || null,
         })),
