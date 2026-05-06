@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
+import { formatServicePrice } from '@/lib/utils';
 import api from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Briefcase, PlusCircle, Trash2, X } from 'lucide-react';
@@ -50,7 +51,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(1, t('nameRequired')),
   category_id: z.string().min(1, t('categoryRequired')),
   category: z.string().optional(),
-  price: z.coerce.number().positive(t('pricePositive')),
+  price: z.coerce.number().min(0, t('priceNonNegative')),
   currency: z.enum(['UYU', 'USD']).default('USD'),
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
@@ -648,6 +649,7 @@ function ServicesTableWithCards({
   const { isNarrow: panelNarrow } = useNarrowMode();
   const isViewportNarrow = useViewportNarrow();
   const isNarrow = !!selectedService || panelNarrow || isViewportNarrow;
+  const tGeneral = useTranslations('General');
   return (
     <DataTable
       columns={columns}
@@ -671,7 +673,7 @@ function ServicesTableWithCards({
       renderCard={(service: Service, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={service.name}
-          subtitle={`${service.category} · ${service.currency} ${service.price}`}
+          subtitle={`${service.category} · ${formatServicePrice(service.price, service.currency, tGeneral('free'))}`}
           accentColor={service.color || undefined}
           showArrow
           onClick={() => onRowSelect([service])}
@@ -689,6 +691,7 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
+  const tGeneral = useTranslations('General');
   const { hasPermission } = usePermissions();
   const [services, setServices] = React.useState<Service[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
@@ -965,7 +968,7 @@ export default function ServicesPage() {
                           <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-lg border border-border bg-muted/30 p-3">
                               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{tColumns('price')}</p>
-                              <p className="text-xl font-bold text-foreground">{selectedService.currency} {selectedService.price}</p>
+                              <p className="text-xl font-bold text-foreground">{formatServicePrice(selectedService.price, selectedService.currency, tGeneral('free'))}</p>
                             </div>
                             <div className="rounded-lg border border-border bg-muted/30 p-3">
                               <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{tColumns('duration')}</p>

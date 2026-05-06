@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Service } from '@/lib/types';
+import { formatServicePrice } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
@@ -47,12 +48,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Service>[] => [
     accessorKey: 'price',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('ServicesColumns.price')} />,
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue('price'));
-      const formatted = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-      }).format(amount);
-      return <div className="font-medium">{formatted}</div>;
+      return <div className="font-medium">{formatServicePrice(row.original.price, row.original.currency, t('General.free'))}</div>;
     },
   },
   {
@@ -88,6 +84,7 @@ async function getServicesForUser(userId: string, t: any, isSalesUser: boolean):
       name: apiService.name || t('General.unknown'),
       category: apiService.category || t('General.notAvailable'),
       price: apiService.price || 0,
+      currency: apiService.currency || 'USD',
       duration_minutes: apiService.duration_minutes || 0,
       is_active: apiService.is_active,
       is_sales: apiService.is_sales as boolean | undefined,
@@ -103,7 +100,7 @@ async function getServicesForUser(userId: string, t: any, isSalesUser: boolean):
 async function getAllServices(isSalesUser: boolean): Promise<Service[]> {
   try {
     const result = isSalesUser ? await getSalesServices({ limit: 100 }) : await getPurchaseServices({ limit: 100 });
-    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, duration_minutes: service.duration_minutes, is_active: service.is_active, is_sales: service.is_sales as boolean | undefined }));
+    return result.items.map((service: any) => ({ id: String(service.id), name: service.name, category: service.category, price: service.price, currency: service.currency || 'USD', duration_minutes: service.duration_minutes, is_active: service.is_active, is_sales: service.is_sales as boolean | undefined }));
   } catch (error) {
     console.error("Failed to fetch all services:", error);
     return [];

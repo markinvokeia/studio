@@ -137,3 +137,17 @@ function compareNumericStrings(left: string, right: string): number {
 export function sortQuoteItems<T extends Pick<QuoteItem, 'id'>>(items: T[]): T[] {
   return [...items].sort((left, right) => compareNumericStrings(String(left.id || ''), String(right.id || '')));
 }
+
+export function formatServicePrice(
+  price: number | string | null | undefined,
+  currency: string | null | undefined,
+  freeLabel: string,
+): string {
+  const normalizedPrice = Number(price ?? 0);
+
+  if (!Number.isFinite(normalizedPrice) || normalizedPrice === 0) {
+    return freeLabel;
+  }
+
+  return currency ? `${currency} ${normalizedPrice}` : String(normalizedPrice);
+}

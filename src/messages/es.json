@@ -1217,7 +1217,8 @@
     "openMenu": "Abrir menú",
     "selectRow": "Seleccionar fila",
     "unknown": "Desconocido",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "free": "Gratis"
   },
   "status": {
     "open": "ABIERTA",
@@ -2472,6 +2473,7 @@
       "colorInvalid": "Color inválido.",
       "durationInteger": "La duración debe ser un número entero.",
       "nameRequired": "El nombre es obligatorio.",
+      "priceNonNegative": "El precio no puede ser negativo.",
       "pricePositive": "El precio debe ser positivo."
     },
     "tabs": {
