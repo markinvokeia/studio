@@ -49,6 +49,7 @@ import * as z from 'zod';
 // ── Schemas ───────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
   service_id: z.string().min(1, 'Selecciona un servicio'),
+  service_name: z.string().optional(),
   quantity: z.coerce.number().min(1, 'Mínimo 1'),
   unit_price: z.coerce.number().min(0, 'Precio inválido'),
 });
@@ -62,6 +63,7 @@ const invoiceEditSchema = z.object({
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Selecciona un servicio'),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, 'Mínimo 1'),
     unit_price: z.coerce.number().min(0, 'Precio inválido'),
     total: z.coerce.number().optional(),
@@ -486,6 +488,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     const mappedItems = invoiceItems.map(i => ({
       id: i.id,
       service_id: i.service_id,
+      service_name: i.service_name || '',
       quantity: i.quantity,
       unit_price: i.unit_price,
       total: i.total,
@@ -510,6 +513,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       invoiceEditForm.setValue('items', invoiceItems.map(i => ({
         id: i.id,
         service_id: i.service_id,
+        service_name: i.service_name || '',
         quantity: i.quantity,
         unit_price: i.unit_price,
         total: i.total,
@@ -562,8 +566,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   React.useEffect(() => {
     if (!isItemDialogOpen) return;
     editingItem
-      ? itemForm.reset({ service_id: editingItem.service_id, quantity: editingItem.quantity, unit_price: editingItem.unit_price })
-      : itemForm.reset({ service_id: '', quantity: 1, unit_price: 0 });
+      ? itemForm.reset({ service_id: editingItem.service_id, service_name: editingItem.service_name || '', quantity: editingItem.quantity, unit_price: editingItem.unit_price })
+      : itemForm.reset({ service_id: '', service_name: '', quantity: 1, unit_price: 0 });
   }, [isItemDialogOpen, editingItem, itemForm]);
 
   const handleSubmitItem = async (values: ItemFormValues) => {
@@ -949,11 +953,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                       <ServiceSelector
                                         isSales={isSales}
                                         value={field.value}
+                                        selectedServiceName={invoiceEditForm.getValues(`items.${index}.service_name`) || undefined}
                                         onValueChange={(serviceId, service) => {
                                           field.onChange(serviceId);
                                           if (service) {
                                             const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 1;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price), total: Number(service.price) * qty });
                                           }
                                         }}
                                         placeholder="Buscar servicio..."
@@ -1072,16 +1077,20 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Servicio</FormLabel>
-                    <Select onValueChange={(val) => {
-                      field.onChange(val);
-                      const svc = services.find(s => s.id === val);
-                      if (svc && !editingItem) itemForm.setValue('unit_price', svc.price);
-                    }} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ServiceSelector
+                      isSales={isSales}
+                      value={field.value}
+                      selectedServiceName={itemForm.getValues('service_name') || editingItem?.service_name || undefined}
+                      onValueChange={(serviceId, service) => {
+                        field.onChange(serviceId);
+                        if (service) {
+                          itemForm.setValue('service_name', service.name);
+                          if (!editingItem) itemForm.setValue('unit_price', service.price);
+                        }
+                      }}
+                      placeholder="Seleccionar servicio"
+                      triggerText="Seleccionar servicio"
+                    />
                     <FormMessage />
                   </FormItem>
                 )} />

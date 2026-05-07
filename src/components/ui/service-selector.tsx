@@ -15,6 +15,8 @@ interface ServiceSelectorProps {
     isSales?: boolean;
     /** Valor seleccionado (ID del servicio) */
     value?: string;
+    /** Nombre del servicio ya resuelto para mostrar el valor seleccionado sin depender del catálogo paginado */
+    selectedServiceName?: string;
     /** Callback cuando se selecciona un servicio */
     onValueChange?: (serviceId: string, service?: Service) => void;
     /** Placeholder del input de búsqueda */
@@ -36,6 +38,7 @@ interface ServiceSelectorProps {
 export function ServiceSelector({
     isSales = true,
     value,
+    selectedServiceName,
     onValueChange,
     placeholder = 'Buscar servicio...',
     noResultsText = 'No se encontraron servicios.',
@@ -78,13 +81,26 @@ export function ServiceSelector({
         return () => clearTimeout(handler);
     }, [searchQuery, isSales]);
 
+    const fallbackSelectedService = React.useMemo<Service | undefined>(() => {
+        if (!value || !selectedServiceName) return undefined;
+
+        return {
+            id: value,
+            name: selectedServiceName,
+            category: '',
+            price: 0,
+            duration_minutes: 0,
+            is_active: true,
+        };
+    }, [selectedServiceName, value]);
+
     // Find selected service
     const selectedService = React.useMemo(() => {
         const serviceFromResults = services.find(s => s.id === value);
         if (serviceFromResults) return serviceFromResults;
         if (selectedServiceCache?.id === value) return selectedServiceCache;
-        return undefined;
-    }, [selectedServiceCache, services, value]);
+        return fallbackSelectedService;
+    }, [fallbackSelectedService, selectedServiceCache, services, value]);
 
     React.useEffect(() => {
         const serviceFromResults = services.find(s => s.id === value);

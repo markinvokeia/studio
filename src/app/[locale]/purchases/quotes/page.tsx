@@ -81,6 +81,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
+        service_name: z.string().optional(),
         quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
         unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
         total: z.coerce.number().min(0, t('validation.totalPositive')),
@@ -93,6 +94,7 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
     unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
@@ -757,6 +759,7 @@ function QuotesPageContent() {
         const mappedItems = items.map(item => ({
             id: item.id,
             service_id: String(item.service_id),
+            service_name: item.service_name || '',
             quantity: item.quantity,
             unit_price: item.unit_price,
             total: item.total
@@ -886,7 +889,7 @@ function QuotesPageContent() {
         const sessionRate = getSessionExchangeRate();
         setExchangeRate(sessionRate);
 
-        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0 });
+        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0 });
         setIsQuoteItemDialogOpen(true);
 
         if (allServices.length === 0) {
@@ -925,6 +928,7 @@ function QuotesPageContent() {
                     id: item.id,
                     quote_id: selectedQuote.id,
                     service_id: String(item.service_id),
+                    service_name: item.service_name || '',
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     total: item.total,
@@ -939,6 +943,7 @@ function QuotesPageContent() {
                     id: item.id,
                     quote_id: selectedQuote.id,
                     service_id: String(item.service_id),
+                    service_name: item.service_name || '',
                     quantity: item.quantity,
                     unit_price: item.unit_price,
                     total: item.total,
@@ -1832,11 +1837,13 @@ function QuotesPageContent() {
                                                                 <ServiceSelector
                                                                     isSales={false}
                                                                     value={field.value}
+                                                                    selectedServiceName={quoteForm.getValues(`items.${index}.service_name`) || undefined}
                                                                     onValueChange={(serviceId, service) => {
                                                                         field.onChange(serviceId);
                                                                         if (service) {
                                                                             const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                             const servicePrice = Number(service.price);
+                                                                            quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                             quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                             quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                         }
@@ -1914,12 +1921,14 @@ function QuotesPageContent() {
                                                                         <FormItem>
                                                                             <ServiceSelector
                                                                                 isSales={false}
-                                                                            value={field.value}
+                                                                                value={field.value}
+                                                                                selectedServiceName={quoteForm.getValues(`items.${index}.service_name`) || undefined}
                                                                             onValueChange={(serviceId, service) => {
                                                                                 field.onChange(serviceId);
                                                                                 if (service) {
                                                                                     const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                                     const servicePrice = Number(service.price);
+                                                                                    quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                                     quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                                     quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                                 }
@@ -2043,10 +2052,12 @@ function QuotesPageContent() {
                                             <ServiceSelector
                                                 isSales={false}
                                                 value={field.value}
+                                                selectedServiceName={quoteItemForm.getValues('service_name') || undefined}
                                                 onValueChange={(serviceId, service) => {
                                                     quoteItemForm.setValue('service_id', serviceId);
                                                     if (service && selectedQuote) {
                                                         const servicePrice = Number(service.price);
+                                                        quoteItemForm.setValue('service_name', service.name);
                                                         setOriginalServicePrice(servicePrice);
                                                         const quoteCurrency = selectedQuote.currency || 'USD';
                                                         const serviceCurrency = service.currency || 'USD';

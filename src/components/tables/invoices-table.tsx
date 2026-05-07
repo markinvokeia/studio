@@ -68,6 +68,7 @@ const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, t('validation.quantityMin')),
     unit_price: z.coerce.number().min(0, t('validation.unitPriceNonNegative')),
     total: z.coerce.number().optional(),
@@ -690,6 +691,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                 return {
                   id: item.id ? String(item.id) : undefined,
                   service_id: serviceId,
+                  service_name: item.service_name || item.product_name || item.name || item.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : ''),
                   quantity: Number(item.quantity || item.product_uom_qty || 1),
                   unit_price: Number(item.unit_price || item.price_unit || 0),
                   total: Number(item.total || item.price_total || 0),
@@ -763,12 +765,13 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             const mappedItems = itemsNormalized.map((item: any) => {
               const rawServiceId = item.service_id || item.product_id;
               const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
-              return {
-                id: item.id ? String(item.id) : undefined,
-                service_id: serviceId,
-                quantity: Number(item.quantity || item.product_uom_qty || 1),
-                unit_price: Number(item.unit_price || item.price_unit || 0),
-                total: Number(item.total || item.price_total || 0),
+                return {
+                  id: item.id ? String(item.id) : undefined,
+                  service_id: serviceId,
+                  service_name: item.service_name || item.product_name || item.name || item.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : ''),
+                  quantity: Number(item.quantity || item.product_uom_qty || 1),
+                  unit_price: Number(item.unit_price || item.price_unit || 0),
+                  total: Number(item.total || item.price_total || 0),
               };
             });
             form.setValue('items', mappedItems);
@@ -793,9 +796,16 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       }
 
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
+      const normalizedItems = (values.items || []).map(item => ({
+        id: item.id,
+        service_id: item.service_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.total,
+      }));
       const payload = isEditing && invoice
-        ? { ...values, id: invoice.id, created_at: toLocalISOString(values.created_at), is_sales: isSales }
-        : { ...values, created_at: toLocalISOString(values.created_at), is_sales: isSales };
+        ? { ...values, items: normalizedItems, id: invoice.id, created_at: toLocalISOString(values.created_at), is_sales: isSales }
+        : { ...values, items: normalizedItems, created_at: toLocalISOString(values.created_at), is_sales: isSales };
 
       const responseData = await api.post(endpoint, payload);
 
@@ -817,7 +827,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   };
 
   const handleAddItem = () => {
-    form.setValue('items', [...items, { service_id: '', quantity: 1, unit_price: 0, total: 0 }]);
+    form.setValue('items', [...items, { service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -1068,10 +1078,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                             <ServiceSelector
                               isSales={isSales}
                               value={field.value}
+                              selectedServiceName={form.getValues(`items.${index}.service_name`) || undefined}
                               onValueChange={(serviceId, service) => {
                                 field.onChange(serviceId);
                                 if (service) {
                                   const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                  form.setValue(`items.${index}.service_name`, service.name);
                                   form.setValue(`items.${index}.unit_price`, service.price);
                                   form.setValue(`items.${index}.total`, service.price * quantity);
                                 }

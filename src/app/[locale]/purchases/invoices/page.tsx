@@ -41,6 +41,7 @@ import * as z from 'zod';
 const invoiceItemSchema = z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Service name is required'),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
@@ -535,7 +536,6 @@ function InvoicesPageContent() {
         if (!selectedInvoice) return;
         try {
             const payload = {
-                ...data,
                 id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
                 invoice_id: parseInt(selectedInvoice.id, 10),
                 service_id: parseInt(data.service_id, 10),
@@ -1025,6 +1025,7 @@ const ItemFormDialog = ({
                 itemForm.reset({
                     id: String(editingItem.id),
                     service_id: String(editingItem.service_id),
+                    service_name: editingItem.service_name || '',
                     quantity: editingItem.quantity,
                     unit_price: editingItem.unit_price,
                 });
@@ -1032,6 +1033,7 @@ const ItemFormDialog = ({
                 itemForm.reset({
                     id: undefined,
                     service_id: '',
+                    service_name: '',
                     quantity: 1,
                     unit_price: 0
                 });
@@ -1042,6 +1044,7 @@ const ItemFormDialog = ({
     const handleServiceChange = (serviceId: string, service?: Service) => {
         itemForm.setValue('service_id', serviceId);
         if (service) {
+            itemForm.setValue('service_name', service.name);
             itemForm.setValue('unit_price', service.price || 0);
         }
     };
@@ -1071,6 +1074,7 @@ const ItemFormDialog = ({
                                         <ServiceSelector
                                             isSales={false}
                                             value={field.value ?? ''}
+                                            selectedServiceName={itemForm.getValues('service_name') || editingItem?.service_name || undefined}
                                             onValueChange={handleServiceChange}
                                             placeholder={t('InvoiceItemsTable.form.selectService') || 'Buscar servicio...'}
                                             triggerText={t('InvoiceItemsTable.form.selectService') || 'Seleccionar servicio'}

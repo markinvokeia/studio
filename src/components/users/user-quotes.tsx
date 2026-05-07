@@ -58,6 +58,7 @@ const quoteEditSchema = z.object({
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Selecciona un servicio'),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().int().min(1, 'Mínimo 1'),
     unit_price: z.coerce.number().min(0, 'Precio inválido'),
     total: z.coerce.number().min(0),
@@ -426,6 +427,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
   // Items
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+  const [quoteItemsQuoteId, setQuoteItemsQuoteId] = React.useState<string | null>(null);
   const [isLoadingItems, setIsLoadingItems] = React.useState(false);
   const [services, setServices] = React.useState<Service[]>([]);
 
@@ -484,6 +486,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const canSend = canSendQuote;
   const isQuoteReadyToInvoice = ['accepted', 'confirmed'].includes(selectedQuote?.status?.toLowerCase() || '');
   const pendingInvoiceAmount = Number(selectedQuote?.amount_pending_invoice || 0);
+  const latestQuoteItemsRequestRef = React.useRef<string | null>(null);
   const showInvoiceFromOrderButton =
     canInvoiceQuote &&
     isQuoteReadyToInvoice &&
@@ -499,6 +502,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   }, [userId]);
 
   const loadItems = React.useCallback(async (quoteId: string) => {
+    latestQuoteItemsRequestRef.current = quoteId;
     setIsLoadingItems(true);
     try {
       const data = await api.get(
@@ -515,11 +519,19 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         total: parseFloat(i.total) || 0,
         tooth_number: i.tooth_number ?? undefined,
       }));
-      setQuoteItems(sortQuoteItems(quoteItems));
+      if (latestQuoteItemsRequestRef.current === quoteId) {
+        setQuoteItems(sortQuoteItems(quoteItems));
+        setQuoteItemsQuoteId(quoteId);
+      }
     } catch {
-      setQuoteItems([]);
+      if (latestQuoteItemsRequestRef.current === quoteId) {
+        setQuoteItems([]);
+        setQuoteItemsQuoteId(quoteId);
+      }
     } finally {
-      setIsLoadingItems(false);
+      if (latestQuoteItemsRequestRef.current === quoteId) {
+        setIsLoadingItems(false);
+      }
     }
   }, [isSales]);
 
@@ -588,9 +600,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     setOrders([]);
     setSelectedOrder(null);
     setOrderItems([]);
+    setQuoteItems([]);
+    setQuoteItemsQuoteId(null);
     if (!quote) {
       setIsSheetOpen(false);
-      setQuoteItems([]);
     } else if (['accepted', 'confirmed'].includes(quote.status?.toLowerCase() || '')) {
       loadOrders(quote.id);
     }
@@ -599,6 +612,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
   const handleOpenSheet = React.useCallback((quote: Quote) => {
     setIsSheetOpen(true);
+    setQuoteItems([]);
+    setQuoteItemsQuoteId(null);
     loadItems(quote.id);
     loadServices();
     loadQuoteClinicSessions(quote.id);
@@ -779,19 +794,21 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     if (!isEditQuoteOpen || !selectedQuote) return;
     const currency = (selectedQuote.currency as 'USD' | 'UYU') ?? 'USD';
     const exchangeRate = currency === 'UYU' ? 1 : (selectedQuote.exchange_rate || getSessionExchangeRate());
-    const mappedItems = quoteItems.map(i => ({
+    const hasCurrentQuoteItems = quoteItemsQuoteId === selectedQuote.id;
+    const mappedItems = (hasCurrentQuoteItems ? quoteItems : []).map(i => ({
       id: i.id,
       service_id: i.service_id,
+      service_name: i.service_name || '',
       quantity: i.quantity,
       unit_price: i.unit_price,
       total: i.total,
       tooth_number: i.tooth_number ?? ('' as const),
     }));
     quoteEditForm.reset({ currency, exchange_rate: exchangeRate, notes: selectedQuote.notes ?? '', items: mappedItems });
-    if (quoteItems.length === 0) loadItems(selectedQuote.id);
+    if (!hasCurrentQuoteItems) loadItems(selectedQuote.id);
     loadServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditQuoteOpen, selectedQuote]);
+  }, [isEditQuoteOpen, quoteItems, quoteItemsQuoteId, selectedQuote]);
 
   // Auto-update exchange_rate when currency changes
   const watchedEditCurrency = quoteEditForm.watch('currency');
@@ -1075,7 +1092,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         open={isSheetOpen}
         onOpenChange={(open) => {
           setIsSheetOpen(open);
-          if (!open) { setRowSelection({}); setSelectedQuote(null); setQuoteItems([]); setClinicSessions([]); onQuoteSelect?.(null); }
+          if (!open) { setRowSelection({}); setSelectedQuote(null); setQuoteItems([]); setQuoteItemsQuoteId(null); setClinicSessions([]); onQuoteSelect?.(null); }
         }}
         defaultWidth={800}
         minWidth={560}
@@ -1397,11 +1414,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                       <ServiceSelector
                                         isSales={isSales}
                                         value={field.value}
+                                        selectedServiceName={quoteEditForm.getValues(`items.${index}.service_name`) || undefined}
                                         onValueChange={(serviceId, service) => {
                                           field.onChange(serviceId);
                                           if (service) {
                                             const qty = quoteEditForm.getValues(`items.${index}.quantity`) || 1;
-                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                            updateEditItem(index, { ...quoteEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price), total: Number(service.price) * qty });
                                           }
                                         }}
                                         placeholder={t('QuotesPage.itemDialog.searchService')}
