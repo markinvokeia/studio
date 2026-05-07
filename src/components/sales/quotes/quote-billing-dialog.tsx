@@ -17,14 +17,16 @@ import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTi
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import type { InvoiceItem, Order, Quote, QuoteItem, Service } from '@/lib/types';
-import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
+import { formatDate, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import { useToast } from '@/hooks/use-toast';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
+import { addDays, parseISO } from 'date-fns';
 
 type ServiceStepOption = {
   id: string;
@@ -92,6 +94,7 @@ async function fetchOrderForQuoteBilling(quoteId: string, isSales: boolean): Pro
 
 const getSchema = (t: (key: string) => string) => z.object({
   notes: z.string().optional(),
+  due_date: z.date().optional(),
   items: z.array(z.object({
     quote_item_id: z.string().min(1, t('validation.serviceRequired')),
     step_ids: z.array(z.string()).default([]),
@@ -185,6 +188,7 @@ export function QuoteBillingDialog({
     resolver: zodResolver(schema),
     defaultValues: {
       notes: '',
+      due_date: undefined,
       items: [],
     },
   });
@@ -276,6 +280,7 @@ export function QuoteBillingDialog({
       replace(defaultItems);
       form.reset({
         notes: '',
+        due_date: addDays(new Date(), 30),
         items: defaultItems,
       });
 
@@ -409,6 +414,7 @@ export function QuoteBillingDialog({
         user_id: quote.user_id,
         currency: quote.currency || 'UYU',
         invoice_date: toLocalISOString(new Date()),
+        due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
         notes: values.notes || '',
         items: values.items.map((item) => {
           const selectedLine = getLineOption(item.quote_item_id);
@@ -760,6 +766,27 @@ export function QuoteBillingDialog({
                       </FormItem>
                     )}
                   />
+
+                  <div className="flex justify-end">
+                    <div className="w-full md:w-72">
+                      <FormField
+                        control={form.control}
+                        name="due_date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('dueDate')}</FormLabel>
+                            <FormControl>
+                              <DatePickerInput
+                                value={field.value ? formatDate(field.value) : ''}
+                                onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </DialogBody>

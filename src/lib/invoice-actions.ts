@@ -7,6 +7,7 @@ export interface InvoiceOrderParams {
     userId: string;
     mode: 'sales' | 'purchases';
     invoiceDate?: Date;
+    dueDate?: Date;
     notes?: string;
 }
 
@@ -20,6 +21,7 @@ export async function invoiceOrder({
     userId,
     mode,
     invoiceDate = new Date(),
+    dueDate,
     notes = '',
 }: InvoiceOrderParams): Promise<unknown> {
     const isSales = mode === 'sales';
@@ -33,6 +35,7 @@ export async function invoiceOrder({
         query: JSON.stringify({
             order_id: parseInt(orderId, 10),
             invoice_date: toLocalISOString(invoiceDate),
+            due_date: dueDate ? toLocalISOString(dueDate) : undefined,
             is_sales: isSales,
             user_id: userId,
             notes,

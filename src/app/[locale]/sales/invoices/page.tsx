@@ -90,6 +90,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             type: apiInvoice.type,
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
+            due_date: apiInvoice.due_date || null,
             currency: apiInvoice.currency || 'USD',
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
@@ -703,6 +704,10 @@ export default function InvoicesPage() {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{tQuotes('columns.docNo')}:</span>
                                                 <span className="text-sm">{selectedInvoice.quote_doc_no || '-'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.dueDate')}:</span>
+                                                <span className="text-sm">{selectedInvoice.due_date ? formatDisplayDate(selectedInvoice.due_date) : '-'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.createdAt')}:</span>

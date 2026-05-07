@@ -1058,6 +1058,7 @@
     "loading": "Loading billing context...",
     "cancel": "Cancel",
     "save": "Save invoice",
+    "dueDate": "Due date",
     "summary": {
       "quoteTotal": "Quote total",
       "invoiced": "Invoiced",
@@ -1138,6 +1139,7 @@
       "invoiceSuccess": "Invoice Created",
       "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
       "createError": "Error creating invoice",
+      "dueDateLabel": "Due date (optional)",
       "notesLabel": "Notes (optional)",
       "notesPlaceholder": "Add notes for the invoice...",
       "isHistorical": "Historical",

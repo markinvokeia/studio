@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,8 +30,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
-import { cn, formatDateTime, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
-import { format } from 'date-fns';
+import { cn, formatDate, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
@@ -58,6 +59,7 @@ type ItemFormValues = z.infer<typeof itemSchema>;
 const invoiceEditSchema = z.object({
   type: z.enum(['invoice', 'credit_note']),
   currency: z.enum(['USD', 'UYU']),
+  due_date: z.date().optional(),
   is_historical: z.boolean().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
@@ -152,7 +154,7 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.dueDate')} />,
     cell: ({ row }) => {
       const dueDate = row.original.due_date;
-      return <div className="font-medium">{dueDate ? formatDateTime(dueDate) : '-'}</div>;
+      return <div className="font-medium">{dueDate ? formatDisplayDate(dueDate) : '-'}</div>;
     },
   },
   {
@@ -496,6 +498,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     invoiceEditForm.reset({
       type: (selectedInvoice.type as 'invoice' | 'credit_note') ?? 'invoice',
       currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'USD',
+      due_date: selectedInvoice.due_date ? parseISO(formatDate(selectedInvoice.due_date)) : undefined,
       is_historical: selectedInvoice.is_historical ?? false,
       notes: selectedInvoice.notes ?? '',
       items: mappedItems,
@@ -537,6 +540,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         total: calculatedTotal,
         order_id: selectedInvoice.order_id !== 'N/A' ? selectedInvoice.order_id : undefined,
         quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
+        due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
         notes: values.notes || '',
         is_historical: values.is_historical ?? false,
         is_sales: isSales,
@@ -720,7 +724,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 fields={[
                   { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
                   { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
-                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDateTime(invoice.due_date) : '-' },
+                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
                 ]}
               />
             )}
@@ -785,6 +789,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('InvoicesPage.columns.quoteDocNo')}:</span>
                     <span className="text-sm">{selectedInvoice.quote_doc_no || '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('InvoicesPage.columns.dueDate')}:</span>
+                    <span className="text-sm">{selectedInvoice.due_date ? formatDisplayDate(selectedInvoice.due_date) : '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Creado:</span>
@@ -1032,16 +1040,38 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       )}
                     </div>
                     {editInvoiceItemFields.length > 0 && (
-                      <div className="flex justify-end px-4 pb-3">
-                        <span className="text-sm font-semibold">
-                          Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(
-                            editInvoiceItemFields.reduce((sum, _, i) => sum + (Number(invoiceEditForm.getValues(`items.${i}.total`)) || 0), 0)
-                          )}
-                        </span>
+                      <div className="mt-4 flex justify-end border-t border-dashed px-4 pb-4 pt-4">
+                        <div className="text-right">
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            Total
+                          </p>
+                          <p className="text-2xl font-semibold">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(
+                              editInvoiceItemFields.reduce((sum, _, i) => sum + (Number(invoiceEditForm.getValues(`items.${i}.total`)) || 0), 0)
+                            )}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </CardContent>
                 </Card>
+
+                <div className="flex justify-end">
+                  <div className="w-full md:w-72">
+                    <FormField control={invoiceEditForm.control} name="due_date" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('InvoicesPage.columns.dueDate')}</FormLabel>
+                        <FormControl>
+                          <DatePickerInput
+                            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                            onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+                </div>
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>

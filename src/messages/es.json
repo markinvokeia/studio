@@ -1058,6 +1058,7 @@
     "loading": "Cargando contexto de facturación...",
     "cancel": "Cancelar",
     "save": "Guardar factura",
+    "dueDate": "Fecha de vencimiento",
     "summary": {
       "quoteTotal": "Total del presupuesto",
       "invoiced": "Facturado",
@@ -1138,6 +1139,7 @@
       "invoiceSuccess": "Factura Creada",
       "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
       "createError": "Error al crear la factura",
+      "dueDateLabel": "Fecha de vencimiento (opcional)",
       "notesLabel": "Notas (opcional)",
       "notesPlaceholder": "Agregar notas para la factura...",
       "isHistorical": "Histórico",

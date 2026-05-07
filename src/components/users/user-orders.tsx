@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DatePicker } from '@/components/ui/date-picker';
+import { DatePicker, DatePickerInput } from '@/components/ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,10 +17,11 @@ import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permission
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { Order, OrderItem, Quote, User as UserType, UserDetailMode } from '@/lib/types';
-import { formatDateTime } from '@/lib/utils';
+import { formatDate, formatDateTime } from '@/lib/utils';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { api } from '@/services/api';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { addDays, parseISO } from 'date-fns';
 import { AlertTriangle, Eye, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -185,8 +186,14 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
   const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(undefined);
   React.useEffect(() => { setInvoiceDate(new Date()); }, []);
+  const [invoiceDueDate, setInvoiceDueDate] = React.useState<Date | undefined>(undefined);
   const [invoiceNotes, setInvoiceNotes] = React.useState('');
   const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!isInvoiceDialogOpen || !invoiceDate) return;
+    setInvoiceDueDate(addDays(invoiceDate, 30));
+  }, [invoiceDate, isInvoiceDialogOpen]);
 
   const columns = React.useMemo(() => getColumns(t), [t]);
 
@@ -261,7 +268,9 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
   // ── Invoice handlers ──────────────────────────────────────────────────────────
   const handleInvoiceClick = () => {
     if (!selectedOrder) return;
-    setInvoiceDate(new Date());
+    const createdDate = new Date();
+    setInvoiceDate(createdDate);
+    setInvoiceDueDate(addDays(createdDate, 30));
     setInvoiceNotes('');
     setInvoiceSubmissionError(null);
     setIsInvoiceDialogOpen(true);
@@ -276,6 +285,7 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
         userId: selectedOrder.user_id,
         mode: isSales ? 'sales' : 'purchases',
         invoiceDate,
+        dueDate: invoiceDueDate,
         notes: invoiceNotes || '',
       });
 
@@ -505,6 +515,14 @@ export function UserOrders({ userId, selectedQuote, patient, mode = 'sales', onD
               onChange={(e) => setInvoiceNotes(e.target.value)}
               placeholder={t('OrdersPage.invoiceDialog.notesPlaceholder')}
               className="mt-2 min-h-[80px]"
+            />
+          </div>
+          <div className="px-6 pb-2">
+            <label className="text-sm font-medium">{t('OrdersPage.invoiceDialog.dueDateLabel')}</label>
+            <DatePickerInput
+              value={invoiceDueDate ? formatDate(invoiceDueDate) : ''}
+              onChange={(iso) => setInvoiceDueDate(iso ? parseISO(iso) : undefined)}
+              className="mt-2"
             />
           </div>
           <DialogFooter>

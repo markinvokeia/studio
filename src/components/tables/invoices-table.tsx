@@ -38,7 +38,7 @@ import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -63,6 +63,7 @@ const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
   created_at: z.date({ required_error: t('validation.dateRequired') }),
+  due_date: z.date().optional(),
   notes: z.string().optional(),
   is_historical: z.boolean().optional(),
   items: z.array(z.object({
@@ -200,6 +201,16 @@ const getColumns = (
       },
     },
     {
+      accessorKey: 'due_date',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.due_date || "Due Date"} />
+      ),
+      cell: ({ row }) => {
+        const dueDate = row.original.due_date;
+        return <div className="font-medium">{dueDate ? formatDisplayDate(dueDate) : '-'}</div>;
+      },
+    },
+    {
       accessorKey: 'createdAt',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
@@ -310,6 +321,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     type: t('columns.type'),
     payment_status: t('columns.paymentStatus'),
     paid_amount: t('columns.paidAmount'),
+    due_date: t('columns.dueDate'),
     createdAt: t('columns.createdAt'),
     ...columnTranslations,
   }), [t, isSales, columnTranslations]);
@@ -441,6 +453,9 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                     : undefined,
                   row.status,
                 ].filter(Boolean).join(' · ')}
+                fields={[
+                  { label: columnTranslations.due_date || "Due Date", value: row.due_date ? formatDisplayDate(row.due_date) : '-' },
+                ]}
                 showArrow
                 onClick={() => onRowSelectionChange?.([row])}
               />
@@ -551,6 +566,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       items: [],
       total: 0,
       created_at: new Date(),
+      due_date: undefined,
       notes: '',
       is_historical: false,
     },
@@ -559,12 +575,18 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const isEditing = !!invoice;
   const items = useWatch({ control: form.control, name: 'items' }) || [];
   const invoiceType = form.watch('type');
+  const createdAt = form.watch('created_at');
 
   const calculatedTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.total) || 0), 0);
 
   React.useEffect(() => {
     form.setValue('total', calculatedTotal);
   }, [calculatedTotal, form]);
+
+  React.useEffect(() => {
+    if (!isOpen || isEditing || !createdAt) return;
+    form.setValue('due_date', addDays(createdAt, 30));
+  }, [createdAt, form, isEditing, isOpen]);
 
   // Debounced User Search
   React.useEffect(() => {
@@ -685,6 +707,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
               quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
               created_at: invoice.createdAt ? parseISO(formatDate(invoice.createdAt)) : new Date(),
+              due_date: invoice.due_date ? parseISO(formatDate(invoice.due_date)) : undefined,
               items: itemsNormalized.map((item: any) => {
                 const rawServiceId = item.service_id || item.product_id;
                 const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
@@ -709,6 +732,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               items: [],
               total: 0,
               created_at: new Date(),
+              due_date: addDays(new Date(), 30),
             });
           }
         } catch (error) {
@@ -804,8 +828,21 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
         total: item.total,
       }));
       const payload = isEditing && invoice
-        ? { ...values, items: normalizedItems, id: invoice.id, created_at: toLocalISOString(values.created_at), is_sales: isSales }
-        : { ...values, items: normalizedItems, created_at: toLocalISOString(values.created_at), is_sales: isSales };
+        ? {
+            ...values,
+            items: normalizedItems,
+            id: invoice.id,
+            created_at: toLocalISOString(values.created_at),
+            due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
+            is_sales: isSales,
+          }
+        : {
+            ...values,
+            items: normalizedItems,
+            created_at: toLocalISOString(values.created_at),
+            due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
+            is_sales: isSales,
+          };
 
       const responseData = await api.post(endpoint, payload);
 
@@ -1168,14 +1205,43 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     ))}
                     <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
                   </div>
+                  <div className="mt-4 flex justify-end border-t border-dashed pt-4">
+                    <div className="text-right">
+                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        {t('total')}
+                      </p>
+                      <p className="text-2xl font-semibold">
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: form.getValues('currency') || 'UYU',
+                        }).format(calculatedTotal)}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
-              <div className="flex justify-end pt-2">
-                <span className="font-semibold text-lg">
-                  {t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(calculatedTotal)}
-                </span>
+              <div className="flex justify-end">
+                <div className="w-full md:w-72">
+                  <FormField
+                    control={form.control}
+                    name="due_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{tRoot('columns.dueDate')}</FormLabel>
+                        <FormControl>
+                          <DatePickerInput
+                            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                            onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
+
             </DialogBody>
 
             <DialogFooter>
