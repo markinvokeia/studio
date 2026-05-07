@@ -600,6 +600,71 @@
     "cancelled": "Cancelada",
     "scheduled": "Programada"
   },
+  "DoctorWorkspace": {
+    "badge": "Vista Doctor",
+    "title": "Tu jornada clínica empieza aquí",
+    "description": "Una vista operativa para abrir la agenda del día, preparar al paciente con ayuda de IA y cerrar la sesión clínica sin salir del flujo.",
+    "todayLabel": "Hoy: {date}",
+    "lastUpdated": "Última actualización: {time}",
+    "lastUpdatedPending": "Cargando actualización inicial",
+    "autoRefresh": "Refresco automático cada {seconds} segundos",
+    "kpis": {
+      "totalToday": "Citas de hoy",
+      "confirmed": "Confirmadas",
+      "pending": "Pendientes",
+      "completed": "Completadas"
+    },
+    "status": {
+      "completed": "Completada",
+      "confirmed": "Confirmada",
+      "pending": "Pendiente",
+      "cancelled": "Cancelada",
+      "scheduled": "Programada"
+    },
+    "agenda": {
+      "title": "Agenda del día",
+      "description": "Selecciona una cita para ver el contexto clínico y disparar acciones rápidas.",
+      "refresh": "Actualizar",
+      "openFullAgenda": "Abrir agenda completa",
+      "emptyTitle": "No hay citas para hoy",
+      "emptyDescription": "Cuando se agenden nuevas citas o cambie el estado de una existente, aparecerán aquí.",
+      "unknownPatient": "Paciente sin nombre",
+      "viewPatient": "Paciente",
+      "viewContext": "Contexto",
+      "startSession": "Sesión"
+    },
+    "focus": {
+      "title": "Paciente en foco",
+      "description": "El doctor puede resolver todo desde este panel antes, durante y después de la atención.",
+      "date": "Fecha",
+      "time": "Hora",
+      "calendar": "Calendario",
+      "quote": "Presupuesto",
+      "openPatient": "Abrir paciente",
+      "openHistory": "Ver contexto clínico",
+      "editSession": "Editar sesión clínica",
+      "completeSession": "Completar sesión clínica",
+      "empty": "Selecciona una cita del día para abrir el panel clínico rápido.",
+      "summaryTitle": "Resumen clínico mock",
+      "summaryGenericService": "consulta clínica",
+      "summaryNoNextPlan": "Definir conducta y próximos pasos en esta visita.",
+      "summaryEmpty": "Aquí aparecería un resumen mock con las últimas sesiones clínicas y lo que corresponde resolver hoy.",
+      "summaryCardTitle": "Resumen sugerido por IA",
+      "summaryCardSubtitle": "Lectura rápida antes de empezar la atención",
+      "summaryLatestSession": "Última sesión",
+      "summaryTodayTitle": "Lo que corresponde hacer hoy",
+      "summarySuggestedStep": "Siguiente conducta",
+      "summaryMockFlag": "Modo mock",
+      "summaryMockNote": "Este bloque todavía es visual. Más adelante podrá nutrirse del chat global y del historial clínico real.",
+      "summaryNoPreviousSession": "No hay una sesión clínica previa vinculada para esta cita.",
+      "summaryTodayFollowUp": "Revisar evolución del tratamiento asociado a {service}.",
+      "summaryTodayValidate": "Validar síntomas, respuesta clínica y cambios desde la última consulta.",
+      "summaryTodayExecute": "Ejecutar o confirmar el siguiente paso clínico.",
+      "summaryTodayConfirmReason": "Confirmar motivo de consulta y objetivo clínico para {service}.",
+      "summaryTodayRegisterFindings": "Registrar hallazgos iniciales y antecedentes relevantes.",
+      "summaryTodayCloseSession": "Cerrar la sesión con procedimiento, tratamientos y plan siguiente."
+    }
+  },
   "AilmentsPage": {
     "title": "Padecimientos",
     "description": "Gestionar condiciones médicas estandarizadas y enfermedades.",
@@ -822,6 +887,10 @@
     "filterPlaceholder": "Filtrar pacientes por correo...",
     "filterByPatient": "Filtrar por paciente...",
     "detailsFor": "Detalles para {name}",
+    "doctorWorkspace": {
+      "clinicalAlerts": "Alertas clínicas",
+      "noAllergies": "Sin alergias registradas."
+    },
     "close": "Cerrar detalles",
     "dependentPatient": "Paciente dependiente",
     "dependentOf": "Dependiente de {name}",
@@ -1074,15 +1143,15 @@
       "selectService": "Seleccionar servicio",
       "step": "Pasos",
       "selectStep": "Seleccionar pasos",
-        "searchStepPlaceholder": "Buscar paso...",
-        "stepsSelected": "{count} pasos seleccionados",
-        "selectedSteps": "Pasos seleccionados",
-        "noSteps": "Sin pasos",
-        "fullyInvoiced": "Facturado completo",
-        "amount": "Monto a facturar",
-        "pending": "Falta facturar",
-        "invoiced": "Facturado"
-      },
+      "searchStepPlaceholder": "Buscar paso...",
+      "stepsSelected": "{count} pasos seleccionados",
+      "selectedSteps": "Pasos seleccionados",
+      "noSteps": "Sin pasos",
+      "fullyInvoiced": "Facturado completo",
+      "amount": "Monto a facturar",
+      "pending": "Falta facturar",
+      "invoiced": "Facturado"
+    },
     "validation": {
       "serviceRequired": "Selecciona un servicio del presupuesto.",
       "amountPositive": "Ingresa un monto mayor a cero.",
@@ -5289,7 +5358,11 @@
   },
   "DentalRecord": {
     "title": "Expediente Médico",
-    "tab": { "odontogram": "Odontograma", "periodontogram": "Periodontograma", "periodontogramSoon": "Próximamente" },
+    "tab": {
+      "odontogram": "Odontograma",
+      "periodontogram": "Periodontograma",
+      "periodontogramSoon": "Próximamente"
+    },
     "newSession": "Nueva Sesión",
     "noSessions": "Sin sesiones registradas",
     "noSessionsDesc": "Inicia una nueva sesión para comenzar el odontograma.",

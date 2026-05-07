@@ -28,7 +28,7 @@ import { Calendar as CalendarIcon, Loader2, Plus, Trash2, Upload, File, X, Eye }
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 interface ClinicSessionDialogProps {
     open: boolean;
@@ -46,9 +46,13 @@ interface ClinicSessionDialogProps {
         doctor_id?: string;
         doctor_name?: string;
         procedimiento_realizado?: string;
+        plan_proxima_cita?: string;
+        fecha_proxima_cita?: string;
     };
     prefillTreatments?: { numero_diente: number | null; descripcion: string }[];
     existingSession?: PatientSession;  // Para edición de sesión existente
+    hideNextAppointmentDate?: boolean;
+    lockDoctor?: boolean;
     // Datos de cita pendiente para crear junto con la sesión
     pendingAppointmentData?: {
         start: string;
@@ -111,6 +115,8 @@ export function ClinicSessionDialog({
     prefillData,
     prefillTreatments,
     existingSession,
+    hideNextAppointmentDate = false,
+    lockDoctor = false,
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
     const t = useTranslations('ClinicSessionDialog');
@@ -135,7 +141,7 @@ export function ClinicSessionDialog({
     const [form, setForm] = React.useState<ClinicSessionFormData>({
         doctor_id: '',
         doctor_name: '',
-        fecha_sesion: defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        fecha_sesion: defaultDate ? formatDate(defaultDate) : formatDate(new Date()),
         procedimiento_realizado: serviceName || '',
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
@@ -161,13 +167,13 @@ export function ClinicSessionDialog({
             doctor_id: existingSession?.doctor_id || prefillData?.doctor_id || '',
             doctor_name: existingSession?.doctor_name || prefillData?.doctor_name || '',
             fecha_sesion: existingSession?.fecha_sesion
-                ? existingSession.fecha_sesion.split('T')[0]
-                : (defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+                ? formatDate(existingSession.fecha_sesion)
+                : (defaultDate ? formatDate(defaultDate) : formatDate(new Date())),
             procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
-            plan_proxima_cita: existingSession?.plan_proxima_cita || '',
+            plan_proxima_cita: existingSession?.plan_proxima_cita || prefillData?.plan_proxima_cita || '',
             fecha_proxima_cita: existingSession?.fecha_proxima_cita
-                ? existingSession.fecha_proxima_cita.split('T')[0]
-                : '',
+                ? formatDate(existingSession.fecha_proxima_cita)
+                : (prefillData?.fecha_proxima_cita ? formatDate(prefillData.fecha_proxima_cita) : ''),
             quote_id: existingSession?.quote_id || quoteId,
             appointment_id: existingSession?.appointment_id || appointmentId,
             sesion_id: existingSession?.sesion_id,
@@ -378,7 +384,7 @@ export function ClinicSessionDialog({
                                             <Calendar
                                                 mode="single"
                                                 selected={form.fecha_sesion ? new Date(form.fecha_sesion + 'T00:00:00') : undefined}
-                                                onSelect={(date) => setForm({ ...form, fecha_sesion: date ? date.toISOString().split('T')[0] : '' })}
+                                                onSelect={(date) => setForm({ ...form, fecha_sesion: date ? formatDate(date) : '' })}
                                                 initialFocus
                                             />
                                         </PopoverContent>
@@ -391,6 +397,7 @@ export function ClinicSessionDialog({
                                     <Select
                                         value={form.doctor_id}
                                         onValueChange={(value) => {
+                                            if (lockDoctor) return;
                                             const selectedDoc = doctors.find(d => d.id === value);
                                             setForm({
                                                 ...form,
@@ -399,6 +406,7 @@ export function ClinicSessionDialog({
                                             });
                                             setDoctorError(false);
                                         }}
+                                        disabled={lockDoctor}
                                     >
                                         <SelectTrigger className={cn("w-full", doctorError && "border-destructive")}>
                                             <SelectValue placeholder={t('selectDoctor')} />
@@ -440,34 +448,36 @@ export function ClinicSessionDialog({
                                 </div>
 
                                 {/* Next Appointment Date */}
-                                <div className="space-y-2">
-                                    <Label>{t('nextAppointmentDate')}</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full justify-start text-left font-normal h-10 border-input",
-                                                    !form.fecha_proxima_cita && "text-muted-foreground"
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {form.fecha_proxima_cita
-                                                    ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
-                                                    : t('selectNextAppointmentDate')}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
-                                                onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? date.toISOString().split('T')[0] : '' })}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
+                                {!hideNextAppointmentDate && (
+                                    <div className="space-y-2">
+                                        <Label>{t('nextAppointmentDate')}</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal h-10 border-input",
+                                                        !form.fecha_proxima_cita && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {form.fecha_proxima_cita
+                                                        ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
+                                                        : t('selectNextAppointmentDate')}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
+                                                    onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? formatDate(date) : '' })}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
                             </div>
 
                             {/* RIGHT column — treatments + attachments (only rendered when enabled) */}

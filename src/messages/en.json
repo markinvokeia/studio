@@ -600,6 +600,71 @@
     "cancelled": "Cancelled",
     "scheduled": "Scheduled"
   },
+  "DoctorWorkspace": {
+    "badge": "Doctor View",
+    "title": "Your clinical day starts here",
+    "description": "An operational view to open today’s schedule, prepare the patient with AI help, and close the clinical session without leaving the workflow.",
+    "todayLabel": "Today: {date}",
+    "lastUpdated": "Last updated: {time}",
+    "lastUpdatedPending": "Loading initial refresh",
+    "autoRefresh": "Auto refresh every {seconds} seconds",
+    "kpis": {
+      "totalToday": "Appointments today",
+      "confirmed": "Confirmed",
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "status": {
+      "completed": "Completed",
+      "confirmed": "Confirmed",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "scheduled": "Scheduled"
+    },
+    "agenda": {
+      "title": "Today schedule",
+      "description": "Select an appointment to open the clinical context and trigger quick actions.",
+      "refresh": "Refresh",
+      "openFullAgenda": "Open full schedule",
+      "emptyTitle": "No appointments for today",
+      "emptyDescription": "When new appointments are scheduled or a status changes, they will appear here.",
+      "unknownPatient": "Unnamed patient",
+      "viewPatient": "Patient",
+      "viewContext": "Context",
+      "startSession": "Session"
+    },
+    "focus": {
+      "title": "Patient in focus",
+      "description": "The doctor can resolve the visit from this panel before, during, and after care.",
+      "date": "Date",
+      "time": "Time",
+      "calendar": "Calendar",
+      "quote": "Quote",
+      "openPatient": "Open patient",
+      "openHistory": "View clinical context",
+      "editSession": "Edit clinical session",
+      "completeSession": "Complete clinical session",
+      "empty": "Select an appointment from today to open the quick clinical panel.",
+      "summaryTitle": "Mock clinical summary",
+      "summaryGenericService": "clinical consultation",
+      "summaryNoNextPlan": "Define the clinical approach and next steps during this visit.",
+      "summaryEmpty": "A mock summary with the latest clinical sessions and what the doctor should do today would appear here.",
+      "summaryCardTitle": "AI suggested summary",
+      "summaryCardSubtitle": "Fast reading before starting the visit",
+      "summaryLatestSession": "Latest session",
+      "summaryTodayTitle": "What should be done today",
+      "summarySuggestedStep": "Suggested next step",
+      "summaryMockFlag": "Mock mode",
+      "summaryMockNote": "This block is still visual only. Later it can be fed by the global chat and the real clinical history.",
+      "summaryNoPreviousSession": "There is no previous clinical session linked to this appointment.",
+      "summaryTodayFollowUp": "Review progress for the treatment linked to {service}.",
+      "summaryTodayValidate": "Validate symptoms, clinical response, and changes since the last visit.",
+      "summaryTodayExecute": "Perform or confirm the next clinical step.",
+      "summaryTodayConfirmReason": "Confirm the consultation reason and clinical goal for {service}.",
+      "summaryTodayRegisterFindings": "Record initial findings and relevant background.",
+      "summaryTodayCloseSession": "Close the session with procedure, treatments, and next plan."
+    }
+  },
   "AilmentsPage": {
     "title": "Ailments",
     "description": "Manage standardized medical conditions and diseases.",
@@ -822,6 +887,10 @@
     "filterPlaceholder": "Filter patients by email...",
     "filterByPatient": "Filter by patient...",
     "detailsFor": "Details for {name}",
+    "doctorWorkspace": {
+      "clinicalAlerts": "Clinical alerts",
+      "noAllergies": "No recorded allergies."
+    },
     "close": "Close details",
     "dependentPatient": "Dependent patient",
     "dependentOf": "Dependent of {name}",
@@ -1074,15 +1143,15 @@
       "selectService": "Select service",
       "step": "Steps",
       "selectStep": "Select steps",
-        "searchStepPlaceholder": "Search step...",
-        "stepsSelected": "{count} selected steps",
-        "selectedSteps": "Selected steps",
-        "noSteps": "No steps",
-        "fullyInvoiced": "Fully invoiced",
-        "amount": "Amount to invoice",
-        "pending": "Pending invoice",
-        "invoiced": "Invoiced"
-      },
+      "searchStepPlaceholder": "Search step...",
+      "stepsSelected": "{count} selected steps",
+      "selectedSteps": "Selected steps",
+      "noSteps": "No steps",
+      "fullyInvoiced": "Fully invoiced",
+      "amount": "Amount to invoice",
+      "pending": "Pending invoice",
+      "invoiced": "Invoiced"
+    },
     "validation": {
       "serviceRequired": "Select a service from the quote.",
       "amountPositive": "Enter an amount greater than zero.",
@@ -5321,7 +5390,11 @@
   },
   "DentalRecord": {
     "title": "Medical Record",
-    "tab": { "odontogram": "Odontogram", "periodontogram": "Periodontogram", "periodontogramSoon": "Coming soon" },
+    "tab": {
+      "odontogram": "Odontogram",
+      "periodontogram": "Periodontogram",
+      "periodontogramSoon": "Coming soon"
+    },
     "newSession": "New Session",
     "noSessions": "No sessions recorded",
     "noSessionsDesc": "Start a new session to begin charting.",
