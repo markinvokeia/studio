@@ -1308,3 +1308,15 @@ export type OdontogramSnapshot = {
   doctorName?: string;
   archivosAdjuntos?: OdontogramAttachment[];
 };
+
+export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'orange';
+
+export type StickyNote = {
+  id: string;
+  text: string;
+  color: StickyNoteColor;
+  created_by: string;
+  created_at: string;
+  updated_at?: string;
+  status: 'active' | 'deleted';
+};

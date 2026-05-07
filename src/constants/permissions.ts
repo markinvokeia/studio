@@ -586,3 +586,12 @@ export const TV_DISPLAY_PERMISSIONS = {
 } as const;
 
 export type TVDisplayPermission = (typeof TV_DISPLAY_PERMISSIONS)[keyof typeof TV_DISPLAY_PERMISSIONS];
+
+export const STICKY_NOTES_PERMISSIONS = {
+  CREATE: 'STICKY_NOTES_CREATE',
+  UPDATE: 'STICKY_NOTES_UPDATE',
+  DELETE: 'STICKY_NOTES_DELETE',
+  VIEW:   'STICKY_NOTES_VIEW',
+} as const;
+
+export type StickyNotesPermission = (typeof STICKY_NOTES_PERMISSIONS)[keyof typeof STICKY_NOTES_PERMISSIONS];

@@ -348,4 +348,7 @@ export const API_ROUTES = {
     MUTUAL_SOCIETIES_UPSERT: '/mutual-society',
     MUTUAL_SOCIETIES_DELETE: '/mutual-society',
     MUTUAL_SOCIETIES_ASSIGN_USER: '/mutual-society/user',
+    STICKY_NOTES: '/sticky-notes',
+    STICKY_NOTES_UPSERT: '/sticky-notes/upsert',
+    STICKY_NOTES_DELETE: '/sticky-notes/delete',
 };

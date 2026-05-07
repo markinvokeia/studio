@@ -5418,5 +5418,21 @@
       "delete": "Delete session",
       "deleteConfirm": "This session will be permanently deleted. Continue?"
     }
+  },
+  "StickyNotes": {
+    "openNotes": "Sticky Notes",
+    "newNote": "New note",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit note",
+    "delete": "Delete note",
+    "listening": "Listening...",
+    "startListening": "Start voice input",
+    "stopListening": "Stop voice input",
+    "micError": "Could not access microphone.",
+    "saveError": "Error saving note. Please try again.",
+    "deleteError": "Error deleting note. Please try again.",
+    "loadError": "Error loading notes.",
+    "empty": "No notes yet"
   }
 }
