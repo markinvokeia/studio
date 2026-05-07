@@ -1,0 +1,272 @@
+{
+  "name": "Nóminas - Honorarios Profesionales",
+  "nodes": [
+    {
+      "id": "wh-honorarios-list",
+      "name": "GET /payroll/honorarios",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/honorarios",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-honorarios-list",
+      "name": "List Honorarios",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT ph.*, u.name AS doctor_name, dc.contract_type, dc.calculation_type,\n  pp.period_year, pp.period_month\nFROM payroll_honorarios ph\nLEFT JOIN doctor_contracts dc ON ph.contract_id = dc.id\nLEFT JOIN users u ON dc.doctor_id = u.id\nLEFT JOIN payroll_periods pp ON ph.period_id = pp.id\nWHERE ($1::uuid IS NULL OR ph.period_id = $1::uuid)\n  AND ($2::uuid IS NULL OR dc.doctor_id = $2::uuid)\n  AND ($3::text IS NULL OR ph.status::text = $3)\nORDER BY ph.period_start_date DESC, u.name",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.period_id||null),($input.first().json.query?.doctor_id||null),($input.first().json.query?.status||null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-honorarios-list",
+      "name": "Respond Honorarios List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-honorarios-generate",
+      "name": "POST /payroll/honorarios/generate-order",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/generate-order",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-honorarios-generate",
+      "name": "Generate Honorario Order",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_honorarios\nSET status = 'pending_invoice', updated_at = NOW()\nWHERE id = $1::uuid AND status = 'draft'\nRETURNING id, status, gross_amount",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-honorarios-generate",
+      "name": "Respond Generate Order",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-honorarios-validate",
+      "name": "POST /payroll/honorarios/validate-invoice",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/validate-invoice",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-honorarios-validate-parse",
+      "name": "Parse Validate Invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 460],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:             b.id || '',\n  invoice_number: b.invoice_number || '',\n  invoice_amount: b.invoice_amount != null ? String(b.invoice_amount) : ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-honorarios-validate",
+      "name": "Validate Invoice",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_honorarios\nSET status = 'invoice_validated', invoice_number = NULLIF($2,''), invoice_amount = NULLIF($3,'')::decimal, updated_at = NOW()\nWHERE id = $1::uuid\nRETURNING id, status, invoice_number, invoice_amount",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.invoice_number,$json.invoice_amount] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-honorarios-validate",
+      "name": "Respond Validate Invoice",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-honorarios-authorize",
+      "name": "POST /payroll/honorarios/authorize-payment",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 640],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/authorize-payment",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-honorarios-authorize",
+      "name": "Authorize Honorario",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_honorarios\nSET status = 'authorized', authorized_by = NULLIF($2,'')::uuid, authorized_at = NOW(), updated_at = NOW()\nWHERE id = $1::uuid AND status = 'invoice_validated'\nRETURNING id, status, authorized_at",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id, ($input.first().json.body||$input.first().json).authorized_by||''] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-honorarios-authorize",
+      "name": "Respond Authorize",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 640],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-honorarios-markpaid",
+      "name": "POST /payroll/honorarios/mark-paid",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 820],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/mark-paid",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-honorarios-markpaid",
+      "name": "Mark Honorario Paid",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 820],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_honorarios\nSET status = 'paid', paid_at = NOW(), updated_at = NOW()\nWHERE id = $1::uuid AND status IN ('authorized','invoice_validated')\nRETURNING id, status, paid_at",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-honorarios-markpaid",
+      "name": "Respond Honorario Mark Paid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 820],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-honorarios-reject",
+      "name": "POST /payroll/honorarios/reject",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1000],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/honorarios/reject",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-honorarios-reject",
+      "name": "Reject Honorario",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1000],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_honorarios\nSET status = 'rejected', rejection_reason = NULLIF($2,''), updated_at = NOW()\nWHERE id = $1::uuid\nRETURNING id, status, rejection_reason",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id, ($input.first().json.body||$input.first().json).rejection_reason||''] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-honorarios-reject",
+      "name": "Respond Reject",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1000],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/honorarios": { "main": [[{ "node": "List Honorarios", "type": "main", "index": 0 }]] },
+    "List Honorarios": { "main": [[{ "node": "Respond Honorarios List", "type": "main", "index": 0 }]] },
+    "POST /payroll/honorarios/generate-order": { "main": [[{ "node": "Generate Honorario Order", "type": "main", "index": 0 }]] },
+    "Generate Honorario Order": { "main": [[{ "node": "Respond Generate Order", "type": "main", "index": 0 }]] },
+    "POST /payroll/honorarios/validate-invoice": { "main": [[{ "node": "Parse Validate Invoice", "type": "main", "index": 0 }]] },
+    "Parse Validate Invoice": { "main": [[{ "node": "Validate Invoice", "type": "main", "index": 0 }]] },
+    "Validate Invoice": { "main": [[{ "node": "Respond Validate Invoice", "type": "main", "index": 0 }]] },
+    "POST /payroll/honorarios/authorize-payment": { "main": [[{ "node": "Authorize Honorario", "type": "main", "index": 0 }]] },
+    "Authorize Honorario": { "main": [[{ "node": "Respond Authorize", "type": "main", "index": 0 }]] },
+    "POST /payroll/honorarios/mark-paid": { "main": [[{ "node": "Mark Honorario Paid", "type": "main", "index": 0 }]] },
+    "Mark Honorario Paid": { "main": [[{ "node": "Respond Honorario Mark Paid", "type": "main", "index": 0 }]] },
+    "POST /payroll/honorarios/reject": { "main": [[{ "node": "Reject Honorario", "type": "main", "index": 0 }]] },
+    "Reject Honorario": { "main": [[{ "node": "Respond Reject", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

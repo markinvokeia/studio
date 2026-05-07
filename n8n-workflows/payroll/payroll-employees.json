@@ -1,0 +1,770 @@
+{
+  "name": "Nóminas - Empleados (Legajo)",
+  "nodes": [
+    {
+      "id": "wh-employees-list",
+      "name": "GET /payroll/employees",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/employees",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-employees-list",
+      "name": "List Employees",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pe.*, pc.nombre AS category_name\nFROM payroll_employees pe\nLEFT JOIN payroll_employments pem ON pem.employee_id = pe.id AND pem.is_active = true\nLEFT JOIN payroll_categories pc ON pem.category_id = pc.id\nWHERE ($1::integer IS NULL OR pe.clinic_id = $1::integer)\n  AND ($2::boolean IS NULL OR pe.activo = $2::boolean)\nORDER BY pe.apellidos, pe.nombres",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.clinic_id ? Number($input.first().json.query.clinic_id) : null), ($input.first().json.query?.activo != null ? $input.first().json.query.activo === 'true' : null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employees-list",
+      "name": "Respond Employee List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-employees-detail",
+      "name": "GET /payroll/employees/detail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 260],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/employees/detail",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-employees-detail",
+      "name": "Employee Detail",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 260],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pe.*, pc.nombre AS category_name\nFROM payroll_employees pe\nLEFT JOIN payroll_employments pem ON pem.employee_id = pe.id AND pem.is_active = true\nLEFT JOIN payroll_categories pc ON pem.category_id = pc.id\nWHERE pe.id = $1::uuid",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employees-detail",
+      "name": "Respond Employee Detail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 260],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-employees-upsert",
+      "name": "POST /payroll/employees/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 420],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/employees/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-employees-upsert-parse",
+      "name": "Parse Employee",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 420],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id: b.id || '',\n  clinic_id: b.clinic_id ? String(b.clinic_id) : '',\n  cedula: b.cedula || '',\n  nombres: b.nombres || '',\n  apellidos: b.apellidos || '',\n  fecha_nacimiento: b.fecha_nacimiento || '',\n  sexo: b.sexo || '',\n  estado_civil: b.estado_civil || '',\n  domicilio: b.domicilio || '',\n  telefono: b.telefono || '',\n  email: b.email || '',\n  banco: b.banco || '',\n  cuenta_banco: b.cuenta_banco || '',\n  numero_bps: b.numero_bps || '',\n  fecha_ingreso: b.fecha_ingreso || '',\n  foto_url: b.foto_url || '',\n  activo: b.activo !== false\n} }];"
+      }
+    },
+    {
+      "id": "pg-employees-upsert",
+      "name": "Upsert Employee",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 420],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_employees\n  (id, clinic_id, cedula, nombres, apellidos, fecha_nacimiento, sexo, estado_civil,\n   domicilio, telefono, email, banco, cuenta_banco, numero_bps, fecha_ingreso, foto_url, activo)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::integer,\n   $3, $4, $5,\n   NULLIF($6,'')::date,\n   NULLIF($7,'')::sexo_enum,\n   NULLIF($8,'')::estado_civil_enum,\n   NULLIF($9,''), NULLIF($10,''), NULLIF($11,''),\n   NULLIF($12,''), NULLIF($13,''), NULLIF($14,''),\n   $15::date,\n   NULLIF($16,''),\n   $17::boolean)\nON CONFLICT (id) DO UPDATE SET\n  cedula          = EXCLUDED.cedula,\n  nombres         = EXCLUDED.nombres,\n  apellidos       = EXCLUDED.apellidos,\n  fecha_nacimiento = EXCLUDED.fecha_nacimiento,\n  sexo            = EXCLUDED.sexo,\n  estado_civil    = EXCLUDED.estado_civil,\n  domicilio       = EXCLUDED.domicilio,\n  telefono        = EXCLUDED.telefono,\n  email           = EXCLUDED.email,\n  banco           = EXCLUDED.banco,\n  cuenta_banco    = EXCLUDED.cuenta_banco,\n  numero_bps      = EXCLUDED.numero_bps,\n  fecha_ingreso   = EXCLUDED.fecha_ingreso,\n  foto_url        = EXCLUDED.foto_url,\n  activo          = EXCLUDED.activo,\n  updated_at      = NOW()\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.clinic_id,$json.cedula,$json.nombres,$json.apellidos,$json.fecha_nacimiento,$json.sexo,$json.estado_civil,$json.domicilio,$json.telefono,$json.email,$json.banco,$json.cuenta_banco,$json.numero_bps,$json.fecha_ingreso,$json.foto_url,$json.activo] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employees-upsert",
+      "name": "Respond Employee Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 420],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-employees-link",
+      "name": "POST /payroll/employees/link-user",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 740],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/employees/link-user",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-employees-link-parse",
+      "name": "Parse Link User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 740],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nif (!b.user_id || !b.category_id || !b.fecha_ingreso) throw new Error('Faltan campos requeridos: user_id, category_id, fecha_ingreso');\nreturn [{ json: {\n  user_id: b.user_id,\n  category_id: b.category_id,\n  fecha_ingreso: b.fecha_ingreso,\n  clinic_id: b.clinic_id ? String(b.clinic_id) : ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-employees-link-fetch-user",
+      "name": "Fetch User Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 740],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, email, phone_number, identity_document, birth_date, address, bank_account, avatar FROM users WHERE id = $1::uuid LIMIT 1",
+        "additionalFields": {
+          "queryParams": "={{ [$json.user_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-employees-link-prepare",
+      "name": "Prepare Employee Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 740],
+      "parameters": {
+        "jsCode": "const link = $('Parse Link User').first().json;\nconst user = $input.first().json;\nif (!user || !user.id) throw new Error('Usuario no encontrado');\n\n// Split name: first word = nombres, rest = apellidos\nconst nameParts = (user.name || '').trim().split(/\\s+/);\nconst nombres = nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : user.name || '';\nconst apellidos = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';\n\nreturn [{ json: {\n  user_id: user.id,\n  clinic_id: link.clinic_id || '',\n  category_id: link.category_id,\n  fecha_ingreso: link.fecha_ingreso,\n  nombres,\n  apellidos,\n  email: user.email || '',\n  telefono: user.phone_number || '',\n  cedula: user.identity_document || '',\n  fecha_nacimiento: user.birth_date || '',\n  domicilio: user.address || '',\n  cuenta_banco: user.bank_account || '',\n  foto_url: user.avatar || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-employees-link-insert",
+      "name": "Create Employee",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [980, 740],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_employees\n  (id, user_id, clinic_id, cedula, nombres, apellidos, fecha_nacimiento,\n   domicilio, telefono, email, cuenta_banco, fecha_ingreso, foto_url, activo)\nVALUES\n  (gen_random_uuid(),\n   $1::uuid,\n   NULLIF($2,'')::integer,\n   NULLIF($3,''),\n   $4, $5,\n   NULLIF($6,'')::date,\n   NULLIF($7,''), NULLIF($8,''), NULLIF($9,''),\n   NULLIF($10,''),\n   $11::date,\n   NULLIF($12,''),\n   true)\nRETURNING id, user_id, clinic_id, cedula, nombres, apellidos, fecha_nacimiento,\n  domicilio, telefono, email, cuenta_banco, fecha_ingreso, foto_url, activo, created_at",
+        "additionalFields": {
+          "queryParams": "={{ [$json.user_id,$json.clinic_id,$json.cedula,$json.nombres,$json.apellidos,$json.fecha_nacimiento,$json.domicilio,$json.telefono,$json.email,$json.cuenta_banco,$json.fecha_ingreso,$json.foto_url] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-employees-link-prep-employment",
+      "name": "Prepare Employment Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 740],
+      "parameters": {
+        "jsCode": "const employee = $input.first().json;\nconst link = $('Parse Link User').first().json;\nreturn [{ json: {\n  employee_id: employee.id,\n  clinic_id: employee.clinic_id || link.clinic_id || '',\n  category_id: link.category_id,\n  fecha_inicio: link.fecha_ingreso,\n  employee: employee\n} }];"
+      }
+    },
+    {
+      "id": "pg-employees-link-employment",
+      "name": "Create Employment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1420, 740],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_employments\n  (id, employee_id, clinic_id, category_id, tipo_contrato, fecha_inicio,\n   jornada_horas_semanales, modalidad_jornada, sueldo_base,\n   productividad_porcentaje, productividad_base, tipo_aporte_bps, is_active)\nVALUES\n  (gen_random_uuid(),\n   $1::uuid,\n   NULLIF($2,'')::integer,\n   $3::uuid,\n   'dependencia_laboral',\n   $4::date,\n   40, 'mensual', 0, 0, 'sobre_cobrado', 'industria_comercio', true)\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$json.employee_id,$json.clinic_id,$json.category_id,$json.fecha_inicio] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-employees-link-merge",
+      "name": "Merge Employee Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1640, 740],
+      "parameters": {
+        "jsCode": "const employment = $input.first().json;\nconst employee = $('Prepare Employment Data').first().json.employee;\nreturn [{ json: { ...employee, employment_id: employment.id } }];"
+      }
+    },
+    {
+      "id": "resp-employees-link",
+      "name": "Respond Employee Link",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1860, 740],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 201 }
+      }
+    },
+    {
+      "id": "wh-employees-deactivate",
+      "name": "POST /payroll/employees/deactivate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 900],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/employees/deactivate",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-employees-deactivate",
+      "name": "Deactivate Employee",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 580],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_employees SET activo = false, updated_at = NOW() WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body || $input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employees-deactivate",
+      "name": "Respond Employee Deactivate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 580],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-employment-list",
+      "name": "GET /payroll/employment/by-employee",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 740],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/employment/by-employee",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-employment-list",
+      "name": "List Employments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 740],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pem.*, pc.nombre AS category_name, pc.salario_minimo_uyu AS salario_minimo_categoria\nFROM payroll_employments pem\nLEFT JOIN payroll_categories pc ON pem.category_id = pc.id\nWHERE pem.employee_id = $1::uuid\nORDER BY pem.fecha_inicio DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.employee_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employment-list",
+      "name": "Respond Employment List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 740],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-employment-upsert",
+      "name": "POST /payroll/employment/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 900],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/employment/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-employment-upsert-parse",
+      "name": "Parse Employment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 900],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id: b.id || '',\n  employee_id: b.employee_id || '',\n  clinic_id: b.clinic_id ? String(b.clinic_id) : '',\n  tipo_contrato: b.tipo_contrato || 'dependencia',\n  category_id: b.category_id || '',\n  fecha_inicio: b.fecha_inicio || '',\n  fecha_fin: b.fecha_fin || '',\n  jornada_horas_semanales: b.jornada_horas_semanales != null ? String(b.jornada_horas_semanales) : '40',\n  modalidad_jornada: b.modalidad_jornada || 'mensual',\n  sueldo_base: b.sueldo_base != null ? String(b.sueldo_base) : '0',\n  productividad_porcentaje: b.productividad_porcentaje != null ? String(b.productividad_porcentaje) : '0',\n  productividad_base: b.productividad_base || 'sobre_cobrado',\n  centro_costo_id: b.centro_costo_id || '',\n  tipo_aporte_bps: b.tipo_aporte_bps || 'industria_comercio',\n  is_active: b.is_active !== false\n} }];"
+      }
+    },
+    {
+      "id": "pg-employment-upsert",
+      "name": "Upsert Employment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 900],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_employments\n  (id, employee_id, clinic_id, tipo_contrato, category_id, fecha_inicio, fecha_fin,\n   jornada_horas_semanales, modalidad_jornada, sueldo_base,\n   productividad_porcentaje, productividad_base, centro_costo_id, tipo_aporte_bps, is_active)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid, $3::integer,\n   $4::contract_type_enum,\n   NULLIF($5,'')::uuid,\n   $6::date, NULLIF($7,'')::date,\n   $8::decimal, $9::modalidad_jornada_enum,\n   $10::decimal, $11::decimal,\n   $12::percentage_basis_enum,\n   NULLIF($13,'')::uuid,\n   $14::tipo_aporte_bps_enum,\n   $15::boolean)\nON CONFLICT (id) DO UPDATE SET\n  tipo_contrato            = EXCLUDED.tipo_contrato,\n  category_id              = EXCLUDED.category_id,\n  fecha_inicio             = EXCLUDED.fecha_inicio,\n  fecha_fin                = EXCLUDED.fecha_fin,\n  jornada_horas_semanales  = EXCLUDED.jornada_horas_semanales,\n  modalidad_jornada        = EXCLUDED.modalidad_jornada,\n  sueldo_base              = EXCLUDED.sueldo_base,\n  productividad_porcentaje = EXCLUDED.productividad_porcentaje,\n  productividad_base       = EXCLUDED.productividad_base,\n  centro_costo_id          = EXCLUDED.centro_costo_id,\n  tipo_aporte_bps          = EXCLUDED.tipo_aporte_bps,\n  is_active                = EXCLUDED.is_active\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.employee_id,$json.clinic_id,$json.tipo_contrato,$json.category_id,$json.fecha_inicio,$json.fecha_fin,$json.jornada_horas_semanales,$json.modalidad_jornada,$json.sueldo_base,$json.productividad_porcentaje,$json.productividad_base,$json.centro_costo_id,$json.tipo_aporte_bps,$json.is_active] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employment-upsert",
+      "name": "Respond Employment Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 900],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-employment-terminate",
+      "name": "POST /payroll/employment/terminate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1060],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/employment/terminate",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-employment-terminate-parse",
+      "name": "Parse Employment Terminate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 1060],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id: b.id || '',\n  fecha_fin: b.fecha_fin || '',\n  fecha_baja: b.fecha_baja || b.fecha_fin || '',\n  motivo_baja: b.motivo_baja || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-employment-terminate",
+      "name": "Terminate Employment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 1060],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_employments\nSET fecha_fin = $2::date, is_active = false, fecha_baja = $3::date, motivo_baja = NULLIF($4,'')\nWHERE id = $1::uuid\nRETURNING id, fecha_fin",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.fecha_fin,$json.fecha_baja,$json.motivo_baja] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-employment-terminate",
+      "name": "Respond Employment Terminate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 1060],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-family-list",
+      "name": "GET /payroll/family-charges/by-employee",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1220],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/family-charges/by-employee",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-family-list",
+      "name": "List Family Charges",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1220],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_family_charges WHERE employee_id = $1::uuid ORDER BY vigente_desde DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.employee_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-family-list",
+      "name": "Respond Family Charges",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1220],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-family-upsert",
+      "name": "POST /payroll/family-charges/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1380],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/family-charges/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-family-upsert-parse",
+      "name": "Parse Family Charge",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 1380],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id: b.id || '',\n  employee_id: b.employee_id || '',\n  tipo: b.tipo || 'hijo',\n  nombres: b.nombres || '',\n  apellidos: b.apellidos || '',\n  fecha_nacimiento: b.fecha_nacimiento || '',\n  cedula: b.cedula || '',\n  vigente_desde: b.vigente_desde || '',\n  vigente_hasta: b.vigente_hasta || '',\n  documento_url: b.documento_url || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-family-upsert",
+      "name": "Upsert Family Charge",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 1380],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_family_charges\n  (id, employee_id, tipo, nombres, apellidos, fecha_nacimiento, cedula, vigente_desde, vigente_hasta, documento_url)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid,\n   $3::family_charge_tipo_enum,\n   $4, $5,\n   NULLIF($6,'')::date,\n   NULLIF($7,''),\n   $8::date,\n   NULLIF($9,'')::date,\n   NULLIF($10,''))\nON CONFLICT (id) DO UPDATE SET\n  tipo             = EXCLUDED.tipo,\n  nombres          = EXCLUDED.nombres,\n  apellidos        = EXCLUDED.apellidos,\n  fecha_nacimiento = EXCLUDED.fecha_nacimiento,\n  cedula           = EXCLUDED.cedula,\n  vigente_desde    = EXCLUDED.vigente_desde,\n  vigente_hasta    = EXCLUDED.vigente_hasta,\n  documento_url    = EXCLUDED.documento_url\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.employee_id,$json.tipo,$json.nombres,$json.apellidos,$json.fecha_nacimiento,$json.cedula,$json.vigente_desde,$json.vigente_hasta,$json.documento_url] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-family-upsert",
+      "name": "Respond Family Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 1380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-family-delete",
+      "name": "POST /payroll/family-charges/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1540],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/family-charges/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-family-delete",
+      "name": "Delete Family Charge",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1540],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_family_charges WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body || $input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-family-delete",
+      "name": "Respond Family Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1540],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-irpf-list",
+      "name": "GET /payroll/irpf-deductions/by-employee",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1700],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/irpf-deductions/by-employee",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-irpf-list",
+      "name": "List IRPF Deductions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1700],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_irpf_deductions WHERE employee_id = $1::uuid ORDER BY vigente_desde DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.employee_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-irpf-list",
+      "name": "Respond IRPF List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1700],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-irpf-upsert",
+      "name": "POST /payroll/irpf-deductions/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1860],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/irpf-deductions/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-irpf-upsert-parse",
+      "name": "Parse IRPF Deduction",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 1860],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id: b.id || '',\n  employee_id: b.employee_id || '',\n  tipo: b.tipo || 'otro',\n  descripcion: b.descripcion || '',\n  monto_mensual: b.monto_mensual != null ? String(b.monto_mensual) : '0',\n  vigente_desde: b.vigente_desde || '',\n  vigente_hasta: b.vigente_hasta || '',\n  documento_url: b.documento_url || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-irpf-upsert",
+      "name": "Upsert IRPF Deduction",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 1860],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_irpf_deductions\n  (id, employee_id, tipo, descripcion, monto_mensual, vigente_desde, vigente_hasta, documento_url)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid,\n   $3::irpf_deduction_tipo_enum,\n   $4,\n   $5::decimal,\n   $6::date,\n   NULLIF($7,'')::date,\n   NULLIF($8,''))\nON CONFLICT (id) DO UPDATE SET\n  tipo          = EXCLUDED.tipo,\n  descripcion   = EXCLUDED.descripcion,\n  monto_mensual = EXCLUDED.monto_mensual,\n  vigente_desde = EXCLUDED.vigente_desde,\n  vigente_hasta = EXCLUDED.vigente_hasta,\n  documento_url = EXCLUDED.documento_url\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.employee_id,$json.tipo,$json.descripcion,$json.monto_mensual,$json.vigente_desde,$json.vigente_hasta,$json.documento_url] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-irpf-upsert",
+      "name": "Respond IRPF Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 1860],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-irpf-delete",
+      "name": "POST /payroll/irpf-deductions/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 2020],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/irpf-deductions/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-irpf-delete",
+      "name": "Delete IRPF Deduction",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 2020],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_irpf_deductions WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body || $input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-irpf-delete",
+      "name": "Respond IRPF Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 2020],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-contracts-by-doctor-legajo",
+      "name": "GET /payroll/contracts/by-doctor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 2180],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/contracts/by-doctor",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-contracts-by-doctor-legajo",
+      "name": "List Contracts By Doctor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 2180],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT dc.*, u.name AS doctor_name\nFROM doctor_contracts dc\nLEFT JOIN users u ON dc.doctor_id = u.id\nWHERE dc.doctor_id = $1::uuid\nORDER BY dc.valid_from DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.doctor_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-contracts-by-doctor-legajo",
+      "name": "Respond Contracts By Doctor",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 2180],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/employees": { "main": [[{ "node": "List Employees", "type": "main", "index": 0 }]] },
+    "List Employees": { "main": [[{ "node": "Respond Employee List", "type": "main", "index": 0 }]] },
+    "GET /payroll/employees/detail": { "main": [[{ "node": "Employee Detail", "type": "main", "index": 0 }]] },
+    "Employee Detail": { "main": [[{ "node": "Respond Employee Detail", "type": "main", "index": 0 }]] },
+    "POST /payroll/employees/upsert": { "main": [[{ "node": "Parse Employee", "type": "main", "index": 0 }]] },
+    "Parse Employee": { "main": [[{ "node": "Upsert Employee", "type": "main", "index": 0 }]] },
+    "Upsert Employee": { "main": [[{ "node": "Respond Employee Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/employees/link-user": { "main": [[{ "node": "Parse Link User", "type": "main", "index": 0 }]] },
+    "Parse Link User": { "main": [[{ "node": "Fetch User Data", "type": "main", "index": 0 }]] },
+    "Fetch User Data": { "main": [[{ "node": "Prepare Employee Data", "type": "main", "index": 0 }]] },
+    "Prepare Employee Data": { "main": [[{ "node": "Create Employee", "type": "main", "index": 0 }]] },
+    "Create Employee": { "main": [[{ "node": "Prepare Employment Data", "type": "main", "index": 0 }]] },
+    "Prepare Employment Data": { "main": [[{ "node": "Create Employment", "type": "main", "index": 0 }]] },
+    "Create Employment": { "main": [[{ "node": "Merge Employee Response", "type": "main", "index": 0 }]] },
+    "Merge Employee Response": { "main": [[{ "node": "Respond Employee Link", "type": "main", "index": 0 }]] },
+    "POST /payroll/employees/deactivate": { "main": [[{ "node": "Deactivate Employee", "type": "main", "index": 0 }]] },
+    "Deactivate Employee": { "main": [[{ "node": "Respond Employee Deactivate", "type": "main", "index": 0 }]] },
+    "GET /payroll/employment/by-employee": { "main": [[{ "node": "List Employments", "type": "main", "index": 0 }]] },
+    "List Employments": { "main": [[{ "node": "Respond Employment List", "type": "main", "index": 0 }]] },
+    "POST /payroll/employment/upsert": { "main": [[{ "node": "Parse Employment", "type": "main", "index": 0 }]] },
+    "Parse Employment": { "main": [[{ "node": "Upsert Employment", "type": "main", "index": 0 }]] },
+    "Upsert Employment": { "main": [[{ "node": "Respond Employment Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/employment/terminate": { "main": [[{ "node": "Parse Employment Terminate", "type": "main", "index": 0 }]] },
+    "Parse Employment Terminate": { "main": [[{ "node": "Terminate Employment", "type": "main", "index": 0 }]] },
+    "Terminate Employment": { "main": [[{ "node": "Respond Employment Terminate", "type": "main", "index": 0 }]] },
+    "GET /payroll/family-charges/by-employee": { "main": [[{ "node": "List Family Charges", "type": "main", "index": 0 }]] },
+    "List Family Charges": { "main": [[{ "node": "Respond Family Charges", "type": "main", "index": 0 }]] },
+    "POST /payroll/family-charges/upsert": { "main": [[{ "node": "Parse Family Charge", "type": "main", "index": 0 }]] },
+    "Parse Family Charge": { "main": [[{ "node": "Upsert Family Charge", "type": "main", "index": 0 }]] },
+    "Upsert Family Charge": { "main": [[{ "node": "Respond Family Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/family-charges/delete": { "main": [[{ "node": "Delete Family Charge", "type": "main", "index": 0 }]] },
+    "Delete Family Charge": { "main": [[{ "node": "Respond Family Delete", "type": "main", "index": 0 }]] },
+    "GET /payroll/irpf-deductions/by-employee": { "main": [[{ "node": "List IRPF Deductions", "type": "main", "index": 0 }]] },
+    "List IRPF Deductions": { "main": [[{ "node": "Respond IRPF List", "type": "main", "index": 0 }]] },
+    "POST /payroll/irpf-deductions/upsert": { "main": [[{ "node": "Parse IRPF Deduction", "type": "main", "index": 0 }]] },
+    "Parse IRPF Deduction": { "main": [[{ "node": "Upsert IRPF Deduction", "type": "main", "index": 0 }]] },
+    "Upsert IRPF Deduction": { "main": [[{ "node": "Respond IRPF Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/irpf-deductions/delete": { "main": [[{ "node": "Delete IRPF Deduction", "type": "main", "index": 0 }]] },
+    "Delete IRPF Deduction": { "main": [[{ "node": "Respond IRPF Delete", "type": "main", "index": 0 }]] },
+    "GET /payroll/contracts/by-doctor": { "main": [[{ "node": "List Contracts By Doctor", "type": "main", "index": 0 }]] },
+    "List Contracts By Doctor": { "main": [[{ "node": "Respond Contracts By Doctor", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

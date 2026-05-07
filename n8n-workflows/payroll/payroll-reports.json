@@ -1,0 +1,303 @@
+{
+  "name": "Nóminas - Reportes y Exportaciones",
+  "nodes": [
+    {
+      "id": "wh-report-bps",
+      "name": "GET /payroll/reports/bps-nomina",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/bps-nomina",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-bps",
+      "name": "BPS Nomina Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.identity_document        AS ci,\n  u.name                     AS nombre,\n  pe2.hire_date,\n  pe2.bps_history_number     AS historia_laboral_bps,\n  pe2.fonasa_situation,\n  pe.gross_salary            AS salario_nominal,\n  pe.bps_employee            AS montepios_obrero,\n  pe.bps_employer            AS montepios_patronal,\n  pe.fonasa_employee         AS fonasa_obrero,\n  pe.fonasa_employer         AS fonasa_patronal,\n  pe.aguinaldo_provision     AS provision_aguinaldo,\n  pe.vacation_provision      AS provision_vacacional,\n  pe.total_employer_cost     AS costo_total_patronal,\n  pp.period_year, pp.period_month\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN users u ON pe.doctor_id = u.id\nJOIN payroll_employees pe2 ON pe2.user_id = u.id AND pe2.clinic_id = pp.clinic_id\nJOIN doctor_contracts dc ON pe.doctor_contract_id = dc.id\nWHERE pp.id = $1::uuid\n  AND dc.contract_type IN ('empleado','mixto')\nORDER BY u.name",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-bps",
+      "name": "Respond BPS Report",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), report_type: 'bps_nomina' } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-report-irpf",
+      "name": "GET /payroll/reports/dgi-irpf-annual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/dgi-irpf-annual",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-irpf",
+      "name": "IRPF Annual Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.identity_document  AS ci,\n  u.name               AS nombre,\n  SUM(pe.gross_salary) AS total_bruto_anual,\n  SUM(pe.bps_employee + pe.fonasa_employee) AS total_aportes_obrero,\n  SUM(pe.irpf_withholding) AS total_irpf_retenido\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN users u ON pe.doctor_id = u.id\nWHERE pp.period_year = $1::integer\n  AND ($2::integer IS NULL OR pp.clinic_id = $2::integer)\n  AND pe.status = 'paid'\nGROUP BY u.id, u.identity_document, u.name\nORDER BY u.name",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.year||new Date().getFullYear()), ($input.first().json.query?.clinic_id ? Number($input.first().json.query.clinic_id) : null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-irpf",
+      "name": "Respond IRPF Report",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), report_type: 'dgi_irpf_annual' } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-report-mtss",
+      "name": "GET /payroll/reports/mtss-planilla",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/mtss-planilla",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-mtss",
+      "name": "MTSS Planilla Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.name, u.identity_document AS ci,\n  pe2.position, pe2.hire_date,\n  pc.name AS categoria,\n  pe.gross_salary, pe.hours_worked,\n  pe.sessions_count,\n  pp.period_year, pp.period_month\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN users u ON pe.doctor_id = u.id\nLEFT JOIN payroll_employees pe2 ON pe2.user_id = u.id AND pe2.clinic_id = pp.clinic_id\nLEFT JOIN payroll_categories pc ON pe2.category_id = pc.id\nWHERE pp.id = $1::uuid\nORDER BY u.name",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-mtss",
+      "name": "Respond MTSS Report",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), report_type: 'mtss_planilla' } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-report-bank",
+      "name": "GET /payroll/reports/bank-file",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 640],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/bank-file",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-bank",
+      "name": "Bank File Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.name,\n  pe2.bank_account,\n  pe2.bank_name,\n  pe.net_salary,\n  pe.currency\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN users u ON pe.doctor_id = u.id\nLEFT JOIN payroll_employees pe2 ON pe2.user_id = u.id AND pe2.clinic_id = pp.clinic_id\nWHERE pp.id = $1::uuid\n  AND pe.status = 'approved'\n  AND pe2.bank_account IS NOT NULL\nORDER BY u.name",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-bank",
+      "name": "Respond Bank File",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 640],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), report_type: 'bank_file' } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-report-accounting",
+      "name": "GET /payroll/reports/accounting-entries",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 820],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/accounting-entries",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-accounting",
+      "name": "Accounting Entries Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 820],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  pp.period_year, pp.period_month,\n  SUM(pe.gross_salary)          AS total_salarios_brutos,\n  SUM(pe.bps_employee)          AS total_bps_obrero,\n  SUM(pe.fonasa_employee)       AS total_fonasa_obrero,\n  SUM(pe.irpf_withholding)      AS total_irpf,\n  SUM(pe.net_salary)            AS total_salarios_netos,\n  SUM(pe.bps_employer)          AS total_bps_patronal,\n  SUM(pe.fonasa_employer)       AS total_fonasa_patronal,\n  SUM(pe.aguinaldo_provision)   AS total_provision_aguinaldo,\n  SUM(pe.vacation_provision)    AS total_provision_vacacional,\n  SUM(pe.total_employer_cost)   AS costo_total_empresa\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nWHERE pp.id = $1::uuid\nGROUP BY pp.period_year, pp.period_month",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-accounting",
+      "name": "Respond Accounting Report",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 820],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json, report_type: 'accounting_entries' } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-report-receipts",
+      "name": "GET /payroll/reports/receipts-batch",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1000],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/receipts-batch",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-receipts",
+      "name": "Receipts Batch Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1000],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  pe.id AS entry_id,\n  u.name, u.identity_document,\n  pp.period_year, pp.period_month,\n  pe.gross_salary, pe.bps_employee, pe.fonasa_employee,\n  pe.irpf_withholding, pe.other_deductions, pe.total_deductions,\n  pe.net_salary, pe.sessions_count, pe.hours_worked,\n  pe.bps_employer, pe.fonasa_employer,\n  pe.aguinaldo_provision, pe.vacation_provision,\n  pe.currency, pe.status\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN users u ON pe.doctor_id = u.id\nWHERE pp.id = $1::uuid\nORDER BY u.name",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-receipts",
+      "name": "Respond Receipts Batch",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1000],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), report_type: 'receipts_batch' } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-report-cost-center",
+      "name": "GET /payroll/reports/cost-by-center",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1180],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/reports/cost-by-center",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-report-cost-center",
+      "name": "Cost Center Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1180],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  c.name  AS clinic_name,\n  pp.period_year, pp.period_month,\n  COUNT(pe.id)::integer         AS headcount,\n  SUM(pe.gross_salary)          AS total_bruto,\n  SUM(pe.total_employer_cost)   AS costo_total\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN clinic c ON pp.clinic_id = c.id\nWHERE pp.period_year = $1::integer\n  AND ($2::integer IS NULL OR pp.period_month = $2::integer)\nGROUP BY c.name, pp.period_year, pp.period_month\nORDER BY pp.period_month, c.name",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.year||new Date().getFullYear()), ($input.first().json.query?.month ? Number($input.first().json.query.month) : null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-report-cost-center",
+      "name": "Respond Cost Center",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1180],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), report_type: 'cost_by_center' } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/reports/bps-nomina": { "main": [[{ "node": "BPS Nomina Data", "type": "main", "index": 0 }]] },
+    "BPS Nomina Data": { "main": [[{ "node": "Respond BPS Report", "type": "main", "index": 0 }]] },
+    "GET /payroll/reports/dgi-irpf-annual": { "main": [[{ "node": "IRPF Annual Data", "type": "main", "index": 0 }]] },
+    "IRPF Annual Data": { "main": [[{ "node": "Respond IRPF Report", "type": "main", "index": 0 }]] },
+    "GET /payroll/reports/mtss-planilla": { "main": [[{ "node": "MTSS Planilla Data", "type": "main", "index": 0 }]] },
+    "MTSS Planilla Data": { "main": [[{ "node": "Respond MTSS Report", "type": "main", "index": 0 }]] },
+    "GET /payroll/reports/bank-file": { "main": [[{ "node": "Bank File Data", "type": "main", "index": 0 }]] },
+    "Bank File Data": { "main": [[{ "node": "Respond Bank File", "type": "main", "index": 0 }]] },
+    "GET /payroll/reports/accounting-entries": { "main": [[{ "node": "Accounting Entries Data", "type": "main", "index": 0 }]] },
+    "Accounting Entries Data": { "main": [[{ "node": "Respond Accounting Report", "type": "main", "index": 0 }]] },
+    "GET /payroll/reports/receipts-batch": { "main": [[{ "node": "Receipts Batch Data", "type": "main", "index": 0 }]] },
+    "Receipts Batch Data": { "main": [[{ "node": "Respond Receipts Batch", "type": "main", "index": 0 }]] },
+    "GET /payroll/reports/cost-by-center": { "main": [[{ "node": "Cost Center Data", "type": "main", "index": 0 }]] },
+    "Cost Center Data": { "main": [[{ "node": "Respond Cost Center", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

@@ -1,0 +1,356 @@
+{
+  "name": "Nóminas - Entradas, Sesiones y Ajustes",
+  "nodes": [
+    {
+      "id": "wh-entries-by-period",
+      "name": "GET /payroll/entries/by-period",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/entries/by-period",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-entries-by-period",
+      "name": "Entries By Period",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pe.*, u.name AS doctor_name, dc.contract_type, dc.calculation_type,\n  COALESCE((\n    SELECT SUM(CASE WHEN adjustment_type='addition' THEN amount ELSE -amount END)\n    FROM payroll_manual_adjustments pma WHERE pma.payroll_entry_id = pe.id\n  ), 0) AS manual_adjustments_total\nFROM payroll_entries pe\nLEFT JOIN users u ON pe.doctor_id = u.id\nLEFT JOIN doctor_contracts dc ON pe.doctor_contract_id = dc.id\nWHERE pe.payroll_period_id = $1::uuid\n  AND ($2::uuid IS NULL OR pe.doctor_id = $2::uuid)\nORDER BY u.name",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id, ($input.first().json.query?.doctor_id || null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-entries-by-period",
+      "name": "Respond Entries By Period",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-entries-detail",
+      "name": "GET /payroll/entries/detail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/entries/detail",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-entries-detail",
+      "name": "Entry Detail",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pe.*, u.name AS doctor_name, dc.contract_type, dc.calculation_type, dc.percentage_rate,\n  pp.period_year, pp.period_month,\n  (\n    SELECT json_agg(pma ORDER BY pma.created_at)\n    FROM payroll_manual_adjustments pma WHERE pma.payroll_entry_id = pe.id\n  ) AS adjustments,\n  (\n    SELECT json_agg(psa ORDER BY psa.session_date DESC)\n    FROM payroll_session_assignments psa WHERE psa.payroll_entry_id = pe.id\n    LIMIT 200\n  ) AS sessions\nFROM payroll_entries pe\nLEFT JOIN users u ON pe.doctor_id = u.id\nLEFT JOIN doctor_contracts dc ON pe.doctor_contract_id = dc.id\nLEFT JOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nWHERE pe.id = $1::uuid",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-entries-detail",
+      "name": "Respond Entry Detail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-entries-update",
+      "name": "POST /payroll/entries/update",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/entries/update",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-entries-update",
+      "name": "Update Entry",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_entries SET\n  notes  = COALESCE(NULLIF($2,''), notes),\n  status = COALESCE(NULLIF($3,'')::payroll_entry_status_enum, status)\nWHERE id = $1::uuid\nRETURNING id, status, notes",
+        "additionalFields": {
+          "queryParams": "={{ [b=($input.first().json.body||$input.first().json), b.id, b.notes||'', b.status||''] }.slice(1) }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-entries-update-parse",
+      "name": "Parse Entry Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 460],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: { id: b.id, notes: b.notes || '', status: b.status || '' } }];"
+      }
+    },
+    {
+      "id": "pg-entries-update-exec",
+      "name": "Exec Entry Update",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_entries SET\n  notes  = COALESCE(NULLIF($2,''), notes),\n  status = COALESCE(NULLIF($3,'')::payroll_entry_status_enum, status)\nWHERE id = $1::uuid\nRETURNING id, status, notes",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.notes,$json.status] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-entries-update",
+      "name": "Respond Entry Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-sessions-list",
+      "name": "GET /payroll/session-assignments",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 640],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/session-assignments",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-sessions-list",
+      "name": "List Session Assignments",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_session_assignments WHERE payroll_entry_id = $1::uuid ORDER BY session_date DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.entry_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-sessions-list",
+      "name": "Respond Session List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 640],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-sessions-toggle",
+      "name": "POST /payroll/session-assignments/toggle",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 820],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/session-assignments/toggle",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-sessions-toggle",
+      "name": "Toggle Session Assignment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 820],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_session_assignments SET is_included = NOT is_included WHERE id = $1::uuid RETURNING id, is_included",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-sessions-toggle",
+      "name": "Respond Session Toggle",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 820],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-adjustments-upsert",
+      "name": "POST /payroll/adjustments/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1000],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/adjustments/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-adjustments-upsert-parse",
+      "name": "Parse Adjustment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 1000],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:              b.id || '',\n  payroll_entry_id: b.payroll_entry_id || '',\n  description:     b.description || '',\n  amount:          b.amount != null ? String(Math.abs(b.amount)) : '0',\n  adjustment_type: b.adjustment_type || 'addition',\n  category:        b.category || 'otro',\n  created_by:      b.created_by || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-adjustments-upsert",
+      "name": "Upsert Adjustment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 1000],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_manual_adjustments (id, payroll_entry_id, description, amount, adjustment_type, category, created_by)\nVALUES (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()), $2::uuid, $3, $4::decimal, $5::adjustment_type_enum, $6::adjustment_category_enum, NULLIF($7,'')::uuid)\nON CONFLICT (id) DO UPDATE SET\n  description     = EXCLUDED.description,\n  amount          = EXCLUDED.amount,\n  adjustment_type = EXCLUDED.adjustment_type,\n  category        = EXCLUDED.category\nRETURNING id, amount, adjustment_type",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.payroll_entry_id,$json.description,$json.amount,$json.adjustment_type,$json.category,$json.created_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "pg-adjustments-recalc",
+      "name": "Recalculate Entry After Adjustment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [760, 1000],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH adj_total AS (\n  SELECT\n    payroll_entry_id,\n    SUM(CASE WHEN adjustment_type='addition' THEN amount ELSE -amount END) AS adj_sum\n  FROM payroll_manual_adjustments\n  WHERE payroll_entry_id = (SELECT payroll_entry_id FROM payroll_manual_adjustments WHERE id = $1::uuid)\n  GROUP BY payroll_entry_id\n)\nUPDATE payroll_entries pe SET\n  other_deductions = GREATEST(0, -COALESCE(a.adj_sum,0)),\n  net_salary = pe.gross_salary - pe.total_deductions + COALESCE(a.adj_sum, 0)\nFROM adj_total a\nWHERE pe.id = a.payroll_entry_id\nRETURNING pe.id, pe.net_salary",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-adjustments-upsert",
+      "name": "Respond Adjustment Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 1000],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-adjustments-delete",
+      "name": "POST /payroll/adjustments/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1180],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/adjustments/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-adjustments-delete",
+      "name": "Delete Adjustment",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1180],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_manual_adjustments WHERE id = $1::uuid RETURNING id, payroll_entry_id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-adjustments-delete",
+      "name": "Respond Adjustment Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1180],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/entries/by-period": { "main": [[{ "node": "Entries By Period", "type": "main", "index": 0 }]] },
+    "Entries By Period": { "main": [[{ "node": "Respond Entries By Period", "type": "main", "index": 0 }]] },
+    "GET /payroll/entries/detail": { "main": [[{ "node": "Entry Detail", "type": "main", "index": 0 }]] },
+    "Entry Detail": { "main": [[{ "node": "Respond Entry Detail", "type": "main", "index": 0 }]] },
+    "POST /payroll/entries/update": { "main": [[{ "node": "Parse Entry Update", "type": "main", "index": 0 }]] },
+    "Parse Entry Update": { "main": [[{ "node": "Exec Entry Update", "type": "main", "index": 0 }]] },
+    "Exec Entry Update": { "main": [[{ "node": "Respond Entry Update", "type": "main", "index": 0 }]] },
+    "GET /payroll/session-assignments": { "main": [[{ "node": "List Session Assignments", "type": "main", "index": 0 }]] },
+    "List Session Assignments": { "main": [[{ "node": "Respond Session List", "type": "main", "index": 0 }]] },
+    "POST /payroll/session-assignments/toggle": { "main": [[{ "node": "Toggle Session Assignment", "type": "main", "index": 0 }]] },
+    "Toggle Session Assignment": { "main": [[{ "node": "Respond Session Toggle", "type": "main", "index": 0 }]] },
+    "POST /payroll/adjustments/upsert": { "main": [[{ "node": "Parse Adjustment", "type": "main", "index": 0 }]] },
+    "Parse Adjustment": { "main": [[{ "node": "Upsert Adjustment", "type": "main", "index": 0 }]] },
+    "Upsert Adjustment": { "main": [[{ "node": "Recalculate Entry After Adjustment", "type": "main", "index": 0 }]] },
+    "Recalculate Entry After Adjustment": { "main": [[{ "node": "Respond Adjustment Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/adjustments/delete": { "main": [[{ "node": "Delete Adjustment", "type": "main", "index": 0 }]] },
+    "Delete Adjustment": { "main": [[{ "node": "Respond Adjustment Delete", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

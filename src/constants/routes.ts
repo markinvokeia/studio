@@ -357,6 +357,95 @@ export const API_ROUTES = {
     MUTUAL_SOCIETIES_UPSERT: '/mutual-society',
     MUTUAL_SOCIETIES_DELETE: '/mutual-society',
     MUTUAL_SOCIETIES_ASSIGN_USER: '/mutual-society/user',
+    PAYROLL: {
+        // Employees (legajo)
+        USERS: '/payroll/users',
+        EMPLOYEES: '/payroll/employees',
+        EMPLOYEES_UPSERT: '/payroll/employees/upsert',
+        EMPLOYEES_LINK: '/payroll/employees/link-user',
+        EMPLOYEES_DEACTIVATE: '/payroll/employees/deactivate',
+        EMPLOYEES_DETAIL: '/payroll/employees/detail',
+        // Employment (vinculaciones)
+        EMPLOYMENT_BY_EMPLOYEE: '/payroll/employment/by-employee',
+        EMPLOYMENT_UPSERT: '/payroll/employment/upsert',
+        EMPLOYMENT_TERMINATE: '/payroll/employment/terminate',
+        // Family charges
+        FAMILY_CHARGES_BY_EMPLOYEE: '/payroll/family-charges/by-employee',
+        FAMILY_CHARGES_UPSERT: '/payroll/family-charges/upsert',
+        FAMILY_CHARGES_DELETE: '/payroll/family-charges/delete',
+        // IRPF deductions
+        IRPF_DEDUCTIONS_BY_EMPLOYEE: '/payroll/irpf-deductions/by-employee',
+        IRPF_DEDUCTIONS_UPSERT: '/payroll/irpf-deductions/upsert',
+        IRPF_DEDUCTIONS_DELETE: '/payroll/irpf-deductions/delete',
+        // Contracts (doctores independientes)
+        CONTRACTS: '/payroll/contracts',
+        CONTRACTS_UPSERT: '/payroll/contracts/upsert',
+        CONTRACTS_DELETE: '/payroll/contracts/delete',
+        CONTRACTS_BY_DOCTOR: '/payroll/contracts/by-doctor',
+        // Novedades
+        NOVEDADES_BY_PERIOD: '/payroll/novedades/by-period',
+        NOVEDADES_UPSERT: '/payroll/novedades/upsert',
+        NOVEDADES_BULK_UPSERT: '/payroll/novedades/bulk-upsert',
+        NOVEDADES_DELETE: '/payroll/novedades/delete',
+        NOVEDADES_IMPORT: '/payroll/novedades/import',
+        // Periods
+        PERIODS: '/payroll/periods',
+        PERIODS_CREATE: '/payroll/periods/create',
+        PERIODS_DETAIL: '/payroll/periods/detail',
+        PERIODS_CALCULATE: '/payroll/periods/calculate',
+        PERIODS_APPROVE: '/payroll/periods/approve',
+        PERIODS_MARK_PAID: '/payroll/periods/mark-paid',
+        PERIODS_CLOSE: '/payroll/periods/close',
+        PERIODS_REOPEN: '/payroll/periods/reopen',
+        // Entries
+        ENTRIES_BY_PERIOD: '/payroll/entries/by-period',
+        ENTRIES_DETAIL: '/payroll/entries/detail',
+        ENTRIES_UPDATE: '/payroll/entries/update',
+        // Session assignments
+        SESSION_ASSIGNMENTS: '/payroll/session-assignments',
+        SESSION_ASSIGNMENTS_TOGGLE: '/payroll/session-assignments/toggle',
+        // Manual adjustments
+        ADJUSTMENTS_UPSERT: '/payroll/adjustments/upsert',
+        ADJUSTMENTS_DELETE: '/payroll/adjustments/delete',
+        // Honorarios
+        HONORARIOS: '/payroll/honorarios',
+        HONORARIOS_GENERATE_ORDER: '/payroll/honorarios/generate-order',
+        HONORARIOS_VALIDATE_INVOICE: '/payroll/honorarios/validate-invoice',
+        HONORARIOS_AUTHORIZE: '/payroll/honorarios/authorize-payment',
+        HONORARIOS_MARK_PAID: '/payroll/honorarios/mark-paid',
+        HONORARIOS_REJECT: '/payroll/honorarios/reject',
+        // Egreso
+        EGRESO_CALCULATE: '/payroll/egreso/calculate',
+        EGRESO_CONFIRM: '/payroll/egreso/confirm',
+        // Categories (Grupo 15)
+        CATEGORIES: '/payroll/categories',
+        CATEGORIES_UPSERT: '/payroll/categories/upsert',
+        CATEGORIES_DELETE: '/payroll/categories/delete',
+        // Concepts (rubros)
+        CONCEPTS: '/payroll/concepts',
+        CONCEPTS_UPSERT: '/payroll/concepts/upsert',
+        CONCEPTS_DELETE: '/payroll/concepts/delete',
+        // Work calendar
+        CALENDAR: '/payroll/calendar',
+        CALENDAR_UPSERT: '/payroll/calendar/upsert-event',
+        CALENDAR_DELETE: '/payroll/calendar/delete-event',
+        // Reports
+        REPORTS_BPS_NOMINA: '/payroll/reports/bps-nomina',
+        REPORTS_GAFI: '/payroll/reports/gafi',
+        REPORTS_DGI_IRPF: '/payroll/reports/dgi-irpf-annual',
+        REPORTS_MTSS: '/payroll/reports/mtss-planilla',
+        REPORTS_BANK_FILE: '/payroll/reports/bank-file',
+        REPORTS_ACCOUNTING: '/payroll/reports/accounting-entries',
+        REPORTS_RECEIPTS_BATCH: '/payroll/reports/receipts-batch',
+        REPORTS_COST_CENTER: '/payroll/reports/cost-by-center',
+        // Dashboard & Settings
+        DASHBOARD: '/payroll/dashboard',
+        SETTINGS: '/payroll/settings',
+        SETTINGS_UPDATE: '/payroll/settings/update',
+        // Export
+        EXPORT_PERIOD: '/payroll/export/period',
+        EXPORT_ENTRY: '/payroll/export/entry',
+    },
     STICKY_NOTES: '/sticky-notes',
     STICKY_NOTES_UPSERT: '/sticky-notes/upsert',
     STICKY_NOTES_DELETE: '/sticky-notes/delete',

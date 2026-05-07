@@ -1,0 +1,453 @@
+{
+  "name": "Nóminas - Períodos",
+  "nodes": [
+    {
+      "id": "wh-periods-list",
+      "name": "GET /payroll/periods",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/periods",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-periods-list",
+      "name": "List Periods",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pp.*,\n  COUNT(pe.id)::integer                AS entries_count,\n  COALESCE(SUM(pe.gross_salary),0)     AS total_gross,\n  COALESCE(SUM(pe.net_salary),0)       AS total_net,\n  COALESCE(SUM(pe.total_employer_cost),0) AS total_employer_cost\nFROM payroll_periods pp\nLEFT JOIN payroll_entries pe ON pe.payroll_period_id = pp.id\nWHERE ($1::integer IS NULL OR pp.period_year = $1::integer)\n  AND ($2::text IS NULL OR pp.status::text = $2)\n  AND ($3::integer IS NULL OR pp.clinic_id = $3::integer)\nGROUP BY pp.id\nORDER BY pp.period_year DESC, pp.period_month DESC",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.year ? Number($input.first().json.query.year) : null), ($input.first().json.query?.status || null), ($input.first().json.query?.clinic_id ? Number($input.first().json.query.clinic_id) : null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-list",
+      "name": "Respond Periods List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-detail",
+      "name": "GET /payroll/periods/detail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 260],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/periods/detail",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-periods-detail",
+      "name": "Period Detail",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 260],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pp.*,\n  COUNT(pe.id)::integer                   AS entries_count,\n  COALESCE(SUM(pe.gross_salary),0)        AS total_gross,\n  COALESCE(SUM(pe.net_salary),0)          AS total_net,\n  COALESCE(SUM(pe.total_employer_cost),0) AS total_employer_cost\nFROM payroll_periods pp\nLEFT JOIN payroll_entries pe ON pe.payroll_period_id = pp.id\nWHERE pp.id = $1::uuid\nGROUP BY pp.id",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-detail",
+      "name": "Respond Period Detail",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 260],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-create",
+      "name": "POST /payroll/periods/create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 420],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/periods/create",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-periods-create-parse",
+      "name": "Parse Period Create",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 420],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nif (!b.period_year || !b.period_month) throw new Error('period_year y period_month son requeridos');\nreturn [{ json: {\n  clinic_id:    b.clinic_id ? Number(b.clinic_id) : 1,\n  period_year:  Number(b.period_year),\n  period_month: Number(b.period_month),\n  notes:        b.notes || '',\n  created_by:   b.created_by || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-periods-create",
+      "name": "Create Period",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 420],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_periods (clinic_id, period_year, period_month, status, notes, created_by)\nVALUES ($1::integer, $2::integer, $3::integer, 'draft', NULLIF($4,''), NULLIF($5,'')::uuid)\nON CONFLICT (clinic_id, period_year, period_month) DO NOTHING\nRETURNING id, period_year, period_month, status",
+        "additionalFields": {
+          "queryParams": "={{ [$json.clinic_id,$json.period_year,$json.period_month,$json.notes,$json.created_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-create",
+      "name": "Respond Period Create",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 420],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-calculate",
+      "name": "POST /payroll/periods/calculate",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 600],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/periods/calculate",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-calc-parse",
+      "name": "Parse Calculate Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 600],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nif (!b.id) throw new Error('id del período es requerido');\nreturn [{ json: { period_id: b.id, calculated_by: b.calculated_by || '' } }];"
+      }
+    },
+    {
+      "id": "pg-calc-fetch-period",
+      "name": "Fetch Period + Settings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  p.id AS period_id, p.period_year, p.period_month, p.clinic_id, p.status,\n  (p.period_year || '-' || LPAD(p.period_month::text,2,'0') || '-01')::date AS period_start,\n  (DATE_TRUNC('month', (p.period_year || '-' || LPAD(p.period_month::text,2,'0') || '-01')::date) + INTERVAL '1 month - 1 day')::date AS period_end,\n  (\n    SELECT jsonb_object_agg(setting_key, setting_value)\n    FROM payroll_settings\n  ) AS settings\nFROM payroll_periods p\nWHERE p.id = $1::uuid",
+        "additionalFields": {
+          "queryParams": "={{ [$json.period_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "pg-calc-fetch-contracts",
+      "name": "Fetch Active Contracts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [760, 600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  dc.*,\n  u.name AS doctor_name\nFROM doctor_contracts dc\nJOIN users u ON dc.doctor_id = u.id\nWHERE dc.is_active = true\n  AND dc.valid_from <= $2::date\n  AND (dc.valid_until IS NULL OR dc.valid_until >= $1::date)\n  AND (dc.clinic_id IS NULL OR dc.clinic_id = $3::integer)",
+        "additionalFields": {
+          "queryParams": "={{ [$('Fetch Period + Settings').item.json.period_start, $('Fetch Period + Settings').item.json.period_end, $('Fetch Period + Settings').item.json.clinic_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "pg-calc-fetch-sessions",
+      "name": "Fetch Sessions Revenue",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [980, 600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  ps.doctor_id,\n  COUNT(DISTINCT ps.sesion_id)::integer                        AS sessions_count,\n  COALESCE(SUM(DISTINCT a.duration_minutes),0) / 60.0          AS hours_worked,\n  COALESCE(SUM(DISTINCT svc.price), 0)                         AS revenue_listed,\n  COALESCE((\n    SELECT SUM(pay.amount_applied)\n    FROM payments pay\n    JOIN quotes q ON q.id = pay.quote_id\n    WHERE q.doctor_id = ps.doctor_id\n      AND pay.payment_date BETWEEN $1::date AND $2::date\n  ), 0)                                                         AS revenue_billed\nFROM patient_sessions ps\nLEFT JOIN appointments a ON a.id = ps.appointment_id\nLEFT JOIN services svc ON svc.id = ANY(\n  SELECT jsonb_array_elements_text(a.services)::uuid\n)\nWHERE ps.fecha_sesion BETWEEN $1::date AND $2::date\n  AND ps.doctor_id IS NOT NULL\nGROUP BY ps.doctor_id",
+        "additionalFields": {
+          "queryParams": "={{ [$('Fetch Period + Settings').item.json.period_start, $('Fetch Period + Settings').item.json.period_end] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-calc-engine",
+      "name": "Calculate Payroll",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 600],
+      "parameters": {
+        "jsCode": "// Gather all data from previous nodes\nconst periodRow  = $('Fetch Period + Settings').first().json;\nconst contracts  = $('Fetch Active Contracts').all().map(i => i.json);\nconst sessionsMap = {};\nfor (const s of $('Fetch Sessions Revenue').all()) {\n  sessionsMap[s.json.doctor_id] = s.json;\n}\n\n// Parse settings\nconst settings = periodRow.settings || {};\nconst bpsEmployeeRate  = Number(settings.bps_employee_rate  ?? 0.15);\nconst fonasaBasicRate  = Number(settings.fonasa_employee_base ?? 0.03);\nconst fonasaChildRate  = Number(settings.fonasa_employee_children ?? 0.06);\nconst bpsEmployerRate  = Number(settings.bps_employer_rate   ?? 0.075);\nconst fonasaEmpRate    = Number(settings.fonasa_employer_rate ?? 0.05);\nconst frlEmployeeRate  = Number(settings.frl_employee_rate   ?? 0.00125);\nconst frlEmployerRate  = Number(settings.frl_employer_rate   ?? 0.001);\nconst fgclRate         = Number(settings.fgcl_rate           ?? 0.00025);\nbseRate                = Number(settings.bse_rate            ?? 0.003);\nconst bpsCap           = Number(settings.bps_salary_cap_uyu  ?? 272564);\nconst bpcValue         = Number(settings.bpc_value_uyu       ?? 6600);\nconst vacDays          = Number(settings.vacation_days_per_year ?? 20);\nconst irpfBrackets     = settings.irpf_brackets ?? [\n  {from:0,   to:84,   rate:0},\n  {from:84,  to:120,  rate:0.10},\n  {from:120, to:180,  rate:0.15},\n  {from:180, to:600,  rate:0.24},\n  {from:600, to:900,  rate:0.25},\n  {from:900, to:1320, rate:0.27},\n  {from:1320,to:2400, rate:0.31},\n  {from:2400,to:null, rate:0.36}\n];\n\nfunction calcIRPF(grossMonthly, bpcVal, brackets, totalAportesEmployee) {\n  const grossAnnual = grossMonthly * 12;\n  const grossBPC = grossAnnual / bpcVal;\n  let irpfAnnual = 0;\n  let remaining = grossBPC;\n  for (const b of brackets) {\n    if (remaining <= 0) break;\n    const width = b.to === null ? remaining : Math.min(b.to - b.from, remaining);\n    irpfAnnual += width * bpcVal * b.rate;\n    remaining -= (b.to === null ? remaining : width);\n  }\n  // Standard deduction: employee BPS/FONASA contributions reduce IRPF base\n  const annualAportes = totalAportesEmployee * 12;\n  const deduction = annualAportes * 0.06;\n  irpfAnnual = Math.max(0, irpfAnnual - deduction);\n  return Math.round((irpfAnnual / 12) * 100) / 100;\n}\n\nconst entries = [];\n\nfor (const contract of contracts) {\n  const sess = sessionsMap[contract.doctor_id] || {\n    sessions_count: 0, hours_worked: 0, revenue_listed: 0, revenue_billed: 0\n  };\n\n  const sessionsCount    = Number(sess.sessions_count) || 0;\n  const hoursWorked      = Number(sess.hours_worked)   || 0;\n  const revenueListed    = Number(sess.revenue_listed)  || 0;\n  const revenueBilled    = Number(sess.revenue_billed)  || 0;\n\n  // Base calculation\n  let baseAmount     = 0;\n  let variableAmount = 0;\n  const calcType     = contract.calculation_type;\n  const basis        = contract.percentage_basis;\n  const revenueBase  = basis === 'sobre_cobrado' ? revenueBilled : revenueListed;\n\n  if (calcType === 'fijo') {\n    baseAmount = Number(contract.base_salary) || 0;\n  } else if (calcType === 'por_hora') {\n    baseAmount = (Number(contract.hourly_rate) || 0) * hoursWorked;\n  } else if (calcType === 'porcentaje') {\n    variableAmount = revenueBase * (Number(contract.percentage_rate) || 0) / 100;\n  } else if (calcType === 'fijo_porcentaje') {\n    baseAmount = Number(contract.base_salary) || 0;\n    const threshold = Number(contract.percentage_threshold) || 0;\n    variableAmount = Math.max(0, revenueBase - threshold) * (Number(contract.percentage_rate) || 0) / 100;\n  } else if (calcType === 'por_prestacion') {\n    variableAmount = (Number(contract.per_session_rate) || 0) * sessionsCount;\n  }\n\n  const grossSalary = Math.round((baseAmount + variableAmount) * 100) / 100;\n\n  // Deducciones solo para empleado en dependencia\n  let bpsEmployee = 0, fonasaEmployee = 0, irpfWithholding = 0;\n  let bpsEmployer = 0, fonasaEmployer = 0;\n  let aguinaldoProv = 0, vacationProv = 0;\n\n  const isEmpleado = ['empleado', 'mixto'].includes(contract.contract_type);\n\n  if (isEmpleado) {\n    const capBase = Math.min(grossSalary, bpsCap);\n    bpsEmployee   = Math.round(capBase * bpsEmployeeRate * 100) / 100;\n    const frlEmp  = Math.round(capBase * frlEmployeeRate * 100) / 100;\n    // FONASA rate depends on family situation (stored in payroll_employees.fonasa_situation)\n    // Default to basic rate here; will be refined once we fetch employee data\n    fonasaEmployee = Math.round(capBase * fonasaBasicRate * 100) / 100;\n    const totalAportes = bpsEmployee + fonasaEmployee + frlEmp;\n    irpfWithholding = calcIRPF(grossSalary, bpcValue, irpfBrackets, totalAportes);\n\n    bpsEmployer    = Math.round(capBase * bpsEmployerRate * 100) / 100;\n    fonasaEmployer = Math.round(capBase * fonasaEmpRate * 100) / 100;\n    const fgcl     = Math.round(capBase * fgclRate * 100) / 100;\n    const bse      = Math.round(capBase * bseRate * 100) / 100;\n\n    aguinaldoProv = Math.round((grossSalary / 12) * 100) / 100;\n    vacationProv  = Math.round((grossSalary / 30) * (vacDays / 12) * 100) / 100;\n  }\n\n  const totalDeductions   = Math.round((bpsEmployee + fonasaEmployee + irpfWithholding) * 100) / 100;\n  const netSalary         = Math.round((grossSalary - totalDeductions) * 100) / 100;\n  const totalEmployerCost = Math.round((grossSalary + bpsEmployer + fonasaEmployer + aguinaldoProv + vacationProv) * 100) / 100;\n\n  entries.push({\n    period_id:              periodRow.period_id,\n    doctor_id:              contract.doctor_id,\n    contract_id:            contract.id,\n    clinic_id:              periodRow.clinic_id,\n    sessions_count:         sessionsCount,\n    hours_worked:           hoursWorked,\n    services_revenue_billed: revenueBilled,\n    services_revenue_listed: revenueListed,\n    base_amount:             baseAmount,\n    variable_amount:         variableAmount,\n    gross_salary:            grossSalary,\n    bps_employee:            bpsEmployee,\n    fonasa_employee:         fonasaEmployee,\n    irpf_withholding:        irpfWithholding,\n    other_deductions:        0,\n    total_deductions:        totalDeductions,\n    net_salary:              netSalary,\n    bps_employer:            bpsEmployer,\n    fonasa_employer:         fonasaEmployer,\n    aguinaldo_provision:     aguinaldoProv,\n    vacation_provision:      vacationProv,\n    total_employer_cost:     totalEmployerCost,\n    currency:                contract.currency || 'UYU',\n    calculated_by:           $('Parse Calculate Request').first().json.calculated_by || ''\n  });\n}\n\nreturn entries.map(e => ({ json: e }));"
+      }
+    },
+    {
+      "id": "pg-calc-save-entries",
+      "name": "Save Payroll Entry",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1420, 600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_entries\n  (payroll_period_id, doctor_id, doctor_contract_id, clinic_id,\n   sessions_count, hours_worked, services_revenue_billed, services_revenue_listed,\n   base_amount, variable_amount, gross_salary,\n   bps_employee, fonasa_employee, irpf_withholding, other_deductions, total_deductions,\n   net_salary, bps_employer, fonasa_employer,\n   aguinaldo_provision, vacation_provision, total_employer_cost,\n   currency, status, calculated_at)\nVALUES\n  ($1::uuid, $2::uuid, $3::uuid, $4::integer,\n   $5::integer, $6::decimal, $7::decimal, $8::decimal,\n   $9::decimal, $10::decimal, $11::decimal,\n   $12::decimal, $13::decimal, $14::decimal, $15::decimal, $16::decimal,\n   $17::decimal, $18::decimal, $19::decimal,\n   $20::decimal, $21::decimal, $22::decimal,\n   $23::currency_enum, 'draft', NOW())\nON CONFLICT (payroll_period_id, doctor_id) DO UPDATE SET\n  sessions_count          = EXCLUDED.sessions_count,\n  hours_worked            = EXCLUDED.hours_worked,\n  services_revenue_billed = EXCLUDED.services_revenue_billed,\n  services_revenue_listed = EXCLUDED.services_revenue_listed,\n  base_amount             = EXCLUDED.base_amount,\n  variable_amount         = EXCLUDED.variable_amount,\n  gross_salary            = EXCLUDED.gross_salary,\n  bps_employee            = EXCLUDED.bps_employee,\n  fonasa_employee         = EXCLUDED.fonasa_employee,\n  irpf_withholding        = EXCLUDED.irpf_withholding,\n  other_deductions        = EXCLUDED.other_deductions,\n  total_deductions        = EXCLUDED.total_deductions,\n  net_salary              = EXCLUDED.net_salary,\n  bps_employer            = EXCLUDED.bps_employer,\n  fonasa_employer         = EXCLUDED.fonasa_employer,\n  aguinaldo_provision     = EXCLUDED.aguinaldo_provision,\n  vacation_provision      = EXCLUDED.vacation_provision,\n  total_employer_cost     = EXCLUDED.total_employer_cost,\n  currency                = EXCLUDED.currency,\n  calculated_at           = NOW()\nRETURNING id, doctor_id, gross_salary, net_salary",
+        "additionalFields": {
+          "queryParams": "={{ [$json.period_id,$json.doctor_id,$json.contract_id,$json.clinic_id,$json.sessions_count,$json.hours_worked,$json.services_revenue_billed,$json.services_revenue_listed,$json.base_amount,$json.variable_amount,$json.gross_salary,$json.bps_employee,$json.fonasa_employee,$json.irpf_withholding,$json.other_deductions,$json.total_deductions,$json.net_salary,$json.bps_employer,$json.fonasa_employer,$json.aguinaldo_provision,$json.vacation_provision,$json.total_employer_cost,$json.currency] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "pg-calc-update-period-status",
+      "name": "Update Period Calculated",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1640, 600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_periods SET\n  status       = 'calculated',\n  generated_at = NOW(),\n  generated_by = NULLIF($2,'')::uuid\nWHERE id = $1::uuid\nRETURNING id, status, generated_at",
+        "additionalFields": {
+          "queryParams": "={{ [$('Parse Calculate Request').first().json.period_id, $('Parse Calculate Request').first().json.calculated_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-calc-summary",
+      "name": "Build Calc Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1860, 600],
+      "parameters": {
+        "jsCode": "const period = $('Update Period Calculated').first().json;\nconst entries = $('Save Payroll Entry').all().map(i => i.json);\nconst totalGross = entries.reduce((s,e) => s + Number(e.gross_salary||0), 0);\nconst totalNet   = entries.reduce((s,e) => s + Number(e.net_salary||0), 0);\nreturn [{ json: {\n  period_id:     period.id,\n  status:        period.status,\n  generated_at:  period.generated_at,\n  entries_count: entries.length,\n  total_gross:   Math.round(totalGross * 100) / 100,\n  total_net:     Math.round(totalNet   * 100) / 100\n} }];"
+      }
+    },
+    {
+      "id": "resp-periods-calculate",
+      "name": "Respond Calculate",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2080, 600],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-approve",
+      "name": "POST /payroll/periods/approve",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 860],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/periods/approve",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-periods-approve",
+      "name": "Approve Period",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 860],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_periods\nSET status = 'approved', approved_at = NOW(), approved_by = NULLIF($2,'')::uuid\nWHERE id = $1::uuid AND status = 'calculated'\nRETURNING id, status, approved_at",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id, ($input.first().json.body||$input.first().json).approved_by || ''] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-approve",
+      "name": "Respond Approve",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 860],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-markpaid",
+      "name": "POST /payroll/periods/mark-paid",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1020],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/periods/mark-paid",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-periods-markpaid",
+      "name": "Mark Period Paid",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1020],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_periods\nSET status = 'paid', paid_at = NOW()\nWHERE id = $1::uuid AND status = 'approved'\nRETURNING id, status, paid_at",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-markpaid",
+      "name": "Respond Mark Paid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1020],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-close",
+      "name": "POST /payroll/periods/close",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1180],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/periods/close",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-periods-close",
+      "name": "Close Period",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1180],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_periods SET status = 'closed' WHERE id = $1::uuid AND status IN ('paid','approved') RETURNING id, status",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-close",
+      "name": "Respond Close",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1180],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-periods-reopen",
+      "name": "POST /payroll/periods/reopen",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1340],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/periods/reopen",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-periods-reopen",
+      "name": "Reopen Period",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1340],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_periods SET status = 'calculated' WHERE id = $1::uuid AND status = 'closed' RETURNING id, status",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-periods-reopen",
+      "name": "Respond Reopen",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1340],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/periods": { "main": [[{ "node": "List Periods", "type": "main", "index": 0 }]] },
+    "List Periods": { "main": [[{ "node": "Respond Periods List", "type": "main", "index": 0 }]] },
+    "GET /payroll/periods/detail": { "main": [[{ "node": "Period Detail", "type": "main", "index": 0 }]] },
+    "Period Detail": { "main": [[{ "node": "Respond Period Detail", "type": "main", "index": 0 }]] },
+    "POST /payroll/periods/create": { "main": [[{ "node": "Parse Period Create", "type": "main", "index": 0 }]] },
+    "Parse Period Create": { "main": [[{ "node": "Create Period", "type": "main", "index": 0 }]] },
+    "Create Period": { "main": [[{ "node": "Respond Period Create", "type": "main", "index": 0 }]] },
+    "POST /payroll/periods/calculate": { "main": [[{ "node": "Parse Calculate Request", "type": "main", "index": 0 }]] },
+    "Parse Calculate Request": { "main": [[{ "node": "Fetch Period + Settings", "type": "main", "index": 0 }]] },
+    "Fetch Period + Settings": { "main": [[{ "node": "Fetch Active Contracts", "type": "main", "index": 0 }]] },
+    "Fetch Active Contracts": { "main": [[{ "node": "Fetch Sessions Revenue", "type": "main", "index": 0 }]] },
+    "Fetch Sessions Revenue": { "main": [[{ "node": "Calculate Payroll", "type": "main", "index": 0 }]] },
+    "Calculate Payroll": { "main": [[{ "node": "Save Payroll Entry", "type": "main", "index": 0 }]] },
+    "Save Payroll Entry": { "main": [[{ "node": "Update Period Calculated", "type": "main", "index": 0 }]] },
+    "Update Period Calculated": { "main": [[{ "node": "Build Calc Summary", "type": "main", "index": 0 }]] },
+    "Build Calc Summary": { "main": [[{ "node": "Respond Calculate", "type": "main", "index": 0 }]] },
+    "POST /payroll/periods/approve": { "main": [[{ "node": "Approve Period", "type": "main", "index": 0 }]] },
+    "Approve Period": { "main": [[{ "node": "Respond Approve", "type": "main", "index": 0 }]] },
+    "POST /payroll/periods/mark-paid": { "main": [[{ "node": "Mark Period Paid", "type": "main", "index": 0 }]] },
+    "Mark Period Paid": { "main": [[{ "node": "Respond Mark Paid", "type": "main", "index": 0 }]] },
+    "POST /payroll/periods/close": { "main": [[{ "node": "Close Period", "type": "main", "index": 0 }]] },
+    "Close Period": { "main": [[{ "node": "Respond Close", "type": "main", "index": 0 }]] },
+    "POST /payroll/periods/reopen": { "main": [[{ "node": "Reopen Period", "type": "main", "index": 0 }]] },
+    "Reopen Period": { "main": [[{ "node": "Respond Reopen", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

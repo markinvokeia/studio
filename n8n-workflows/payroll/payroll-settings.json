@@ -1,0 +1,520 @@
+{
+  "name": "Nóminas - Configuración y Catálogos",
+  "nodes": [
+    {
+      "id": "wh-settings-get",
+      "name": "GET /payroll/settings",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/settings",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-settings-get",
+      "name": "Fetch Settings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT setting_key, setting_value, description, updated_at FROM payroll_settings ORDER BY setting_key",
+        "additionalFields": {}
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-settings-get-resp",
+      "name": "Build Settings Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 100],
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst settings = {};\nfor (const r of rows) {\n  settings[r.json.setting_key] = r.json.setting_value;\n}\nreturn [{ json: { data: settings, rows: rows.map(r => r.json) } }];"
+      }
+    },
+    {
+      "id": "resp-settings-get",
+      "name": "Respond Settings",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-settings-update",
+      "name": "POST /payroll/settings/update",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/settings/update",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-settings-update-parse",
+      "name": "Parse Settings Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 280],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst { settings, updated_by } = body;\nif (!settings || !Array.isArray(settings) || settings.length === 0) {\n  throw new Error('settings must be a non-empty array of {key, value} objects');\n}\nconst keys = settings.map(s => s.key);\nconst values = settings.map(s => JSON.stringify(s.value));\nreturn [{ json: { keys, values, updated_by: updated_by || '' } }];"
+      }
+    },
+    {
+      "id": "pg-settings-update",
+      "name": "Update Settings Bulk",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_settings ps\nSET\n  setting_value = upd.val::jsonb,\n  updated_at    = NOW(),\n  updated_by    = NULLIF($3, '')::uuid\nFROM (\n  SELECT unnest($1::text[]) AS k, unnest($2::text[]) AS val\n) upd\nWHERE ps.setting_key = upd.k\nRETURNING ps.setting_key, ps.setting_value",
+        "additionalFields": {
+          "queryParams": "={{ [$json.keys, $json.values, $json.updated_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-settings-update",
+      "name": "Respond Settings Update",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json), success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-categories-get",
+      "name": "GET /payroll/categories",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/categories",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-categories-get",
+      "name": "Fetch Categories",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_categories ORDER BY codigo",
+        "additionalFields": {}
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-categories-get",
+      "name": "Respond Categories",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-categories-upsert",
+      "name": "POST /payroll/categories/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 620],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/categories/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-categories-upsert-parse",
+      "name": "Parse Category",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 620],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:                 b.id || '',\n  codigo:             b.codigo || '',\n  nombre:             b.nombre || '',\n  subgrupo:           b.subgrupo || '',\n  descripcion:        b.descripcion || '',\n  salario_minimo_uyu: b.salario_minimo_uyu ?? 0,\n  vigente_desde:      b.vigente_desde || '',\n  vigente_hasta:      b.vigente_hasta || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-categories-upsert",
+      "name": "Upsert Category",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 620],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_categories (id, codigo, nombre, subgrupo, descripcion, salario_minimo_uyu, vigente_desde, vigente_hasta)\nVALUES (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()), $2, $3, NULLIF($4,''), NULLIF($5,''), $6::decimal, $7::date, NULLIF($8,'')::date)\nON CONFLICT (id) DO UPDATE SET\n  codigo             = EXCLUDED.codigo,\n  nombre             = EXCLUDED.nombre,\n  subgrupo           = EXCLUDED.subgrupo,\n  descripcion        = EXCLUDED.descripcion,\n  salario_minimo_uyu = EXCLUDED.salario_minimo_uyu,\n  vigente_desde      = EXCLUDED.vigente_desde,\n  vigente_hasta      = EXCLUDED.vigente_hasta\nRETURNING id, codigo, nombre",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id, $json.codigo, $json.nombre, $json.subgrupo, $json.descripcion, $json.salario_minimo_uyu, $json.vigente_desde, $json.vigente_hasta] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-categories-upsert",
+      "name": "Respond Category Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 620],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-calendar-get",
+      "name": "GET /payroll/calendar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 800],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/calendar",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-calendar-get",
+      "name": "Fetch Calendar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 800],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_work_calendar ORDER BY fecha",
+        "additionalFields": {}
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-calendar-get",
+      "name": "Respond Calendar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 800],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-calendar-upsert",
+      "name": "POST /payroll/calendar/upsert-event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 960],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/calendar/upsert-event",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-calendar-upsert-parse",
+      "name": "Parse Calendar Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 960],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:          b.id || '',\n  fecha:       b.fecha || '',\n  tipo:        b.tipo || 'feriado_no_laborable',\n  descripcion: b.descripcion || '',\n  clinic_id:   b.clinic_id ? String(b.clinic_id) : ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-calendar-upsert",
+      "name": "Upsert Calendar Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 960],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_work_calendar (id, fecha, tipo, descripcion, clinic_id)\nVALUES (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()), $2::date, $3::work_calendar_tipo_enum, $4, NULLIF($5,'')::integer)\nON CONFLICT (id) DO UPDATE SET\n  fecha       = EXCLUDED.fecha,\n  tipo        = EXCLUDED.tipo,\n  descripcion = EXCLUDED.descripcion,\n  clinic_id   = EXCLUDED.clinic_id\nRETURNING id, fecha, tipo",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id, $json.fecha, $json.tipo, $json.descripcion, $json.clinic_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-calendar-upsert",
+      "name": "Respond Calendar Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 960],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-calendar-delete",
+      "name": "POST /payroll/calendar/delete-event",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1120],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/calendar/delete-event",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-calendar-delete",
+      "name": "Delete Calendar Event",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1120],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_work_calendar WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body || $input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-calendar-delete",
+      "name": "Respond Calendar Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1120],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-categories-delete",
+      "name": "POST /payroll/categories/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1280],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/categories/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-categories-delete",
+      "name": "Delete Category",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_categories WHERE id = $1::uuid RETURNING id, nombre",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-categories-delete",
+      "name": "Respond Category Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-concepts-list",
+      "name": "GET /payroll/concepts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1440],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/concepts",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-concepts-list",
+      "name": "Fetch Concepts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1440],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_concepts WHERE ($1::boolean IS NULL OR activo = $1::boolean) ORDER BY codigo",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.active != null ? $input.first().json.query.active === 'true' : null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-concepts-list",
+      "name": "Respond Concepts List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1440],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-concepts-upsert",
+      "name": "POST /payroll/concepts/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1600],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/concepts/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-concepts-upsert-parse",
+      "name": "Parse Concept",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 1600],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:         b.id || '',\n  codigo:     b.codigo || '',\n  nombre:     b.nombre || '',\n  tipo:       b.tipo || 'haber',\n  grava_bps:  b.grava_bps === true,\n  grava_irpf: b.grava_irpf === true,\n  activo:     b.activo !== false\n} }];"
+      }
+    },
+    {
+      "id": "pg-concepts-upsert",
+      "name": "Upsert Concept",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 1600],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_concepts (id, codigo, nombre, tipo, grava_bps, grava_irpf, activo)\nVALUES (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()), $2, $3, $4::payroll_concept_tipo_enum, $5::boolean, $6::boolean, $7::boolean)\nON CONFLICT (id) DO UPDATE SET\n  codigo     = EXCLUDED.codigo,\n  nombre     = EXCLUDED.nombre,\n  tipo       = EXCLUDED.tipo,\n  grava_bps  = EXCLUDED.grava_bps,\n  grava_irpf = EXCLUDED.grava_irpf,\n  activo     = EXCLUDED.activo\nRETURNING id, codigo, nombre",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id, $json.codigo, $json.nombre, $json.tipo, $json.grava_bps, $json.grava_irpf, $json.activo] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-concepts-upsert",
+      "name": "Respond Concept Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 1600],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-concepts-delete",
+      "name": "POST /payroll/concepts/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 1760],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/concepts/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-concepts-delete",
+      "name": "Delete Concept",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 1760],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_concepts SET activo = false WHERE id = $1::uuid RETURNING id, nombre",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-concepts-delete",
+      "name": "Respond Concept Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 1760],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/settings": { "main": [[{ "node": "Fetch Settings", "type": "main", "index": 0 }]] },
+    "Fetch Settings": { "main": [[{ "node": "Build Settings Response", "type": "main", "index": 0 }]] },
+    "Build Settings Response": { "main": [[{ "node": "Respond Settings", "type": "main", "index": 0 }]] },
+    "POST /payroll/settings/update": { "main": [[{ "node": "Parse Settings Update", "type": "main", "index": 0 }]] },
+    "Parse Settings Update": { "main": [[{ "node": "Update Setting", "type": "main", "index": 0 }]] },
+    "Update Setting": { "main": [[{ "node": "Respond Settings Update", "type": "main", "index": 0 }]] },
+    "GET /payroll/categories": { "main": [[{ "node": "Fetch Categories", "type": "main", "index": 0 }]] },
+    "Fetch Categories": { "main": [[{ "node": "Respond Categories", "type": "main", "index": 0 }]] },
+    "POST /payroll/categories/upsert": { "main": [[{ "node": "Parse Category", "type": "main", "index": 0 }]] },
+    "Parse Category": { "main": [[{ "node": "Upsert Category", "type": "main", "index": 0 }]] },
+    "Upsert Category": { "main": [[{ "node": "Respond Category Upsert", "type": "main", "index": 0 }]] },
+    "GET /payroll/calendar": { "main": [[{ "node": "Fetch Calendar", "type": "main", "index": 0 }]] },
+    "Fetch Calendar": { "main": [[{ "node": "Respond Calendar", "type": "main", "index": 0 }]] },
+    "POST /payroll/calendar/upsert-event": { "main": [[{ "node": "Parse Calendar Event", "type": "main", "index": 0 }]] },
+    "Parse Calendar Event": { "main": [[{ "node": "Upsert Calendar Event", "type": "main", "index": 0 }]] },
+    "Upsert Calendar Event": { "main": [[{ "node": "Respond Calendar Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/calendar/delete-event": { "main": [[{ "node": "Delete Calendar Event", "type": "main", "index": 0 }]] },
+    "Delete Calendar Event": { "main": [[{ "node": "Respond Calendar Delete", "type": "main", "index": 0 }]] },
+    "POST /payroll/categories/delete": { "main": [[{ "node": "Delete Category", "type": "main", "index": 0 }]] },
+    "Delete Category": { "main": [[{ "node": "Respond Category Delete", "type": "main", "index": 0 }]] },
+    "GET /payroll/concepts": { "main": [[{ "node": "Fetch Concepts", "type": "main", "index": 0 }]] },
+    "Fetch Concepts": { "main": [[{ "node": "Respond Concepts List", "type": "main", "index": 0 }]] },
+    "POST /payroll/concepts/upsert": { "main": [[{ "node": "Parse Concept", "type": "main", "index": 0 }]] },
+    "Parse Concept": { "main": [[{ "node": "Upsert Concept", "type": "main", "index": 0 }]] },
+    "Upsert Concept": { "main": [[{ "node": "Respond Concept Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/concepts/delete": { "main": [[{ "node": "Delete Concept", "type": "main", "index": 0 }]] },
+    "Delete Concept": { "main": [[{ "node": "Respond Concept Delete", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

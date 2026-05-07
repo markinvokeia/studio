@@ -1,0 +1,188 @@
+{
+  "name": "Nóminas - Contratos Honorarios",
+  "nodes": [
+    {
+      "id": "wh-contracts-list",
+      "name": "GET /payroll/contracts",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/contracts",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-contracts-list",
+      "name": "List Contracts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT dc.*, u.name AS doctor_name, u.email AS doctor_email\nFROM doctor_contracts dc\nLEFT JOIN users u ON dc.doctor_id = u.id\nWHERE ($1::integer IS NULL OR dc.clinic_id = $1::integer)\n  AND ($2::boolean IS NULL OR dc.is_active = $2::boolean)\nORDER BY u.name, dc.valid_from DESC",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.clinic_id ? Number($input.first().json.query.clinic_id) : null), ($input.first().json.query?.active != null ? $input.first().json.query.active === 'true' : null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-contracts-list",
+      "name": "Respond Contract List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-contracts-by-doctor",
+      "name": "GET /payroll/contracts/by-doctor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 260],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/contracts/by-doctor",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-contracts-by-doctor",
+      "name": "Contracts By Doctor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 260],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT dc.*, u.name AS doctor_name\nFROM doctor_contracts dc\nLEFT JOIN users u ON dc.doctor_id = u.id\nWHERE dc.doctor_id = $1::uuid\nORDER BY dc.valid_from DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.doctor_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-contracts-by-doctor",
+      "name": "Respond Contracts By Doctor",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 260],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-contracts-upsert",
+      "name": "POST /payroll/contracts/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 420],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/contracts/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-contracts-upsert-parse",
+      "name": "Parse Contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 420],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:                   b.id || '',\n  doctor_id:            b.doctor_id || '',\n  clinic_id:            b.clinic_id ? String(b.clinic_id) : '',\n  contract_type:        b.contract_type || 'honorarios',\n  calculation_type:     b.calculation_type || 'porcentaje',\n  base_salary:          b.base_salary != null ? String(b.base_salary) : '',\n  hourly_rate:          b.hourly_rate != null ? String(b.hourly_rate) : '',\n  percentage_rate:      b.percentage_rate != null ? String(b.percentage_rate) : '',\n  percentage_threshold: b.percentage_threshold != null ? String(b.percentage_threshold) : '',\n  percentage_basis:     b.percentage_basis || '',\n  per_session_rate:     b.per_session_rate != null ? String(b.per_session_rate) : '',\n  currency:             b.currency || 'UYU',\n  valid_from:           b.valid_from || '',\n  valid_until:          b.valid_until || '',\n  is_active:            b.is_active !== false,\n  notes:                b.notes || '',\n  created_by:           b.created_by || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-contracts-upsert",
+      "name": "Upsert Contract",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 420],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO doctor_contracts\n  (id, doctor_id, clinic_id, contract_type, calculation_type,\n   base_salary, hourly_rate, percentage_rate, percentage_threshold, percentage_basis,\n   per_session_rate, currency, valid_from, valid_until, is_active, notes, created_by)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid,\n   NULLIF($3,'')::integer,\n   $4::contract_type_enum,\n   $5::calculation_type_enum,\n   NULLIF($6,'')::decimal,\n   NULLIF($7,'')::decimal,\n   NULLIF($8,'')::decimal,\n   NULLIF($9,'')::decimal,\n   NULLIF($10,'')::percentage_basis_enum,\n   NULLIF($11,'')::decimal,\n   COALESCE(NULLIF($12,''), 'UYU')::currency_enum,\n   $13::date,\n   NULLIF($14,'')::date,\n   $15::boolean,\n   NULLIF($16,''),\n   NULLIF($17,'')::uuid)\nON CONFLICT (id) DO UPDATE SET\n  contract_type        = EXCLUDED.contract_type,\n  calculation_type     = EXCLUDED.calculation_type,\n  base_salary          = EXCLUDED.base_salary,\n  hourly_rate          = EXCLUDED.hourly_rate,\n  percentage_rate      = EXCLUDED.percentage_rate,\n  percentage_threshold = EXCLUDED.percentage_threshold,\n  percentage_basis     = EXCLUDED.percentage_basis,\n  per_session_rate     = EXCLUDED.per_session_rate,\n  currency             = EXCLUDED.currency,\n  valid_from           = EXCLUDED.valid_from,\n  valid_until          = EXCLUDED.valid_until,\n  is_active            = EXCLUDED.is_active,\n  notes                = EXCLUDED.notes\nRETURNING id, doctor_id, contract_type, is_active",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.doctor_id,$json.clinic_id,$json.contract_type,$json.calculation_type,$json.base_salary,$json.hourly_rate,$json.percentage_rate,$json.percentage_threshold,$json.percentage_basis,$json.per_session_rate,$json.currency,$json.valid_from,$json.valid_until,$json.is_active,$json.notes,$json.created_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-contracts-upsert",
+      "name": "Respond Contract Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 420],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-contracts-delete",
+      "name": "POST /payroll/contracts/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 580],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/contracts/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-contracts-delete",
+      "name": "Delete Contract",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 580],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE doctor_contracts SET is_active = false, valid_until = COALESCE(valid_until, CURRENT_DATE) WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-contracts-delete",
+      "name": "Respond Contract Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 580],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/contracts": { "main": [[{ "node": "List Contracts", "type": "main", "index": 0 }]] },
+    "List Contracts": { "main": [[{ "node": "Respond Contract List", "type": "main", "index": 0 }]] },
+    "GET /payroll/contracts/by-doctor": { "main": [[{ "node": "Contracts By Doctor", "type": "main", "index": 0 }]] },
+    "Contracts By Doctor": { "main": [[{ "node": "Respond Contracts By Doctor", "type": "main", "index": 0 }]] },
+    "POST /payroll/contracts/upsert": { "main": [[{ "node": "Parse Contract", "type": "main", "index": 0 }]] },
+    "Parse Contract": { "main": [[{ "node": "Upsert Contract", "type": "main", "index": 0 }]] },
+    "Upsert Contract": { "main": [[{ "node": "Respond Contract Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/contracts/delete": { "main": [[{ "node": "Delete Contract", "type": "main", "index": 0 }]] },
+    "Delete Contract": { "main": [[{ "node": "Respond Contract Delete", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

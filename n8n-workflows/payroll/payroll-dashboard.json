@@ -1,0 +1,89 @@
+{
+  "name": "Nóminas - Dashboard",
+  "nodes": [
+    {
+      "id": "wh-dashboard",
+      "name": "GET /payroll/dashboard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/dashboard",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-dashboard-parse",
+      "name": "Parse Dashboard Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "const q = $input.first().json.query || {};\nconst now = new Date();\nreturn [{ json: {\n  clinic_id:    q.clinic_id ? Number(q.clinic_id) : 1,\n  period_year:  q.year  ? Number(q.year)  : now.getFullYear(),\n  period_month: q.month ? Number(q.month) : now.getMonth() + 1\n} }];"
+      }
+    },
+    {
+      "id": "pg-dashboard-kpis",
+      "name": "Dashboard KPIs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH target_period AS (\n  SELECT id, period_year, period_month, status\n  FROM payroll_periods\n  WHERE ($3::integer IS NULL OR clinic_id = $3::integer)\n    AND period_year = $1::integer AND period_month = $2::integer\n  LIMIT 1\n),\nperiod_stats AS (\n  SELECT\n    COUNT(pe.id)::integer                      AS entries_count,\n    COALESCE(SUM(pe.gross_salary), 0)          AS total_gross,\n    COALESCE(SUM(pe.net_salary), 0)            AS total_net,\n    COALESCE(SUM(pe.total_employer_cost), 0)   AS total_employer_cost,\n    COUNT(CASE WHEN pe.status = 'draft' THEN 1 END)::integer AS pending_count\n  FROM payroll_entries pe\n  JOIN target_period tp ON pe.payroll_period_id = tp.id\n),\nactive_employees AS (\n  SELECT COUNT(*)::integer AS cnt\n  FROM payroll_employees\n  WHERE ($3::integer IS NULL OR clinic_id = $3::integer)\n    AND is_active = true\n),\nactive_contracts AS (\n  SELECT COUNT(*)::integer AS cnt\n  FROM doctor_contracts\n  WHERE ($3::integer IS NULL OR clinic_id = $3::integer OR clinic_id IS NULL)\n    AND is_active = true\n),\nprev_period AS (\n  SELECT\n    COALESCE(SUM(pe.gross_salary), 0) AS prev_gross\n  FROM payroll_periods pp\n  JOIN payroll_entries pe ON pe.payroll_period_id = pp.id\n  WHERE ($3::integer IS NULL OR pp.clinic_id = $3::integer)\n    AND (\n      (period_month = $2::integer - 1 AND period_year = $1::integer)\n      OR ($2::integer = 1 AND period_month = 12 AND period_year = $1::integer - 1)\n    )\n)\nSELECT\n  tp.id              AS period_id,\n  tp.period_year,\n  tp.period_month,\n  tp.status          AS period_status,\n  COALESCE(ps.entries_count, 0)        AS entries_count,\n  COALESCE(ps.total_gross, 0)          AS total_gross,\n  COALESCE(ps.total_net, 0)            AS total_net,\n  COALESCE(ps.total_employer_cost, 0)  AS total_employer_cost,\n  COALESCE(ps.pending_count, 0)        AS pending_count,\n  ae.cnt             AS active_employees,\n  ac.cnt             AS active_contracts,\n  COALESCE(pp.prev_gross, 0)           AS prev_month_gross\nFROM target_period tp\nCROSS JOIN period_stats ps\nCROSS JOIN active_employees ae\nCROSS JOIN active_contracts ac\nCROSS JOIN prev_period pp",
+        "additionalFields": {
+          "queryParams": "={{ [$json.period_year, $json.period_month, $json.clinic_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "pg-dashboard-top-earners",
+      "name": "Top Earners",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [760, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT u.name AS doctor_name, pe.gross_salary, pe.net_salary, pe.sessions_count,\n  pe.hours_worked, dc.contract_type, pe.status\nFROM payroll_entries pe\nJOIN payroll_periods pp ON pe.payroll_period_id = pp.id\nJOIN users u ON pe.doctor_id = u.id\nLEFT JOIN doctor_contracts dc ON pe.doctor_contract_id = dc.id\nWHERE ($3::integer IS NULL OR pp.clinic_id = $3::integer)\n  AND pp.period_year = $1::integer AND pp.period_month = $2::integer\nORDER BY pe.gross_salary DESC\nLIMIT 10",
+        "additionalFields": {
+          "queryParams": "={{ [$('Parse Dashboard Params').first().json.period_year, $('Parse Dashboard Params').first().json.period_month, $('Parse Dashboard Params').first().json.clinic_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-dashboard-build",
+      "name": "Build Dashboard Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 300],
+      "parameters": {
+        "jsCode": "const kpis       = $('Dashboard KPIs').first().json;\nconst topEarners = $('Top Earners').all().map(i => i.json);\n\nconst prevGross   = Number(kpis.prev_month_gross || 0);\nconst totalGross  = Number(kpis.total_gross || 0);\nconst growthPct   = prevGross > 0 ? Math.round(((totalGross - prevGross) / prevGross) * 100 * 10) / 10 : null;\n\nreturn [{ json: {\n  period: {\n    id:     kpis.period_id,\n    year:   kpis.period_year,\n    month:  kpis.period_month,\n    status: kpis.period_status\n  },\n  kpis: {\n    total_gross:         totalGross,\n    total_net:           Number(kpis.total_net || 0),\n    total_employer_cost: Number(kpis.total_employer_cost || 0),\n    entries_count:       Number(kpis.entries_count || 0),\n    pending_count:       Number(kpis.pending_count || 0),\n    active_employees:    Number(kpis.active_employees || 0),\n    active_contracts:    Number(kpis.active_contracts || 0),\n    prev_month_gross:    prevGross,\n    growth_pct:          growthPct\n  },\n  top_earners: topEarners\n} }];"
+      }
+    },
+    {
+      "id": "resp-dashboard",
+      "name": "Respond Dashboard",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/dashboard": { "main": [[{ "node": "Parse Dashboard Params", "type": "main", "index": 0 }]] },
+    "Parse Dashboard Params": { "main": [[{ "node": "Dashboard KPIs", "type": "main", "index": 0 }]] },
+    "Dashboard KPIs": { "main": [[{ "node": "Top Earners", "type": "main", "index": 0 }]] },
+    "Top Earners": { "main": [[{ "node": "Build Dashboard Response", "type": "main", "index": 0 }]] },
+    "Build Dashboard Response": { "main": [[{ "node": "Respond Dashboard", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}
