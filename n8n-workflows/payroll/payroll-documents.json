@@ -1,0 +1,191 @@
+{
+  "name": "Nóminas - Documentos",
+  "nodes": [
+    {
+      "id": "wh-docs-byperiod",
+      "name": "GET /payroll/documents/by-period",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/documents/by-period",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-docs-byperiod",
+      "name": "Documents By Period",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM payroll_documents WHERE payroll_period_id = $1::uuid ORDER BY tipo",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "resp-docs-byperiod",
+      "name": "Respond Documents",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-docs-upsert",
+      "name": "POST /payroll/documents/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/documents/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-docs-upsert-parse",
+      "name": "Parse Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  period_id: b.period_id || '',\n  clinic_id: b.clinic_id != null && b.clinic_id !== '' ? Number(b.clinic_id) : null,\n  tipo: b.tipo || '',\n  estado: b.estado || 'pendiente',\n  formato: b.formato || '',\n  generated_by: b.generated_by || '',\n  error_message: b.error_message || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-docs-upsert",
+      "name": "Upsert Document",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_documents\n  (payroll_period_id, clinic_id, tipo, estado, formato, generated_at, generated_by, error_message)\nVALUES\n  ($1::uuid, $2::integer, $3::payroll_document_tipo_enum, $4::payroll_document_estado_enum, NULLIF($5,''),\n   CASE WHEN $4 = 'generado' THEN NOW() ELSE NULL END, NULLIF($6,'')::uuid, NULLIF($7,''))\nON CONFLICT (payroll_period_id, tipo) DO UPDATE SET\n  estado        = EXCLUDED.estado,\n  formato       = COALESCE(NULLIF(EXCLUDED.formato,''), payroll_documents.formato),\n  generated_at  = CASE WHEN EXCLUDED.estado = 'generado' THEN NOW() ELSE payroll_documents.generated_at END,\n  generated_by  = COALESCE(EXCLUDED.generated_by, payroll_documents.generated_by),\n  error_message = EXCLUDED.error_message\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [$json.period_id,$json.clinic_id,$json.tipo,$json.estado,$json.formato,$json.generated_by,$json.error_message] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "resp-docs-upsert",
+      "name": "Respond Document Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/documents/by-period": {
+      "main": [
+        [
+          {
+            "node": "Documents By Period",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Documents By Period": {
+      "main": [
+        [
+          {
+            "node": "Respond Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /payroll/documents/upsert": {
+      "main": [
+        [
+          {
+            "node": "Parse Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Document": {
+      "main": [
+        [
+          {
+            "node": "Upsert Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Document": {
+      "main": [
+        [
+          {
+            "node": "Respond Document Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

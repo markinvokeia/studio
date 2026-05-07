@@ -1,0 +1,210 @@
+{
+  "name": "Nóminas - Novedades",
+  "nodes": [
+    {
+      "id": "wh-novedades-list",
+      "name": "GET /payroll/novedades/by-period",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/novedades/by-period",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-novedades-list",
+      "name": "List Novedades",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pn.*, u.name AS employee_name\nFROM payroll_novedades pn\nLEFT JOIN payroll_employees pe ON pn.employee_id = pe.id\nLEFT JOIN users u ON pe.user_id = u.id\nWHERE pn.period_id = $1::uuid\n  AND ($2::uuid IS NULL OR pn.employee_id = $2::uuid)\nORDER BY pn.start_date",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.period_id, ($input.first().json.query?.employee_id || null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-novedades-list",
+      "name": "Respond Novedades List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-novedades-upsert",
+      "name": "POST /payroll/novedades/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/novedades/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-novedades-upsert-parse",
+      "name": "Parse Novedad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 280],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nreturn [{ json: {\n  id:              b.id || '',\n  period_id:       b.period_id || '',\n  employee_id:     b.employee_id || '',\n  novedad_type:    b.novedad_type || 'licencia_ordinaria',\n  start_date:      b.start_date || '',\n  end_date:        b.end_date || '',\n  days_count:      b.days_count != null ? String(b.days_count) : '',\n  hours_count:     b.hours_count != null ? String(b.hours_count) : '',\n  amount_override: b.amount_override != null ? String(b.amount_override) : '',\n  notes:           b.notes || '',\n  created_by:      b.created_by || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-novedades-upsert",
+      "name": "Upsert Novedad",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_novedades\n  (id, period_id, employee_id, novedad_type, start_date, end_date, days_count, hours_count, amount_override, notes, created_by)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid, $3::uuid,\n   $4::novedad_type_enum,\n   $5::date, NULLIF($6,'')::date,\n   NULLIF($7,'')::decimal, NULLIF($8,'')::decimal, NULLIF($9,'')::decimal,\n   NULLIF($10,''), NULLIF($11,'')::uuid)\nON CONFLICT (id) DO UPDATE SET\n  novedad_type    = EXCLUDED.novedad_type,\n  start_date      = EXCLUDED.start_date,\n  end_date        = EXCLUDED.end_date,\n  days_count      = EXCLUDED.days_count,\n  hours_count     = EXCLUDED.hours_count,\n  amount_override = EXCLUDED.amount_override,\n  notes           = EXCLUDED.notes\nRETURNING id, novedad_type, start_date",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.period_id,$json.employee_id,$json.novedad_type,$json.start_date,$json.end_date,$json.days_count,$json.hours_count,$json.amount_override,$json.notes,$json.created_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-novedades-upsert",
+      "name": "Respond Novedad Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-novedades-bulk",
+      "name": "POST /payroll/novedades/bulk-upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/novedades/bulk-upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-novedades-bulk-parse",
+      "name": "Parse Bulk Novedades",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 460],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst novedades = Array.isArray(body.novedades) ? body.novedades : [];\nif (novedades.length === 0) throw new Error('novedades array is required');\nreturn novedades.map(b => ({ json: {\n  id:              b.id || '',\n  period_id:       b.period_id || body.period_id || '',\n  employee_id:     b.employee_id || '',\n  novedad_type:    b.novedad_type || 'licencia_ordinaria',\n  start_date:      b.start_date || '',\n  end_date:        b.end_date || '',\n  days_count:      b.days_count != null ? String(b.days_count) : '',\n  hours_count:     b.hours_count != null ? String(b.hours_count) : '',\n  amount_override: b.amount_override != null ? String(b.amount_override) : '',\n  notes:           b.notes || '',\n  created_by:      body.created_by || ''\n} }));"
+      }
+    },
+    {
+      "id": "pg-novedades-bulk-upsert",
+      "name": "Bulk Upsert Novedad",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_novedades\n  (id, period_id, employee_id, novedad_type, start_date, end_date, days_count, hours_count, amount_override, notes, created_by)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid, $3::uuid,\n   $4::novedad_type_enum,\n   $5::date, NULLIF($6,'')::date,\n   NULLIF($7,'')::decimal, NULLIF($8,'')::decimal, NULLIF($9,'')::decimal,\n   NULLIF($10,''), NULLIF($11,'')::uuid)\nON CONFLICT (id) DO UPDATE SET\n  novedad_type    = EXCLUDED.novedad_type,\n  start_date      = EXCLUDED.start_date,\n  end_date        = EXCLUDED.end_date,\n  days_count      = EXCLUDED.days_count,\n  hours_count     = EXCLUDED.hours_count,\n  amount_override = EXCLUDED.amount_override,\n  notes           = EXCLUDED.notes\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.period_id,$json.employee_id,$json.novedad_type,$json.start_date,$json.end_date,$json.days_count,$json.hours_count,$json.amount_override,$json.notes,$json.created_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-novedades-bulk-agg",
+      "name": "Aggregate Bulk Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 460],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nreturn [{ json: { inserted: items.length, ids: items.map(i => i.json.id) } }];"
+      }
+    },
+    {
+      "id": "resp-novedades-bulk",
+      "name": "Respond Bulk Novedades",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-novedades-delete",
+      "name": "POST /payroll/novedades/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 640],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/novedades/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-novedades-delete",
+      "name": "Delete Novedad",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_novedades WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-novedades-delete",
+      "name": "Respond Novedad Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 640],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/novedades/by-period": { "main": [[{ "node": "List Novedades", "type": "main", "index": 0 }]] },
+    "List Novedades": { "main": [[{ "node": "Respond Novedades List", "type": "main", "index": 0 }]] },
+    "POST /payroll/novedades/upsert": { "main": [[{ "node": "Parse Novedad", "type": "main", "index": 0 }]] },
+    "Parse Novedad": { "main": [[{ "node": "Upsert Novedad", "type": "main", "index": 0 }]] },
+    "Upsert Novedad": { "main": [[{ "node": "Respond Novedad Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/novedades/bulk-upsert": { "main": [[{ "node": "Parse Bulk Novedades", "type": "main", "index": 0 }]] },
+    "Parse Bulk Novedades": { "main": [[{ "node": "Bulk Upsert Novedad", "type": "main", "index": 0 }]] },
+    "Bulk Upsert Novedad": { "main": [[{ "node": "Aggregate Bulk Results", "type": "main", "index": 0 }]] },
+    "Aggregate Bulk Results": { "main": [[{ "node": "Respond Bulk Novedades", "type": "main", "index": 0 }]] },
+    "POST /payroll/novedades/delete": { "main": [[{ "node": "Delete Novedad", "type": "main", "index": 0 }]] },
+    "Delete Novedad": { "main": [[{ "node": "Respond Novedad Delete", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

@@ -130,4 +130,16 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     { key: '{{generated_at}}',     label: 'Fecha generación',      group: 'document' },
     { key: '{{movements_table}}',  label: 'Tablas de movimientos', group: 'tables' },
   ],
+  payroll_period: [
+    ...CLINIC_VARS,
+    { key: '{{period_label}}',  label: 'Período (mes año)',   group: 'document' },
+    { key: '{{status}}',        label: 'Estado',             group: 'document' },
+    { key: '{{generated_at}}',  label: 'Fecha generación',   group: 'document' },
+    { key: '{{summary_table}}', label: 'Tabla resumen',      group: 'tables' },
+    { key: '{{annex_table}}',   label: 'Anexo liquidaciones', group: 'tables' },
+    { key: '{{annex2_table}}',  label: 'Anexo 2 detalle',    group: 'tables' },
+  ],
+  // Rendered by React-only templates; not user-customizable.
+  payroll_receipt: [],
+  payroll_report: [],
 };

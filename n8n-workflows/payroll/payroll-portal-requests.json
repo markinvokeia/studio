@@ -1,0 +1,179 @@
+{
+  "name": "Nóminas - Portal Solicitudes",
+  "nodes": [
+    {
+      "id": "wh-portal-requests-list",
+      "name": "GET /payroll/portal/requests",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/portal/requests",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-portal-requests-list",
+      "name": "List Portal Requests",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT pr.*, u.name AS respondido_por_name\nFROM payroll_portal_requests pr\nLEFT JOIN users u ON u.id = pr.respondido_por\nWHERE pr.user_id = $1::uuid\nORDER BY pr.created_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.user_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-portal-requests-list",
+      "name": "Respond List",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "wh-portal-requests-create",
+      "name": "POST /payroll/portal/requests/create",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/portal/requests/create",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-portal-requests-create",
+      "name": "Create Portal Request",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_portal_requests (user_id, employee_id, tipo, motivo, descripcion)\nVALUES (\n  $1::uuid,\n  $2::uuid,\n  $3::varchar,\n  $4::varchar,\n  $5::text\n)\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.body.user_id,\n  ($input.first().json.body.employee_id || null),\n  $input.first().json.body.tipo,\n  $input.first().json.body.motivo,\n  $input.first().json.body.descripcion\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-portal-requests-create",
+      "name": "Respond Create",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 201 }
+      }
+    },
+
+    {
+      "id": "wh-portal-requests-respond",
+      "name": "POST /payroll/portal/requests/respond",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/portal/requests/respond",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-portal-requests-respond",
+      "name": "Respond to Request",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_portal_requests\nSET respuesta = $2::text,\n    respondido_por = $3::uuid,\n    respondido_at = now(),\n    estado = 'respondida',\n    updated_at = now()\nWHERE id = $1::uuid\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.body.id,\n  $input.first().json.body.respuesta,\n  $input.first().json.body.respondido_por\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-portal-requests-respond",
+      "name": "Respond Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+
+    {
+      "id": "wh-portal-requests-close",
+      "name": "POST /payroll/portal/requests/close",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 640],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/portal/requests/close",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-portal-requests-close",
+      "name": "Close Request",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE payroll_portal_requests\nSET estado = 'cerrada', updated_at = now()\nWHERE id = $1::uuid AND user_id = $2::uuid\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.body.id, $input.first().json.body.user_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-portal-requests-close",
+      "name": "Respond Close",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 640],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/portal/requests":              { "main": [[{ "node": "List Portal Requests",   "type": "main", "index": 0 }]] },
+    "List Portal Requests":                      { "main": [[{ "node": "Respond List",           "type": "main", "index": 0 }]] },
+    "POST /payroll/portal/requests/create":      { "main": [[{ "node": "Create Portal Request",  "type": "main", "index": 0 }]] },
+    "Create Portal Request":                     { "main": [[{ "node": "Respond Create",         "type": "main", "index": 0 }]] },
+    "POST /payroll/portal/requests/respond":     { "main": [[{ "node": "Respond to Request",     "type": "main", "index": 0 }]] },
+    "Respond to Request":                        { "main": [[{ "node": "Respond Respond",        "type": "main", "index": 0 }]] },
+    "POST /payroll/portal/requests/close":       { "main": [[{ "node": "Close Request",          "type": "main", "index": 0 }]] },
+    "Close Request":                             { "main": [[{ "node": "Respond Close",          "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

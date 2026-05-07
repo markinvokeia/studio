@@ -82,6 +82,8 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean;
   /** Extra classes for the narrow-mode card list container (e.g. to remove the gap for a connected list) */
   cardListClassName?: string;
+  /** Removes the gap between toolbar and table, and adds horizontal margins so the table floats inside its panel */
+  compact?: boolean;
   /** Action buttons rendered on the toolbar's primary line (next to search) so they don't wrap */
   primaryActions?: React.ReactNode;
   /** View controls (e.g. a view-mode toggle) rendered after pagination in the toolbar */
@@ -129,6 +131,7 @@ export function DataTable<TData, TValue>({
   rowCount,
   isLoading = false,
   cardListClassName,
+  compact = false,
   primaryActions,
   viewControls,
   initialPageSize = 25,
@@ -232,7 +235,7 @@ export function DataTable<TData, TValue>({
 
 
   return (
-    <div className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
+    <div className={cn("w-full flex-1 flex flex-col min-h-0 print:block print:h-auto", compact ? "space-y-0" : "space-y-4")}>
       <div className="print:hidden">
         {customToolbar ? (
           typeof customToolbar === 'function' ? (
@@ -276,7 +279,7 @@ export function DataTable<TData, TValue>({
         )}
       </div>
       {showCardList ? (
-        <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
+        <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 py-1", compact ? "px-3" : "px-1", cardListClassName)}>
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-md" />
@@ -299,7 +302,7 @@ export function DataTable<TData, TValue>({
         </div>
       ) : null}
       {!showCardList ? (
-      <div className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
+      <div className={cn("rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none", compact && "mx-3")}>
         <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
           <TableHeader className="sticky print:static top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (

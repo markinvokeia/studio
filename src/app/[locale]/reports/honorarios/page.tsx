@@ -1,9 +1,11 @@
 'use client';
 
-import { Banknote } from 'lucide-react';
+import { Banknote, Search } from 'lucide-react';
 import { ReportDataTable } from '@/components/reports/report-data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencySwitcher } from '@/components/reports/currency-switcher';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
@@ -17,13 +19,16 @@ import { fmtMoney, fmtMultiCurrency } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,6 +37,14 @@ import {
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
+
+const PIE_COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+];
 
 export default function HonorariosPage() {
   const t = useTranslations('ReportHonorariosPage');
@@ -42,8 +55,11 @@ export default function HonorariosPage() {
   });
   const [basis, setBasis] = useState<'cobrado' | 'facturado'>('cobrado');
   const [currency, setCurrency] = useState('all');
-
   const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+
+  // Client-side filter state
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'doctor' | 'base' | 'honorario' | 'pct'>('honorario');
 
   const [data, setData] = useState<ReportHonorariosResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -89,13 +105,13 @@ export default function HonorariosPage() {
     },
   ];
 
-  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'honorarios');
+  const allRows = data?.rows ?? [];
 
-  const baseByCurrency = (data?.rows ?? []).reduce<Record<string, number>>((acc, r) => {
+  const baseByCurrency = allRows.reduce<Record<string, number>>((acc, r) => {
     acc[r.currency] = (acc[r.currency] || 0) + Number(r.base_calculo || 0);
     return acc;
   }, {});
-  const honorariosByCurrency = (data?.rows ?? []).reduce<Record<string, number>>((acc, r) => {
+  const honorariosByCurrency = allRows.reduce<Record<string, number>>((acc, r) => {
     acc[r.currency] = (acc[r.currency] || 0) + Number(r.honorario_calculado || 0);
     return acc;
   }, {});
@@ -104,13 +120,34 @@ export default function HonorariosPage() {
   const showMultiCurrency = currency === 'all' && activeCurrencies.length > 1;
   const displayCurrency = currency !== 'all' ? currency : activeCurrencies[0] ?? '';
   const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
-  const activeRows = (data?.rows ?? []).filter((r) => r.currency === activeCurrency);
+  const activeRows = allRows.filter((r) => r.currency === activeCurrency);
 
-  const chartData = activeRows.map((r) => ({
+  const filteredRows = useMemo(() => {
+    let rows = activeRows;
+    if (doctorSearch) rows = rows.filter((r) => r.doctor_name.toLowerCase().includes(doctorSearch.toLowerCase()));
+    return [...rows].sort((a, b) => {
+      if (sortBy === 'doctor') return a.doctor_name.localeCompare(b.doctor_name);
+      if (sortBy === 'base') return Number(b.base_calculo) - Number(a.base_calculo);
+      if (sortBy === 'pct') return Number(b.porcentaje) - Number(a.porcentaje);
+      return Number(b.honorario_calculado) - Number(a.honorario_calculado);
+    });
+  }, [activeRows, doctorSearch, sortBy]);
+
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, filteredRows.length > 0 ? filteredRows : null, 'honorarios');
+
+  const chartData = filteredRows.map((r) => ({
     doctor: r.doctor_name.split(' ').slice(-1)[0],
     base: Number(r.base_calculo),
     honorario: Number(r.honorario_calculado),
   }));
+
+  // Pie: distribution of honorarios by doctor
+  const pieData = filteredRows.map((r) => ({
+    name: r.doctor_name.split(' ').slice(-1)[0],
+    value: Number(r.honorario_calculado),
+  }));
+
+  const maxHonorario = Math.max(...filteredRows.map((r) => Number(r.honorario_calculado)), 1);
 
   const s = data?.summary;
 
@@ -139,6 +176,35 @@ export default function HonorariosPage() {
           <SelectItem value="USD">USD</SelectItem>
         </SelectContent>
       </Select>
+      {data && (
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="pl-8 h-8 text-xs w-40"
+              placeholder="Filtrar doctor..."
+              value={doctorSearch}
+              onChange={(e) => setDoctorSearch(e.target.value)}
+            />
+          </div>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+            <SelectTrigger className="h-8 w-36 text-xs">
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="honorario">Por honorario</SelectItem>
+              <SelectItem value="base">Por base</SelectItem>
+              <SelectItem value="pct">Por % acuerdo</SelectItem>
+              <SelectItem value="doctor">Por nombre</SelectItem>
+            </SelectContent>
+          </Select>
+          {doctorSearch && (
+            <Badge variant="outline" className="text-xs h-8 px-2">
+              {filteredRows.length} / {activeRows.length}
+            </Badge>
+          )}
+        </>
+      )}
     </div>
   );
 
@@ -163,7 +229,7 @@ export default function HonorariosPage() {
   return (
     <ReportShell
       icon={Banknote}
-            title={t('title')}
+      title={t('title')}
       description={dateRangeDescription}
       filters={filters}
       onGenerate={handleGenerate}
@@ -185,7 +251,7 @@ export default function HonorariosPage() {
               value={currency !== 'all' ? fmtMoney(s!.total_honorarios, currency) : fmtMultiCurrency(honorariosByCurrency)}
               variant="success"
             />
-            <ReportKPICard title={t('kpi_doctores')} value={s!.num_doctores} />
+            <ReportKPICard title={t('kpi_doctores')} value={filteredRows.length} subtitle={doctorSearch ? `de ${activeRows.length}` : undefined} />
             <ReportKPICard title={t('kpi_pct')} value={`${s!.porcentaje_promedio.toFixed(1)}%`} />
           </div>
 
@@ -220,18 +286,39 @@ export default function HonorariosPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {activeRows.map((r) => (
-                    <div key={r.doctor_id} className="flex items-center justify-between text-sm gap-2">
-                      <span className="truncate max-w-[140px] text-muted-foreground">{r.doctor_name}</span>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold text-emerald-600">{fmtMoney(Number(r.honorario_calculado), r.currency)}</p>
-                        <p className="text-xs text-muted-foreground">{Number(r.porcentaje).toFixed(1)}%</p>
+                {filteredRows.length <= 6 ? (
+                  <div className="space-y-3">
+                    {filteredRows.map((r) => (
+                      <div key={r.doctor_id} className="space-y-1">
+                        <div className="flex items-center justify-between text-sm gap-2">
+                          <span className="truncate max-w-[140px] text-muted-foreground">{r.doctor_name}</span>
+                          <div className="text-right shrink-0">
+                            <p className="font-semibold text-emerald-600">{fmtMoney(Number(r.honorario_calculado), r.currency)}</p>
+                            <p className="text-xs text-muted-foreground">{Number(r.porcentaje).toFixed(1)}% de {fmt(Number(r.base_calculo))}</p>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full"
+                            style={{ width: `${(Number(r.honorario_calculado) / maxHonorario) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-4">* {t('estimado_note')}</p>
+                    ))}
+                    <p className="text-xs text-muted-foreground mt-2">* {t('estimado_note')}</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <PieChart>
+                      <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                        {pieData.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => fmt(v)} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -240,7 +327,7 @@ export default function HonorariosPage() {
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
               {(['UYU', 'USD'] as const).map((cur) => {
-                const curRows = (data?.rows ?? []).filter(r => r.currency === cur);
+                const curRows = allRows.filter(r => r.currency === cur);
                 const curChartData = curRows.map(r => ({
                   doctor: r.doctor_name.split(' ').slice(-1)[0],
                   base: Number(r.base_calculo),
@@ -290,7 +377,7 @@ export default function HonorariosPage() {
             </div>
           )}
 
-          <ReportDataTable columns={columns} data={data.rows} useGlobalFilter />
+          <ReportDataTable columns={columns} data={filteredRows} useGlobalFilter />
         </>
       )}
     </ReportShell>

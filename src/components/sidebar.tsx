@@ -173,11 +173,20 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                 <div className="flex-1 min-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                     <nav className="flex flex-col items-center gap-1 px-2">
                         {filteredNavItems.map(item => {
+                            // Routes that must use exact-match only — they share a prefix with other nav items
+                            const EXACT_MATCH_HREFS = ['/cashier', '/payroll'];
+                            const hrefMatches = (href: string, current: string) =>
+                                href === '/'
+                                    ? current === '/'
+                                    : EXACT_MATCH_HREFS.includes(href)
+                                        ? current === href
+                                        : current === href || current.startsWith(href + '/');
+
                             const isActive = item.items
                                 ? item.items.some(subItem =>
-                                    subItem.href !== '' && (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'))
+                                    subItem.href !== '' && hrefMatches(subItem.href, effectivePathname)
                                 )
-                                : (item.href === '/' ? effectivePathname === '/' : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
+                                : hrefMatches(item.href, effectivePathname);
 
                             const isHovered = activeItem?.title === item.title;
                             const isExpanded = isHovered && item.items;
@@ -437,9 +446,12 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                             return <hr key={index} className="my-1.5 border-border mx-2" />;
                         }
 
+                        const EXACT_MATCH_HREFS = ['/cashier', '/payroll'];
                         const isSubActive = subItem.href === '/'
                             ? effectivePathname === '/'
-                            : (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'));
+                            : EXACT_MATCH_HREFS.includes(subItem.href)
+                                ? effectivePathname === subItem.href
+                                : (effectivePathname === subItem.href || effectivePathname.startsWith(subItem.href + '/'));
 
                         let subLinkHref = `/${locale}${subItem.href === '/' ? '' : subItem.href}`;
                         if (subItem.href.includes('/clinic-history')) {

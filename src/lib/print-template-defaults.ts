@@ -256,6 +256,21 @@ const CAJA_SESION_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85re
   ${FOOTER}
 </div>`;
 
+const PAYROLL_PERIOD_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;color:#111827;">
+  ${HEADER}
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
+    <h1 style="font-size:1.4rem;font-weight:700;text-transform:uppercase;margin:0;">Nómina — {{period_label}}</h1>
+    <span style="font-size:0.85rem;color:#4b5563;">Estado: <strong>{{status}}</strong></span>
+  </div>
+  <h2 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;color:#6b7280;margin:0 0 0.5rem;">Resumen</h2>
+  {{summary_table}}
+  <h2 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;color:#6b7280;margin:1.5rem 0 0.5rem;">Anexo — Liquidaciones</h2>
+  {{annex_table}}
+  <h2 style="font-size:0.8rem;font-weight:700;text-transform:uppercase;color:#6b7280;margin:1.5rem 0 0.5rem;">Anexo 2 — Detalle de cálculos</h2>
+  {{annex2_table}}
+  ${FOOTER}
+</div>`;
+
 export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   invoice:           INVOICE_DEFAULT,
   quote:             QUOTE_DEFAULT,
@@ -266,4 +281,8 @@ export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
   caja_apertura:     CAJA_APERTURA_DEFAULT,
   caja_cierre:       CAJA_CIERRE_DEFAULT,
   caja_sesion:       CAJA_SESION_DEFAULT,
+  payroll_period:    PAYROLL_PERIOD_DEFAULT,
+  // Rendered by React-only templates; not user-customizable.
+  payroll_receipt:   '',
+  payroll_report:    '',
 };

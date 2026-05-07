@@ -310,6 +310,7 @@ export type Invoice = {
   is_historical?: boolean;
   due_date?: string;
   external_id?: string | number | null;
+  parent_id?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -322,7 +323,7 @@ export type CreditNote = Invoice & {
 export interface DocPrintTemplate {
   id: string;
   clinic_id: string;
-  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'payroll_period' | 'payroll_receipt' | 'payroll_report';
   template_html: string;
   is_active: boolean;
   createdAt: string;
@@ -1745,6 +1746,421 @@ export type OdontogramSnapshot = {
   archivosAdjuntos?: OdontogramAttachment[];
 };
 
+// ─── Payroll / Nóminas ────────────────────────────────────────────────────────
+
+// Mirrors the DB `contract_type_enum` (payroll_contracts.contract_type).
+export type ContractType =
+  | 'dependencia'
+  | 'arrendamiento'
+  | 'honorarios'
+  | 'empresa_unipersonal'
+  | 'pasante'
+  | 'termino'
+  | 'suplencia';
+
+export type CalculationType =
+  | 'fijo'
+  | 'por_hora'
+  | 'porcentaje'
+  | 'fijo_porcentaje'
+  | 'por_prestacion';
+
+export type PercentageBasis = 'sobre_cobrado' | 'sobre_realizado';
+export type PayrollPeriodStatus = 'draft' | 'calculated' | 'approved' | 'paid' | 'closed';
+export type PayrollEntryStatus = 'draft' | 'approved' | 'paid';
+
+// ── Employee Legajo ───────────────────────────────────────────────────────────
+
+export type ContractLaboralType =
+  | 'dependencia' | 'arrendamiento' | 'honorarios'
+  | 'empresa_unipersonal' | 'pasante' | 'termino' | 'suplencia';
+
+export type FonasaFamilySituation =
+  | 'sin_conyuge_sin_hijos' | 'con_hijos' | 'con_conyuge' | 'con_conyuge_e_hijos';
+
+export interface PayrollEmployee {
+  id: string;
+  user_id?: string;
+  clinic_id: string;
+  clinic_name?: string;
+  category_name?: string;
+  cedula: string;
+  nombres: string;
+  apellidos: string;
+  fecha_nacimiento?: string;
+  sexo?: 'M' | 'F' | 'O';
+  estado_civil?: 'soltero' | 'casado' | 'divorciado' | 'viudo' | 'union_libre';
+  domicilio?: string;
+  telefono?: string;
+  email?: string;
+  banco?: string;
+  cuenta_banco?: string;
+  numero_bps?: string;
+  fecha_ingreso: string;
+  foto_url?: string;
+  activo: boolean;
+  created_at?: string;
+}
+
+export interface PayrollEmployment {
+  id: string;
+  employee_id: string;
+  employee_name?: string;
+  clinic_id: string;
+  tipo_contrato: ContractLaboralType;
+  category_id?: string;
+  category_name?: string;
+  salario_minimo_categoria?: number;
+  fecha_inicio: string;
+  fecha_fin?: string;
+  jornada_horas_semanales: number;
+  modalidad_jornada: 'mensual' | 'jornal' | 'horario';
+  sueldo_base: number;
+  productividad_porcentaje: number;
+  productividad_base: PercentageBasis;
+  centro_costo_id?: string;
+  tipo_aporte_bps: 'industria_comercio' | 'civil';
+  is_active: boolean;
+  motivo_baja?: string;
+  fecha_baja?: string;
+}
+
+export interface PayrollFamilyCharge {
+  id: string;
+  employee_id: string;
+  tipo: 'conyuge' | 'hijo' | 'hijo_discapacidad';
+  nombres: string;
+  apellidos: string;
+  fecha_nacimiento?: string;
+  cedula?: string;
+  vigente_desde: string;
+  vigente_hasta?: string;
+  documento_url?: string;
+}
+
+export interface PayrollIrpfDeduction {
+  id: string;
+  employee_id: string;
+  tipo: 'bhu_anv' | 'caja_profesional' | 'alimentos' | 'alquiler' | 'otro';
+  descripcion: string;
+  monto_mensual: number;
+  vigente_desde: string;
+  vigente_hasta?: string;
+  documento_url?: string;
+}
+
+// ── Categories (Grupo 15) ─────────────────────────────────────────────────────
+
+export interface PayrollCategory {
+  id: string;
+  codigo: string;
+  nombre: string;
+  subgrupo?: string;
+  descripcion?: string;
+  salario_minimo_uyu: number;
+  vigente_desde: string;
+  vigente_hasta?: string;
+}
+
+// ── Honorarios ────────────────────────────────────────────────────────────────
+
+export type HonorariosEstado = 'pendiente' | 'validada' | 'autorizada' | 'pagada' | 'rechazada';
+
+export interface PayrollHonorario {
+  id: string;
+  payroll_period_id: string;
+  user_id: string;
+  doctor_name?: string;
+  doctor_rut?: string;
+  modalidad: 'honorarios' | 'empresa_unipersonal' | 'sociedad';
+  clinic_id: string;
+  produccion_base: number;
+  porcentaje: number;
+  descuentos: number;
+  bruto: number;
+  iva: number;
+  retenciones: number;
+  liquido: number;
+  factura_numero?: string;
+  factura_fecha?: string;
+  factura_url?: string;
+  estado: HonorariosEstado;
+  fecha_pago?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+// ── FONASA table row ──────────────────────────────────────────────────────────
+
+export interface FonasaTableRow {
+  situation: FonasaFamilySituation;
+  until_2_5_bpc: number;
+  above_2_5_bpc: number;
+}
+
+export interface DoctorContract {
+  id: string;
+  user_id: string;
+  doctor_name?: string;
+  clinic_id?: string;
+  clinic_name?: string;
+  contract_type: ContractType;
+  calculation_type: CalculationType;
+  base_salary?: number;
+  hourly_rate?: number;
+  percentage_rate?: number;
+  percentage_threshold?: number;
+  percentage_basis?: PercentageBasis;
+  per_session_rate?: number;
+  currency: 'UYU' | 'USD';
+  has_children: boolean;
+  valid_from: string;
+  valid_until?: string;
+  is_active: boolean;
+  notes?: string;
+  contract_document_id?: string;
+  contract_document_name?: string;
+  created_at?: string;
+  created_by?: string;
+}
+
+export interface PayrollPeriod {
+  id: string;
+  period_year: number;
+  period_month: number;
+  status: PayrollPeriodStatus;
+  total_gross?: number;
+  total_net?: number;
+  total_employer_cost?: number;
+  entries_count?: number;
+  honorarios_count?: number;
+  total_honorarios?: number;
+  generated_at?: string;
+  approved_at?: string;
+  paid_at?: string;
+  closed_at?: string;
+  generated_by?: string;
+  approved_by?: string;
+  closed_by?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+export interface PayrollEntry {
+  id: string;
+  payroll_period_id: string;
+  user_id: string;
+  doctor_name?: string;
+  doctor_contract_id: string;
+  contract_type?: ContractType;
+  calculation_type?: CalculationType;
+  clinic_id?: string;
+  clinic_name?: string;
+  // Activity
+  sessions_count: number;
+  hours_worked: number;
+  hours_extra_habiles?: number;
+  hours_extra_feriados?: number;
+  absence_days?: number;
+  services_revenue_billed: number;
+  services_revenue_listed: number;
+  // Gross
+  base_amount: number;
+  variable_amount: number;
+  extra_hours_amount?: number;
+  gross_salary: number;
+  // Deductions (empleado only)
+  bps_employee: number;
+  fonasa_employee: number;
+  frl_employee?: number;
+  irpf_withholding: number;
+  other_deductions: number;
+  total_deductions: number;
+  net_salary: number;
+  // Employer cost (empleado only)
+  bps_employer: number;
+  fonasa_employer: number;
+  frl_employer?: number;
+  fgcl_employer?: number;
+  bse_employer?: number;
+  ccm_employer?: number;
+  aguinaldo_provision: number;
+  vacation_provision: number;
+  total_employer_cost: number;
+  // FONASA info
+  fonasa_family_situation?: FonasaFamilySituation;
+  fonasa_rate?: number;
+  // Meta
+  currency: 'UYU' | 'USD';
+  exchange_rate: number;
+  status: PayrollEntryStatus;
+  notes?: string;
+  calculated_at?: string;
+  /** Exact rates/caps and per-employee inputs used by the calc engine (transparency). */
+  calculation_params?: PayrollCalculationParams;
+}
+
+/** Snapshot of the engine settings + per-employee inputs captured when an entry was calculated. */
+export interface PayrollCalculationParams {
+  cap_base?: number | null;
+  bps_salary_cap_uyu?: number;
+  bpc_value_uyu?: number;
+  vacation_days_per_year?: number;
+  bps_employee_rate?: number;
+  fonasa_rate_applied?: number;
+  fonasa_family_situation?: FonasaFamilySituation;
+  /** Sum of the employee's active IRPF deductions (monto_mensual) at calc time. */
+  irpf_deductions_monthly?: number;
+  /** DGI tiered deduction rate applied (0.10 / 0.08). */
+  irpf_deduction_rate?: number;
+  frl_employee_rate?: number;
+  bps_employer_rate?: number;
+  fonasa_employer_rate?: number;
+  frl_employer_rate?: number;
+  fgcl_rate?: number;
+  bse_rate?: number;
+  calculation_type?: string;
+  percentage_basis?: string;
+  percentage_rate?: number;
+  percentage_threshold?: number;
+  hourly_rate?: number;
+  per_session_rate?: number;
+  base_salary?: number;
+  revenue_base?: number;
+  absence_days?: number;
+  is_empleado?: boolean;
+}
+
+export type PayrollDocumentTipo =
+  | 'planilla_sueldos' | 'bps_nomina' | 'bps_gafi' | 'dgi_irpf'
+  | 'bank_file' | 'accounting' | 'receipts' | 'cost_center' | 'mtss';
+
+export type PayrollDocumentEstado = 'pendiente' | 'generado' | 'error' | 'no_procede';
+
+/** Tracking row for a generated payroll report/document (see payroll_documents). */
+export interface PayrollDocument {
+  id: string;
+  payroll_period_id: string;
+  clinic_id?: number;
+  tipo: PayrollDocumentTipo;
+  estado: PayrollDocumentEstado;
+  formato?: string;
+  generated_at?: string;
+  generated_by?: string;
+  error_message?: string;
+  meta?: Record<string, unknown>;
+  created_at?: string;
+}
+
+export interface PayrollSessionAssignment {
+  id: string;
+  payroll_entry_id: string;
+  session_id?: number;
+  appointment_id?: string;
+  session_date: string;
+  user_id: string;
+  clinic_id?: string;
+  service_names?: string;
+  revenue_billed: number;
+  revenue_listed: number;
+  hours_billed: number;
+  is_included: boolean;
+}
+
+export type AusenciaTipo =
+  | 'vacaciones' | 'licencia_medica' | 'licencia_especial' | 'licencia_estudio'
+  | 'ausencia_justificada' | 'ausencia_injustificada' | 'suspension' | 'otro';
+
+export type AusenciaEstado = 'pendiente' | 'aprobada' | 'rechazada';
+
+export interface PayrollAusencia {
+  id: string;
+  employee_id: string;
+  employee_name?: string;
+  user_id?: string;
+  clinic_id?: string;
+  tipo: AusenciaTipo;
+  fecha_desde: string;
+  fecha_hasta: string;
+  dias: number;
+  justificada: boolean;
+  pagada: boolean;
+  estado: AusenciaEstado;
+  descripcion?: string;
+  documento_url?: string;
+  aprobado_por?: string;
+  created_by?: string;
+  created_at?: string;
+}
+
+export interface VacationBalance {
+  generados: number;
+  tomados: number;
+  saldo: number;
+  antiguedad_anios: number;
+}
+
+export interface PayrollClinicalSession {
+  id: string;
+  start_at: string;            // ISO datetime (fecha_sesion)
+  end_at?: string | null;      // ISO datetime from linked appointment, if any
+  duration_min?: number | null;
+  paciente_name?: string;
+  procedimiento_realizado?: string;
+  diagnostico?: string;
+  notas_clinicas?: string;
+  appointment_id?: number | null;
+  quote_id?: number | null;
+  invoice_id?: number | null;
+}
+
+export interface PayrollManualAdjustment {
+  id: string;
+  payroll_entry_id: string;
+  description: string;
+  amount: number;
+  adjustment_type: 'addition' | 'deduction';
+  category: 'bono' | 'adelanto' | 'descuento' | 'correccion' | 'otro';
+  created_at?: string;
+  created_by?: string;
+  created_by_name?: string;
+}
+
+export interface IrpfBracket {
+  from: number;
+  to: number;
+  rate: number;
+}
+
+export interface PayrollSettings {
+  // BPS
+  montepio_employee_rate: number;
+  bps_employer_rate: number;
+  bps_employee_rate: number;
+  bps_salary_cap_uyu: number;
+  // FONASA
+  fonasa_employer_rate: number;
+  fonasa_annual_cap_uyu: number;
+  fonasa_table: FonasaTableRow[];
+  // Legacy simple fields (kept for backwards compat with v1 components)
+  fonasa_employee_base: number;
+  fonasa_employee_children: number;
+  // FRL
+  frl_employee_rate: number;
+  frl_employer_rate: number;
+  // FGCL / BSE
+  fgcl_employer_rate: number;
+  bse_employer_rate: number;
+  // IRPF
+  bpc_value_uyu: number;
+  cpe_value_uyu: number;
+  irpf_brackets: IrpfBracket[];
+  // Other
+  vacation_days_per_year: number;
+  default_currency: 'UYU' | 'USD';
+  min_salary_national: number;
+}
+
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'orange';
 
 export type StickyNote = {
@@ -2411,4 +2827,30 @@ export interface Subscription {
   issuedAt: string;
   notes?: string;
   createdAt: string;
+}
+
+// ── Portal del Empleado — Solicitudes ─────────────────────────────────────────
+export type PortalRequestTipo = 'solicitud' | 'reclamo';
+export type PortalRequestMotivo =
+  | 'recibos_sueldo'
+  | 'historial'
+  | 'novedades'
+  | 'certificados'
+  | 'datos'
+  | 'otro';
+export type PortalRequestEstado = 'pendiente' | 'respondida' | 'cerrada';
+
+export interface PortalRequest {
+  id: string;
+  employee_id?: string;
+  user_id: string;
+  tipo: PortalRequestTipo;
+  motivo: PortalRequestMotivo;
+  descripcion: string;
+  estado: PortalRequestEstado;
+  respuesta?: string;
+  respondido_por?: string;
+  respondido_por_name?: string;
+  respondido_at?: string;
+  created_at: string;
 }

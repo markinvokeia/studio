@@ -70,11 +70,14 @@ export function Nav({ items }: NavProps) {
         linkHref = `/${locale}/clinic-history/${userIdFromUrl}`;
     }
     
-    const isActive = item.href === '/' 
-      ? effectivePathname === '/' 
-      : (item.href === '/cashier'
+    // Exact-match routes: these items are top-level entry points into a sub-tree that
+    // contains other nav items, so startsWith would cause false-positives.
+    const EXACT_MATCH_HREFS = ['/cashier', '/payroll'];
+    const isActive = item.href === '/'
+      ? effectivePathname === '/'
+      : EXACT_MATCH_HREFS.includes(item.href)
           ? effectivePathname === item.href
-          : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/'));
+          : effectivePathname === item.href || effectivePathname.startsWith(item.href + '/');
 
     const linkClasses = cn(
       'flex items-center gap-3 rounded-lg px-4 py-2 transition-all font-semibold',

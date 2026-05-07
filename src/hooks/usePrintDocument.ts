@@ -8,7 +8,7 @@ import {
   usePrintDocumentStore,
   type PrintInvoiceRow,
 } from '@/stores/print-document-store';
-import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
+import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PayrollPeriod, PayrollEntry } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
@@ -273,6 +273,30 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printCajaApertura, printCajaCierre, printCajaSesion };
+  async function printPayrollPeriod(period: PayrollPeriod, entries: PayrollEntry[]): Promise<void> {
+    await fetchClinicInfo();
+    activate('payroll_period', { period, entries });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  async function printPayrollReceipts(period: PayrollPeriod, entries: PayrollEntry[]): Promise<void> {
+    await fetchClinicInfo();
+    activate('payroll_receipt', { period, entries });
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  async function printPayrollReport(payload: { title: string; subtitle?: string; columns: string[]; rows: (string | number)[][] }): Promise<void> {
+    await fetchClinicInfo();
+    activate('payroll_report', payload);
+    await waitForFrame();
+    await waitForImages();
+    triggerPrint(deactivate);
+  }
+
+  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printCajaApertura, printCajaCierre, printCajaSesion, printPayrollPeriod, printPayrollReceipts, printPayrollReport };
 
 }

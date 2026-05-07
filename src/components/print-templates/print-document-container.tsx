@@ -12,6 +12,9 @@ import type {
   CajaAperturaPrintData,
   CajaCierrePrintData,
   CajaSesionPrintData,
+  PayrollPeriodPrintData,
+  PayrollReceiptPrintData,
+  PayrollReportPrintData,
 } from '@/stores/print-document-store';
 import { PrintDocumentLayout } from './print-document-layout';
 import { QuotePrintTemplate } from './quote-print-template';
@@ -23,6 +26,9 @@ import { FinancialSummaryPrintTemplate } from './financial-summary-print-templat
 import { CajaAperturaPrintTemplate } from './caja-apertura-print-template';
 import { CajaCierrePrintTemplate } from './caja-cierre-print-template';
 import { CajaSesionPrintTemplate } from './caja-sesion-print-template';
+import { PayrollPeriodPrintTemplate } from './payroll-period-print-template';
+import { PayrollReceiptPrintTemplate } from './payroll-receipt-print-template';
+import { PayrollReportPrintTemplate } from './payroll-report-print-template';
 import { CustomTemplateRenderer } from './custom-template-renderer';
 
 /**
@@ -50,14 +56,28 @@ export function PrintDocumentContainer() {
     return () => document.documentElement.classList.remove('printing-multipage');
   }, [isMultiPage]);
 
+  // Force landscape @page for wide payroll documents. A global @page override
+  // (appended last) is more reliable across browsers than a named page.
+  useEffect(() => {
+    if (!isActive || (type !== 'payroll_period' && type !== 'payroll_report')) return;
+    const style = document.createElement('style');
+    style.setAttribute('data-payroll-landscape', '');
+    style.textContent = '@media print { @page { size: A4 landscape; margin: 8mm 10mm; } }';
+    document.head.appendChild(style);
+    return () => { style.remove(); };
+  }, [isActive, type]);
+
   if (!isActive || !data || !type) return null;
 
   const customHtml = customTemplates[type];
 
+  // Wide payroll documents print in landscape.
+  const isLandscape = type === 'payroll_period' || type === 'payroll_report';
+
   return (
     <div
       data-print-container
-      className={`hidden print:block bg-white z-[9999] p-8${isMultiPage ? ' w-full' : ' fixed inset-0'}`}
+      className={`hidden print:block bg-white z-[9999] p-8${isMultiPage ? ' w-full' : ' fixed inset-0'}${isLandscape ? ' print-landscape' : ''}`}
     >
       {customHtml ? (
         <CustomTemplateRenderer html={customHtml} data={data} type={type} />
@@ -72,6 +92,9 @@ export function PrintDocumentContainer() {
           {type === 'caja_apertura'     && <CajaAperturaPrintTemplate      data={data as CajaAperturaPrintData} />}
           {type === 'caja_cierre'       && <CajaCierrePrintTemplate        data={data as CajaCierrePrintData} />}
           {type === 'caja_sesion'       && <CajaSesionPrintTemplate        data={data as CajaSesionPrintData} />}
+          {type === 'payroll_period'    && <PayrollPeriodPrintTemplate     data={data as PayrollPeriodPrintData} />}
+          {type === 'payroll_receipt'   && <PayrollReceiptPrintTemplate    data={data as PayrollReceiptPrintData} />}
+          {type === 'payroll_report'    && <PayrollReportPrintTemplate     data={data as PayrollReportPrintData} />}
         </PrintDocumentLayout>
       )}
     </div>

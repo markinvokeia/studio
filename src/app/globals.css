@@ -316,11 +316,46 @@ textarea::placeholder {
   }
 }
 
+/* ── Payroll list toolbar (container query, responds to column width) ────── */
+.payroll-toolbar {
+  container-type: inline-size;
+  container-name: ptoolbar;
+}
+
+/* When the column is too narrow to fit everything on one line, the actions +
+   pagination group drops to its own full-width second line. Above this width it
+   stays inline at the end of the search row. */
+@container ptoolbar (max-width: 36rem) {
+  .payroll-toolbar__actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+/* ── Payroll detail panel header (container query) ──────────────────────── */
+.payroll-panel-header {
+  container-type: inline-size;
+  container-name: ppanel;
+}
+
+/* Collapse button labels (e.g. "+ Acciones") to icon-only in a narrow panel. */
+@container ppanel (max-width: 30rem) {
+  .payroll-panel-header__label {
+    display: none;
+  }
+}
+
 @media print {
   /* A4 page size with comfortable margins */
   @page {
     size: A4 portrait;
     margin: 12mm 15mm;
+  }
+
+  /* Keep numeric cells on a single line in payroll print tables. */
+  .print-landscape table td,
+  .print-landscape table th {
+    white-space: nowrap;
   }
 
   /* Hide all fixed/sticky overlays: floating widgets, toasts, popovers */

@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PAYROLL_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -95,6 +95,12 @@ export const navItems: NavItem[] = [
     requiredPermission: DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS,
   },
   {
+    title: 'PayrollPortal',
+    href: '/payroll/portal',
+    icon: UserCheck,
+    requiredPermission: PAYROLL_PERMISSIONS.PORTAL_VIEW,
+  },
+  {
     title: 'AlertsCenter',
     href: '/alerts',
     icon: BellRing,
@@ -181,6 +187,22 @@ export const navItems: NavItem[] = [
       { title: 'PurchasePayments', href: '/purchases/payments', icon: CreditCard, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.PAYMENTS_VIEW_MENU },
       { title: 'Providers', href: '/purchases/providers', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_MENU },
       { title: 'ProviderProducts', href: '/purchases/services', icon: Briefcase, isChidren: true, requiredPermission: PURCHASES_PERMISSIONS.PRODUCTS_VIEW_MENU },
+    ],
+  },
+  {
+    title: 'Payroll',
+    href: '/payroll/dashboard',
+    icon: Banknote,
+    requiredPermission: PAYROLL_PERMISSIONS.VIEW_MENU,
+    items: [
+      { title: 'PayrollDashboard',  href: '/payroll/dashboard',  icon: LayoutDashboard, isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.DASHBOARD_VIEW },
+      { title: 'PayrollEmployees',  href: '/payroll/employees',  icon: Users,           isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.EMPLOYEES_VIEW_LIST },
+      { title: 'PayrollPeriods',    href: '/payroll/periods',    icon: CalendarDays,    isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.PERIODS_VIEW_LIST },
+      { title: 'PayrollLicencias',  href: '/payroll/licencias',  icon: ClipboardList,   isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.NOVEDADES_VIEW },
+      { title: 'PayrollHonorarios', href: '/payroll/honorarios', icon: Receipt,         isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.HONORARIOS_VIEW },
+      { title: 'PayrollReports',    href: '/payroll/reports',    icon: BarChart2,       isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.REPORTS_VIEW },
+      { title: 'PayrollSettings',   href: '/payroll/settings',   icon: Settings,        isChidren: true, requiredPermission: PAYROLL_PERMISSIONS.SETTINGS_VIEW },
+      // PayrollPortal is surfaced as a top-level nav item near DoctorWorkspace
     ],
   },
   {

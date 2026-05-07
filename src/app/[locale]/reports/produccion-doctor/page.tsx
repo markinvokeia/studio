@@ -1,8 +1,12 @@
 'use client';
 
-import { Stethoscope } from 'lucide-react';
+import { Search, Stethoscope } from 'lucide-react';
 import { ReportDataTable } from '@/components/reports/report-data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencySwitcher } from '@/components/reports/currency-switcher';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
@@ -16,7 +20,7 @@ import { fmtMoney, fmtMultiCurrency } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import {
   Bar,
@@ -45,6 +49,9 @@ export default function ProduccionDoctorPage() {
   const [currency, setCurrency] = useState('all');
 
   const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const [minPctCobro, setMinPctCobro] = useState(0);
+  const [topN, setTopN] = useState('all');
 
   const [data, setData] = useState<ReportProduccionResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -104,13 +111,26 @@ export default function ProduccionDoctorPage() {
     },
   ];
 
-  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'produccion-doctor');
+  // Client-side filters applied on top of API data
+  const allRows = useMemo(() => data?.rows ?? [], [data]);
+  const filteredRows = useMemo(() => {
+    let rows = allRows;
+    if (doctorSearch) rows = rows.filter((r) => r.doctor_name.toLowerCase().includes(doctorSearch.toLowerCase()));
+    if (minPctCobro > 0) rows = rows.filter((r) => {
+      const p = Number(r.total_facturado) ? (Number(r.total_cobrado) / Number(r.total_facturado)) * 100 : 0;
+      return p >= minPctCobro;
+    });
+    if (topN !== 'all') rows = rows.slice(0, Number(topN));
+    return rows;
+  }, [allRows, doctorSearch, minPctCobro, topN]);
 
-  const facturadoByCurrency = (data?.rows ?? []).reduce<Record<string, number>>((acc, r) => {
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, filteredRows.length > 0 ? filteredRows : null, 'produccion-doctor');
+
+  const facturadoByCurrency = allRows.reduce<Record<string, number>>((acc, r) => {
     acc[r.currency] = (acc[r.currency] || 0) + Number(r.total_facturado || 0);
     return acc;
   }, {});
-  const cobradoByCurrency = (data?.rows ?? []).reduce<Record<string, number>>((acc, r) => {
+  const cobradoByCurrency = allRows.reduce<Record<string, number>>((acc, r) => {
     acc[r.currency] = (acc[r.currency] || 0) + Number(r.total_cobrado || 0);
     return acc;
   }, {});
@@ -119,13 +139,15 @@ export default function ProduccionDoctorPage() {
   const showMultiCurrency = currency === 'all' && activeCurrencies.length > 1;
   const displayCurrency = currency !== 'all' ? currency : activeCurrencies[0] ?? '';
   const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
-  const activeRows = (data?.rows ?? []).filter((r) => r.currency === activeCurrency);
+  const activeRows = allRows.filter((r) => r.currency === activeCurrency);
 
-  const chartData = activeRows.map((r) => ({
-    doctor: r.doctor_name.split(' ').slice(-1)[0],
-    facturado: Number(r.total_facturado),
-    cobrado: Number(r.total_cobrado),
-  }));
+  const chartData = filteredRows
+    .filter((r) => r.currency === activeCurrency)
+    .map((r) => ({
+      doctor: r.doctor_name.split(' ').slice(-1)[0],
+      facturado: Number(r.total_facturado),
+      cobrado: Number(r.total_cobrado),
+    }));
 
   const s = data?.summary;
 
@@ -142,6 +164,48 @@ export default function ProduccionDoctorPage() {
           <SelectItem value="USD">USD</SelectItem>
         </SelectContent>
       </Select>
+      {data && (
+        <>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              className="pl-8 h-8 text-xs w-40"
+              placeholder="Filtrar doctor..."
+              value={doctorSearch}
+              onChange={(e) => setDoctorSearch(e.target.value)}
+            />
+          </div>
+          <Select value={topN} onValueChange={setTopN}>
+            <SelectTrigger className="h-8 w-24 text-xs">
+              <SelectValue placeholder="Top N" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="5">Top 5</SelectItem>
+              <SelectItem value="10">Top 10</SelectItem>
+              <SelectItem value="20">Top 20</SelectItem>
+            </SelectContent>
+          </Select>
+          {minPctCobro > 0 && (
+            <Badge variant="outline" className="text-xs h-8 px-2 gap-1">
+              ≥{minPctCobro}% cobrado
+              <button className="ml-1 text-muted-foreground hover:text-foreground" onClick={() => setMinPctCobro(0)}>×</button>
+            </Badge>
+          )}
+          <div className="flex items-center gap-2 min-w-[160px]">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap shrink-0">% cobro mín</Label>
+            <Slider
+              min={0}
+              max={100}
+              step={5}
+              value={[minPctCobro]}
+              onValueChange={([v]) => setMinPctCobro(v)}
+              className="w-24"
+            />
+            <span className="text-xs tabular-nums w-8">{minPctCobro}%</span>
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -226,7 +290,7 @@ export default function ProduccionDoctorPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {activeRows.slice(0, 5).map((r) => {
+                  {filteredRows.filter((r) => r.currency === activeCurrency).slice(0, 5).map((r) => {
                     const pctVal = Number(r.total_facturado) ? (Number(r.total_cobrado) / Number(r.total_facturado)) * 100 : 0;
                     return (
                       <div key={r.doctor_id} className="space-y-1">
@@ -308,7 +372,7 @@ export default function ProduccionDoctorPage() {
             </div>
           )}
 
-          <ReportDataTable columns={columns} data={data.rows} useGlobalFilter />
+          <ReportDataTable columns={columns} data={filteredRows} useGlobalFilter />
         </>
       )}
     </ReportShell>

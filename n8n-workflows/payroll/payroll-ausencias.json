@@ -1,0 +1,230 @@
+{
+  "name": "Nóminas - Licencias y Ausencias",
+  "nodes": [
+    {
+      "id": "wh-ausencias-by-employee",
+      "name": "GET /payroll/ausencias/by-employee",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/ausencias/by-employee",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-ausencias-by-employee",
+      "name": "Ausencias By Employee",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT a.*, u.name AS employee_name, pe.user_id\nFROM payroll_ausencias a\nLEFT JOIN payroll_employees pe ON a.employee_id = pe.id\nLEFT JOIN users u ON pe.user_id = u.id\nWHERE (a.employee_id = $1::uuid OR pe.user_id = $1::uuid)\nORDER BY a.fecha_desde DESC",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.employee_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-ausencias-by-employee",
+      "name": "Respond Ausencias By Employee",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-ausencias-all",
+      "name": "GET /payroll/ausencias/all",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 280],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/ausencias/all",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-ausencias-all",
+      "name": "Ausencias All",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 280],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT a.*, u.name AS employee_name, pe.user_id\nFROM payroll_ausencias a\nLEFT JOIN payroll_employees pe ON a.employee_id = pe.id\nLEFT JOIN users u ON pe.user_id = u.id\nWHERE ($1::integer IS NULL OR a.clinic_id = $1::integer)\n  AND ($2::ausencia_tipo_enum IS NULL OR a.tipo = $2::ausencia_tipo_enum)\n  AND ($3::ausencia_estado_enum IS NULL OR a.estado = $3::ausencia_estado_enum)\nORDER BY a.fecha_desde DESC",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.query?.clinic_id ? Number($input.first().json.query.clinic_id) : null), ($input.first().json.query?.tipo || null), ($input.first().json.query?.estado || null)] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-ausencias-all",
+      "name": "Respond Ausencias All",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 280],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.all().map(i => i.json) } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-ausencias-upsert",
+      "name": "POST /payroll/ausencias/upsert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 460],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/ausencias/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-ausencias-upsert-parse",
+      "name": "Parse Ausencia",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 460],
+      "parameters": {
+        "jsCode": "const b = $input.first().json.body || $input.first().json;\nlet dias = b.dias;\nif ((dias == null || dias === '' || Number(dias) === 0) && b.fecha_desde && b.fecha_hasta) {\n  const d1 = new Date(b.fecha_desde), d2 = new Date(b.fecha_hasta);\n  if (!isNaN(d1) && !isNaN(d2)) dias = Math.round((d2 - d1) / 86400000) + 1;\n}\nreturn [{ json: {\n  id:            b.id || '',\n  employee_id:   b.employee_id || '',\n  clinic_id:     b.clinic_id ? String(b.clinic_id) : '',\n  tipo:          b.tipo || 'vacaciones',\n  fecha_desde:   b.fecha_desde || '',\n  fecha_hasta:   b.fecha_hasta || '',\n  dias:          dias != null ? String(dias) : '0',\n  justificada:   b.justificada === true || b.justificada === 'true',\n  pagada:        b.pagada === true || b.pagada === 'true',\n  estado:        b.estado || 'aprobada',\n  descripcion:   b.descripcion || '',\n  documento_url: b.documento_url || '',\n  aprobado_por:  b.aprobado_por || '',\n  created_by:    b.created_by || ''\n} }];"
+      }
+    },
+    {
+      "id": "pg-ausencias-upsert",
+      "name": "Upsert Ausencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 460],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO payroll_ausencias\n  (id, employee_id, clinic_id, tipo, fecha_desde, fecha_hasta, dias,\n   justificada, pagada, estado, descripcion, documento_url, aprobado_por, created_by)\nVALUES\n  (COALESCE(NULLIF($1,'')::uuid, gen_random_uuid()),\n   $2::uuid,\n   NULLIF($3,'')::integer,\n   $4::ausencia_tipo_enum,\n   $5::date, $6::date,\n   NULLIF($7,'')::decimal,\n   $8::boolean, $9::boolean,\n   $10::ausencia_estado_enum,\n   NULLIF($11,''), NULLIF($12,''), NULLIF($13,''),\n   NULLIF($14,'')::uuid)\nON CONFLICT (id) DO UPDATE SET\n  tipo          = EXCLUDED.tipo,\n  fecha_desde   = EXCLUDED.fecha_desde,\n  fecha_hasta   = EXCLUDED.fecha_hasta,\n  dias          = EXCLUDED.dias,\n  justificada   = EXCLUDED.justificada,\n  pagada        = EXCLUDED.pagada,\n  estado        = EXCLUDED.estado,\n  descripcion   = EXCLUDED.descripcion,\n  documento_url = EXCLUDED.documento_url,\n  aprobado_por  = EXCLUDED.aprobado_por\nRETURNING *",
+        "additionalFields": {
+          "queryParams": "={{ [$json.id,$json.employee_id,$json.clinic_id,$json.tipo,$json.fecha_desde,$json.fecha_hasta,$json.dias,$json.justificada,$json.pagada,$json.estado,$json.descripcion,$json.documento_url,$json.aprobado_por,$json.created_by] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-ausencias-upsert",
+      "name": "Respond Ausencia Upsert",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-ausencias-delete",
+      "name": "POST /payroll/ausencias/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 640],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payroll/ausencias/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-ausencias-delete",
+      "name": "Delete Ausencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 640],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM payroll_ausencias WHERE id = $1::uuid RETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [($input.first().json.body||$input.first().json).id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-ausencias-delete",
+      "name": "Respond Ausencia Delete",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 640],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json, success: true } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-vacation-balance",
+      "name": "GET /payroll/vacation-balance",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 820],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "payroll/vacation-balance",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-vacation-balance",
+      "name": "Vacation Balance",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 820],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH cfg AS (\n  SELECT COALESCE((SELECT setting_value::numeric FROM payroll_settings WHERE setting_key='vacation_days_per_year'), 20) AS base\n)\nSELECT\n  FLOOR((CURRENT_DATE - e.fecha_ingreso)/365.25)::int AS antiguedad_anios,\n  ROUND(\n    ((SELECT base FROM cfg) + FLOOR(FLOOR((CURRENT_DATE - e.fecha_ingreso)/365.25)/4.0))\n    * GREATEST((CURRENT_DATE - e.fecha_ingreso)/365.25, 0), 2) AS generados,\n  COALESCE((SELECT SUM(a.dias) FROM payroll_ausencias a\n            WHERE a.employee_id = e.id AND a.tipo='vacaciones' AND a.estado='aprobada'), 0) AS tomados\nFROM payroll_employees e\nWHERE e.id = $1::uuid",
+        "additionalFields": {
+          "queryParams": "={{ [$input.first().json.query?.employee_id] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-vacation-balance",
+      "name": "Respond Vacation Balance",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 820],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: (() => { const r = $input.first().json || {}; const gen = Number(r.generados||0); const tom = Number(r.tomados||0); return { generados: gen, tomados: tom, saldo: Math.round((gen - tom)*100)/100, antiguedad_anios: Number(r.antiguedad_anios||0) }; })() } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /payroll/ausencias/by-employee": { "main": [[{ "node": "Ausencias By Employee", "type": "main", "index": 0 }]] },
+    "Ausencias By Employee": { "main": [[{ "node": "Respond Ausencias By Employee", "type": "main", "index": 0 }]] },
+    "GET /payroll/ausencias/all": { "main": [[{ "node": "Ausencias All", "type": "main", "index": 0 }]] },
+    "Ausencias All": { "main": [[{ "node": "Respond Ausencias All", "type": "main", "index": 0 }]] },
+    "POST /payroll/ausencias/upsert": { "main": [[{ "node": "Parse Ausencia", "type": "main", "index": 0 }]] },
+    "Parse Ausencia": { "main": [[{ "node": "Upsert Ausencia", "type": "main", "index": 0 }]] },
+    "Upsert Ausencia": { "main": [[{ "node": "Respond Ausencia Upsert", "type": "main", "index": 0 }]] },
+    "POST /payroll/ausencias/delete": { "main": [[{ "node": "Delete Ausencia", "type": "main", "index": 0 }]] },
+    "Delete Ausencia": { "main": [[{ "node": "Respond Ausencia Delete", "type": "main", "index": 0 }]] },
+    "GET /payroll/vacation-balance": { "main": [[{ "node": "Vacation Balance", "type": "main", "index": 0 }]] },
+    "Vacation Balance": { "main": [[{ "node": "Respond Vacation Balance", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

@@ -169,7 +169,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         {isExpiringSoon && !isExpired && (
           <LicenseExpirationBanner daysLeft={daysLeft} />
         )}
-        <main className="flex-1 flex flex-col min-h-0 bg-background px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
+        <main className="flex-1 flex flex-col min-h-0 bg-background px-2 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
           <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 print:pt-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {children}
             {isExpired && !isInvokeUser && <LicenseExpiredScreen />}

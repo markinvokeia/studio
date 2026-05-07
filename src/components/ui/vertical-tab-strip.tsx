@@ -13,6 +13,8 @@ export interface VerticalTab {
   shortLabel?: string;
   /** If set, clicking this tab calls pushPanel instead of switching content */
   navigatesTo?: string;
+  /** Secondary line shown in the tab tooltip */
+  description?: string;
 }
 
 interface VerticalTabStripProps {
@@ -102,7 +104,7 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
                     type="button"
                     onClick={() => onTabClick(tab)}
                     className={cn(
-                      'relative flex items-center justify-center gap-1 h-10 px-2.5 sm:px-3 transition-all duration-150 whitespace-nowrap shrink-0',
+                      'relative flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 h-12 sm:h-10 px-2 sm:px-3 transition-all duration-150 whitespace-nowrap shrink-0',
                       isActive
                         ? 'text-primary'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
@@ -111,17 +113,18 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
                     aria-selected={isActive}
                   >
                     {isActive && (
-                      <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full bg-primary" />
+                      <span className="absolute bottom-0 left-1.5 right-1.5 h-0.5 rounded-t-full bg-primary" />
                     )}
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span className="text-xs font-medium">
+                    <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 shrink-0" />
+                    <span className="text-[10px] sm:text-xs font-medium leading-tight">
                       <span className="sm:hidden">{tab.shortLabel ?? tab.label}</span>
                       <span className="hidden sm:inline">{tab.label}</span>
                     </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs font-medium">
-                  {tab.label}
+                  <div>{tab.label}</div>
+                  {tab.description && <div className="text-[10px] text-muted-foreground font-normal">{tab.description}</div>}
                 </TooltipContent>
               </Tooltip>
             );

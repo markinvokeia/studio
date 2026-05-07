@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
+import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PayrollPeriod, PayrollEntry } from '@/lib/types';
 
-export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'payroll_period' | 'payroll_receipt' | 'payroll_report';
 
 export type PrintInvoiceRow = Invoice & { items: InvoiceItem[]; payments: Payment[] };
 
@@ -54,6 +54,24 @@ export type CajaSesionPrintData = {
   details: CajaSessionDetails;
 };
 
+export type PayrollPeriodPrintData = {
+  period: PayrollPeriod;
+  entries: PayrollEntry[];
+};
+
+export type PayrollReceiptPrintData = {
+  period: PayrollPeriod;
+  entries: PayrollEntry[];
+};
+
+/** Generic tabular report (used to print any data report as PDF). */
+export type PayrollReportPrintData = {
+  title: string;
+  subtitle?: string;
+  columns: string[];
+  rows: (string | number)[][];
+};
+
 export type PrintData =
   | QuotePrintData
   | InvoicePrintData
@@ -63,7 +81,10 @@ export type PrintData =
   | FinancialSummaryPrintData
   | CajaAperturaPrintData
   | CajaCierrePrintData
-  | CajaSesionPrintData;
+  | CajaSesionPrintData
+  | PayrollPeriodPrintData
+  | PayrollReceiptPrintData
+  | PayrollReportPrintData;
 
 interface PrintDocumentStore {
   isActive: boolean;

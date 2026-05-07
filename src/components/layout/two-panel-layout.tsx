@@ -121,7 +121,7 @@ export function TwoPanelLayout({
                             className="h-full relative overflow-hidden"
                             id="left-panel-v4"
                         >
-                            <div ref={leftPanelRef} className="absolute inset-0 overflow-hidden px-1">
+                            <div ref={leftPanelRef} className="absolute inset-0 overflow-hidden px-3">
                                 <NarrowModeContext.Provider value={{ isNarrow }}>
                                     {leftPanel}
                                 </NarrowModeContext.Provider>
@@ -142,7 +142,7 @@ export function TwoPanelLayout({
                                 className="h-full relative overflow-hidden"
                                 id="right-panel-v4"
                             >
-                                <div className="absolute inset-0 overflow-hidden px-1">
+                                <div className="absolute inset-0 overflow-hidden px-3">
                                     {rightPanel}
                                 </div>
                             </Panel>
@@ -160,7 +160,11 @@ export function TwoPanelLayout({
                 <div
                     ref={leftPanelRef}
                     className={cn(
-                        "h-full min-h-0 overflow-hidden px-1",
+                        "overflow-hidden flex flex-col px-1",
+                        // Mobile: fixed overlay starting just below the hamburger button (top-12 = 48px)
+                        "fixed inset-x-0 top-12 bottom-6 z-[38] bg-background",
+                        // sm+: back to normal in-flow layout
+                        "sm:static sm:inset-auto sm:h-full sm:min-h-0 sm:z-auto sm:bg-transparent",
                         isRightPanelOpen ? "hidden" : "block"
                     )}
                 >
@@ -169,12 +173,18 @@ export function TwoPanelLayout({
                     </NarrowModeContext.Provider>
                 </div>
                 {isRightPanelOpen && (
-                    <div className="h-full min-h-0 overflow-hidden flex flex-col px-1">
+                    <div className={cn(
+                        "flex flex-col overflow-hidden px-1",
+                        // Mobile: fixed overlay from viewport top-0 so no gap above the back button
+                        "fixed inset-x-0 top-0 bottom-6 z-[39] bg-background",
+                        // sm+: back to normal in-flow layout
+                        "sm:static sm:inset-auto sm:bottom-auto sm:h-full sm:min-h-0 sm:z-auto sm:bg-transparent",
+                    )}>
                         {onBack && (
                             <button
                                 type="button"
                                 onClick={onBack}
-                                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-background border-b border-border flex-none"
+                                className="flex items-center gap-1.5 px-3 py-2 mt-12 sm:mt-0 text-sm font-medium text-muted-foreground hover:text-foreground bg-background border-b border-border flex-none"
                             >
                                 <ChevronLeft className="h-4 w-4" />
                                 Atrás

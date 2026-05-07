@@ -4,6 +4,7 @@ import { TrendingUp } from 'lucide-react';
 import { ReportDataTable } from '@/components/reports/report-data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencySwitcher } from '@/components/reports/currency-switcher';
 import { ReportKPICard } from '@/components/reports/report-kpi-card';
@@ -15,8 +16,10 @@ import type { ReportComparativoResponse, ReportComparativoRow } from '@/lib/type
 import { fmtMoney } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
   Legend,
   Line,
@@ -45,11 +48,16 @@ export default function ComparativoProduccionPage() {
   const currentYear = new Date().getFullYear();
 
   const [year, setYear] = useState(String(currentYear));
+  const [compareYear, setCompareYear] = useState('none');
   const [currency, setCurrency] = useState('all');
-
   const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');
+
+  // Multi-doctor visibility toggle
+  const [hiddenDoctors, setHiddenDoctors] = useState<Set<string>>(new Set());
 
   const [data, setData] = useState<ReportComparativoResponse | null>(null);
+  const [compareData, setCompareData] = useState<ReportComparativoResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGenerate = useCallback(async () => {
@@ -59,39 +67,68 @@ export default function ComparativoProduccionPage() {
       if (currency !== 'all') query.currency = currency;
       const res = await api.get(API_ROUTES.REPORTS.COMPARATIVO_PROD, query);
       setData(res?.data ?? null);
+      setHiddenDoctors(new Set()); // reset visibility on new data
+
+      if (compareYear !== 'none') {
+        const cmpRes = await api.get(API_ROUTES.REPORTS.COMPARATIVO_PROD, { ...query, year: compareYear });
+        setCompareData(cmpRes?.data ?? null);
+      } else {
+        setCompareData(null);
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [year, currency]);
+  }, [year, compareYear, currency]);
 
   const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
   const activeRows = (data?.rows ?? []).filter((r) => r.currency === activeCurrency);
+  const compareRows = (compareData?.rows ?? []).filter((r) => r.currency === activeCurrency);
 
-  // Build chart data: 12 months × N doctors (filtered by activeCurrency)
-  const doctors = [...new Set(activeRows.map((r) => r.doctor_name))];
+  const allDoctors = useMemo(() => [...new Set(activeRows.map((r) => r.doctor_name))], [activeRows]);
+  const visibleDoctors = allDoctors.filter((d) => !hiddenDoctors.has(d));
+
+  const toggleDoctor = (doc: string) => {
+    setHiddenDoctors((prev) => {
+      const next = new Set(prev);
+      if (next.has(doc)) next.delete(doc); else next.add(doc);
+      return next;
+    });
+  };
+
+  // Build chart data: 12 months × visible doctors
   const chartData = MONTHS.map((label, i) => {
     const mesNum = i + 1;
     const entry: Record<string, number | string> = { mes: label };
-    for (const doc of doctors) {
+    for (const doc of visibleDoctors) {
       const row = activeRows.find((r) => r.mes_num === mesNum && r.doctor_name === doc);
       entry[doc] = row ? Number(row.total_facturado) : 0;
+    }
+    // Add compare year total line if loaded
+    if (compareData) {
+      const cmpTotal = compareRows.filter((r) => r.mes_num === mesNum).reduce((s, r) => s + Number(r.total_facturado), 0);
+      entry[`${compareYear} (total)`] = cmpTotal;
     }
     return entry;
   });
 
-  // Summary: best month, current month, avg (filtered by activeCurrency)
   const totalByMonth = MONTHS.map((_, i) => {
     const mesNum = i + 1;
-    return activeRows
-      .filter((r) => r.mes_num === mesNum)
-      .reduce((s, r) => s + Number(r.total_facturado), 0);
+    return activeRows.filter((r) => r.mes_num === mesNum).reduce((s, r) => s + Number(r.total_facturado), 0);
   });
   const bestMonthVal = Math.max(...(totalByMonth.length ? totalByMonth : [0]));
   const bestMonthLabel = MONTHS[totalByMonth.indexOf(bestMonthVal)] ?? '-';
   const currentMonthVal = totalByMonth[new Date().getMonth()] ?? 0;
-  const avgMonthly = totalByMonth.length
-    ? totalByMonth.filter(Boolean).reduce((s, v) => s + v, 0) / (totalByMonth.filter(Boolean).length || 1)
-    : 0;
+  const avgMonthly = totalByMonth.filter(Boolean).reduce((s, v) => s + v, 0) / (totalByMonth.filter(Boolean).length || 1);
+
+  // YoY delta vs compare year
+  const cmpTotal = compareRows.reduce((s, r) => s + Number(r.total_facturado), 0);
+  const mainTotal = activeRows.reduce((s, r) => s + Number(r.total_facturado), 0);
+  const yoyDelta = cmpTotal ? ((mainTotal - cmpTotal) / cmpTotal) * 100 : null;
+
+  const filteredTableRows = useMemo(() =>
+    activeRows.filter((r) => !hiddenDoctors.has(r.doctor_name)),
+    [activeRows, hiddenDoctors]
+  );
 
   const columns: ColumnDef<ReportComparativoRow>[] = [
     { accessorKey: 'mes', header: t('col_mes') },
@@ -113,7 +150,7 @@ export default function ComparativoProduccionPage() {
     },
   ];
 
-  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, data?.rows ?? null, 'comparativo-produccion');
+  const { exportCSV, exportExcel, exportPDF } = useReportExport(columns, filteredTableRows.length > 0 ? filteredTableRows : null, 'comparativo-produccion');
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
 
@@ -133,6 +170,20 @@ export default function ComparativoProduccionPage() {
         </Select>
       </div>
       <div className="flex items-center gap-2">
+        <Label className="text-xs whitespace-nowrap">vs.</Label>
+        <Select value={compareYear} onValueChange={setCompareYear}>
+          <SelectTrigger className="h-8 w-24 text-xs">
+            <SelectValue placeholder="Comparar" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Sin comp.</SelectItem>
+            {yearOptions.filter((y) => y !== year).map((y) => (
+              <SelectItem key={y} value={y}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center gap-2">
         <Label className="text-xs whitespace-nowrap">{t('filter_currency')}</Label>
         <Select value={currency} onValueChange={setCurrency}>
           <SelectTrigger className="h-8 w-24 text-xs">
@@ -145,13 +196,25 @@ export default function ComparativoProduccionPage() {
           </SelectContent>
         </Select>
       </div>
+      <div className="flex items-center gap-2">
+        <Label className="text-xs whitespace-nowrap">Gráfico</Label>
+        <Select value={chartMode} onValueChange={(v) => setChartMode(v as 'line' | 'bar')}>
+          <SelectTrigger className="h-8 w-24 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="line">Líneas</SelectItem>
+            <SelectItem value="bar">Barras</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 
   return (
     <ReportShell
       icon={TrendingUp}
-            title={t('title')}
+      title={t('title')}
       description={t('description')}
       filters={filters}
       onGenerate={handleGenerate}
@@ -167,47 +230,92 @@ export default function ComparativoProduccionPage() {
             <ReportKPICard title={t('kpi_mejor')} value={bestMonthLabel} subtitle={currency !== 'all' ? fmtMoney(bestMonthVal, currency) : fmt(bestMonthVal)} />
             <ReportKPICard title={t('kpi_actual')} value={currency !== 'all' ? fmtMoney(currentMonthVal, currency) : fmt(currentMonthVal)} />
             <ReportKPICard title={t('kpi_promedio')} value={currency !== 'all' ? fmtMoney(avgMonthly, currency) : fmt(avgMonthly)} />
-            <ReportKPICard title={t('kpi_num_doctores')} value={doctors.length} />
+            <ReportKPICard title={t('kpi_num_doctores')} value={visibleDoctors.length} subtitle={hiddenDoctors.size > 0 ? `${hiddenDoctors.size} ocultados` : undefined} />
+            {yoyDelta !== null && (
+              <ReportKPICard
+                title={`vs ${compareYear}`}
+                value={`${yoyDelta >= 0 ? '+' : ''}${yoyDelta.toFixed(1)}%`}
+                variant={yoyDelta >= 0 ? 'success' : 'default'}
+              />
+            )}
           </div>
+
+          {/* Doctor visibility toggles */}
+          {allDoctors.length > 1 && (
+            <div className="flex flex-wrap gap-1.5 print:hidden">
+              <span className="text-xs text-muted-foreground self-center mr-1">Doctores:</span>
+              {allDoctors.map((doc, i) => (
+                <Badge
+                  key={doc}
+                  variant={hiddenDoctors.has(doc) ? 'outline' : 'secondary'}
+                  className="cursor-pointer text-xs select-none transition-opacity"
+                  style={{ borderLeftColor: LINE_COLORS[i % LINE_COLORS.length], borderLeftWidth: 3 }}
+                  onClick={() => toggleDoctor(doc)}
+                >
+                  {doc.split(' ').slice(-1)[0]}
+                </Badge>
+              ))}
+              {hiddenDoctors.size > 0 && (
+                <Badge
+                  variant="outline"
+                  className="cursor-pointer text-xs text-muted-foreground"
+                  onClick={() => setHiddenDoctors(new Set())}
+                >
+                  Mostrar todos
+                </Badge>
+              )}
+            </div>
+          )}
 
           <div className="print:hidden">
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-sm font-medium">{t('chart_title')} {year}</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    {t('chart_title')} {year}{compareYear !== 'none' ? ` vs ${compareYear}` : ''}
+                  </CardTitle>
                   {currency === 'all' && <CurrencySwitcher value={chartCurrency} onChange={setChartCurrency} />}
                 </div>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => fmt(v)} />
-                    <Tooltip formatter={(v: number) => fmt(v)} />
-                    <Legend />
-                    {doctors.map((doc, i) => (
-                      <Line
-                        key={doc}
-                        type="monotone"
-                        dataKey={doc}
-                        stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                        strokeWidth={2}
-                        dot={false}
-                      />
-                    ))}
-                  </LineChart>
+                  {chartMode === 'line' ? (
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => fmt(v)} />
+                      <Tooltip formatter={(v: number) => fmt(v)} />
+                      <Legend />
+                      {visibleDoctors.map((doc, i) => (
+                        <Line key={doc} type="monotone" dataKey={doc} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={2} dot={false} />
+                      ))}
+                      {compareData && (
+                        <Line type="monotone" dataKey={`${compareYear} (total)`} stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} strokeDasharray="5 3" dot={false} />
+                      )}
+                    </LineChart>
+                  ) : (
+                    <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => fmt(v)} />
+                      <Tooltip formatter={(v: number) => fmt(v)} />
+                      <Legend />
+                      {visibleDoctors.map((doc, i) => (
+                        <Bar key={doc} dataKey={doc} stackId="a" fill={LINE_COLORS[i % LINE_COLORS.length]} radius={i === visibleDoctors.length - 1 ? [3, 3, 0, 0] : [0, 0, 0, 0]} />
+                      ))}
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
 
-          {/* Print: dual-currency layout — only shown when Ambos is selected */}
+          {/* Print: dual-currency layout */}
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
               {(['UYU', 'USD'] as const).map((cur) => {
                 const curRows = (data?.rows ?? []).filter(r => r.currency === cur);
-                const curDoctors = [...new Set(curRows.map(r => r.doctor_name))];
+                const curDoctors = [...new Set(curRows.map(r => r.doctor_name))].filter(d => !hiddenDoctors.has(d));
                 const curChartData = MONTHS.map((label, i) => {
                   const mesNum = i + 1;
                   const entry: Record<string, number | string> = { mes: label };
@@ -231,14 +339,7 @@ export default function ComparativoProduccionPage() {
                           <Tooltip formatter={(v: number) => fmt(v)} />
                           <Legend />
                           {curDoctors.map((doc, i) => (
-                            <Line
-                              key={doc}
-                              type="monotone"
-                              dataKey={doc}
-                              stroke={LINE_COLORS[i % LINE_COLORS.length]}
-                              strokeWidth={2}
-                              dot={false}
-                            />
+                            <Line key={doc} type="monotone" dataKey={doc} stroke={LINE_COLORS[i % LINE_COLORS.length]} strokeWidth={2} dot={false} />
                           ))}
                         </LineChart>
                       </ResponsiveContainer>
@@ -249,7 +350,7 @@ export default function ComparativoProduccionPage() {
             </div>
           )}
 
-          <ReportDataTable columns={columns} data={data.rows} useGlobalFilter />
+          <ReportDataTable columns={columns} data={filteredTableRows} useGlobalFilter />
         </>
       )}
     </ReportShell>

@@ -6,9 +6,11 @@ import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { ClinicInfo } from '@/hooks/useClinicInfo';
-import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData, CajaAperturaPrintData, CajaCierrePrintData, CajaSesionPrintData } from '@/stores/print-document-store';
-import type { FinancialSummaryMovement, CajaSessionMovement, CajaSessionDetails } from '@/lib/types';
+import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData, CajaAperturaPrintData, CajaCierrePrintData, CajaSesionPrintData, PayrollPeriodPrintData } from '@/stores/print-document-store';
+import type { FinancialSummaryMovement, CajaSessionMovement, CajaSessionDetails, PayrollEntry } from '@/lib/types';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
+import { getMonthName } from '@/components/payroll/payroll-utils';
+import { PAYROLL_DETAIL_PRINT_COLUMNS, parsePayrollParams } from '@/components/payroll/payroll-detail-columns';
 
 interface CustomTemplateRendererProps {
   html: string;
@@ -313,6 +315,65 @@ function buildClinicValues(clinic: ClinicInfo | null): Record<string, string> {
 
 type Translator = ReturnType<typeof useTranslations>;
 
+// ── Payroll period table builders (tokens for the editable payroll template) ───
+function payrollSum(entries: PayrollEntry[], f: keyof PayrollEntry): number {
+  return entries.reduce((s, e) => s + Number((e[f] as number) ?? 0), 0);
+}
+
+function buildPayrollSummaryTable(entries: PayrollEntry[], t: Translator): string {
+  const tt = (k: string) => t(`payrollPeriod.${k}`);
+  const row = (label: string, f: keyof PayrollEntry, strong = false) =>
+    `<tr${strong ? ' style="font-weight:700;"' : ''}><td>${label}</td><td style="text-align:right;">$ ${fmt(payrollSum(entries, f), 'UYU')}</td></tr>`;
+  return `<table class="print-template-table" style="width:100%;"><tbody>
+    ${row(tt('gross'), 'gross_salary')}
+    ${row(tt('bpsEmployee'), 'bps_employee')}
+    ${row(tt('fonasaEmployee'), 'fonasa_employee')}
+    ${row(tt('frlEmployee'), 'frl_employee')}
+    ${row(tt('irpf'), 'irpf_withholding')}
+    ${row(tt('other'), 'other_deductions')}
+    ${row(tt('totalDeductions'), 'total_deductions')}
+    ${row(tt('net'), 'net_salary', true)}
+    ${row(tt('bpsEmployer'), 'bps_employer')}
+    ${row(tt('fonasaEmployer'), 'fonasa_employer')}
+    ${row(tt('frlEmployer'), 'frl_employer')}
+    ${row(tt('fgcl'), 'fgcl_employer')}
+    ${row(tt('bse'), 'bse_employer')}
+    ${row(tt('aguinaldo'), 'aguinaldo_provision')}
+    ${row(tt('vacation'), 'vacation_provision')}
+    ${row(tt('employerCost'), 'total_employer_cost', true)}
+  </tbody></table>`;
+}
+
+function buildPayrollAnnexTable(entries: PayrollEntry[], t: Translator): string {
+  const tt = (k: string) => t(`payrollPeriod.${k}`);
+  const cols: Array<[string, keyof PayrollEntry]> = [
+    [tt('gross'), 'gross_salary'], [tt('bpsEmployee'), 'bps_employee'], [tt('fonasaEmployee'), 'fonasa_employee'],
+    [tt('frlEmployee'), 'frl_employee'], [tt('irpf'), 'irpf_withholding'], [tt('other'), 'other_deductions'],
+    [tt('totalDeductions'), 'total_deductions'], [tt('net'), 'net_salary'], [tt('employerCost'), 'total_employer_cost'],
+  ];
+  const head = `<th style="text-align:left;">${tt('employee')}</th><th style="text-align:right;">${tt('colSessions')}</th>${cols.map(([l]) => `<th style="text-align:right;">${l}</th>`).join('')}`;
+  const rows = entries.map((e) =>
+    `<tr><td>${e.doctor_name ?? ''}</td><td style="text-align:right;">${e.sessions_count ?? 0}</td>${cols.map(([, f]) => `<td style="text-align:right;">$ ${fmt(Number(e[f] ?? 0), 'UYU')}</td>`).join('')}</tr>`).join('');
+  return `<table class="print-template-table" style="width:100%;font-size:0.7rem;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function buildPayrollAnnex2Table(entries: PayrollEntry[], t: Translator): string {
+  const cols = PAYROLL_DETAIL_PRINT_COLUMNS();
+  const head = cols.map((c) =>
+    `<th style="text-align:${c.labelKey === 'employee' ? 'left' : 'right'};">${t(`payrollPeriod.${c.labelKey}`)}</th>`).join('');
+  const rows = entries.map((e) => {
+    const cp = parsePayrollParams(e.calculation_params);
+    return `<tr>${cols.map((c) => {
+      const v = c.get(e, cp);
+      const display = c.currency ? `$ ${fmt(Number(v), 'UYU')}`
+        : c.rate ? `${(Number(v) * 100).toFixed(2)}%`
+        : String(v);
+      return `<td style="text-align:${c.labelKey === 'employee' ? 'left' : 'right'};">${display}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+  return `<table class="print-template-table" style="width:100%;font-size:0.6rem;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 /** Translates a status code (e.g. "booked", "unpaid") to its label, falling back to the raw value. */
 function translateStatus(t: Translator, namespace: string, value: string | undefined | null): string {
   if (!value) return '';
@@ -480,6 +541,17 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       date_from:     dateFrom ? formatDisplayDate(dateFrom) : '',
       date_to:       dateTo   ? formatDisplayDate(dateTo)   : '',
       movements_table: movementsTable,
+    });
+  } else if (type === 'payroll_period') {
+    const d = data as PayrollPeriodPrintData;
+    const { period, entries } = d;
+    const statusKey = `payrollPeriod.statusLabels.${period.status}`;
+    Object.assign(values, {
+      period_label:  `${getMonthName(period.period_month)} ${period.period_year}`,
+      status:        t.has(statusKey) ? t(statusKey) : period.status,
+      summary_table: buildPayrollSummaryTable(entries, t),
+      annex_table:   buildPayrollAnnexTable(entries, t),
+      annex2_table:  buildPayrollAnnex2Table(entries, t),
     });
   }
 
