@@ -5388,5 +5388,21 @@
       "delete": "Eliminar sesión",
       "deleteConfirm": "Esta sesión será eliminada permanentemente. ¿Continuar?"
     }
+  },
+  "StickyNotes": {
+    "openNotes": "Notas rápidas",
+    "newNote": "Nueva nota",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edit": "Editar nota",
+    "delete": "Eliminar nota",
+    "listening": "Escuchando...",
+    "startListening": "Iniciar voz",
+    "stopListening": "Detener voz",
+    "micError": "No se pudo acceder al micrófono.",
+    "saveError": "Error al guardar la nota. Intenta de nuevo.",
+    "deleteError": "Error al eliminar la nota. Intenta de nuevo.",
+    "loadError": "Error al cargar las notas.",
+    "empty": "Sin notas aún"
   }
 }

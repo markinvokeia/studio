@@ -1,0 +1,104 @@
+{
+  "name": "Sticky Notes - Listar",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "sticky-notes",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-extract-user",
+      "name": "Extraer User ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Decodifica el JWT del header Authorization para obtener el user_id\nconst headers = $input.first().json.headers || {};\nconst authHeader = (headers.authorization || headers.Authorization || '').toString();\nconst token = authHeader.replace(/^Bearer\\s+/i, '').trim();\n\nif (!token) {\n  throw new Error('Authorization token requerido');\n}\n\nconst parts = token.split('.');\nif (parts.length !== 3) {\n  throw new Error('Formato de token inválido');\n}\n\ntry {\n  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');\n  const padding = '='.repeat((4 - base64.length % 4) % 4);\n  const payload = JSON.parse(Buffer.from(base64 + padding, 'base64').toString('utf8'));\n  const userId = payload.sub || payload.id || payload.user_id || payload.userId;\n  if (!userId) throw new Error('user_id no encontrado en el token');\n  return [{ json: { user_id: String(userId) } }];\n} catch (e) {\n  throw new Error('Error al decodificar token: ' + e.message);\n}"
+      }
+    },
+    {
+      "id": "node-pg-select",
+      "name": "Buscar Notas",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id,\n  text,\n  color,\n  created_by,\n  created_at,\n  updated_at,\n  status\nFROM sticky_notes\nWHERE created_by = $1::uuid\n  AND status != 'deleted'\nORDER BY created_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300],
+      "parameters": {
+        "jsCode": "// Devuelve array de notas (o array vacío si no hay resultados)\nconst items = $input.all();\n\n// Si el único item es un error de Postgres, lanzarlo\nif (items.length === 1 && items[0].json.error) {\n  throw new Error('Error en base de datos: ' + (items[0].json.error?.message || String(items[0].json.error)));\n}\n\nconst notes = items\n  .map(i => i.json)\n  .filter(n => n.id != null);\n\nreturn [{ json: notes }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Extraer User ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extraer User ID": {
+      "main": [
+        [{ "node": "Buscar Notas", "type": "main", "index": 0 }]
+      ]
+    },
+    "Buscar Notas": {
+      "main": [
+        [{ "node": "Formatear Respuesta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión.\n2. En el nodo 'Buscar Notas', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nGET https://<tu-n8n>/webhook/sticky-notes\n\nAUTENTICACIÓN:\nRequiere header: Authorization: Bearer <JWT>\nEl token se decodifica para extraer el user_id (soporta claims: sub, id, user_id, userId)\n\nRESPUESTA:\nArray de notas activas del usuario, ordenadas por fecha de creación descendente:\n[\n  {\n    \"id\": \"uuid\",\n    \"text\": \"Texto de la nota\",\n    \"color\": \"yellow\",\n    \"created_by\": \"uuid\",\n    \"created_at\": \"2026-05-07T12:00:00\",\n    \"updated_at\": null,\n    \"status\": \"active\"\n  }\n]\n\nTABLA REQUERIDA: sticky_notes (ver changelog_20260507_1200.xml)"
+  }
+}
