@@ -5075,6 +5075,10 @@
     "ttsEnable": "Activar voz",
     "ttsDisable": "Silenciar voz"
   },
+  "VoiceInput": {
+    "startDictation": "Iniciar dictado",
+    "stopDictation": "Detener dictado"
+  },
   "TreatmentPlans": {
     "title": "Planes de Tratamiento",
     "loading": "Cargando planes...",

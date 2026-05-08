@@ -5107,6 +5107,10 @@
     "ttsEnable": "Enable voice",
     "ttsDisable": "Mute voice"
   },
+  "VoiceInput": {
+    "startDictation": "Start dictation",
+    "stopDictation": "Stop dictation"
+  },
   "TreatmentPlans": {
     "title": "Treatment Plans",
     "loading": "Loading plans...",
