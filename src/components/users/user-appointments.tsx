@@ -10,8 +10,12 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
+import { Appointment, AppointmentStatus, CancellationReason, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
+import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
+import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { FileText, Stethoscope, Calendar as CalendarIcon, Clock, UserCircle, RefreshCw, Info } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -26,7 +30,15 @@ const isWhite = (color: string | null | undefined) => {
   return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
 };
 
-const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
+const getColumns = (
+  t: (key: string) => string,
+  onStatusChange: (
+    appointment: Appointment,
+    newStatus: AppointmentStatus,
+    extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string },
+  ) => void,
+  onRequestCustomCancellation: (appointment: Appointment) => void,
+): ColumnDef<Appointment>[] => [
   {
     accessorKey: 'summary',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} />,
@@ -62,19 +74,15 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
     cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      const variant = {
-        completed: 'success',
-        confirmed: 'default',
-        pending: 'info',
-        cancelled: 'destructive',
-        scheduled: 'info',
-      }[status.toLowerCase()] ?? ('default' as any);
-
+      const appointment = row.original;
       return (
-        <Badge variant={variant} className="capitalize">
-          {tStatus(status.toLowerCase())}
-        </Badge>
+        <div onClick={(e) => e.stopPropagation()}>
+          <AppointmentStatusMenu
+            appointment={appointment}
+            onChange={(s, extra) => onStatusChange(appointment, s, extra)}
+            onRequestCustomCancellation={() => onRequestCustomCancellation(appointment)}
+          />
+        </div>
       );
     },
   },
@@ -167,7 +175,7 @@ async function getAppointmentsForUser(
         description: apiAppt.description || '',
         date: format(appointmentDateTime, 'yyyy-MM-dd'),
         time: format(appointmentDateTime, 'HH:mm'),
-        status: apiAppt.status || 'confirmed',
+        status: normalizeAppointmentStatus(apiAppt.status),
         created_at: apiAppt.created_at || apiAppt.createdat,
         google_calendar_id: apiAppt.google_calendar_id || undefined,
         calendar_source_id: apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '',
@@ -244,7 +252,6 @@ interface UserAppointmentsProps {
 
 export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps) {
   const t = useTranslations('AppointmentsColumns');
-  const tStatus = useTranslations('AppointmentStatus');
   const tAppointmentsPage = useTranslations('AppointmentsPage');
   const tUserAppointments = useTranslations('UserAppointments');
   const { hasPermission } = usePermissions();
@@ -261,7 +268,47 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   const [linkedSessions, setLinkedSessions] = React.useState<PatientSession[]>([]);
   const [isLoadingLinkedSessions, setIsLoadingLinkedSessions] = React.useState(false);
 
-  const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
+  const { updateStatus } = useAppointmentStatus({
+    onSuccess: (appt, newStatus) => {
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === appt.id ? { ...a, status: newStatus } : a)),
+      );
+      setSelectedAppointment((prev) =>
+        prev && prev.id === appt.id ? { ...prev, status: newStatus } : prev,
+      );
+    },
+  });
+
+  const handleStatusChange = React.useCallback(
+    (
+      appointment: Appointment,
+      newStatus: AppointmentStatus,
+      extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string },
+    ) => {
+      updateStatus({ appointment, newStatus, ...extra });
+    },
+    [updateStatus],
+  );
+
+  const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
+  const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
+    setPendingCancellation(appointment);
+  }, []);
+  const handleConfirmCustomCancellation = React.useCallback((note: string) => {
+    if (!pendingCancellation) return;
+    updateStatus({
+      appointment: pendingCancellation,
+      newStatus: 'cancelled',
+      cancellation_reason: 'other',
+      cancellation_note: note,
+    });
+    setPendingCancellation(null);
+  }, [pendingCancellation, updateStatus]);
+
+  const columns = React.useMemo(
+    () => getColumns(t, handleStatusChange, handleRequestCustomCancellation),
+    [t, handleStatusChange, handleRequestCustomCancellation],
+  );
 
   const loadCalendars = React.useCallback(async () => {
     const fetchedCalendars = await getCalendars();
@@ -381,33 +428,23 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             isNarrow={isViewportNarrow}
-            renderCard={(appointment: Appointment, _isSelected: boolean) => {
-              const statusLower = appointment.status?.toLowerCase() || '';
-              const statusVariant = ({
-                completed: 'success',
-                confirmed: 'default',
-                pending: 'info',
-                cancelled: 'destructive',
-                scheduled: 'info',
-              }[statusLower] ?? 'default') as any;
-              return (
-                <DataCard isSelected={_isSelected}
-                  title={appointment.summary || '-'}
-                  subtitle={`${appointment.date || ''} ${appointment.time || ''}`.trim()}
-                  badge={
-                    statusLower ? (
-                      <Badge variant={statusVariant} className="capitalize text-[10px]">
-                        {tStatus(statusLower)}
-                      </Badge>
-                    ) : undefined
-                  }
-                  fields={[
-                    { label: t('doctor'), value: appointment.doctorName || '-' },
-                    { label: t('quoteDocNo'), value: appointment.quote_doc_no || '-' },
-                  ]}
-                />
-              );
-            }}
+            renderCard={(appointment: Appointment, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
+                title={appointment.summary || '-'}
+                subtitle={`${appointment.date || ''} ${appointment.time || ''}`.trim()}
+                badge={
+                  <AppointmentStatusMenu
+                    appointment={appointment}
+                    onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
+                    onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                  />
+                }
+                fields={[
+                  { label: t('doctor'), value: appointment.doctorName || '-' },
+                  { label: t('quoteDocNo'), value: appointment.quote_doc_no || '-' },
+                ]}
+              />
+            )}
             columnTranslations={{
               service_name: t('service'),
               doctorName: t('doctor'),
@@ -449,16 +486,12 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
                       {tUserAppointments('appointmentDetails')}
                     </SheetDescription>
                   </div>
-                  <Badge
-                    variant={
-                      selectedAppointment.status === 'completed' ? 'success' :
-                      selectedAppointment.status === 'cancelled' ? 'destructive' :
-                      selectedAppointment.status === 'pending' ? 'info' : 'default'
-                    }
-                    className="capitalize shrink-0"
-                  >
-                    {tStatus(selectedAppointment.status.toLowerCase())}
-                  </Badge>
+                  <AppointmentStatusMenu
+                    appointment={selectedAppointment}
+                    onChange={(s, extra) => handleStatusChange(selectedAppointment, s, extra)}
+                    onRequestCustomCancellation={() => handleRequestCustomCancellation(selectedAppointment)}
+                    className="shrink-0"
+                  />
                 </div>
               </div>
             </div>
@@ -578,6 +611,11 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
           </div>
         )}
       </ResizableSheet>
+      <CancellationNoteDialog
+        open={!!pendingCancellation}
+        onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
+        onConfirm={handleConfirmCustomCancellation}
+      />
     </>
   );
 }

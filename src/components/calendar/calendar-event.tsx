@@ -10,6 +10,10 @@ import {
 
 import type { Locale } from 'date-fns';
 
+import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { cn } from '@/lib/utils';
+import type { AppointmentStatus } from '@/lib/types';
+
 import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
@@ -29,20 +33,27 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   onEventColorChange,
   onEventContextMenu,
 }: CalendarEventChipProps) {
+  const rawStatus = event.data?.status as string | undefined;
+  const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
+  const isCancelled = status === 'cancelled';
+  const accentColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
+
   return (
     <ContextMenu>
       <ContextMenuTrigger>
         <div
           data-testid="calendar-event"
-          className="event"
-          style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+          className={cn('event', isCancelled && 'event-cancelled')}
+          style={{ backgroundColor: isCancelled ? undefined : (event.color || 'hsl(var(--primary))') }}
           onClick={(e) => {
             if (e.button !== 0) return;
             e.stopPropagation();
             onEventClick(event.data);
           }}
         >
-          <span className="mr-2" style={{ backgroundColor: event.color }}>&nbsp;</span>
+          {accentColor && !isCancelled && (
+            <span className="event-status-accent" style={{ backgroundColor: accentColor }} />
+          )}
           <span className="event-time">{formatEventTime(event.start, dateLocale)}</span>
           <span className="event-title">{event.title}</span>
         </div>

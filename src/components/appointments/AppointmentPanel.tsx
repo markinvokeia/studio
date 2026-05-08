@@ -1,6 +1,5 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Separator } from '@/components/ui/separator';
@@ -10,11 +9,15 @@ import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { InvoiceDetailSheet } from '@/components/appointments/InvoiceDetailSheet';
-import { Appointment, Invoice, Order, PatientSession } from '@/lib/types';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
+import { ALLOWED_STATUS_TRANSITIONS, canReschedule } from '@/constants/appointment-status';
+import { Appointment, AppointmentStatus, Invoice, Order, PatientSession } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import {
   CalendarClock, Users, UserSquare, FileText, Receipt, Stethoscope, CreditCard,
   Edit, Trash2, Loader2, ClipboardList,
+  CalendarCheck, UserCheck, PlayCircle, CheckCircle2, UserX,
+  CalendarSync,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -33,6 +36,13 @@ interface AppointmentPanelProps {
   onEdit: (appointment: Appointment) => void;
   onCancel: (appointment: Appointment) => void;
   onOpenClinicSession: (appointment: Appointment) => void;
+  onReschedule?: (appointment: Appointment) => void;
+  onStatusChange: (
+    appointment: Appointment,
+    newStatus: AppointmentStatus,
+    extra?: { cancellation_reason?: import('@/lib/types').CancellationReason; cancellation_note?: string },
+  ) => void;
+  onRequestCustomCancellation?: (appointment: Appointment) => void;
 }
 
 export function AppointmentPanel({
@@ -48,10 +58,14 @@ export function AppointmentPanel({
   onEdit,
   onCancel,
   onOpenClinicSession,
+  onReschedule,
+  onStatusChange,
+  onRequestCustomCancellation,
 }: AppointmentPanelProps) {
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
+  const tReschedule = useTranslations('AppointmentReschedule');
 
   const [activeTab, setActiveTab] = React.useState('info');
   const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
@@ -133,7 +147,17 @@ export function AppointmentPanel({
                     </div>
                     <div>
                       <dt className="text-xs text-muted-foreground font-medium">{tColumns('status')}</dt>
-                      <dd><Badge className="capitalize text-xs">{tStatus(appointment.status.toLowerCase())}</Badge></dd>
+                      <dd>
+                        <AppointmentStatusMenu
+                          appointment={appointment}
+                          onChange={(s, extra) => onStatusChange(appointment, s, extra)}
+                          onRequestCustomCancellation={
+                            onRequestCustomCancellation
+                              ? () => onRequestCustomCancellation(appointment)
+                              : undefined
+                          }
+                        />
+                      </dd>
                     </div>
                     <div>
                       <dt className="text-xs text-muted-foreground font-medium">{tColumns('calendar')}</dt>
@@ -171,7 +195,40 @@ export function AppointmentPanel({
 
                   <Separator />
 
-                  <div className="flex gap-2 pt-1">
+                  {(() => {
+                    const allowed = ALLOWED_STATUS_TRANSITIONS[appointment.status] ?? [];
+                    const QUICK: Array<{
+                      status: AppointmentStatus;
+                      icon: React.ComponentType<{ className?: string }>;
+                      variant?: 'default' | 'outline' | 'destructive';
+                    }> = [
+                      { status: 'confirmed',   icon: CalendarCheck },
+                      { status: 'arrived',     icon: UserCheck,   variant: 'default' },
+                      { status: 'in_progress', icon: PlayCircle },
+                      { status: 'completed',   icon: CheckCircle2, variant: 'default' },
+                      { status: 'no_show',     icon: UserX,        variant: 'destructive' },
+                    ];
+                    const visible = QUICK.filter((q) => allowed.includes(q.status));
+                    if (visible.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {visible.map(({ status, icon: Icon, variant }) => (
+                          <Button
+                            key={status}
+                            size="sm"
+                            variant={variant ?? 'outline'}
+                            className="gap-1.5 h-7 text-xs"
+                            onClick={() => onStatusChange(appointment, status)}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                            {tStatus(status)}
+                          </Button>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  <div className="flex flex-wrap gap-2 pt-1">
                     <Button
                       size="sm"
                       variant="outline"
@@ -181,6 +238,21 @@ export function AppointmentPanel({
                       <Edit className="h-3.5 w-3.5" />
                       {tColumns('edit')}
                     </Button>
+                    {onReschedule && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5"
+                        disabled={!canReschedule(appointment.status)}
+                        title={!canReschedule(appointment.status)
+                          ? tReschedule('blockedTooltip', { status: tStatus(appointment.status) })
+                          : undefined}
+                        onClick={() => { onReschedule(appointment); onOpenChange(false); }}
+                      >
+                        <CalendarSync className="h-3.5 w-3.5" />
+                        {tReschedule('action')}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="destructive"
