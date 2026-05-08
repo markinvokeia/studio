@@ -12,9 +12,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePermissions } from '@/hooks/usePermissions';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
-import { Appointment, PatientSession } from '@/lib/types';
+import { Appointment, PatientSession, QuoteItem } from '@/lib/types';
 import { formatDate, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
+import { getQuoteItems } from '@/services/quotes';
 import { format, parseISO } from 'date-fns';
 import {
   Activity,
@@ -189,6 +190,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = React.useState<string | null>(null);
   const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+  const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
   const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
   const [isLoadingAppointments, setIsLoadingAppointments] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -247,6 +249,21 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     }
   }, []);
 
+  const loadQuoteItems = React.useCallback(async (appointment: Appointment | null) => {
+    if (!appointment?.quote_id) {
+      setQuoteItems([]);
+      return;
+    }
+
+    try {
+      const items = await getQuoteItems(appointment.quote_id);
+      setQuoteItems(items);
+    } catch (error) {
+      console.error('Failed to load quote items for doctor workspace:', error);
+      setQuoteItems([]);
+    }
+  }, []);
+
   React.useEffect(() => {
     loadAppointments();
   }, [loadAppointments]);
@@ -254,11 +271,13 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   React.useEffect(() => {
     if (!selectedAppointment) {
       setLinkedSession(null);
+      setQuoteItems([]);
       return;
     }
 
     loadLinkedSession(selectedAppointment);
-  }, [loadLinkedSession, selectedAppointment]);
+    loadQuoteItems(selectedAppointment);
+  }, [loadLinkedSession, loadQuoteItems, selectedAppointment]);
 
   React.useEffect(() => {
     const interval = window.setInterval(() => {
@@ -298,10 +317,22 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   ];
 
   const clinicalSummaryMock = buildClinicalSummaryMock(selectedAppointment, linkedSession, t);
+  const prefillTreatments = React.useMemo(
+    () =>
+      quoteItems.map((item) => {
+        const toothNumber = item.tooth_number != null ? Number(item.tooth_number) : null;
+
+        return {
+          numero_diente: toothNumber != null && !Number.isNaN(toothNumber) && toothNumber > 0 ? toothNumber : null,
+          descripcion: item.service_name,
+        };
+      }),
+    [quoteItems],
+  );
 
   return (
     <div className="flex-1 overflow-y-auto p-4 pr-2 min-h-0">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <div className="flex w-full flex-col gap-4">
         <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
           <Card className="min-h-[520px]">
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
@@ -320,7 +351,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 {kpis.map((item) => (
                   <div key={item.id} className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
                     <div className="mb-1 flex items-center justify-between">
@@ -555,12 +586,8 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           prefillData={{
             doctor_id: selectedAppointment.doctorId,
             doctor_name: selectedAppointment.doctorName,
-            plan_proxima_cita: clinicalSummaryMock?.nextPlan,
           }}
-          prefillTreatments={linkedSession?.tratamientos?.map((treatment) => ({
-            numero_diente: treatment.numero_diente,
-            descripcion: treatment.descripcion || '',
-          }))}
+          prefillTreatments={prefillTreatments}
           existingSession={linkedSession ?? undefined}
           hideNextAppointmentDate
           lockDoctor
