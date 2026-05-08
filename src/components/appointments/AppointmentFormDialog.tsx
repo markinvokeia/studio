@@ -3,6 +3,7 @@
 
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -53,6 +54,9 @@ interface AppointmentFormDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     editingAppointment?: Appointment | null;
+    /** When 'reschedule', the dialog reuses editingAppointment as a template
+     *  but submits via the reschedule endpoint (cancel old + create new). */
+    mode?: 'create' | 'edit' | 'reschedule';
     initialData?: {
         user?: UserType | null;
         services?: Service[];
@@ -85,6 +89,7 @@ export function AppointmentFormDialog({
     open,
     onOpenChange,
     editingAppointment,
+    mode,
     initialData,
     readOnlyFields,
     onSaveSuccess,
@@ -100,7 +105,10 @@ export function AppointmentFormDialog({
     const tGeneral = useTranslations('General');
     const tToasts = useTranslations('AppointmentsPage.toasts');
     const tQuotes = useTranslations('QuotesPage');
+    const tReschedule = useTranslations('AppointmentReschedule');
     const { toast } = useToast();
+    const { reschedule } = useAppointmentReschedule();
+    const isReschedule = mode === 'reschedule';
 
     // Form State
     const [appointment, setAppointment] = React.useState({
@@ -686,6 +694,31 @@ export function AppointmentFormDialog({
             return; // ← IMPORTANT: Return without creating the appointment yet
         }
 
+        // Reschedule flow: cancel original + create new in a single backend transaction.
+        if (isReschedule && editingAppointment) {
+            const newId = await reschedule(editingAppointment, {
+                patient_id: payload.patient_id,
+                patient_name: payload.patient_name,
+                patient_email: payload.patient_email,
+                patient_phone: payload.patient_phone,
+                doctor_id: payload.doctor_id,
+                doctor_name: payload.doctor_name,
+                doctor_email: payload.doctor_email,
+                calendar_source_id: payload.calendar_source_id,
+                summary: payload.summary,
+                notes: payload.notes,
+                service_ids: payload.service_ids,
+                service_names: payload.service_names,
+                start: payload.start,
+                end: payload.end,
+            });
+            if (newId) {
+                onOpenChange(false);
+                if (onSaveSuccess) onSaveSuccess({ id: newId, appointment_id: newId }, startDateTime);
+            }
+            return;
+        }
+
         // Original flow: Create appointment immediately (no session)
         try {
             const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
@@ -953,8 +986,14 @@ export function AppointmentFormDialog({
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent maxWidth="4xl">
                     <DialogHeader>
-                        <DialogTitle>{editingAppointment ? tColumns('edit') : t('createDialog.title')}</DialogTitle>
-                        <DialogDescription>{t('createDialog.description')}</DialogDescription>
+                        <DialogTitle>
+                            {isReschedule ? tReschedule('dialogTitle')
+                                : editingAppointment ? tColumns('edit')
+                                : t('createDialog.title')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {isReschedule ? tReschedule('dialogSubtitle') : t('createDialog.description')}
+                        </DialogDescription>
                     </DialogHeader>
                     <DialogBody>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
@@ -1378,7 +1417,9 @@ export function AppointmentFormDialog({
                     </DialogBody>
                     <DialogFooter className="flex-row justify-end gap-2 space-x-0">
                         <Button variant="outline" onClick={() => onOpenChange(false)}>{t('createDialog.cancel')}</Button>
-                        <Button onClick={handleSave} disabled={isSessionDialogOpen}>{t('createDialog.save')}</Button>
+                        <Button onClick={handleSave} disabled={isSessionDialogOpen}>
+                            {isReschedule ? tReschedule('submit') : t('createDialog.save')}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
 

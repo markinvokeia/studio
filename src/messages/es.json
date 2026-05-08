@@ -598,7 +598,50 @@
     "confirmed": "Confirmada",
     "pending": "Pendiente",
     "cancelled": "Cancelada",
-    "scheduled": "Programada"
+    "scheduled": "Programada",
+    "arrived": "Llegó",
+    "in_progress": "En curso",
+    "no_show": "No asistió"
+  },
+  "AppointmentStatusMenu": {
+    "label": "Estado",
+    "changeStatus": "Cambiar estado",
+    "current": "Actual",
+    "noTransitions": "No hay transiciones permitidas",
+    "updated": "Estado actualizado",
+    "updatedDesc": "El estado cambió a {status}.",
+    "error": "No se pudo actualizar el estado",
+    "errorDesc": "Ocurrió un error al actualizar el estado de la cita.",
+    "cancelSubmenu": "Cancelar…",
+    "otherReason": "Otro motivo…"
+  },
+  "CancellationReason": {
+    "late": "Cancelada tarde",
+    "in_time": "Cancelada con tiempo",
+    "no_notice": "Cancelada sin aviso",
+    "by_doctor": "Cancelada por el doctor",
+    "by_clinic": "Cancelada por la clínica",
+    "other": "Otro motivo",
+    "reschedule": "Reagendada"
+  },
+  "CancellationDialog": {
+    "title": "Motivo de la cancelación",
+    "description": "Describe brevemente por qué se cancela la cita.",
+    "placeholder": "Escribe el motivo…",
+    "save": "Cancelar cita",
+    "back": "Volver"
+  },
+  "AppointmentReschedule": {
+    "action": "Reagendar",
+    "dialogTitle": "Reagendar cita",
+    "dialogSubtitle": "La cita actual se cancelará y se creará una nueva con los datos editados.",
+    "submit": "Reagendar",
+    "rescheduledLabel": "Cita reagendada",
+    "blockedTooltip": "No se puede reagendar una cita en estado {status}.",
+    "success": "Cita reagendada",
+    "successDesc": "Se canceló la original y se creó la nueva.",
+    "error": "No se pudo reagendar",
+    "errorDesc": "Ocurrió un error al reagendar la cita."
   },
   "AilmentsPage": {
     "title": "Padecimientos",

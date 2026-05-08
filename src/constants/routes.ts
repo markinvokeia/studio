@@ -30,6 +30,8 @@ export const API_ROUTES = {
     APPOINTMENTS_AVAILABILITY: '/appointments_availability',
     APPOINTMENTS_UPSERT: '/appointments/upsert',
     APPOINTMENTS_UPDATE_COLOR: '/appointments/update_color',
+    APPOINTMENTS_UPDATE_STATUS: '/appointments/update_status',
+    APPOINTMENTS_RESCHEDULE: '/appointments/reschedule',
     APPOINTMENTS_DELETE: '/appointments/delete',
     ALERTS: '/alerts',
     APPOINTMENTS: '/appointments',
