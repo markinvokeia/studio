@@ -632,6 +632,77 @@ export type PatientSession = {
   appointment_id?: string;
 };
 
+export type DoctorPatientAllergy = {
+  alergeno: string;
+  reaccion_descrita?: string;
+};
+
+export type DoctorTreatmentPlanContext = {
+  service_name: string;
+  status: TreatmentSequenceStatus;
+  next_step?: string;
+  next_step_date?: string;
+};
+
+export type DoctorQuoteItemContext = {
+  service_name: string;
+  tooth_number?: number | null;
+};
+
+export type DoctorClinicalContext = {
+  patient_name: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  service_name?: string;
+  appointment_notes?: string;
+  latest_session?: PatientSession | null;
+  recent_sessions: PatientSession[];
+  allergies: DoctorPatientAllergy[];
+  active_treatment_plans: DoctorTreatmentPlanContext[];
+  quote_items: DoctorQuoteItemContext[];
+};
+
+export type DoctorClinicalBrief = {
+  resumen_clinico: string;
+  ultimo_realizado: string;
+  que_toca_hoy: string[];
+  alertas: string[];
+  preguntas_sugeridas: string[];
+};
+
+export type DoctorClinicalQuestionAnswer = {
+  answer: string;
+};
+
+export type StructuredClinicalSession = {
+  diagnostico: string;
+  procedimiento_realizado: string;
+  notas_clinicas: string;
+  plan_proxima_cita: string;
+  tratamientos: TreatmentDetail[];
+  missing_information: string[];
+};
+
+export type DoctorAiIntent = 'clinical_summary' | 'clinical_question' | 'session_structuring' | 'unknown';
+
+export type DoctorAiSessionPatch = {
+  diagnostico: string;
+  procedimiento_realizado: string;
+  notas_clinicas: string;
+  plan_proxima_cita: string;
+  tratamientos: TreatmentDetail[];
+  missing_information?: string[];
+};
+
+export type DoctorAiQueryResponse = {
+  intent: DoctorAiIntent;
+  answer: string;
+  speak_text?: string;
+  suggestions: string[];
+  clinical_brief?: DoctorClinicalBrief | null;
+  session_patch?: DoctorAiSessionPatch | null;
+};
+
 export type TreatmentSequenceStepStatus = 'pending' | 'scheduled' | 'completed' | 'cancelled' | 'missed';
 
 export type TreatmentSequenceStep = {

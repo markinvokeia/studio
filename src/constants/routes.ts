@@ -108,6 +108,9 @@ export const API_ROUTES = {
         PATIENT_ODONTOGRAMS: '/patient_odontograms',
         CREATE_ODONTOGRAMS: '/create_odontograms',
     },
+    AI: {
+        DOCTOR_QUERY: '/ai/doctor/query',
+    },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
     CLINIC_UPDATE: '/clinic/update',

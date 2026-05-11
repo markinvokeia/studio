@@ -645,7 +645,7 @@
       "editSession": "Edit clinical session",
       "completeSession": "Complete clinical session",
       "empty": "Select an appointment from today to open the quick clinical panel.",
-      "summaryTitle": "Mock clinical summary",
+      "summaryTitle": "AI clinical assistance",
       "summaryGenericService": "clinical consultation",
       "summaryNoNextPlan": "Define the clinical approach and next steps during this visit.",
       "summaryEmpty": "A mock summary with the latest clinical sessions and what the doctor should do today would appear here.",
@@ -662,7 +662,25 @@
       "summaryTodayExecute": "Perform or confirm the next clinical step.",
       "summaryTodayConfirmReason": "Confirm the consultation reason and clinical goal for {service}.",
       "summaryTodayRegisterFindings": "Record initial findings and relevant background.",
-      "summaryTodayCloseSession": "Close the session with procedure, treatments, and next plan."
+      "summaryTodayCloseSession": "Close the session with procedure, treatments, and next plan.",
+      "ai": {
+        "generateSummary": "Generate clinical brief",
+        "summaryQuery": "Give me a brief clinical summary of the patient, what was done last, what should be handled today, and any relevant alerts.",
+        "quickLastDone": "What was the last thing done?",
+        "quickToday": "What should be handled today?",
+        "quickAlerts": "What alerts should I keep in mind?",
+        "summaryCardTitle": "AI suggested summary",
+        "summaryCardSubtitle": "Fast reading before starting the visit",
+        "summaryClinicalOverview": "Clinical overview",
+        "summaryLatestSession": "Latest session",
+        "summaryTodayTitle": "What should be done today",
+        "summaryAlerts": "Alerts and considerations",
+        "summaryEmpty": "Generate the brief to get clinical context, then ask follow-up questions by voice or dictation.",
+        "voiceAssistantTitle": "Quick voice consultation",
+        "voiceAssistantDescription": "Dictate your question with the field microphone and the answer will be read aloud.",
+        "questionPlaceholder": "Ask about the last procedure, what should be done today, or any focused clinical question.",
+        "askAndRead": "Ask and read aloud"
+      }
     }
   },
   "AilmentsPage": {
@@ -5087,7 +5105,16 @@
     "saving": "Saving...",
     "fileUploadError": "Error uploading files",
     "fileTooBig": "File exceeds the {size}MB limit",
-    "fileTypeNotAllowed": "File type not allowed"
+    "fileTypeNotAllowed": "File type not allowed",
+    "ai": {
+      "title": "AI clinical dictation",
+      "description": "Dictate what happened during the visit and AI will complete diagnosis, procedure, notes, and suggested treatments.",
+      "placeholder": "Example: patient reports less pain, progress was reviewed, provisional crowns on 11 and 21 were adjusted, no signs of infection, follow-up in 7 days...",
+      "apply": "Structure with AI",
+      "applySuccess": "AI completed the clinical session fields.",
+      "applyError": "Could not structure the dictation with AI.",
+      "missingInformation": "Information worth confirming"
+    }
   },
   "VoiceAssistant": {
     "clickToSpeak": "Click to speak",

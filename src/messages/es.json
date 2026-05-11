@@ -645,7 +645,7 @@
       "editSession": "Editar sesión clínica",
       "completeSession": "Completar sesión clínica",
       "empty": "Selecciona una cita del día para abrir el panel clínico rápido.",
-      "summaryTitle": "Resumen clínico mock",
+      "summaryTitle": "Asistencia clínica con IA",
       "summaryGenericService": "consulta clínica",
       "summaryNoNextPlan": "Definir conducta y próximos pasos en esta visita.",
       "summaryEmpty": "Aquí aparecería un resumen mock con las últimas sesiones clínicas y lo que corresponde resolver hoy.",
@@ -662,7 +662,25 @@
       "summaryTodayExecute": "Ejecutar o confirmar el siguiente paso clínico.",
       "summaryTodayConfirmReason": "Confirmar motivo de consulta y objetivo clínico para {service}.",
       "summaryTodayRegisterFindings": "Registrar hallazgos iniciales y antecedentes relevantes.",
-      "summaryTodayCloseSession": "Cerrar la sesión con procedimiento, tratamientos y plan siguiente."
+      "summaryTodayCloseSession": "Cerrar la sesión con procedimiento, tratamientos y plan siguiente.",
+      "ai": {
+        "generateSummary": "Generar resumen clínico",
+        "summaryQuery": "Dame un resumen clínico breve del paciente, qué fue lo último que se hizo, qué toca hoy y alertas relevantes.",
+        "quickLastDone": "¿Qué fue lo último que se hizo?",
+        "quickToday": "¿Qué toca hoy?",
+        "quickAlerts": "¿Qué alertas tengo que tener presentes?",
+        "summaryCardTitle": "Resumen sugerido por IA",
+        "summaryCardSubtitle": "Lectura rápida antes de empezar la atención",
+        "summaryClinicalOverview": "Panorama clínico",
+        "summaryLatestSession": "Última sesión",
+        "summaryTodayTitle": "Lo que corresponde hacer hoy",
+        "summaryAlerts": "Alertas y consideraciones",
+        "summaryEmpty": "Genera el resumen para obtener contexto clínico y luego consulta por voz o dictado.",
+        "voiceAssistantTitle": "Consulta rápida con voz",
+        "voiceAssistantDescription": "Dicta tu pregunta con el micrófono del campo y la respuesta se leerá en voz alta.",
+        "questionPlaceholder": "Pregunta por el último procedimiento, lo que corresponde hacer hoy o cualquier duda clínica puntual.",
+        "askAndRead": "Preguntar y leer respuesta"
+      }
     }
   },
   "AilmentsPage": {
@@ -5055,7 +5073,16 @@
     "saving": "Guardando...",
     "fileUploadError": "Error al subir archivos",
     "fileTooBig": "El archivo excede el límite de {size}MB",
-    "fileTypeNotAllowed": "Tipo de archivo no permitido"
+    "fileTypeNotAllowed": "Tipo de archivo no permitido",
+    "ai": {
+      "title": "Dictado clínico con IA",
+      "description": "Dicta lo realizado en la cita y la IA completará diagnóstico, procedimiento, notas y tratamientos sugeridos.",
+      "placeholder": "Ej.: paciente refiere menos dolor, se revisó la evolución, se realizó ajuste de provisionales en 11 y 21, sin signos de infección, indicar control en 7 días...",
+      "apply": "Estructurar con IA",
+      "applySuccess": "La IA completó la sesión clínica.",
+      "applyError": "No se pudo estructurar el dictado con IA.",
+      "missingInformation": "Información que conviene confirmar"
+    }
   },
   "VoiceAssistant": {
     "clickToSpeak": "Haz clic para hablar",

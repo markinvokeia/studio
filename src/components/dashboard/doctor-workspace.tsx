@@ -2,6 +2,7 @@
 
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { DoctorAiPanel } from '@/components/dashboard/doctor-ai-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,13 +23,8 @@ import {
   CalendarCheck2,
   ClipboardCheck,
   Clock3,
-  FlaskConical,
-  NotepadText,
   RefreshCw,
-  Sparkles,
   Stethoscope,
-  Syringe,
-  Target,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -61,48 +57,6 @@ function getTimeRangeLabel(appointment: Appointment): string {
     : undefined;
 
   return endTime ? `${startTime} - ${endTime}` : startTime;
-}
-
-interface ClinicalSummaryMock {
-  latestSession: string;
-  todayItems: string[];
-  nextPlan: string;
-}
-
-function buildClinicalSummaryMock(
-  appointment: Appointment | null,
-  linkedSession: PatientSession | null,
-  t: ReturnType<typeof useTranslations<'DoctorWorkspace'>>,
-): ClinicalSummaryMock | null {
-  if (!appointment) {
-    return null;
-  }
-
-  const serviceLabel = appointment.services?.length
-    ? appointment.services.map((service) => service.name).join(', ')
-    : appointment.service_name || appointment.summary || t('focus.summaryGenericService');
-
-  if (linkedSession) {
-    return {
-      latestSession: linkedSession.procedimiento_realizado || serviceLabel,
-      todayItems: [
-        t('focus.summaryTodayFollowUp', { service: serviceLabel }),
-        t('focus.summaryTodayValidate'),
-        t('focus.summaryTodayExecute'),
-      ],
-      nextPlan: linkedSession.plan_proxima_cita || t('focus.summaryNoNextPlan'),
-    };
-  }
-
-  return {
-    latestSession: t('focus.summaryNoPreviousSession'),
-    todayItems: [
-      t('focus.summaryTodayConfirmReason', { service: serviceLabel }),
-      t('focus.summaryTodayRegisterFindings'),
-      t('focus.summaryTodayCloseSession'),
-    ],
-    nextPlan: t('focus.summaryNoNextPlan'),
-  };
 }
 
 async function getAppointmentsForDoctorToday(doctorId: string): Promise<Appointment[]> {
@@ -190,12 +144,14 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = React.useState<string | null>(null);
   const [linkedSession, setLinkedSession] = React.useState<PatientSession | null>(null);
+  const [patientSessions, setPatientSessions] = React.useState<PatientSession[]>([]);
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
   const [isLoadingLinkedSession, setIsLoadingLinkedSession] = React.useState(false);
   const [isLoadingAppointments, setIsLoadingAppointments] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [patientSheetOpen, setPatientSheetOpen] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
+  const contextRequestRef = React.useRef(0);
 
   const selectedAppointment = React.useMemo(
     () => appointments.find((appointment) => appointment.id === selectedAppointmentId) ?? appointments[0] ?? null,
@@ -229,27 +185,41 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     }
   }, [user?.id]);
 
-  const loadLinkedSession = React.useCallback(async (appointment: Appointment | null) => {
+  const loadLinkedSession = React.useCallback(async (appointment: Appointment | null, requestId?: number) => {
     if (!appointment?.patientId) {
       setLinkedSession(null);
+      setPatientSessions([]);
       return;
     }
 
     setIsLoadingLinkedSession(true);
     try {
       const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: appointment.patientId });
-      const sessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
-      const match = sessions.find((session: any) => String(session?.appointment_id ?? '') === appointment.id);
+      const rawSessions: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+      const sessions = rawSessions
+        .map((session) => ({ ...session, sesion_id: Number(session.sesion_id) } as PatientSession))
+        .sort((left, right) => {
+          const leftDate = Date.parse(left.fecha_sesion || '');
+          const rightDate = Date.parse(right.fecha_sesion || '');
+          return Number.isNaN(rightDate) || Number.isNaN(leftDate) ? 0 : rightDate - leftDate;
+        });
+      const match = sessions.find((session) => String(session?.appointment_id ?? '') === appointment.id);
+      if (requestId != null && requestId !== contextRequestRef.current) return;
+      setPatientSessions(sessions);
       setLinkedSession(match ? ({ ...match, sesion_id: Number(match.sesion_id) } as PatientSession) : null);
     } catch (error) {
       console.error('Failed to load linked session:', error);
+      if (requestId != null && requestId !== contextRequestRef.current) return;
       setLinkedSession(null);
+      setPatientSessions([]);
     } finally {
-      setIsLoadingLinkedSession(false);
+      if (requestId == null || requestId === contextRequestRef.current) {
+        setIsLoadingLinkedSession(false);
+      }
     }
   }, []);
 
-  const loadQuoteItems = React.useCallback(async (appointment: Appointment | null) => {
+  const loadQuoteItems = React.useCallback(async (appointment: Appointment | null, requestId?: number) => {
     if (!appointment?.quote_id) {
       setQuoteItems([]);
       return;
@@ -257,9 +227,11 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
 
     try {
       const items = await getQuoteItems(appointment.quote_id);
+      if (requestId != null && requestId !== contextRequestRef.current) return;
       setQuoteItems(items);
     } catch (error) {
       console.error('Failed to load quote items for doctor workspace:', error);
+      if (requestId != null && requestId !== contextRequestRef.current) return;
       setQuoteItems([]);
     }
   }, []);
@@ -271,12 +243,16 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   React.useEffect(() => {
     if (!selectedAppointment) {
       setLinkedSession(null);
+      setPatientSessions([]);
       setQuoteItems([]);
       return;
     }
 
-    loadLinkedSession(selectedAppointment);
-    loadQuoteItems(selectedAppointment);
+    contextRequestRef.current += 1;
+    const requestId = contextRequestRef.current;
+
+    loadLinkedSession(selectedAppointment, requestId);
+    loadQuoteItems(selectedAppointment, requestId);
   }, [loadLinkedSession, loadQuoteItems, selectedAppointment]);
 
   React.useEffect(() => {
@@ -300,14 +276,29 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     if (!selectedAppointment?.patientId) return;
 
     if (linkedSession?.sesion_id) {
-      await updateSession(linkedSession.sesion_id, selectedAppointment.patientId, data, data.archivos_adjuntos, data.deletedAttachmentIds);
+      await updateSession(
+        linkedSession.sesion_id,
+        selectedAppointment.patientId,
+        data,
+        data.archivos_adjuntos,
+        data.deletedAttachmentIds,
+        linkedSession.archivos_adjuntos,
+      );
     } else {
       await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
     }
 
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
-  }, [createSession, linkedSession?.sesion_id, loadAppointments, loadLinkedSession, selectedAppointment, updateSession]);
+  }, [
+    createSession,
+    linkedSession?.archivos_adjuntos,
+    linkedSession?.sesion_id,
+    loadAppointments,
+    loadLinkedSession,
+    selectedAppointment,
+    updateSession,
+  ]);
 
   const kpis = [
     { id: 'total', label: t('kpis.totalToday'), value: appointments.length, icon: CalendarCheck2 },
@@ -316,7 +307,6 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     { id: 'completed', label: t('kpis.completed'), value: getStatusCount(appointments, 'completed'), icon: ClipboardCheck },
   ];
 
-  const clinicalSummaryMock = buildClinicalSummaryMock(selectedAppointment, linkedSession, t);
   const prefillTreatments = React.useMemo(
     () =>
       quoteItems.map((item) => {
@@ -465,69 +455,13 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
 
                     <div className="space-y-2">
                       <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('focus.summaryTitle')}</p>
-                      {clinicalSummaryMock ? (
-                        <div className="overflow-hidden rounded-3xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset]">
-                          <div className="border-b border-emerald-100/80 bg-white/70 px-4 py-3 backdrop-blur">
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                                <Sparkles className="h-4 w-4" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-slate-900">{t('focus.summaryCardTitle')}</p>
-                                <p className="text-xs text-slate-500">{t('focus.summaryCardSubtitle')}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-3 p-4">
-                            <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
-                              <div className="mb-2 flex items-center gap-2">
-                                <NotepadText className="h-4 w-4 text-emerald-700" />
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">{t('focus.summaryLatestSession')}</p>
-                              </div>
-                              <p className="text-sm leading-6 text-slate-700">{clinicalSummaryMock.latestSession}</p>
-                            </div>
-
-                            <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
-                              <div className="mb-2 flex items-center gap-2">
-                                <Target className="h-4 w-4 text-sky-700" />
-                                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-800">{t('focus.summaryTodayTitle')}</p>
-                              </div>
-                              <div className="space-y-2">
-                                {clinicalSummaryMock.todayItems.map((item, index) => (
-                                  <div key={index} className="flex items-start gap-2 rounded-xl bg-sky-50/80 px-2.5 py-2">
-                                    <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-sky-600 text-[10px] font-semibold text-white">
-                                      {index + 1}
-                                    </div>
-                                    <p className="text-sm leading-5 text-slate-700">{item}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div className="grid gap-3 md:grid-cols-2">
-                              <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
-                                <div className="mb-2 flex items-center gap-2">
-                                  <Syringe className="h-4 w-4 text-violet-700" />
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-violet-800">{t('focus.summarySuggestedStep')}</p>
-                                </div>
-                                <p className="text-sm leading-6 text-slate-700">{clinicalSummaryMock.nextPlan}</p>
-                              </div>
-
-                              <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/70 p-3 shadow-sm">
-                                <div className="mb-2 flex items-center gap-2">
-                                  <FlaskConical className="h-4 w-4 text-amber-700" />
-                                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800">{t('focus.summaryMockFlag')}</p>
-                                </div>
-                                <p className="text-sm leading-6 text-slate-600">{t('focus.summaryMockNote')}</p>
-                              </div>
-                            </div>
-                          </div>
+                      {isLoadingLinkedSession ? (
+                        <div className="space-y-3">
+                          <Skeleton className="h-12 w-full rounded-2xl" />
+                          <Skeleton className="h-48 w-full rounded-3xl" />
                         </div>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-                          {t('focus.summaryEmpty')}
-                        </div>
+                        <DoctorAiPanel appointmentId={selectedAppointment.id} locale={locale} />
                       )}
                     </div>
 
@@ -591,6 +525,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           existingSession={linkedSession ?? undefined}
           hideNextAppointmentDate
           lockDoctor
+          showAiAssistant
         />
       )}
     </div>
