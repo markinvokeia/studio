@@ -151,3 +151,15 @@ export function formatServicePrice(
 
   return currency ? `${currency} ${normalizedPrice}` : String(normalizedPrice);
 }
+
+export function sanitizeTextForSpeech(value: string): string {
+  return value
+    .replace(/\\n/g, '. ')
+    .replace(/\r?\n/g, '. ')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/[_`#>~]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\.\s*\./g, '.')
+    .trim();
+}

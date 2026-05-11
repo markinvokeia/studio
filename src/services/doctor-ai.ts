@@ -7,6 +7,7 @@ export interface DoctorAiQueryPayload {
   query: string;
   channel?: 'voice' | 'text';
   transcript?: string;
+  session_id?: string;
 }
 
 export async function queryDoctorAi(payload: DoctorAiQueryPayload): Promise<DoctorAiQueryResponse> {

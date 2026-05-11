@@ -694,13 +694,40 @@ export type DoctorAiSessionPatch = {
   missing_information?: string[];
 };
 
+export type DoctorAgentActionType =
+  | 'open_clinic_session'
+  | 'open_patient_detail'
+  | 'open_clinical_history'
+  | 'open_patient_appointments'
+  | 'open_patient_messages'
+  | 'open_patient_notes'
+  | 'select_appointment';
+
+export type DoctorAgentActionPayload = {
+  appointment_id?: string;
+  clinical_history_view?: 'anamnesis' | 'timeline' | 'documents';
+  doctor_id?: string;
+  doctor_name?: string;
+  procedimiento_realizado?: string;
+  plan_proxima_cita?: string;
+  fecha_proxima_cita?: string;
+  tratamientos?: TreatmentDetail[];
+};
+
+export type DoctorAgentAction = {
+  type: DoctorAgentActionType;
+  payload?: DoctorAgentActionPayload | null;
+};
+
 export type DoctorAiQueryResponse = {
   intent: DoctorAiIntent;
-  answer: string;
+  answer?: string;
+  output?: string;
   speak_text?: string;
-  suggestions: string[];
+  suggestions?: string[];
   clinical_brief?: DoctorClinicalBrief | null;
   session_patch?: DoctorAiSessionPatch | null;
+  action?: DoctorAgentAction | null;
 };
 
 export type TreatmentSequenceStepStatus = 'pending' | 'scheduled' | 'completed' | 'cancelled' | 'missed';

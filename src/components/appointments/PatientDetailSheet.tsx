@@ -31,6 +31,8 @@ interface AllergySummaryItem {
   reaccion_descrita: string;
 }
 
+type PatientDetailTab = 'clinical-history' | 'appointments' | 'messages' | 'notes' | 'quotes' | 'invoices' | 'payments';
+
 interface PatientDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,6 +42,7 @@ interface PatientDetailSheetProps {
   userPhone?: string;
   mode?: 'default' | 'doctor';
   clinicalHistoryDefaultView?: 'anamnesis' | 'timeline' | 'documents';
+  initialTab?: PatientDetailTab;
 }
 
 export function PatientDetailSheet({
@@ -51,13 +54,14 @@ export function PatientDetailSheet({
   userPhone,
   mode = 'default',
   clinicalHistoryDefaultView,
+  initialTab = 'clinical-history',
 }: PatientDetailSheetProps) {
   const t = useTranslations('UsersPage');
   const isDoctorMode = mode === 'doctor';
   const { toast } = useToast();
   const [financialData, setFinancialData] = React.useState<UserFinancial | null>(null);
   const [isStatsOpen, setIsStatsOpen] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState('clinical-history');
+  const [activeTab, setActiveTab] = React.useState<PatientDetailTab>(initialTab);
   const [allergies, setAllergies] = React.useState<AllergySummaryItem[]>([]);
   const [patientRecord, setPatientRecord] = React.useState<User | null>(null);
   const [notesDraft, setNotesDraft] = React.useState('');
@@ -161,6 +165,12 @@ export function PatientDetailSheet({
   React.useEffect(() => {
     setIsEditingNotes(false);
   }, [userId, open]);
+
+  React.useEffect(() => {
+    if (open) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, open, userId]);
 
   // Minimal User object for components that require it
   const user: User = React.useMemo(() => ({
@@ -297,7 +307,7 @@ export function PatientDetailSheet({
           <VerticalTabStrip
             tabs={tabs}
             activeTabId={activeTab}
-            onTabClick={(tab) => setActiveTab(tab.id)}
+            onTabClick={(tab) => setActiveTab(tab.id as PatientDetailTab)}
           />
           <div className="flex-1 overflow-hidden min-h-0 flex flex-col p-3">
             {activeTab === 'clinical-history' && (

@@ -2,7 +2,7 @@
 
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
-import { DoctorAiPanel } from '@/components/dashboard/doctor-ai-panel';
+import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,18 +13,22 @@ import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { usePermissions } from '@/hooks/usePermissions';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
-import { Appointment, PatientSession, QuoteItem } from '@/lib/types';
-import { formatDate, formatDisplayDate } from '@/lib/utils';
+import { Appointment, DoctorAgentAction, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
+import { formatDate, formatDateTime, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { format, parseISO } from 'date-fns';
 import {
   Activity,
   CalendarCheck2,
+  CheckCircle2,
   ClipboardCheck,
   Clock3,
+  FileText,
   RefreshCw,
+  ShieldAlert,
   Stethoscope,
+  TimerReset,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -151,6 +155,17 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [patientSheetOpen, setPatientSheetOpen] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
+  const [patientSheetInitialTab, setPatientSheetInitialTab] = React.useState<'clinical-history' | 'appointments' | 'messages' | 'notes'>('clinical-history');
+  const [patientSheetDefaultView, setPatientSheetDefaultView] = React.useState<'anamnesis' | 'timeline' | 'documents'>('timeline');
+  const [agentSessionPrefill, setAgentSessionPrefill] = React.useState<{
+    doctor_id?: string;
+    doctor_name?: string;
+    procedimiento_realizado?: string;
+    plan_proxima_cita?: string;
+    fecha_proxima_cita?: string;
+  } | null>(null);
+  const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
+  const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
   const contextRequestRef = React.useRef(0);
 
   const selectedAppointment = React.useMemo(
@@ -176,6 +191,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           if (current && data.some((appointment) => appointment.id === current)) return current;
           return data[0]?.id ?? null;
         });
+        setLastUpdatedAt(new Date());
       });
     } catch (error) {
       console.error('Failed to load doctor workspace appointments:', error);
@@ -320,30 +336,117 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     [quoteItems],
   );
 
+  const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
+  const sessionHeadline = linkedSession?.procedimiento_realizado || t('focus.noSessionLinked');
+  const sessionNotesPreview = linkedSession?.notas_clinicas || linkedSession?.diagnostico || t('focus.noSessionNotes');
+  const sessionPlanPreview = linkedSession?.plan_proxima_cita || t('focus.noSessionPlan');
+  const quoteItemPreview = quoteItems.slice(0, 4);
+
+  const clearAgentSessionDraft = React.useCallback(() => {
+    setAgentSessionPrefill(null);
+    setAgentSessionTreatments([]);
+  }, []);
+
+  const handlePatientSheetOpenChange = React.useCallback((open: boolean) => {
+    setPatientSheetOpen(open);
+    if (!open) {
+      setPatientSheetInitialTab('clinical-history');
+      setPatientSheetDefaultView('timeline');
+    }
+  }, []);
+
+  const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
+    setClinicSessionOpen(open);
+    if (!open) {
+      clearAgentSessionDraft();
+    }
+  }, [clearAgentSessionDraft]);
+
+  const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => {
+    const payload = action.payload || {};
+
+    if (payload.appointment_id) {
+      setSelectedAppointmentId(payload.appointment_id);
+    }
+
+    switch (action.type) {
+      case 'select_appointment':
+        return;
+      case 'open_patient_detail':
+        setPatientSheetInitialTab('clinical-history');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return;
+      case 'open_clinical_history':
+        setPatientSheetInitialTab('clinical-history');
+        setPatientSheetDefaultView(payload.clinical_history_view || 'timeline');
+        setPatientSheetOpen(true);
+        return;
+      case 'open_patient_appointments':
+        setPatientSheetInitialTab('appointments');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return;
+      case 'open_patient_messages':
+        setPatientSheetInitialTab('messages');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return;
+      case 'open_patient_notes':
+        setPatientSheetInitialTab('notes');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return;
+      case 'open_clinic_session':
+        setAgentSessionPrefill({
+          doctor_id: payload.doctor_id,
+          doctor_name: payload.doctor_name,
+          procedimiento_realizado: payload.procedimiento_realizado,
+          plan_proxima_cita: payload.plan_proxima_cita,
+          fecha_proxima_cita: payload.fecha_proxima_cita,
+        });
+        setAgentSessionTreatments(payload.tratamientos || []);
+        setClinicSessionOpen(true);
+        return;
+      default:
+        return;
+    }
+  }, []);
+
   return (
     <div className="flex-1 overflow-y-auto p-4 pr-2 min-h-0">
       <div className="flex w-full flex-col gap-4">
-        <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <Card className="min-h-[520px]">
-            <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle>{t('agenda.title')}</CardTitle>
-                <CardDescription>{t('agenda.description')}</CardDescription>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {t('todayLabel', { date: formatDisplayDate(new Date()) })}
+        <div className="grid gap-4 xl:grid-cols-[minmax(320px,30%)_minmax(0,70%)]">
+          <Card className="min-h-[720px] border-border/70 xl:sticky xl:top-4">
+            <CardHeader className="space-y-4 border-b border-border/60 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle>{t('agenda.title')}</CardTitle>
+                  <CardDescription>{t('agenda.description')}</CardDescription>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
                   <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   {t('agenda.refresh')}
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+
+              <div className="rounded-3xl border border-slate-200/80 bg-white/80 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('todayLabel', { date: formatDisplayDate(new Date()) })}</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {lastUpdatedAt ? t('lastUpdated', { time: formatDateTime(lastUpdatedAt) }) : t('lastUpdatedPending')}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[10px] uppercase tracking-[0.16em]">
+                    {t('autoRefresh', { seconds: AUTO_REFRESH_MS / 1000 })}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 {kpis.map((item) => (
-                  <div key={item.id} className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
+                  <div key={item.id} className="rounded-2xl border border-border/70 bg-white/80 px-3 py-3 shadow-sm">
                     <div className="mb-1 flex items-center justify-between">
                       <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{item.label}</span>
                       <item.icon className="h-4 w-4 text-sky-600" />
@@ -351,6 +454,12 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                     <div className="text-2xl font-semibold leading-none text-foreground">{item.value}</div>
                   </div>
                 ))}
+              </div>
+            </CardHeader>
+
+            <CardContent className="min-h-0 space-y-3 overflow-auto">
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('agenda.title')}</p>
               </div>
 
               {isLoadingAppointments ? (
@@ -377,6 +486,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                       title={appointment.patientName || t('agenda.unknownPatient')}
                       subtitle={`${getTimeRangeLabel(appointment)} • ${serviceLabel}`}
                       avatar={appointment.patientName || 'P'}
+                      accentColor={selectedAppointment?.id === appointment.id ? '#0f766e' : undefined}
                       badge={
                         <Badge variant={STATUS_VARIANTS[normalizedStatus] || 'default'} className="capitalize">
                           {tStatus(normalizedStatus)}
@@ -385,7 +495,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                       isSelected={selectedAppointment?.id === appointment.id}
                       showArrow
                       onClick={() => setSelectedAppointmentId(appointment.id)}
-                      className="border-border/70"
+                      className="border-border/70 rounded-2xl bg-white/85"
                       actions={
                         <div className="flex flex-wrap gap-1.5">
                           <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => { setSelectedAppointmentId(appointment.id); setPatientSheetOpen(true); }}>
@@ -415,65 +525,148 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           </Card>
 
           <div className="grid gap-4">
-            <Card>
-              <CardHeader>
+            <Card className="min-h-[720px] border-border/70">
+              <CardHeader className="border-b border-border/60 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))]">
                 <CardTitle>{t('focus.title')}</CardTitle>
                 <CardDescription>{t('focus.description')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {selectedAppointment ? (
                   <>
-                    <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/20 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-lg font-semibold text-foreground">{selectedAppointment.patientName || t('agenda.unknownPatient')}</p>
-                          <p className="text-sm text-muted-foreground">{selectedAppointment.service_name || selectedAppointment.summary}</p>
+                    <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
+                      <div className="border-b border-slate-200/80 px-5 py-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('focus.workspaceLabel')}</p>
+                            <p className="mt-2 text-2xl font-semibold text-foreground">{selectedAppointment.patientName || t('agenda.unknownPatient')}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">{selectedAppointment.service_name || selectedAppointment.summary}</p>
+                          </div>
+                          <Badge variant={STATUS_VARIANTS[(selectedAppointment.status.toLowerCase() as AppointmentStatus)] || 'default'} className="capitalize rounded-full px-3 py-1">
+                            {tStatus(selectedAppointment.status.toLowerCase())}
+                          </Badge>
                         </div>
-                        <Badge variant={STATUS_VARIANTS[(selectedAppointment.status.toLowerCase() as AppointmentStatus)] || 'default'} className="capitalize">
-                          {tStatus(selectedAppointment.status.toLowerCase())}
-                        </Badge>
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div>
+
+                      <div className="grid gap-3 px-5 py-4 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
                           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('focus.date')}</p>
-                          <p className="mt-1 text-sm font-medium">{formatDisplayDate(selectedAppointment.date)}</p>
+                          <p className="mt-2 text-sm font-semibold">{formatDisplayDate(selectedAppointment.date)}</p>
                         </div>
-                        <div>
+                        <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
                           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('focus.time')}</p>
-                          <p className="mt-1 text-sm font-medium">{getTimeRangeLabel(selectedAppointment)}</p>
+                          <p className="mt-2 text-sm font-semibold">{getTimeRangeLabel(selectedAppointment)}</p>
                         </div>
-                        <div>
+                        <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
                           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('focus.calendar')}</p>
-                          <p className="mt-1 text-sm font-medium">{selectedAppointment.calendar_name || '—'}</p>
+                          <p className="mt-2 text-sm font-semibold">{selectedAppointment.calendar_name || '—'}</p>
                         </div>
-                        <div>
+                        <div className="rounded-2xl border border-white/80 bg-white/85 p-3 shadow-sm">
                           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('focus.quote')}</p>
-                          <p className="mt-1 text-sm font-medium">{selectedAppointment.quote_doc_no || '—'}</p>
+                          <p className="mt-2 text-sm font-semibold">{selectedAppointment.quote_doc_no || '—'}</p>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{t('focus.summaryTitle')}</p>
-                      {isLoadingLinkedSession ? (
-                        <div className="space-y-3">
-                          <Skeleton className="h-12 w-full rounded-2xl" />
-                          <Skeleton className="h-48 w-full rounded-3xl" />
+                    <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)]">
+                      <div className="space-y-4">
+                        <div className="rounded-3xl border border-border/70 bg-white/85 p-4 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('focus.sessionStatusTitle')}</p>
+                          </div>
+                          {isLoadingLinkedSession ? (
+                            <div className="mt-3 space-y-3">
+                              <Skeleton className="h-8 w-full rounded-2xl" />
+                              <Skeleton className="h-20 w-full rounded-3xl" />
+                            </div>
+                          ) : (
+                            <div className="mt-3 space-y-3">
+                              <div className="rounded-2xl bg-emerald-50/80 p-3">
+                                <p className="text-sm font-semibold text-emerald-900">{linkedSession ? t('focus.sessionReady') : t('focus.sessionMissing')}</p>
+                                <p className="mt-1 text-sm leading-6 text-emerald-950/80">{sessionHeadline}</p>
+                              </div>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-2xl border border-border/70 bg-slate-50/80 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{t('focus.notesPreviewTitle')}</p>
+                                  <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-700">{sessionNotesPreview}</p>
+                                </div>
+                                <div className="rounded-2xl border border-border/70 bg-slate-50/80 p-3">
+                                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{t('focus.planPreviewTitle')}</p>
+                                  <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-700">{sessionPlanPreview}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <DoctorAiPanel appointmentId={selectedAppointment.id} locale={locale} />
-                      )}
-                    </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => setPatientSheetOpen(true)}>
-                        <UserRound className="mr-2 h-4 w-4" />
-                        {t('focus.openPatient')}
-                      </Button>
-                      <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions}>
-                        <ClipboardCheck className="mr-2 h-4 w-4" />
-                        {linkedSession ? t('focus.editSession') : t('focus.completeSession')}
-                      </Button>
+                        <div className="rounded-3xl border border-border/70 bg-white/85 p-4 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <TimerReset className="h-4 w-4 text-sky-600" />
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('focus.patientSnapshotTitle')}</p>
+                          </div>
+                          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                            <div className="rounded-2xl border border-border/70 bg-slate-50/80 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{t('focus.recentSessionsTitle')}</p>
+                              <p className="mt-2 text-2xl font-semibold text-foreground">{patientSessions.length}</p>
+                            </div>
+                            <div className="rounded-2xl border border-border/70 bg-slate-50/80 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{t('focus.quoteItemsTitle')}</p>
+                              <p className="mt-2 text-2xl font-semibold text-foreground">{quoteItems.length}</p>
+                            </div>
+                            <div className="rounded-2xl border border-border/70 bg-slate-50/80 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">{t('focus.nextActionTitle')}</p>
+                              <p className="mt-2 text-sm font-semibold text-foreground">{nextActionLabel}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="rounded-3xl border border-border/70 bg-white/85 p-4 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-slate-700" />
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('focus.quoteItemsPanelTitle')}</p>
+                          </div>
+                          <div className="mt-3 space-y-2">
+                            {quoteItemPreview.length > 0 ? (
+                              quoteItemPreview.map((item) => (
+                                <div key={item.id} className="rounded-2xl border border-border/70 bg-slate-50/80 p-3">
+                                  <p className="text-sm font-medium text-foreground">{item.service_name}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {item.tooth_number ? `${t('focus.toothLabel')} ${item.tooth_number}` : t('focus.generalTreatmentLabel')}
+                                  </p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-2xl border border-dashed border-border bg-slate-50/80 p-3 text-sm text-muted-foreground">
+                                {t('focus.noQuoteItems')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-border/70 bg-white/85 p-4 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="h-4 w-4 text-amber-600" />
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('focus.actionsTitle')}</p>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button variant="outline" onClick={() => setPatientSheetOpen(true)}>
+                              <UserRound className="mr-2 h-4 w-4" />
+                              {t('focus.openPatient')}
+                            </Button>
+                            <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions}>
+                              <ClipboardCheck className="mr-2 h-4 w-4" />
+                              {nextActionLabel}
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl border border-dashed border-border bg-slate-50/80 p-4 shadow-sm">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('focus.agentPanelTitle')}</p>
+                          <p className="mt-2 text-sm leading-6 text-muted-foreground">{t('focus.agentPanelDescription')}</p>
+                        </div>
+                      </div>
                     </div>
                   </>
                 ) : (
@@ -488,23 +681,32 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         </div>
       </div>
 
+      <DoctorAgentChat
+        appointmentId={selectedAppointment?.id}
+        locale={locale}
+        patientName={selectedAppointment?.patientName}
+        userId={user?.id ? String(user.id) : undefined}
+        onAction={handleDoctorAgentAction}
+      />
+
       {selectedAppointment && (
         <PatientDetailSheet
           open={patientSheetOpen}
-          onOpenChange={setPatientSheetOpen}
+          onOpenChange={handlePatientSheetOpenChange}
           userId={selectedAppointment.patientId}
           userName={selectedAppointment.patientName}
           userEmail={selectedAppointment.patientEmail}
           userPhone={selectedAppointment.patientPhone}
           mode="doctor"
-          clinicalHistoryDefaultView="timeline"
+          clinicalHistoryDefaultView={patientSheetDefaultView}
+          initialTab={patientSheetInitialTab}
         />
       )}
 
       {selectedAppointment && canManageSessions && (
         <ClinicSessionDialog
           open={clinicSessionOpen}
-          onOpenChange={setClinicSessionOpen}
+          onOpenChange={handleClinicSessionOpenChange}
           onSave={handleSaveClinicSession}
           userId={selectedAppointment.patientId}
           appointmentId={selectedAppointment.id}
@@ -520,12 +722,14 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           prefillData={{
             doctor_id: selectedAppointment.doctorId,
             doctor_name: selectedAppointment.doctorName,
+            procedimiento_realizado: agentSessionPrefill?.procedimiento_realizado,
+            plan_proxima_cita: agentSessionPrefill?.plan_proxima_cita,
+            fecha_proxima_cita: agentSessionPrefill?.fecha_proxima_cita,
           }}
-          prefillTreatments={prefillTreatments}
+          prefillTreatments={agentSessionTreatments.length > 0 ? agentSessionTreatments : prefillTreatments}
           existingSession={linkedSession ?? undefined}
           hideNextAppointmentDate
           lockDoctor
-          showAiAssistant
         />
       )}
     </div>

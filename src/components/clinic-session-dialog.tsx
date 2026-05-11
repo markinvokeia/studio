@@ -22,10 +22,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { AttachedFile, PatientSession, TreatmentDetail } from '@/lib/types';
-import { queryDoctorAi } from '@/services/doctor-ai';
 import { format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, File, Loader2, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Calendar as CalendarIcon, File, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
@@ -46,8 +45,6 @@ interface ClinicSessionDialogProps {
     prefillData?: {
         doctor_id?: string;
         doctor_name?: string;
-        diagnostico?: string;
-        notas_clinicas?: string;
         procedimiento_realizado?: string;
         plan_proxima_cita?: string;
         fecha_proxima_cita?: string;
@@ -56,7 +53,6 @@ interface ClinicSessionDialogProps {
     existingSession?: PatientSession;  // Para edición de sesión existente
     hideNextAppointmentDate?: boolean;
     lockDoctor?: boolean;
-    showAiAssistant?: boolean;
     // Datos de cita pendiente para crear junto con la sesión
     pendingAppointmentData?: {
         start: string;
@@ -78,8 +74,6 @@ export interface ClinicSessionFormData {
     doctor_name: string;
     fecha_sesion: string;
     procedimiento_realizado: string;
-    diagnostico?: string;
-    notas_clinicas?: string;
     plan_proxima_cita?: string;
     fecha_proxima_cita?: string;
     quote_id?: string;
@@ -123,7 +117,6 @@ export function ClinicSessionDialog({
     existingSession,
     hideNextAppointmentDate = false,
     lockDoctor = false,
-    showAiAssistant = false,
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
     const t = useTranslations('ClinicSessionDialog');
@@ -134,10 +127,7 @@ export function ClinicSessionDialog({
     const [isLoadingDoctors, setIsLoadingDoctors] = React.useState(false);
     const [doctors, setDoctors] = React.useState<Doctor[]>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
-    const [isStructuringWithAi, setIsStructuringWithAi] = React.useState(false);
     const [doctorError, setDoctorError] = React.useState(false);
-    const [aiDraft, setAiDraft] = React.useState('');
-    const [aiMissingInformation, setAiMissingInformation] = React.useState<string[]>([]);
 
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
@@ -153,8 +143,6 @@ export function ClinicSessionDialog({
         doctor_name: '',
         fecha_sesion: defaultDate ? formatDate(defaultDate) : formatDate(new Date()),
         procedimiento_realizado: serviceName || '',
-        diagnostico: '',
-        notas_clinicas: '',
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
         quote_id: quoteId,
@@ -182,8 +170,6 @@ export function ClinicSessionDialog({
                 ? formatDate(existingSession.fecha_sesion)
                 : (defaultDate ? formatDate(defaultDate) : formatDate(new Date())),
             procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
-            diagnostico: existingSession?.diagnostico || prefillData?.diagnostico || '',
-            notas_clinicas: existingSession?.notas_clinicas || prefillData?.notas_clinicas || '',
             plan_proxima_cita: existingSession?.plan_proxima_cita || prefillData?.plan_proxima_cita || '',
             fecha_proxima_cita: existingSession?.fecha_proxima_cita
                 ? formatDate(existingSession.fecha_proxima_cita)
@@ -212,8 +198,6 @@ export function ClinicSessionDialog({
         setAttachedFiles([]);
         setDeletedAttachmentIds([]);
         setDoctorError(false);
-        setAiDraft('');
-        setAiMissingInformation([]);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
@@ -229,50 +213,6 @@ export function ClinicSessionDialog({
             setIsLoadingDoctors(false);
         }
     };
-
-    const handleStructureWithAi = React.useCallback(async () => {
-        if (!appointmentId || !aiDraft.trim()) return;
-
-        setIsStructuringWithAi(true);
-        try {
-            const result = await queryDoctorAi({
-                appointment_id: appointmentId,
-                query: aiDraft.trim(),
-                channel: 'voice',
-                transcript: aiDraft.trim(),
-            });
-
-            const sessionPatch = result.session_patch;
-            if (!sessionPatch) {
-                throw new Error('Missing session patch in AI response');
-            }
-
-            setForm((current) => ({
-                ...current,
-                diagnostico: sessionPatch.diagnostico || current.diagnostico || '',
-                procedimiento_realizado: sessionPatch.procedimiento_realizado || current.procedimiento_realizado || '',
-                notas_clinicas: sessionPatch.notas_clinicas || current.notas_clinicas || '',
-                plan_proxima_cita: sessionPatch.plan_proxima_cita || current.plan_proxima_cita || '',
-            }));
-
-            if (sessionPatch.tratamientos.length > 0) {
-                setTreatments(
-                    sessionPatch.tratamientos.map((item) => ({
-                        numero_diente: item.numero_diente,
-                        descripcion: item.descripcion,
-                    })),
-                );
-            }
-
-            setAiMissingInformation(sessionPatch.missing_information || []);
-            toast({ title: t('ai.applySuccess') });
-        } catch (error) {
-            console.error('Failed to structure session dictation:', error);
-            toast({ title: t('ai.applyError'), variant: 'destructive' });
-        } finally {
-            setIsStructuringWithAi(false);
-        }
-    }, [aiDraft, appointmentId, t, toast]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -421,50 +361,6 @@ export function ClinicSessionDialog({
                         <div className="space-y-6 xl:flex xl:flex-row xl:gap-6 xl:space-y-0">
                             {/* LEFT column — form fields */}
                             <div className="grid content-start gap-4 md:grid-cols-2 xl:flex-1">
-                                {showAiAssistant && (
-                                    <div className="space-y-3 md:col-span-2 rounded-2xl border border-emerald-200/80 bg-emerald-50/60 p-4">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                                                <Sparkles className="h-4 w-4" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-semibold text-foreground">{t('ai.title')}</p>
-                                                <p className="text-sm text-muted-foreground">{t('ai.description')}</p>
-                                            </div>
-                                        </div>
-
-                                        <Textarea
-                                            value={aiDraft}
-                                            onChange={(e) => setAiDraft(e.target.value)}
-                                            placeholder={t('ai.placeholder')}
-                                            className="min-h-[110px] resize-y bg-white"
-                                        />
-
-                                        <div className="flex flex-wrap gap-2">
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                onClick={() => void handleStructureWithAi()}
-                                                disabled={!appointmentId || !aiDraft.trim() || isStructuringWithAi}
-                                            >
-                                                {isStructuringWithAi ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                                                {t('ai.apply')}
-                                            </Button>
-                                        </div>
-
-                                        {aiMissingInformation.length > 0 && (
-                                            <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
-                                                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-800">{t('ai.missingInformation')}</p>
-                                                <div className="mt-2 space-y-1">
-                                                    {aiMissingInformation.map((item, index) => (
-                                                        <p key={`${item}-${index}`} className="text-sm text-slate-700">{item}</p>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
                                 {/* Date */}
                                 <div className="space-y-2">
                                     <Label>{t('date')}</Label>
@@ -536,26 +432,6 @@ export function ClinicSessionDialog({
                                         value={form.procedimiento_realizado}
                                         onChange={(e) => setForm({ ...form, procedimiento_realizado: e.target.value })}
                                         placeholder={t('procedurePlaceholder')}
-                                        className="min-h-[80px] xl:min-h-[100px] resize-y"
-                                    />
-                                </div>
-
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>{t('diagnosis')}</Label>
-                                    <Textarea
-                                        value={form.diagnostico || ''}
-                                        onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
-                                        placeholder={t('diagnosisPlaceholder')}
-                                        className="min-h-[80px] xl:min-h-[100px] resize-y"
-                                    />
-                                </div>
-
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>{t('notes')}</Label>
-                                    <Textarea
-                                        value={form.notas_clinicas || ''}
-                                        onChange={(e) => setForm({ ...form, notas_clinicas: e.target.value })}
-                                        placeholder={t('notesPlaceholder')}
                                         className="min-h-[80px] xl:min-h-[100px] resize-y"
                                     />
                                 </div>
