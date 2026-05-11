@@ -589,6 +589,7 @@
     "status": "Status",
     "doctor": "Doctor",
     "edit": "Edit",
+    "cancel": "Cancel",
     "calendar": "Calendar",
     "patient": "Patient",
     "quoteDocNo": "Budget"
@@ -630,6 +631,22 @@
     "placeholder": "Type the reason…",
     "save": "Cancel appointment",
     "back": "Back"
+  },
+  "AppointmentPanel": {
+    "openPatient": "View patient",
+    "openDoctor": "View doctor",
+    "openQuote": "View quote",
+    "servicesLabel": "Services",
+    "servicesCount": "{count, plural, one {# service} other {# services}}",
+    "servicesListTitle": "Appointment services",
+    "duration": "Duration",
+    "durationMinutes": "{minutes} min",
+    "cancellationReasonLabel": "Reason",
+    "cancellationNoteLabel": "Detail",
+    "treatmentPlanGoTo": "Go to plan",
+    "noNotes": "No notes",
+    "delete": "Delete",
+    "deleteBlocked": "Only appointments in scheduled, pending, cancelled or no-show state can be deleted."
   },
   "AppointmentReschedule": {
     "action": "Reschedule",

@@ -13,6 +13,7 @@ import type { Locale } from 'date-fns';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
 import type { AppointmentStatus } from '@/lib/types';
+import { STATUS_ICONS } from '@/components/appointments/status-icons';
 
 import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
@@ -56,6 +57,15 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
           )}
           <span className="event-time">{formatEventTime(event.start, dateLocale)}</span>
           <span className="event-title">{event.title}</span>
+          {status && (() => {
+            const StatusIcon = STATUS_ICONS[status];
+            if (!StatusIcon) return null;
+            return (
+              <span aria-hidden className="event-status-corner" title={status}>
+                <StatusIcon className="h-3 w-3" strokeWidth={2} />
+              </span>
+            );
+          })()}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>

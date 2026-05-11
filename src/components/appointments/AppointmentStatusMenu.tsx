@@ -3,18 +3,10 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import {
-  Ban,
-  CalendarCheck,
-  CalendarClock,
   Check,
-  CheckCircle2,
-  CircleDashed,
   ClipboardList,
   Loader2,
   MessageSquare,
-  PlayCircle,
-  UserCheck,
-  UserX,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -34,20 +26,26 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
   APPOINTMENT_STATUSES,
   CANCELLATION_REASONS_QUICK,
+  STATUS_ACCENT_COLOR,
   STATUS_BADGE_VARIANT,
 } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
+import { STATUS_ICONS } from './status-icons';
 
-const STATUS_ICONS: Record<AppointmentStatus, React.ComponentType<{ className?: string }>> = {
-  pending: CircleDashed,
-  scheduled: CalendarClock,
-  confirmed: CalendarCheck,
-  arrived: UserCheck,
-  in_progress: PlayCircle,
-  completed: CheckCircle2,
-  no_show: UserX,
-  cancelled: Ban,
-};
+// Small colored dot used as a swatch in front of each status / reason item.
+function ColorDot({ color, className }: { color: string; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn('inline-block h-2.5 w-2.5 rounded-full shrink-0', className)}
+      style={{ backgroundColor: color }}
+    />
+  );
+}
+
+// The "cancelled" accent serves as the swatch for every cancellation reason
+// (they all end the appointment in the same state).
+const CANCELLATION_REASON_COLOR = STATUS_ACCENT_COLOR.cancelled;
 
 export interface StatusChangeExtra {
   cancellation_reason?: CancellationReason;
@@ -124,13 +122,15 @@ export function AppointmentStatusMenu({
           const Icon = STATUS_ICONS[status];
           const isCurrent = status === current;
           const enabled = isCurrent || allowed.includes(status);
+          const statusColor = STATUS_ACCENT_COLOR[status];
 
           // The "cancelled" entry becomes a submenu so the user picks a reason.
           if (status === 'cancelled') {
             if (!canCancel) {
               return (
                 <DropdownMenuItem key={status} disabled className="gap-2 text-sm">
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <ColorDot color={statusColor} />
+                  <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
                   <span className="flex-1 capitalize">{tStatus(status)}</span>
                   {isCurrent && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
                 </DropdownMenuItem>
@@ -139,7 +139,8 @@ export function AppointmentStatusMenu({
             return (
               <DropdownMenuSub key={status}>
                 <DropdownMenuSubTrigger className="gap-2 text-sm">
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <ColorDot color={statusColor} />
+                  <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
                   <span className="flex-1 capitalize">{tMenu('cancelSubmenu')}</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
@@ -152,7 +153,8 @@ export function AppointmentStatusMenu({
                       }}
                       className="gap-2 text-sm"
                     >
-                      {tReason(reason)}
+                      <ColorDot color={CANCELLATION_REASON_COLOR} />
+                      <span>{tReason(reason)}</span>
                     </DropdownMenuItem>
                   ))}
                   {onRequestCustomCancellation && (
@@ -165,6 +167,7 @@ export function AppointmentStatusMenu({
                         }}
                         className="gap-2 text-sm"
                       >
+                        <ColorDot color={CANCELLATION_REASON_COLOR} />
                         <MessageSquare className="h-3.5 w-3.5 shrink-0" />
                         <span>{tMenu('otherReason')}</span>
                       </DropdownMenuItem>
@@ -185,7 +188,8 @@ export function AppointmentStatusMenu({
               }}
               className="gap-2 text-sm"
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <ColorDot color={statusColor} />
+              <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
               <span className="flex-1 capitalize">{tStatus(status)}</span>
               {isCurrent && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
             </DropdownMenuItem>
@@ -240,6 +244,7 @@ export function AppointmentStatusContextItems({
         const Icon = STATUS_ICONS[status];
         const isCurrent = status === current;
         const enabled = !isCurrent && allowed.includes(status);
+        const statusColor = STATUS_ACCENT_COLOR[status];
 
         if (status === 'cancelled') {
           if (!canCancel) {
@@ -249,7 +254,8 @@ export function AppointmentStatusContextItems({
                 disabled
                 className="flex items-center gap-2 cursor-not-allowed"
               >
-                <Icon className="h-4 w-4" />
+                <ColorDot color={statusColor} />
+                <Icon className="h-4 w-4" style={{ color: statusColor }} />
                 <span className="capitalize">{tStatus(status)}</span>
                 {isCurrent && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
               </ItemComponent>
@@ -258,7 +264,8 @@ export function AppointmentStatusContextItems({
           return (
             <SubComponent key={status}>
               <SubTriggerComponent className="flex items-center gap-2 cursor-pointer">
-                <Icon className="h-4 w-4" />
+                <ColorDot color={statusColor} />
+                <Icon className="h-4 w-4" style={{ color: statusColor }} />
                 <span className="capitalize">{tMenu('cancelSubmenu')}</span>
               </SubTriggerComponent>
               <SubContentComponent>
@@ -269,9 +276,10 @@ export function AppointmentStatusContextItems({
                       e.stopPropagation();
                       onChange('cancelled', { cancellation_reason: reason });
                     }}
-                    className="cursor-pointer"
+                    className="flex items-center gap-2 cursor-pointer"
                   >
-                    {tReason(reason)}
+                    <ColorDot color={CANCELLATION_REASON_COLOR} />
+                    <span>{tReason(reason)}</span>
                   </ItemComponent>
                 ))}
                 {onRequestCustomCancellation && (
@@ -284,6 +292,7 @@ export function AppointmentStatusContextItems({
                       }}
                       className="flex items-center gap-2 cursor-pointer"
                     >
+                      <ColorDot color={CANCELLATION_REASON_COLOR} />
                       <MessageSquare className="h-3.5 w-3.5" />
                       <span>{tMenu('otherReason')}</span>
                     </ItemComponent>
@@ -304,7 +313,8 @@ export function AppointmentStatusContextItems({
             }}
             className="flex items-center gap-2 cursor-pointer"
           >
-            <Icon className="h-4 w-4" />
+            <ColorDot color={statusColor} />
+            <Icon className="h-4 w-4" style={{ color: statusColor }} />
             <span className="capitalize">{tStatus(status)}</span>
             {isCurrent && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
           </ItemComponent>

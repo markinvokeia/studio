@@ -130,7 +130,7 @@ export function CalendarDayViewGrouped({
                         style={{ width: 8, height: 8, background: col.color, boxShadow: `0 0 4px ${col.color}80` }}
                       />
                     )}
-                    {col.label}
+                    <span className="truncate min-w-0" title={col.label}>{col.label}</span>
                   </div>
                 ))}
               </div>

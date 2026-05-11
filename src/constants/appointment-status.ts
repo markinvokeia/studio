@@ -18,8 +18,8 @@ export const ALLOWED_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentSt
   arrived:     ['in_progress', 'completed', 'cancelled'],
   in_progress: ['completed', 'cancelled'],
   completed:   [],
-  no_show:     ['scheduled', 'cancelled'],
-  cancelled:   ['scheduled'],
+  no_show:     ['cancelled'],
+  cancelled:   [],
 };
 
 export const STATUS_BADGE_VARIANT: Record<AppointmentStatus, string> = {
@@ -94,4 +94,20 @@ export const RESCHEDULABLE_STATUSES: AppointmentStatus[] = [
 
 export function canReschedule(status: AppointmentStatus): boolean {
   return RESCHEDULABLE_STATUSES.includes(status);
+}
+
+/**
+ * Statuses from which the appointment can be hard-deleted (different from
+ * logical cancellation). Intentionally restricted to states where the deletion
+ * doesn't lose meaningful clinical/billing history.
+ */
+export const DELETABLE_STATUSES: AppointmentStatus[] = [
+  'pending',
+  'scheduled',
+  'cancelled',
+  'no_show',
+];
+
+export function canDelete(status: AppointmentStatus): boolean {
+  return DELETABLE_STATUSES.includes(status);
 }

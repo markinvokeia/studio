@@ -14,6 +14,7 @@ import { parseISO } from 'date-fns';
 
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus } from '@/lib/types';
+import { STATUS_ICONS } from '@/components/appointments/status-icons';
 
 import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
@@ -76,6 +77,19 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               ? `, ${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`
               : `${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`}
           </span>
+          {status && (() => {
+            const StatusIcon = STATUS_ICONS[status];
+            if (!StatusIcon) return null;
+            return (
+              <span
+                aria-hidden
+                className="event-status-corner"
+                title={status}
+              >
+                <StatusIcon className="h-3 w-3" strokeWidth={2} />
+              </span>
+            );
+          })()}
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent>

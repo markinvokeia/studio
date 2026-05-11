@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   background-color: var(--card);
-  border: 1px solid var(--border);
+  border: 1px solid hsl(var(--border));
   border-radius: var(--radius);
 }
 
@@ -12,7 +12,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border));
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -128,6 +128,41 @@
   display: none;
 }
 
+/* Status icon in the bottom-right corner of day/week event blocks. */
+.event-in-day-view .event-status-corner {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(0, 0, 0, 0.18);
+  border-radius: 9999px;
+  padding: 2px;
+  pointer-events: none;
+}
+
+.event-in-day-view-compact .event-status-corner {
+  bottom: 1px;
+  right: 2px;
+  padding: 1px;
+}
+
+.event-cancelled .event-status-corner {
+  background-color: rgba(0, 0, 0, 0.35);
+}
+
+/* In month view chips the event is a single row — show the icon inline at the end. */
+.event .event-status-corner {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
 .event:hover {
   opacity: 0.8;
 }
@@ -165,26 +200,25 @@
   top: 0;
   z-index: 15;
   background-color: hsl(var(--card));
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 .day-view-header-dates {
   display: grid;
   font-weight: 500;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 .day-view-header-dates-grouped {
   display: grid;
   font-weight: 500;
-  border-bottom: 1px solid var(--border);
-  column-gap: 0.1rem;
+  border-bottom: 1px solid hsl(var(--border));
 }
 
 .day-view-date-cell {
   text-align: center;
   padding: 0.5rem;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid hsl(var(--border));
   background-color: hsl(var(--card));
 }
 
@@ -193,8 +227,8 @@
 }
 
 .day-view-date-cell-grouped {
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-top: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
   box-shadow: inset 0 -1px 0 hsl(var(--border));
 }
 
@@ -202,13 +236,13 @@
   text-align: center;
   padding: 0.5rem;
   background-color: hsl(var(--card));
-  border-top: 2px solid hsl(var(--border) / 0.7);
-  border-left: 2px solid hsl(var(--border) / 0.7);
-  border-right: 2px solid hsl(var(--border) / 0.7);
-  border-bottom: 1px solid var(--border);
-  border-top-left-radius: 5px;
-  border-top-right-radius: 5px;
+  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid hsl(var(--border));
   box-sizing: border-box;
+}
+
+.day-view-date-block:last-child {
+  border-right: none;
 }
 
 .day-view-date-cell .day-name,
@@ -243,7 +277,6 @@
 
 .day-view-header-groups-by-day {
   display: grid;
-  column-gap: 0.1rem;
 }
 
 .day-view-header-spacer {
@@ -256,9 +289,12 @@
 .day-view-group-block {
   display: grid;
   background-color: hsl(var(--muted) / 0.25);
-  border-left: 2px solid hsl(var(--border) / 0.7);
-  border-right: 2px solid hsl(var(--border) / 0.7);
+  border-right: 1px solid hsl(var(--border));
   box-sizing: border-box;
+}
+
+.day-view-group-block:last-child {
+  border-right: none;
 }
 
 .day-view-group-cell {
@@ -276,7 +312,7 @@
 }
 
 .day-view-group-cell:not(:last-child) {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid hsl(var(--border));
 }
 
 
@@ -291,7 +327,6 @@
   display: grid;
   overflow: visible;
   position: relative;
-  column-gap: 0.1rem;
 }
 
 .time-column {
@@ -303,6 +338,7 @@
   left: 0;
   z-index: 11;
   background-color: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
 }
 
 .time-zone-label {
@@ -310,7 +346,8 @@
   font-size: 0.75rem;
   color: hsl(var(--muted-foreground));
   text-align: center;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
   position: sticky;
   left: 0;
   z-index: 16;
@@ -339,8 +376,9 @@
 }
 
 .day-column {
-  border-right: 1px solid hsl(var(--border) / 0.7);
+  border-right: 1px solid hsl(var(--border));
   position: relative;
+  box-sizing: border-box;
 }
 
 .day-column:last-child {
@@ -350,10 +388,13 @@
 .day-block {
   display: grid;
   background-color: hsl(var(--card));
-  border-left: 2px solid hsl(var(--border));
-  border-right: 2px solid hsl(var(--border));
+  border-right: 1px solid hsl(var(--border));
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.day-block:last-child {
+  border-right: none;
 }
 
 .day-block > .day-column {
@@ -361,7 +402,7 @@
 }
 
 .day-block > .day-column:not(:last-child) {
-  border-right: 1px solid hsl(var(--border) / 0.7);
+  border-right: 1px solid hsl(var(--border));
 }
 
 .day-column>.time-slot {
@@ -459,7 +500,7 @@
   align-items: stretch;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid hsl(var(--border));
   flex-shrink: 0;
 }
 
@@ -486,7 +527,7 @@
 .calendar-view-tabs {
   position: sticky;
   bottom: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid hsl(var(--border));
   background: hsl(var(--card));
   z-index: 20;
   flex-shrink: 0;

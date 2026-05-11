@@ -589,6 +589,7 @@
     "status": "Estado",
     "doctor": "Doctor",
     "edit": "Editar",
+    "cancel": "Cancelar",
     "calendar": "Calendario",
     "patient": "Paciente",
     "quoteDocNo": "Presupuesto"
@@ -630,6 +631,22 @@
     "placeholder": "Escribe el motivo…",
     "save": "Cancelar cita",
     "back": "Volver"
+  },
+  "AppointmentPanel": {
+    "openPatient": "Ver paciente",
+    "openDoctor": "Ver doctor",
+    "openQuote": "Ver presupuesto",
+    "servicesLabel": "Servicios",
+    "servicesCount": "{count, plural, one {# servicio} other {# servicios}}",
+    "servicesListTitle": "Servicios de la cita",
+    "duration": "Duración",
+    "durationMinutes": "{minutes} min",
+    "cancellationReasonLabel": "Motivo",
+    "cancellationNoteLabel": "Detalle",
+    "treatmentPlanGoTo": "Ir al plan",
+    "noNotes": "Sin notas",
+    "delete": "Eliminar",
+    "deleteBlocked": "Sólo se puede eliminar una cita en estado programada, pendiente, cancelada o no asistió."
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
