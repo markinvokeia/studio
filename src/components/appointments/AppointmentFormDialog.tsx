@@ -591,7 +591,10 @@ export function AppointmentFormDialog({
         const isEditing = !!editingAppointment;
         if (isEditing) {
             const hasChanges = appointment.date !== editingAppointment?.date || appointment.time !== editingAppointment?.time;
-            if (hasChanges && availabilityStatus !== 'available') {
+            // Only block when the availability check explicitly returned 'unavailable'.
+            // 'idle' (never ran) and 'checking' (in progress) should NOT block — the
+            // backend re-validates on save and reports a real conflict if any.
+            if (hasChanges && availabilityStatus === 'unavailable') {
                 toast({ variant: "destructive", title: tToasts('slotUnavailableTitle'), description: tToasts('slotUnavailableDescription') });
                 return;
             }

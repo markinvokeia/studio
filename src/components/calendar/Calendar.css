@@ -128,7 +128,8 @@
   display: none;
 }
 
-/* Status icon in the bottom-right corner of day/week event blocks. */
+/* Status icon — solid colored badge with white icon, matching the agenda view.
+   The background color is set inline per-event via STATUS_ACCENT_COLOR. */
 .event-in-day-view .event-status-corner {
   position: absolute;
   bottom: 2px;
@@ -136,8 +137,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.9);
-  background-color: rgba(0, 0, 0, 0.18);
+  color: white;
   border-radius: 9999px;
   padding: 2px;
   pointer-events: none;
@@ -149,17 +149,15 @@
   padding: 1px;
 }
 
-.event-cancelled .event-status-corner {
-  background-color: rgba(0, 0, 0, 0.35);
-}
-
 /* In month view chips the event is a single row — show the icon inline at the end. */
 .event .event-status-corner {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.9);
+  color: white;
+  border-radius: 9999px;
+  padding: 2px;
   flex-shrink: 0;
 }
 
