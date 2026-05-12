@@ -28,9 +28,7 @@ export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarVi
 /** Resolve view to an effective variant based on breakpoint */
 function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): CalendarView {
   if (!isMobile) return view;
-  // On mobile: 2-day becomes day, year becomes month
-  // Week stays as week — the mobile carousel handles all 7 days via swipe
-  if (view === '2-day') return 'day';
+  // On mobile: year becomes month
   if (view === 'year') return 'month';
   return view;
 }
@@ -76,7 +74,8 @@ const Calendar: React.FC<CalendarProps> = ({
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
   const timeZoneLabel = t('timeZone');
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
-  const useMobileDayLayout = isMobile || (breakpoint === 'tablet' && isGrouped);
+  const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day';
+  const useMobileDayLayout = (isMobile && (isGrouped || !isMultiDayView)) || (breakpoint === 'tablet' && isGrouped);
 
   // Shared event handler props
   const eventHandlers = {
@@ -94,7 +93,7 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'week': {
         const numDays = effectiveView === 'week' ? 7 : effectiveView === '3-day' ? 3 : effectiveView === '2-day' ? 2 : 1;
 
-        // Mobile, and grouped tablet: carousel-based view
+        // Mobile grouped/single-day, and grouped tablet: carousel-based view
         if (useMobileDayLayout) {
           return (
             <CalendarDayViewMobile
