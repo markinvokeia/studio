@@ -589,6 +589,7 @@
     "status": "Status",
     "doctor": "Doctor",
     "edit": "Edit",
+    "cancel": "Cancel",
     "calendar": "Calendar",
     "patient": "Patient",
     "quoteDocNo": "Budget"
@@ -598,7 +599,66 @@
     "confirmed": "Confirmed",
     "pending": "Pending",
     "cancelled": "Cancelled",
-    "scheduled": "Scheduled"
+    "scheduled": "Scheduled",
+    "arrived": "Arrived",
+    "in_progress": "In progress",
+    "no_show": "No-show"
+  },
+  "AppointmentStatusMenu": {
+    "label": "Status",
+    "changeStatus": "Change status",
+    "current": "Current",
+    "noTransitions": "No transitions allowed",
+    "updated": "Status updated",
+    "updatedDesc": "Status changed to {status}.",
+    "error": "Could not update status",
+    "errorDesc": "An error occurred while updating the appointment status.",
+    "cancelSubmenu": "Cancel…",
+    "otherReason": "Other reason…"
+  },
+  "CancellationReason": {
+    "late": "Cancelled late",
+    "in_time": "Cancelled in time",
+    "no_notice": "Cancelled without notice",
+    "by_doctor": "Cancelled by doctor",
+    "by_clinic": "Cancelled by clinic",
+    "other": "Other reason",
+    "reschedule": "Rescheduled"
+  },
+  "CancellationDialog": {
+    "title": "Cancellation reason",
+    "description": "Briefly describe why the appointment is being cancelled.",
+    "placeholder": "Type the reason…",
+    "save": "Cancel appointment",
+    "back": "Back"
+  },
+  "AppointmentPanel": {
+    "openPatient": "View patient",
+    "openDoctor": "View doctor",
+    "openQuote": "View quote",
+    "servicesLabel": "Services",
+    "servicesCount": "{count, plural, one {# service} other {# services}}",
+    "servicesListTitle": "Appointment services",
+    "duration": "Duration",
+    "durationMinutes": "{minutes} min",
+    "cancellationReasonLabel": "Reason",
+    "cancellationNoteLabel": "Detail",
+    "treatmentPlanGoTo": "Go to plan",
+    "noNotes": "No notes",
+    "delete": "Delete",
+    "deleteBlocked": "Only appointments in scheduled, pending, cancelled or no-show state can be deleted."
+  },
+  "AppointmentReschedule": {
+    "action": "Reschedule",
+    "dialogTitle": "Reschedule appointment",
+    "dialogSubtitle": "The current appointment will be cancelled and a new one created with the edited data.",
+    "submit": "Reschedule",
+    "rescheduledLabel": "Appointment rescheduled",
+    "blockedTooltip": "Cannot reschedule an appointment in {status} status.",
+    "success": "Appointment rescheduled",
+    "successDesc": "The original was cancelled and the new one was created.",
+    "error": "Could not reschedule",
+    "errorDesc": "An error occurred while rescheduling the appointment."
   },
   "DoctorWorkspace": {
     "badge": "Doctor View",
@@ -5585,5 +5645,21 @@
       "delete": "Delete session",
       "deleteConfirm": "This session will be permanently deleted. Continue?"
     }
+  },
+  "StickyNotes": {
+    "openNotes": "Sticky Notes",
+    "newNote": "New note",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit note",
+    "delete": "Delete note",
+    "listening": "Listening...",
+    "startListening": "Start voice input",
+    "stopListening": "Stop voice input",
+    "micError": "Could not access microphone.",
+    "saveError": "Error saving note. Please try again.",
+    "deleteError": "Error deleting note. Please try again.",
+    "loadError": "Error loading notes.",
+    "empty": "No notes yet"
   }
 }

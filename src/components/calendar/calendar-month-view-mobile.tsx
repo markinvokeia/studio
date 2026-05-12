@@ -6,6 +6,10 @@ import { cn } from '@/lib/utils';
 import type { Locale } from 'date-fns';
 import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } from 'date-fns';
 
+import { STATUS_ICONS } from '@/components/appointments/status-icons';
+import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import type { AppointmentStatus } from '@/lib/types';
+
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
 
@@ -172,6 +176,10 @@ export function CalendarMonthViewMobile({
           <div className="space-y-2">
             {selectedDayEvents.map((event) => {
               const startTime = formatEventTime(event.start, dateLocale);
+              const rawStatus = event.data?.status as string | undefined;
+              const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
+              const StatusIcon = status ? STATUS_ICONS[status] : null;
+              const statusColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
               return (
                 <div
                   key={event.id}
@@ -187,7 +195,19 @@ export function CalendarMonthViewMobile({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-sm truncate">{event.title}</span>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">{startTime}</span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{startTime}</span>
+                        {StatusIcon && statusColor && (
+                          <span
+                            aria-hidden
+                            title={status}
+                            className="inline-flex items-center justify-center rounded-full p-1 text-white"
+                            style={{ backgroundColor: statusColor }}
+                          >
+                            <StatusIcon className="h-3 w-3" strokeWidth={2} />
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {event.data?.doctorName && (
                       <span className="text-xs text-muted-foreground mt-0.5 block truncate">

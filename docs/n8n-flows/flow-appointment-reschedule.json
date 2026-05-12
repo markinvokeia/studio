@@ -1,0 +1,153 @@
+{
+  "name": "Appointments - Reschedule",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Appointments – Reschedule\n\n**POST** `/webhook/appointments/reschedule`\n\nCancels the original appointment and creates a new one in a single\ntransaction. Mirror of the `upsert` create payload plus the\n`original_appointment_id` field.\n\n**No side-effects in v1**: does NOT touch Google Calendar, does\nNOT send notifications.\n\nThe link between the cancelled appointment and the new one is\nNOT persisted as a relational FK — knowing the old was cancelled\nwith reason='reschedule' is enough.\n\n**Cancellation:**\n- old.status              = 'cancelled'\n- old.cancellation_reason = 'reschedule'\n\n**Creation:**\n- new.status = 'scheduled'\n\n**Eligibility:** the original must NOT be in a terminal state\n(`completed`, `cancelled`, `no_show`). Otherwise → 409.\n\n**Request body (same shape as upsert create + `original_appointment_id`):**\n```json\n{\n  \"original_appointment_id\": \"abc-123\",\n  \"patient_id\": \"...\",\n  \"patient_name\": \"...\",\n  \"doctor_id\": \"...\",\n  \"doctor_name\": \"...\",\n  \"calendar_source_id\": \"...\",\n  \"summary\": \"…\",\n  \"notes\": \"…\",\n  \"service_ids\": [\"svc-1\", \"svc-2\"],\n  \"start\": \"2026-05-12T10:00:00\",\n  \"end\":   \"2026-05-12T10:30:00\",\n  \"changed_by\": \"user-id\"\n}\n```\n\n**Response 200:**\n```json\n{\n  \"success\": true,\n  \"code\": 200,\n  \"original_appointment_id\": \"abc-123\",\n  \"new_appointment_id\": \"def-456\"\n}\n```",
+        "height": 600,
+        "width": 540,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-100, 20],
+      "typeVersion": 1,
+      "id": "appt-reschedule-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointments/reschedule",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "appt-reschedule-wh",
+      "name": "Webhook",
+      "webhookId": "appointments-reschedule"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst {\n  original_appointment_id,\n  patient_id, doctor_id, calendar_source_id,\n  summary, notes,\n  service_ids,\n  start, end,\n  changed_by,\n} = body || {};\n\nif (!original_appointment_id) throw new Error('original_appointment_id is required');\nif (!patient_id) throw new Error('patient_id is required');\nif (!doctor_id) throw new Error('doctor_id is required');\nif (!start || !end) throw new Error('start and end are required');\nif (!summary) throw new Error('summary is required');\n\nconst esc = (v) => v == null ? null : String(v).replace(/'/g, \"''\");\n\n// Numeric FK columns must be interpolated unquoted as raw SQL.\nconst numOrNull = (v) => {\n  if (v == null || v === '') return 'NULL';\n  const n = Number(v);\n  if (!Number.isFinite(n)) throw new Error(`Invalid numeric id: ${v}`);\n  return String(n);\n};\n\nreturn [{ json: {\n  original_appointment_id: esc(original_appointment_id),\n  patient_id: esc(patient_id),\n  doctor_id: esc(doctor_id),\n  calendar_source_id_sql: numOrNull(calendar_source_id),\n  summary: esc(summary),\n  notes: notes ? esc(notes) : null,\n  service_ids: Array.isArray(service_ids) ? service_ids.map(esc) : [],\n  start_datetime: esc(start),\n  end_datetime: esc(end),\n  changed_by: changed_by ? esc(changed_by) : null,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "appt-reschedule-parse",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id::text AS id, status FROM appointments WHERE id::text = '{{ $json.original_appointment_id }}' LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [900, 300],
+      "id": "appt-reschedule-pg-load",
+      "name": "Load Original",
+      "credentials": { "postgres": { "id": "clinic-postgres", "name": "Clinic Postgres" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "const loaded = $input.all().filter(r => r.json.id);\nif (loaded.length === 0) {\n  return [{ json: { __error: true, code: 404, message: 'Original appointment not found' } }];\n}\n\nconst current = loaded[0].json;\nconst input = $('Parse Input').first().json;\nconst from_status = String(current.status || '').toLowerCase();\nconst TERMINAL = ['completed', 'cancelled', 'no_show'];\nif (TERMINAL.includes(from_status)) {\n  return [{ json: { __error: true, code: 409, message: `Cannot reschedule an appointment in '${from_status}' state` } }];\n}\n\nreturn [{ json: { ...input, from_status } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "id": "appt-reschedule-validate",
+      "name": "Validate Eligibility"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 300],
+      "id": "appt-reschedule-if-error",
+      "name": "Has Error?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: true, code: $json.code, message: $json.message }) }}",
+        "options": { "responseCode": "={{ $json.code }}" }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 180],
+      "id": "appt-reschedule-respond-error",
+      "name": "Respond Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Atomic reschedule: insert new + cancel old + 2 audit rows.\n-- No relational link is stored between old and new — the old being\n-- cancelled with reason='reschedule' is the only persisted signal.\n-- Adjust column names if your `appointments` schema differs.\nWITH new_appt AS (\n  INSERT INTO appointments (\n    patient_id, assignee_id, calendar_source_id,\n    start_datetime, end_datetime,\n    summary, notes, status,\n    created_at, updated_at\n  ) VALUES (\n    '{{ $json.patient_id }}',\n    '{{ $json.doctor_id }}',\n    {{ $json.calendar_source_id_sql }},\n    '{{ $json.start_datetime }}',\n    '{{ $json.end_datetime }}',\n    '{{ $json.summary }}',\n    NULLIF('{{ $json.notes }}', 'null'),\n    'scheduled',\n    NOW(), NOW()\n  )\n  RETURNING id::text AS new_id\n),\ncancelled_old AS (\n  UPDATE appointments\n  SET status              = 'cancelled',\n      cancellation_reason = 'reschedule',\n      updated_at          = NOW()\n  WHERE id::text = '{{ $json.original_appointment_id }}'\n  RETURNING id::text AS old_id\n),\nlog_old AS (\n  INSERT INTO appointment_status_log\n    (appointment_id, from_status, to_status, cancellation_reason, changed_by, note)\n  SELECT old_id, '{{ $json.from_status }}', 'cancelled', 'reschedule',\n         NULLIF('{{ $json.changed_by }}', 'null'),\n         'Reagendada'\n  FROM cancelled_old\n  RETURNING appointment_id\n),\nlog_new AS (\n  INSERT INTO appointment_status_log\n    (appointment_id, from_status, to_status, changed_by, note)\n  SELECT new_id, NULL, 'scheduled',\n         NULLIF('{{ $json.changed_by }}', 'null'),\n         'Creada por reagendamiento'\n  FROM new_appt\n  RETURNING appointment_id\n)\nSELECT (SELECT old_id FROM cancelled_old) AS old_id,\n       (SELECT new_id FROM new_appt)     AS new_id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1560, 420],
+      "id": "appt-reschedule-pg-apply",
+      "name": "Apply Reschedule"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().filter(r => r.json.new_id);\nif (rows.length === 0) throw new Error('Reschedule failed — no rows returned');\nconst r = rows[0].json;\nreturn [{ json: {\n  success: true,\n  code: 200,\n  original_appointment_id: r.old_id,\n  new_appointment_id: r.new_id,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 420],
+      "id": "appt-reschedule-build-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2000, 420],
+      "id": "appt-reschedule-respond-ok",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Parse Input", "type": "main", "index": 0 }]] },
+    "Parse Input": { "main": [[{ "node": "Load Original", "type": "main", "index": 0 }]] },
+    "Load Original": { "main": [[{ "node": "Validate Eligibility", "type": "main", "index": 0 }]] },
+    "Validate Eligibility": { "main": [[{ "node": "Has Error?", "type": "main", "index": 0 }]] },
+    "Has Error?": {
+      "main": [
+        [{ "node": "Respond Error", "type": "main", "index": 0 }],
+        [{ "node": "Apply Reschedule", "type": "main", "index": 0 }]
+      ]
+    },
+    "Apply Reschedule": { "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]] },
+    "Build Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": true },
+  "tags": ["appointments", "clinic"]
+}

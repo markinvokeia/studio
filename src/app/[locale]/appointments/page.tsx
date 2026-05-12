@@ -32,6 +32,10 @@ import {
 } from '@/components/ui/dialog';
 import {
     ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuSub,
+    ContextMenuSubContent,
+    ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
@@ -39,18 +43,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, Calendar as CalendarType, CalendarSettings, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarSettings, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
-import { Calendar as CalendarIcon, Check, ChevronDown, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
+import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { canReschedule, normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
 
 
@@ -208,7 +215,7 @@ async function getAppointments(
                 notes: apiAppt.notes || '',
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
-                status: apiAppt.status || 'confirmed',
+                status: normalizeAppointmentStatus(apiAppt.status),
                 created_at: apiAppt.created_at || apiAppt.createdat,
                 google_calendar_id: apiAppt.google_calendar_id || apiAppt.googleCalendarId || undefined,
                 googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
@@ -296,6 +303,8 @@ export default function AppointmentsPage() {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
     const tStatus = useTranslations('AppointmentStatus');
+    const tStatusMenu = useTranslations('AppointmentStatusMenu');
+    const tReschedule = useTranslations('AppointmentReschedule');
     const tGeneral = useTranslations('General');
     const tUserRoles = useTranslations('UserRoles');
     const tToasts = useTranslations('AppointmentsPage.toasts');
@@ -317,6 +326,7 @@ export default function AppointmentsPage() {
     const [checkDoctorAvailability, setCheckDoctorAvailability] = React.useState(false);
 
     const [editingAppointment, setEditingAppointment] = React.useState<Appointment | null>(null);
+    const [isReschedulingMode, setIsReschedulingMode] = React.useState(false);
     const [deletingAppointment, setDeletingAppointment] = React.useState<Appointment | null>(null);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = React.useState(false);
 
@@ -350,7 +360,6 @@ export default function AppointmentsPage() {
     const [quoteInvoices, setQuoteInvoices] = React.useState<Invoice[]>([]);
     const [isLoadingQuoteInfo, setIsLoadingQuoteInfo] = React.useState(false);
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
-    const { hasPermission } = usePermissions();
     const eventClickAbortRef = React.useRef<AbortController | null>(null);
 
 
@@ -362,11 +371,13 @@ export default function AppointmentsPage() {
         setCreateOpen(open);
         if (!open) {
             setEditingAppointment(null);
+            setIsReschedulingMode(false);
         }
     };
 
     const handleNewAppointmentClick = () => {
         setEditingAppointment(null);
+        setIsReschedulingMode(false);
         setCreateOpen(true);
     };
 
@@ -526,17 +537,59 @@ export default function AppointmentsPage() {
 
     const handleEdit = (appointment: Appointment) => {
         setEditingAppointment(appointment);
+        setIsReschedulingMode(false);
         setCreateOpen(true);
     };
 
-
-    // Simplified handleEdit triggers the dialog
+    const handleReschedule = (appointment: Appointment) => {
+        setEditingAppointment(appointment);
+        setIsReschedulingMode(true);
+        setCreateOpen(true);
+    };
 
 
     const handleCancel = (appointment: Appointment) => {
         setDeletingAppointment(appointment);
         setIsDeleteAlertOpen(true);
     };
+
+    const { updateStatus } = useAppointmentStatus({
+        onSuccess: (appt, newStatus) => {
+            // Optimistic update so the UI feels instant; the next refresh confirms.
+            setAppointments((prev) =>
+                prev.map((a) => (a.id === appt.id ? { ...a, status: newStatus } : a)),
+            );
+            setSelectedAppointment((prev) =>
+                prev && prev.id === appt.id ? { ...prev, status: newStatus } : prev,
+            );
+        },
+    });
+
+    const handleStatusChange = React.useCallback(
+        (
+            appointment: Appointment,
+            newStatus: AppointmentStatus,
+            extra?: { cancellation_reason?: import('@/lib/types').CancellationReason; cancellation_note?: string },
+        ) => {
+            updateStatus({ appointment, newStatus, ...extra });
+        },
+        [updateStatus],
+    );
+
+    const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
+    const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
+        setPendingCancellation(appointment);
+    }, []);
+    const handleConfirmCustomCancellation = React.useCallback((note: string) => {
+        if (!pendingCancellation) return;
+        updateStatus({
+            appointment: pendingCancellation,
+            newStatus: 'cancelled',
+            cancellation_reason: 'other',
+            cancellation_note: note,
+        });
+        setPendingCancellation(null);
+    }, [pendingCancellation, updateStatus]);
 
     // Clinic Session Handlers
     const handleOpenClinicSession = async (appointment: Appointment) => {
@@ -611,7 +664,10 @@ export default function AppointmentsPage() {
         }
     };
 
-    const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(() => getAppointmentColumns({ t: tColumns, tStatus, onEdit: handleEdit, onCancel: handleCancel }), [tColumns, tStatus]);
+    const appointmentColumns: ColumnDef<Appointment>[] = React.useMemo(
+        () => getAppointmentColumns({ t: tColumns, tStatus, tReschedule, onEdit: handleEdit, onCancel: handleCancel, onReschedule: handleReschedule, onStatusChange: handleStatusChange, onRequestCustomCancellation: handleRequestCustomCancellation }),
+        [tColumns, tStatus, tReschedule, handleStatusChange, handleRequestCustomCancellation],
+    );
 
     const loadAppointments = React.useCallback(async () => {
         if (!fetchRange || !fetchRange.start || !fetchRange.end || !isValid(fetchRange.start) || !isValid(fetchRange.end) || calendars.length === 0) {
@@ -846,23 +902,55 @@ export default function AppointmentsPage() {
         return t('grouping.options.none');
     }, [groupBy, t]);
 
-    // Render additional context menu items for clinic session
-    const renderClinicSessionMenuItem = (appointment: Appointment) => {
-        if (!hasPermission('CLINIC_HISTORY_SESSION_CREATE') && !hasPermission('CLINIC_HISTORY_CREATE')) {
-            return null;
-        }
-
-        return (
+    // Render additional context menu items for the calendar event:
+    // status submenu + clinic session shortcut.
+    const renderEventContextMenu = (appointment: Appointment) => (
+        <>
+            <ContextMenuSeparator />
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
+                    <ClipboardCheck className="h-4 w-4" />
+                    {tStatusMenu('changeStatus')}
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    <AppointmentStatusContextItems
+                        appointment={appointment}
+                        onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
+                        onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                        ItemComponent={ContextMenuItem}
+                        SubComponent={ContextMenuSub}
+                        SubTriggerComponent={ContextMenuSubTrigger}
+                        SubContentComponent={ContextMenuSubContent}
+                        SeparatorComponent={ContextMenuSeparator}
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+            {canReschedule(appointment.status) && (
+                <ContextMenuItem
+                    key="reschedule"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleReschedule(appointment);
+                    }}
+                    className="flex items-center gap-2 cursor-pointer"
+                >
+                    <CalendarSync className="h-4 w-4" />
+                    {tReschedule('action')}
+                </ContextMenuItem>
+            )}
             <ContextMenuItem
                 key="clinic-session"
-                onClick={() => handleOpenClinicSession(appointment)}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenClinicSession(appointment);
+                }}
                 className="flex items-center gap-2 cursor-pointer"
             >
                 <Stethoscope className="h-4 w-4" />
                 {t('contextMenu.createSession')}
             </ContextMenuItem>
-        );
-    };
+        </>
+    );
 
     // Unused form logic removed
 
@@ -893,7 +981,7 @@ export default function AppointmentsPage() {
                     isLoading={isRefreshing}
                     onEventClick={handleEventClick}
                     onEventColorChange={handleEventColorChange}
-                    onEventContextMenu={renderClinicSessionMenuItem}
+                    onEventContextMenu={renderEventContextMenu}
                     groupBy={groupBy}
                     groupingColumns={groupingColumns}
                     onViewChange={setCurrentView}
@@ -1140,6 +1228,7 @@ export default function AppointmentsPage() {
                 open={isCreateOpen}
                 onOpenChange={handleOpenChange}
                 editingAppointment={editingAppointment}
+                mode={isReschedulingMode ? 'reschedule' : (editingAppointment ? 'edit' : 'create')}
                 initialData={slotInitialData || undefined}
                 onSaveSuccess={handleSaveSuccess}
                 calendars={calendars}
@@ -1201,7 +1290,15 @@ export default function AppointmentsPage() {
                 doctorColor={selectedAppointment?.doctorId ? (doctors.find(d => d.id === selectedAppointment.doctorId)?.color ?? undefined) : undefined}
                 onEdit={handleEdit}
                 onCancel={handleCancel}
+                onReschedule={handleReschedule}
                 onOpenClinicSession={handleOpenClinicSession}
+                onStatusChange={handleStatusChange}
+                onRequestCustomCancellation={handleRequestCustomCancellation}
+            />
+            <CancellationNoteDialog
+                open={!!pendingCancellation}
+                onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
+                onConfirm={handleConfirmCustomCancellation}
             />
         </Card>
     );

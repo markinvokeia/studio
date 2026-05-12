@@ -462,6 +462,25 @@ export type Message = {
   channel?: string;
 };
 
+export type AppointmentStatus =
+  | 'scheduled'
+  | 'confirmed'
+  | 'arrived'
+  | 'in_progress'
+  | 'completed'
+  | 'no_show'
+  | 'cancelled'
+  | 'pending';
+
+export type CancellationReason =
+  | 'late'
+  | 'in_time'
+  | 'no_notice'
+  | 'by_doctor'
+  | 'by_clinic'
+  | 'other'
+  | 'reschedule';
+
 export type Appointment = {
   id: string; // appointmentId in backend
   patientId: string;
@@ -477,7 +496,7 @@ export type Appointment = {
   notes?: string;
   date: string;
   time: string;
-  status: 'confirmed' | 'completed' | 'cancelled' | 'pending' | 'scheduled';
+  status: AppointmentStatus;
   created_at?: string;
   google_calendar_id?: string;
   googleEventId?: string;
@@ -493,6 +512,11 @@ export type Appointment = {
   quote_doc_no?: string; // Número de documento del presupuesto (Doc No)
   // Treatment plan link — set when this appointment is linked to a treatment_seq_steps row
   treatment_seq_step_id?: number | null;
+  // Cancellation metadata — populated when status='cancelled'.
+  // When cancelled because of a reschedule, reason='reschedule' is the only
+  // signal stored; the link to the new appointment is intentionally not persisted.
+  cancellation_reason?: CancellationReason | null;
+  cancellation_note?: string | null;
 };
 
 export type UserLog = {
@@ -1405,4 +1429,16 @@ export type OdontogramSnapshot = {
   doctorId?: string;
   doctorName?: string;
   archivosAdjuntos?: OdontogramAttachment[];
+};
+
+export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'orange';
+
+export type StickyNote = {
+  id: string;
+  text: string;
+  color: StickyNoteColor;
+  created_by: string;
+  created_at: string;
+  updated_at?: string;
+  status: 'active' | 'deleted';
 };

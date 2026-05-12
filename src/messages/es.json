@@ -589,6 +589,7 @@
     "status": "Estado",
     "doctor": "Doctor",
     "edit": "Editar",
+    "cancel": "Cancelar",
     "calendar": "Calendario",
     "patient": "Paciente",
     "quoteDocNo": "Presupuesto"
@@ -598,7 +599,66 @@
     "confirmed": "Confirmada",
     "pending": "Pendiente",
     "cancelled": "Cancelada",
-    "scheduled": "Programada"
+    "scheduled": "Programada",
+    "arrived": "Llegó",
+    "in_progress": "En curso",
+    "no_show": "No asistió"
+  },
+  "AppointmentStatusMenu": {
+    "label": "Estado",
+    "changeStatus": "Cambiar estado",
+    "current": "Actual",
+    "noTransitions": "No hay transiciones permitidas",
+    "updated": "Estado actualizado",
+    "updatedDesc": "El estado cambió a {status}.",
+    "error": "No se pudo actualizar el estado",
+    "errorDesc": "Ocurrió un error al actualizar el estado de la cita.",
+    "cancelSubmenu": "Cancelar…",
+    "otherReason": "Otro motivo…"
+  },
+  "CancellationReason": {
+    "late": "Cancelada tarde",
+    "in_time": "Cancelada con tiempo",
+    "no_notice": "Cancelada sin aviso",
+    "by_doctor": "Cancelada por el doctor",
+    "by_clinic": "Cancelada por la clínica",
+    "other": "Otro motivo",
+    "reschedule": "Reagendada"
+  },
+  "CancellationDialog": {
+    "title": "Motivo de la cancelación",
+    "description": "Describe brevemente por qué se cancela la cita.",
+    "placeholder": "Escribe el motivo…",
+    "save": "Cancelar cita",
+    "back": "Volver"
+  },
+  "AppointmentPanel": {
+    "openPatient": "Ver paciente",
+    "openDoctor": "Ver doctor",
+    "openQuote": "Ver presupuesto",
+    "servicesLabel": "Servicios",
+    "servicesCount": "{count, plural, one {# servicio} other {# servicios}}",
+    "servicesListTitle": "Servicios de la cita",
+    "duration": "Duración",
+    "durationMinutes": "{minutes} min",
+    "cancellationReasonLabel": "Motivo",
+    "cancellationNoteLabel": "Detalle",
+    "treatmentPlanGoTo": "Ir al plan",
+    "noNotes": "Sin notas",
+    "delete": "Eliminar",
+    "deleteBlocked": "Sólo se puede eliminar una cita en estado programada, pendiente, cancelada o no asistió."
+  },
+  "AppointmentReschedule": {
+    "action": "Reagendar",
+    "dialogTitle": "Reagendar cita",
+    "dialogSubtitle": "La cita actual se cancelará y se creará una nueva con los datos editados.",
+    "submit": "Reagendar",
+    "rescheduledLabel": "Cita reagendada",
+    "blockedTooltip": "No se puede reagendar una cita en estado {status}.",
+    "success": "Cita reagendada",
+    "successDesc": "Se canceló la original y se creó la nueva.",
+    "error": "No se pudo reagendar",
+    "errorDesc": "Ocurrió un error al reagendar la cita."
   },
   "DoctorWorkspace": {
     "badge": "Vista Doctor",
@@ -5553,5 +5613,21 @@
       "delete": "Eliminar sesión",
       "deleteConfirm": "Esta sesión será eliminada permanentemente. ¿Continuar?"
     }
+  },
+  "StickyNotes": {
+    "openNotes": "Notas rápidas",
+    "newNote": "Nueva nota",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "edit": "Editar nota",
+    "delete": "Eliminar nota",
+    "listening": "Escuchando...",
+    "startListening": "Iniciar voz",
+    "stopListening": "Detener voz",
+    "micError": "No se pudo acceder al micrófono.",
+    "saveError": "Error al guardar la nota. Intenta de nuevo.",
+    "deleteError": "Error al eliminar la nota. Intenta de nuevo.",
+    "loadError": "Error al cargar las notas.",
+    "empty": "Sin notas aún"
   }
 }

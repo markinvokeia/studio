@@ -12,7 +12,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
+import { GLOBAL_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -26,13 +26,16 @@ import {
     Globe,
     LifeBuoy,
     MessageSquare,
+    StickyNote as StickyNoteIcon,
     Volume2,
     VolumeX,
     X,
 } from 'lucide-react';
+import { useStickyNotes } from '@/hooks/use-sticky-notes';
+import type { StickyNote } from '@/lib/types';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { ExchangeRate } from './exchange-rate';
@@ -40,6 +43,7 @@ import { TelegramIcon } from './icons/telegram-icon';
 import { UsFlagIcon } from './icons/us-flag-icon';
 import { UyFlagIcon } from './icons/uy-flag-icon';
 import { WhatsAppIcon } from './icons/whatsapp-icon';
+import { StickyNotesOverlay } from './sticky-notes-overlay';
 import { VoiceAssistant } from './voice-assistant';
 import { VoiceChat, type ChatMessage } from './voice-chat';
 
@@ -112,6 +116,16 @@ async function speakText(text: string, enabled: boolean) {
     window.speechSynthesis.speak(utterance);
 }
 
+// ── Deep-link helper (needs Suspense boundary because of useSearchParams) ─────
+
+function StickyNotesDeepLink({ onOpen }: { onOpen: () => void }) {
+    const searchParams = useSearchParams();
+    React.useEffect(() => {
+        if (searchParams.get('act') === 'Notes') onOpen();
+    }, [searchParams, onOpen]);
+    return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function Header() {
@@ -126,6 +140,9 @@ export function Header() {
     const { hasPermission } = usePermissions();
     const { toast } = useToast();
 
+    const tStickyNotes = useTranslations('StickyNotes');
+    const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote, prependNote } = useStickyNotes();
+
     const [isExpanded, setIsExpanded] = React.useState(false);
     const [isChatOpen, setIsChatOpen] = React.useState(false);
     const [isChatMinimized, setIsChatMinimized] = React.useState(false);
@@ -133,6 +150,7 @@ export function Header() {
     const [isSending, setIsSending] = React.useState(false);
     const [ttsEnabled, setTtsEnabled] = React.useState(true);
     const [isClient, setIsClient] = React.useState(false);
+    const [isStickyNotesOpen, setIsStickyNotesOpen] = React.useState(false);
 
     const sessionId = React.useRef(`sid-${Date.now()}`);
 
@@ -140,9 +158,17 @@ export function Header() {
         setIsClient(true);
     }, []);
 
+    React.useEffect(() => {
+        if (isStickyNotesOpen) fetchNotes();
+    }, [isStickyNotesOpen, fetchNotes]);
+
     const openChatPanel = React.useCallback(() => {
         setIsChatOpen(true);
         setIsChatMinimized(false);
+    }, []);
+
+    const openStickyNotes = React.useCallback(() => {
+        setIsStickyNotesOpen(true);
     }, []);
 
     const closeChatPanel = React.useCallback(() => {
@@ -196,6 +222,12 @@ export function Header() {
                     if (typeof data.redirect === 'string' && data.redirect) {
                         redirect = data.redirect;
                     }
+                    if (data.openStickyNotes === true) {
+                        setIsStickyNotesOpen(true);
+                    }
+                    if (data.note && typeof (data.note as Record<string, unknown>).id === 'string') {
+                        prependNote(data.note as StickyNote);
+                    }
                 } catch {
                     reply = await response.text();
                 }
@@ -219,7 +251,7 @@ export function Header() {
                 setIsSending(false);
             }
         },
-        [tChat, toast, ttsEnabled, locale, router, user],
+        [tChat, toast, ttsEnabled, locale, router, user, prependNote],
     );
 
     // ── VoiceAssistant callback ───────────────────────────────────────────────
@@ -414,6 +446,19 @@ export function Header() {
                         )}
 
                         <HelpMenu />
+
+                        {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsStickyNotesOpen(true)}
+                                className="rounded-xl h-9 w-9"
+                                title={tStickyNotes('openNotes')}
+                            >
+                                <StickyNoteIcon className="h-5 w-5 text-muted-foreground" />
+                            </Button>
+                        )}
+
                         <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
                     </div>
                 ) : (
@@ -483,6 +528,18 @@ export function Header() {
                             )}
 
                             <HelpMenu />
+
+                            {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsStickyNotesOpen(true)}
+                                    className="rounded-full h-9 w-9"
+                                    title={tStickyNotes('openNotes')}
+                                >
+                                    <StickyNoteIcon className="h-5 w-5 text-muted-foreground" />
+                                </Button>
+                            )}
 
                             <div className="h-6 w-px bg-border/50" />
 
@@ -579,6 +636,26 @@ export function Header() {
                     )}
                 </div>,
                 document.body
+            )}
+
+            {/* ── Sticky notes overlay ────────────────────────────────────── */}
+            {isClient && (
+                <React.Suspense fallback={null}>
+                    <StickyNotesDeepLink onOpen={openStickyNotes} />
+                </React.Suspense>
+            )}
+            {isClient && isStickyNotesOpen && createPortal(
+                <StickyNotesOverlay
+                    isOpen={isStickyNotesOpen}
+                    onClose={() => setIsStickyNotesOpen(false)}
+                    userId={user?.id ?? ''}
+                    notes={notes}
+                    isLoading={isLoadingNotes}
+                    createNote={createNote}
+                    updateNote={updateNote}
+                    deleteNote={deleteNote}
+                />,
+                document.body,
             )}
         </>
     );

@@ -4,8 +4,35 @@ import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
 import { Clock, Stethoscope, FileText } from 'lucide-react';
 
+import { getStatusIcon } from '@/components/appointments/status-icons';
+import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import type { AppointmentStatus, CancellationReason } from '@/lib/types';
+
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
+
+function StatusBadge({
+  status,
+  cancellationReason,
+}: {
+  status: AppointmentStatus;
+  cancellationReason?: CancellationReason | null;
+}) {
+  const Icon = getStatusIcon(status, cancellationReason);
+  const color = STATUS_ACCENT_COLOR[status];
+  if (!Icon || !color) return null;
+  const label = status === 'cancelled' && cancellationReason ? `${status} – ${cancellationReason}` : status;
+  return (
+    <span
+      aria-hidden
+      title={label}
+      className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
+      style={{ backgroundColor: color }}
+    >
+      <Icon className="h-3 w-3" strokeWidth={2.5} />
+    </span>
+  );
+}
 
 interface CalendarScheduleViewProps {
   events: CalendarEvent[];
@@ -51,7 +78,11 @@ export function CalendarScheduleView({
             {format(parseISO(date), 'EEEE, MMMM d, yyyy', { locale: dateLocale })}
           </h3>
           <div className="space-y-2">
-            {groupedEvents[date].map((event) => (
+            {groupedEvents[date].map((event) => {
+              const rawStatus = event.data?.status as string | undefined;
+              const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
+              const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
+              return (
               <div
                 key={event.id}
                 data-testid="calendar-schedule-event"
@@ -70,9 +101,10 @@ export function CalendarScheduleView({
                       style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
                     />
                     <div className="flex-1 min-w-0 space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-sm font-semibold truncate">
+                      <div className="flex items-center gap-1.5 text-sm font-semibold">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{event.title}</span>
+                        <span className="truncate flex-1">{event.title}</span>
+                        {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
                         <Clock className="h-3 w-3 shrink-0" />
@@ -87,8 +119,9 @@ export function CalendarScheduleView({
                     </div>
                   </div>
                 ) : (
-                  /* Desktop/Tablet: horizontal 3-column layout */
+                  /* Desktop/Tablet: horizontal 3-column layout — status badge first */
                   <div className="flex items-center gap-4">
+                    {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                     <div className="flex items-center gap-2 w-28 text-sm font-semibold">
                       <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <div
@@ -97,9 +130,9 @@ export function CalendarScheduleView({
                       />
                       {formatEventTime(event.start, dateLocale)}
                     </div>
-                    <div className="flex items-center gap-1.5 flex-1 text-sm">
+                    <div className="flex items-center gap-1.5 flex-1 text-sm min-w-0">
                       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      {event.title}
+                      <span className="truncate">{event.title}</span>
                     </div>
                     {event.data?.doctorName && (
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -110,7 +143,8 @@ export function CalendarScheduleView({
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}

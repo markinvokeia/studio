@@ -346,6 +346,39 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
         return () => document.removeEventListener('visibilitychange', handleVisibility);
     }, [startWakeWordListening]);
 
+    // ── Yield mic to sticky notes when requested ──────────────────────────────
+
+    React.useEffect(() => {
+        const handleMicRequest = () => {
+            // Pause wake-word listening so the sticky notes recognition can start
+            if (voiceStateRef.current === 'listening') {
+                voiceStateRef.current = 'idle'; // prevent onend from rescheduling
+                setVoiceState('idle');
+                try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
+                wakeRecognitionRef.current = null;
+                if (rescheduleTimerRef.current !== null) {
+                    clearTimeout(rescheduleTimerRef.current);
+                    rescheduleTimerRef.current = null;
+                }
+            }
+        };
+
+        const handleMicRelease = () => {
+            // Resume wake-word listening after sticky notes releases the mic
+            // Small delay so Chrome fully closes the previous session first
+            setTimeout(() => {
+                if (voiceStateRef.current === 'idle') startWakeWordListening();
+            }, 400);
+        };
+
+        window.addEventListener('sticky-notes:mic-request', handleMicRequest);
+        window.addEventListener('sticky-notes:mic-release', handleMicRelease);
+        return () => {
+            window.removeEventListener('sticky-notes:mic-request', handleMicRequest);
+            window.removeEventListener('sticky-notes:mic-release', handleMicRelease);
+        };
+    }, [startWakeWordListening]);
+
     // ── Sync processing state from parent ────────────────────────────────────
 
     React.useEffect(() => {
