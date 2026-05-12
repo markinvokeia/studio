@@ -1032,8 +1032,8 @@ export default function AppointmentsPage() {
                                 </>
                             )}
 
-                            {/* Grouping section (Mobile only) */}
-                            {isMobile && (
+                            {/* Grouping section (compact header only) */}
+                            {breakpoint !== 'desktop' && (
                                 <div className="space-y-3">
                                     <h4 className="text-sm font-semibold">{t('grouping.label')}</h4>
                                     <div className="space-y-1">
@@ -1097,13 +1097,13 @@ export default function AppointmentsPage() {
                         </TooltipProvider>
                     }
                     trailingActions={
-                        !isMobile ? (
+                        breakpoint === 'desktop' ? (
                             <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} />
                         ) : null
                     }
                 >
                     <div className="flex items-center gap-2">
-                        {!isMobile && (
+                        {breakpoint === 'desktop' && (
                             <div className="flex items-center gap-2">
                                 <Popover>
                                     <PopoverTrigger asChild>

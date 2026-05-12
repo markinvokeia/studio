@@ -57,6 +57,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
   const isMobile = breakpoint === 'mobile';
+  const isCompactHeader = breakpoint !== 'desktop';
 
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
 
@@ -75,6 +76,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
   const timeZoneLabel = t('timeZone');
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
+  const useMobileDayLayout = isMobile || (breakpoint === 'tablet' && isGrouped);
 
   // Shared event handler props
   const eventHandlers = {
@@ -92,8 +94,8 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'week': {
         const numDays = effectiveView === 'week' ? 7 : effectiveView === '3-day' ? 3 : effectiveView === '2-day' ? 2 : 1;
 
-        // Mobile: carousel-based view
-        if (isMobile) {
+        // Mobile, and grouped tablet: carousel-based view
+        if (useMobileDayLayout) {
           return (
             <CalendarDayViewMobile
               currentDate={currentDate}
@@ -109,7 +111,7 @@ const Calendar: React.FC<CalendarProps> = ({
           );
         }
 
-        // Desktop/Tablet: grouped or standard
+        // Desktop: grouped or standard
         if (isGrouped) {
           return (
             <CalendarDayViewGrouped
@@ -200,7 +202,7 @@ const Calendar: React.FC<CalendarProps> = ({
         onNext={handleNext}
         onToday={handleToday}
         onViewChange={handleViewChange}
-        onOpenFilterSheet={isMobile && filterSheet ? () => setFilterSheetOpen(true) : undefined}
+        onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
         trailingActions={trailingActions}
