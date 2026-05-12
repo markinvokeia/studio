@@ -14,6 +14,8 @@ import type {
   ToothPerioData,
 } from '@/lib/types';
 import { createOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
 import { CONDITION_MAP } from './condition-toolbar';
 import { ConditionToolbar } from './condition-toolbar';
@@ -140,9 +142,11 @@ type DesktopLayout = 'flat' | 'mouth';
 interface DentalRecordViewerProps {
   patientId: string;
   patientName?: string;
+  doctorId?: string;
+  doctorName?: string;
 }
 
-export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -263,6 +267,18 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(`dental_perio_${patientId}`, JSON.stringify(perioData));
+    }
+
+    if (values.shouldDischarge && values.dischargeDate) {
+      try {
+        await api.post(API_ROUTES.PATIENT_DISCHARGE, {
+          id: patientId,
+          appointment_date: values.dischargeDate,
+        });
+        toast({ title: t('session.discharge.toastSuccess') });
+      } catch {
+        // discharge failure is non-blocking — session already saved
+      }
     }
 
     const updated = await fetchOdontograms(patientId);
@@ -1010,6 +1026,8 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
           onNotesChange={setNotes}
           onSave={handleSave}
           onCancel={handleCancelEditing}
+          lockDoctorId={doctorId}
+          lockDoctorName={doctorName}
         />
       )}
 

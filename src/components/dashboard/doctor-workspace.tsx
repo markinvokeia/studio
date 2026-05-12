@@ -5,44 +5,40 @@ import * as React from 'react';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
+import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DataCard } from '@/components/ui/data-card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, DoctorAgentAction, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
+import { Appointment, AppointmentStatus, DoctorAgentAction, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
-import { formatDate, formatDateTime, formatDisplayDate } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { api } from '@/services/api';
+import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getQuoteItems } from '@/services/quotes';
 import { format, parseISO } from 'date-fns';
 import {
   AlertTriangle,
   ArrowLeft,
-  Calendar as CalendarIcon,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
-  Clock,
   FileText,
   Heart,
-  Link2,
   RefreshCw,
   Sparkles,
   Stethoscope,
-  User,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-
-type AppointmentStatus = 'completed' | 'confirmed' | 'pending' | 'cancelled' | 'scheduled';
 
 type PatientAlertTag = {
   label: string;
@@ -53,6 +49,11 @@ interface DoctorWorkspaceProps {
   locale: string;
 }
 
+type DoctorAgentActionResult = {
+  success: boolean;
+  message?: string;
+};
+
 interface DoctorPatientTimelineProps {
   linkedAppointmentId?: string;
   sessions: PatientSession[];
@@ -61,14 +62,21 @@ interface DoctorPatientTimelineProps {
 
 const AUTO_REFRESH_MS = 60_000;
 const KNOWN_APPOINTMENTS_STORAGE_PREFIX = 'doctor-workspace:known-appointments';
+const TIMELINE_MIN_BLOCK_HEIGHT = 74;
+const TIMELINE_BASE_GAP = 14;
+const TIMELINE_MAX_GAP = 34;
+const TIMELINE_HIDDEN_MARKER_LANE_HEIGHT = 28;
 
-const STATUS_VARIANTS: Record<AppointmentStatus, 'success' | 'default' | 'info' | 'destructive'> = {
-  completed: 'success',
-  confirmed: 'default',
-  pending: 'info',
-  cancelled: 'destructive',
-  scheduled: 'info',
-};
+function getAppointmentStatusVariant(status: AppointmentStatus) {
+  return (STATUS_BADGE_VARIANT[status] ?? 'default') as
+    | 'default'
+    | 'success'
+    | 'destructive'
+    | 'info'
+    | 'warning'
+    | 'secondary'
+    | 'outline';
+}
 
 function getTimeRangeLabel(appointment: Appointment): string {
   const startTime = appointment.time || '00:00';
@@ -77,6 +85,473 @@ function getTimeRangeLabel(appointment: Appointment): string {
     : undefined;
 
   return endTime ? `${startTime} - ${endTime}` : startTime;
+}
+
+function parseTimeToMinutes(value?: string): number {
+  if (!value) return 0;
+
+  const [hours = '0', minutes = '0'] = value.split(':');
+  return (Number.parseInt(hours, 10) || 0) * 60 + (Number.parseInt(minutes, 10) || 0);
+}
+
+function getAppointmentDurationMinutes(appointment: Appointment): number {
+  const startMinutes = parseTimeToMinutes(appointment.time);
+
+  if (appointment.end?.dateTime) {
+    const parsedEnd = parseISO(appointment.end.dateTime.replace(/Z$/, ''));
+    if (!Number.isNaN(parsedEnd.getTime())) {
+      const endMinutes = parsedEnd.getHours() * 60 + parsedEnd.getMinutes();
+      if (endMinutes > startMinutes) return endMinutes - startMinutes;
+    }
+  }
+
+  const totalServiceDuration = appointment.services?.reduce((sum, service) => {
+    const duration = Number(service.duration_minutes || 0);
+    return sum + (Number.isFinite(duration) ? duration : 0);
+  }, 0) ?? 0;
+
+  return Math.max(totalServiceDuration, 30);
+}
+
+function getAppointmentAccentColor(appointment: Appointment, status: AppointmentStatus): string {
+  return appointment.color || STATUS_ACCENT_COLOR[status] || '#64748b';
+}
+
+function estimateAgendaCardMinHeight(appointment: Appointment): number {
+  const serviceLabel = appointment.services?.length
+    ? appointment.services.map((service) => service.name).join(', ')
+    : appointment.service_name || appointment.summary || '';
+
+  let minHeight = 88;
+
+  if (appointment.calendar_name) minHeight += 16;
+  if (appointment.notes) minHeight += 34;
+
+  return minHeight;
+}
+
+type AgendaTimelineLayout = {
+  appointment: Appointment;
+  accentColor: string;
+  endMinutes: number;
+  gapAfter: number;
+  height: number;
+  key: string;
+  startMinutes: number;
+  top: number;
+};
+
+interface DoctorAgendaTimelineProps {
+  appointments: Appointment[];
+  isLoading: boolean;
+  onSelect: (appointmentId: string) => void;
+  selectedAppointmentId?: string | null;
+}
+
+function DoctorAgendaTimeline({
+  appointments,
+  isLoading,
+  onSelect,
+  selectedAppointmentId,
+}: DoctorAgendaTimelineProps) {
+  const t = useTranslations('DoctorWorkspace');
+  const tStatus = useTranslations('AppointmentStatus');
+  const [showPastAppointments, setShowPastAppointments] = React.useState(false);
+
+  const timeline = React.useMemo(() => {
+    const sortedAppointments = [...appointments].sort((left, right) => left.time.localeCompare(right.time));
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const appointmentRanges = sortedAppointments.map((appointment) => {
+      const startMinutes = parseTimeToMinutes(appointment.time);
+      const endMinutes = startMinutes + getAppointmentDurationMinutes(appointment);
+      return {
+        appointment,
+        startMinutes,
+        endMinutes,
+      };
+    });
+
+    let cursorTop = 0;
+    const layouts: AgendaTimelineLayout[] = appointmentRanges.map(({ appointment, startMinutes, endMinutes }, index) => {
+      const durationMinutes = Math.max(endMinutes - startMinutes, 15);
+      const contentMinHeight = estimateAgendaCardMinHeight(appointment);
+      const height = Math.max(TIMELINE_MIN_BLOCK_HEIGHT, contentMinHeight, 58 + durationMinutes * 0.45);
+      const previousEndMinutes = index > 0 ? appointmentRanges[index - 1].endMinutes : null;
+      const naturalGapMinutes = previousEndMinutes == null ? 0 : Math.max(startMinutes - previousEndMinutes, 0);
+      const gapBefore = previousEndMinutes == null
+        ? 0
+        : Math.min(TIMELINE_MAX_GAP, TIMELINE_BASE_GAP + naturalGapMinutes * 0.06);
+      cursorTop += gapBefore;
+      const top = cursorTop;
+      cursorTop += height;
+
+      const nextStartMinutes = appointmentRanges[index + 1]?.startMinutes;
+      const gapAfterMinutes = nextStartMinutes == null ? 0 : Math.max(nextStartMinutes - endMinutes, 0);
+      const gapAfter = nextStartMinutes == null
+        ? 0
+        : Math.min(TIMELINE_MAX_GAP, TIMELINE_BASE_GAP + gapAfterMinutes * 0.06);
+
+      return {
+        appointment,
+        startMinutes,
+        endMinutes,
+        top,
+        height,
+        gapAfter,
+        key: `${appointment.id}-${startMinutes}-${index}`,
+        accentColor: getAppointmentAccentColor(appointment, normalizeAppointmentStatus(appointment.status)),
+      };
+    });
+
+    const timelineHeight = Math.max(0, layouts.at(-1)?.top ?? 0) + Math.max(layouts.at(-1)?.height ?? 0, 0);
+
+    const currentLayoutIndex = layouts.findIndex((layout) => currentMinutes >= layout.startMinutes && currentMinutes <= layout.endMinutes);
+    let currentTimeTop = 0;
+    let showCurrentTime = false;
+
+    if (layouts.length > 0) {
+      const firstLayout = layouts[0];
+      const lastLayout = layouts[layouts.length - 1];
+
+      if (currentMinutes >= firstLayout.startMinutes && currentMinutes <= lastLayout.endMinutes) {
+        showCurrentTime = true;
+      } else if (currentMinutes < firstLayout.startMinutes) {
+        showCurrentTime = true;
+        currentTimeTop = Math.max(firstLayout.top - 10, 0);
+      } else if (currentMinutes > lastLayout.endMinutes) {
+        showCurrentTime = true;
+        currentTimeTop = lastLayout.top + lastLayout.height;
+      }
+    }
+
+    if (showCurrentTime) {
+      if (currentLayoutIndex >= 0) {
+        const layout = layouts[currentLayoutIndex];
+        const totalMinutes = Math.max(layout.endMinutes - layout.startMinutes, 1);
+        const progress = (currentMinutes - layout.startMinutes) / totalMinutes;
+        currentTimeTop = layout.top + layout.height * progress;
+      } else {
+        for (let index = 0; index < layouts.length - 1; index += 1) {
+          const currentLayout = layouts[index];
+          const nextLayout = layouts[index + 1];
+
+          if (currentMinutes > currentLayout.endMinutes && currentMinutes < nextLayout.startMinutes) {
+            const gapMinutes = Math.max(nextLayout.startMinutes - currentLayout.endMinutes, 1);
+            const progress = (currentMinutes - currentLayout.endMinutes) / gapMinutes;
+            currentTimeTop = currentLayout.top + currentLayout.height + currentLayout.gapAfter * progress;
+            break;
+          }
+        }
+      }
+    }
+
+    return {
+      currentMinutes,
+      currentTimeLabel: format(now, 'HH:mm'),
+      currentTimeTop,
+      timelineHeight,
+      layouts,
+      showCurrentTime,
+    };
+  }, [appointments]);
+
+  const focusAppointmentId = React.useMemo(() => {
+    if (timeline.layouts.length === 0) return null;
+
+    const inProgress = timeline.layouts.find((layout) =>
+      timeline.currentMinutes >= layout.startMinutes && timeline.currentMinutes <= layout.endMinutes,
+    );
+    if (inProgress) return inProgress.appointment.id;
+
+    const upcoming = timeline.layouts.find((layout) => layout.startMinutes >= timeline.currentMinutes);
+    if (upcoming) return upcoming.appointment.id;
+
+    return timeline.layouts[timeline.layouts.length - 1]?.appointment.id ?? null;
+  }, [timeline.currentMinutes, timeline.layouts]);
+
+  const visibleTimeline = React.useMemo(() => {
+    const focusIndex = focusAppointmentId
+      ? timeline.layouts.findIndex((layout) => layout.appointment.id === focusAppointmentId)
+      : -1;
+    const pastCount = Math.max(focusIndex, 0);
+    const firstVisibleLayout = focusIndex >= 0 ? timeline.layouts[focusIndex] : null;
+    const hiddenRangeStart = timeline.layouts[0]?.startMinutes ?? 0;
+    const hiddenRangeEnd = firstVisibleLayout?.startMinutes ?? hiddenRangeStart;
+    const hiddenRangeSpan = Math.max(hiddenRangeEnd - hiddenRangeStart, 1);
+    const hiddenCurrentTimeRatio = !showPastAppointments
+      && pastCount > 0
+      && timeline.currentMinutes >= hiddenRangeStart
+      && timeline.currentMinutes < hiddenRangeEnd
+      ? (timeline.currentMinutes - hiddenRangeStart) / hiddenRangeSpan
+      : null;
+
+    if (timeline.layouts.length === 0) {
+      return {
+        currentTimeTop: timeline.currentTimeTop,
+        hiddenCount: pastCount,
+        hiddenCurrentTimeRatio,
+        isCurrentTimeHiddenBeforeVisible: false,
+        laneOffset: 0,
+        layouts: timeline.layouts,
+        showCurrentTime: timeline.showCurrentTime,
+        timelineHeight: timeline.timelineHeight,
+      };
+    }
+
+    if (showPastAppointments) {
+      return {
+        currentTimeTop: timeline.currentTimeTop,
+        hiddenCount: pastCount,
+        hiddenCurrentTimeRatio,
+        isCurrentTimeHiddenBeforeVisible: false,
+        laneOffset: 0,
+        layouts: timeline.layouts,
+        showCurrentTime: timeline.showCurrentTime,
+        timelineHeight: timeline.timelineHeight,
+      };
+    }
+
+    if (focusIndex <= 0) {
+      return {
+        currentTimeTop: timeline.currentTimeTop,
+        hiddenCount: pastCount,
+        hiddenCurrentTimeRatio,
+        isCurrentTimeHiddenBeforeVisible: false,
+        laneOffset: 0,
+        layouts: timeline.layouts,
+        showCurrentTime: timeline.showCurrentTime,
+        timelineHeight: timeline.timelineHeight,
+      };
+    }
+
+    const focusTop = timeline.layouts[focusIndex].top;
+    const visibleLayouts = timeline.layouts.slice(focusIndex).map((layout) => ({
+      ...layout,
+      top: layout.top - focusTop,
+    }));
+    const lastLayout = visibleLayouts[visibleLayouts.length - 1];
+    const laneOffset = hiddenCurrentTimeRatio != null ? TIMELINE_HIDDEN_MARKER_LANE_HEIGHT : 0;
+    const timelineHeight = (lastLayout?.top ?? 0) + (lastLayout?.height ?? 0) + laneOffset;
+    const isCurrentTimeHiddenBeforeVisible = hiddenCurrentTimeRatio != null;
+
+    return {
+      currentTimeTop: isCurrentTimeHiddenBeforeVisible
+        ? 0
+        : Math.max(timeline.currentTimeTop - focusTop, 0),
+      hiddenCount: pastCount,
+      hiddenCurrentTimeRatio,
+      isCurrentTimeHiddenBeforeVisible,
+      laneOffset,
+      layouts: visibleLayouts,
+      showCurrentTime: timeline.showCurrentTime && !isCurrentTimeHiddenBeforeVisible,
+      timelineHeight,
+    };
+  }, [
+    focusAppointmentId,
+    showPastAppointments,
+    timeline.currentMinutes,
+    timeline.currentTimeTop,
+    timeline.layouts,
+    timeline.showCurrentTime,
+    timeline.timelineHeight,
+  ]);
+
+  React.useEffect(() => {
+    setShowPastAppointments(false);
+  }, [appointments]);
+
+  const pastSeparatorTop = (() => {
+    if (!showPastAppointments || visibleTimeline.hiddenCount === 0) return null;
+    const focusIdx = visibleTimeline.layouts.findIndex(
+      (l) => l.appointment.id === focusAppointmentId,
+    );
+    if (focusIdx <= 0) return null;
+    const lastPast = visibleTimeline.layouts[focusIdx - 1];
+    const firstCurrent = visibleTimeline.layouts[focusIdx];
+    return (
+      lastPast.top +
+      lastPast.height +
+      (firstCurrent.top - lastPast.top - lastPast.height) / 2 +
+      visibleTimeline.laneOffset
+    );
+  })();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+      </div>
+    );
+  }
+
+  if (appointments.length === 0) {
+    return (
+      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
+        <p className="text-sm font-medium text-foreground">{t('agenda.emptyTitle')}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="max-h-[60vh] overflow-y-auto overscroll-contain py-2 xl:max-h-none xl:flex-1">
+        {visibleTimeline.hiddenCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowPastAppointments((current) => !current)}
+            className="mb-4 flex w-full items-center gap-3 transition-opacity hover:opacity-80"
+          >
+            <div className="h-px flex-1 bg-border" />
+            <div className="flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/50 px-3 py-1">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {showPastAppointments
+                  ? t('agenda.hideHistory')
+                  : t('agenda.hiddenPastAppointments', { count: visibleTimeline.hiddenCount })}
+              </span>
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 text-muted-foreground transition-transform duration-200',
+                  showPastAppointments && 'rotate-180',
+                )}
+              />
+            </div>
+            <div className="h-px flex-1 bg-border" />
+          </button>
+        ) : null}
+
+        <div className="relative" style={{ height: visibleTimeline.timelineHeight }}>
+          {pastSeparatorTop !== null && (
+            <div
+              className="absolute inset-x-0 z-30 flex items-center gap-2"
+              style={{ top: pastSeparatorTop }}
+            >
+              <div className="ml-9 flex-1 border-t border-dashed border-border/60" />
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {t('agenda.historyHidden')}
+              </span>
+              <div className="w-2 border-t border-dashed border-border/60" />
+            </div>
+          )}
+
+          <div className="absolute bottom-0 left-4 top-0 w-px bg-border" />
+
+          {visibleTimeline.hiddenCurrentTimeRatio != null ? (
+            <div className="absolute inset-x-0 z-20" style={{ top: TIMELINE_HIDDEN_MARKER_LANE_HEIGHT / 2 }}>
+              <div className="relative h-0">
+                <div className="absolute left-4 right-0 top-0 h-px bg-rose-300/90" />
+                <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
+                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
+                  {timeline.currentTimeLabel}
+                </span>
+              </div>
+            </div>
+          ) : null}
+
+          {visibleTimeline.showCurrentTime && (
+            <div className="absolute inset-x-0 z-20" style={{ top: visibleTimeline.currentTimeTop + visibleTimeline.laneOffset }}>
+              <div className="relative h-0">
+                <div className="absolute left-4 right-0 top-0 border-t border-dashed border-rose-400/60" />
+                <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
+                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
+                  {timeline.currentTimeLabel}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {visibleTimeline.layouts.map((layout) => {
+            const normalizedStatus = normalizeAppointmentStatus(layout.appointment.status);
+            const isSelected = selectedAppointmentId === layout.appointment.id;
+            const isInProgress = timeline.currentMinutes >= layout.startMinutes && timeline.currentMinutes <= layout.endMinutes;
+            const isPast = !isInProgress && layout.endMinutes < timeline.currentMinutes;
+            const serviceLabel = layout.appointment.services?.length
+              ? layout.appointment.services.map((service) => service.name).join(', ')
+              : layout.appointment.service_name || layout.appointment.summary || t('agenda.unknownPatient');
+            const showNotes = Boolean(layout.appointment.notes);
+
+            return (
+              <div
+                key={layout.key}
+                className="absolute inset-x-0 z-10"
+                style={{ top: layout.top + visibleTimeline.laneOffset, height: layout.height }}
+              >
+                {/* Dot on the vertical line */}
+                <div
+                  className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200"
+                  style={{
+                    left: '1rem',
+                    top: '1.25rem',
+                    width: isInProgress ? '0.75rem' : '0.5rem',
+                    height: isInProgress ? '0.75rem' : '0.5rem',
+                    backgroundColor: isPast
+                      ? 'hsl(var(--border))'
+                      : (isInProgress || isSelected)
+                        ? layout.accentColor
+                        : 'hsl(var(--border))',
+                    boxShadow: isInProgress && !isPast ? `0 0 0 4px ${layout.accentColor}30` : 'none',
+                  }}
+                />
+
+                {/* Card */}
+                <button
+                  type="button"
+                  onClick={() => onSelect(layout.appointment.id)}
+                  className={cn(
+                    'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-200',
+                    'border border-border/60 bg-card shadow-sm',
+                    'hover:border-border hover:shadow-md',
+                    isSelected && 'border-border shadow-md',
+                    isPast && 'opacity-55',
+                  )}
+                >
+                  <div className="relative h-full overflow-hidden rounded-xl">
+                    {isSelected && (
+                      <span
+                        className="absolute left-0 top-0 h-full w-0.5"
+                        style={{ backgroundColor: layout.accentColor }}
+                      />
+                    )}
+
+                    <div className="flex h-full flex-col gap-2 px-4 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold leading-tight text-foreground">
+                            {layout.appointment.patientName || t('agenda.unknownPatient')}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs leading-5 text-muted-foreground">
+                            {serviceLabel}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                            {layout.appointment.time || '--:--'}
+                          </span>
+                          <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="shrink-0 capitalize text-[10px] h-5 px-1.5">
+                            {tStatus(normalizedStatus)}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {showNotes ? (
+                        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                          {layout.appointment.notes}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function getKnownAppointmentsStorageKey(doctorId: string, dateKey: string): string {
@@ -154,7 +629,7 @@ async function getAppointmentsForDoctorToday(doctorId: string): Promise<Appointm
         notes: apiAppointment.notes || '',
         date: format(parsedStart, 'yyyy-MM-dd'),
         time: format(parsedStart, 'HH:mm'),
-        status: apiAppointment.status || 'confirmed',
+        status: normalizeAppointmentStatus(apiAppointment.status),
         created_at: apiAppointment.created_at || apiAppointment.createdAt || '',
         google_calendar_id: apiAppointment.google_calendar_id || undefined,
         googleEventId: apiAppointment.google_event_id || apiAppointment.googleEventId || apiAppointment.id,
@@ -228,8 +703,8 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
   }
 
   return (
-    <div className="relative space-y-4">
-      <div className="absolute bottom-0 left-[11px] top-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted" />
+    <div className="relative space-y-3">
+      <div className="absolute bottom-0 left-[3.5rem] top-0 w-px bg-border" />
       {sessions.map((session, index) => {
         const sessionId = String(session.sesion_id);
         const isOpen = openItems.includes(sessionId);
@@ -238,51 +713,52 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
         const isLinkedToCurrentAppointment = Boolean(linkedAppointmentId && String(session.appointment_id ?? '') === linkedAppointmentId);
         const SessionIcon = session.tipo_sesion === 'odontograma' ? Heart : Stethoscope;
 
+        let dateLabel = '—';
+        let yearLabel = '';
+        try {
+          const parsed = session.fecha_sesion ? new Date(session.fecha_sesion) : null;
+          if (parsed && !Number.isNaN(parsed.getTime())) {
+            dateLabel = format(parsed, 'd MMM');
+            yearLabel = format(parsed, 'yyyy');
+          }
+        } catch {}
+
         return (
           <Collapsible key={session.sesion_id} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
-            <div className="relative flex items-start pl-8 sm:pl-10">
-              <div className="absolute left-0 top-0 z-10 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-card shadow-md">
-                <SessionIcon className="h-3.5 w-3.5 text-primary" />
+            <div className="relative flex items-start gap-3 pl-[4.75rem]">
+              {/* Date + dot in the left gutter */}
+              <div className="absolute left-0 top-0 flex items-center gap-1.5">
+                <div className="w-10 text-right">
+                  <p className="text-[10px] font-medium leading-tight text-muted-foreground tabular-nums">{dateLabel}</p>
+                  <p className="text-[9px] text-muted-foreground/50 tabular-nums">{yearLabel}</p>
+                </div>
+                <div className={cn(
+                  'z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-background shadow-sm',
+                  isLinkedToCurrentAppointment ? 'bg-primary' : 'bg-muted',
+                )}>
+                  <SessionIcon className={cn('h-3 w-3', isLinkedToCurrentAppointment ? 'text-primary-foreground' : 'text-muted-foreground')} />
+                </div>
               </div>
-              <Card className="min-w-0 flex-1 border-muted/60 transition-shadow duration-200 hover:shadow-md">
-                <CardHeader className="p-4 pb-2">
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <CardTitle className="break-words text-sm font-semibold leading-tight text-foreground sm:text-base">
-                          {session.procedimiento_realizado || tTimeline('noTitle')}
-                        </CardTitle>
-                        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                          {index === 0 && (
-                            <Badge variant="secondary" className="rounded-full bg-sky-100 text-sky-800 hover:bg-sky-100">
-                              {t('focus.latestSessionBadge')}
-                            </Badge>
-                          )}
-                          {isLinkedToCurrentAppointment && (
-                            <Badge variant="outline" className="rounded-full">
-                              {t('focus.currentAppointmentBadge')}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <p className="flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
-                          <CalendarIcon className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
-                          {formatDisplayDate(session.fecha_sesion)}
-                        </p>
-                        {(session.nombre_doctor || session.doctor_name) && (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
-                            <User className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
-                            <span className="truncate">{session.nombre_doctor || session.doctor_name}</span>
-                          </p>
-                        )}
-                        {session.quote_id && (
-                          <p className="flex items-center gap-1 text-xs text-muted-foreground sm:text-sm">
-                            <Link2 className="h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5" />
-                            {tTimeline('quote')}: {session.quote_doc_no || session.quote_id}
-                          </p>
-                        )}
-                      </div>
+              <Card className={cn(
+                'min-w-0 flex-1 border-0 shadow-none transition-colors',
+                isLinkedToCurrentAppointment ? 'bg-primary/8' : 'bg-muted/30',
+              )}>
+                <CardHeader className="p-3 pb-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <CardTitle className="break-words text-sm font-semibold leading-tight text-foreground">
+                      {session.procedimiento_realizado || tTimeline('noTitle')}
+                    </CardTitle>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                      {isLinkedToCurrentAppointment && (
+                        <Badge variant="default" className="rounded-full text-[10px]">
+                          {t('focus.currentAppointmentBadge')}
+                        </Badge>
+                      )}
+                      {index === 0 && !isLinkedToCurrentAppointment && (
+                        <Badge variant="secondary" className="rounded-full bg-sky-100 text-[10px] text-sky-800 hover:bg-sky-100">
+                          {t('focus.latestSessionBadge')}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -404,6 +880,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     fecha_proxima_cita?: string;
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
+  const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
   const [newAppointmentsAlertOpen, setNewAppointmentsAlertOpen] = React.useState(false);
   const [newAppointmentsAlertItems, setNewAppointmentsAlertItems] = React.useState<Appointment[]>([]);
@@ -419,6 +896,10 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
       setMobileDetailsOpen(false);
     }
   }, [isMobile]);
+
+  React.useEffect(() => {
+    setActivePanel('sessions');
+  }, [selectedAppointmentId]);
 
   const loadAppointments = React.useCallback(async (background = false) => {
     if (!user?.id) {
@@ -605,11 +1086,17 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         data.deletedAttachmentIds,
         linkedSession.archivos_adjuntos,
       );
-    } else {
-      await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
-    }
+      } else {
+        await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
+        if (selectedAppointment.status !== 'completed') {
+          await updateAppointmentStatusRequest({
+            appointment: selectedAppointment,
+            newStatus: 'completed',
+          });
+        }
+      }
 
-    await loadLinkedSession(selectedAppointment);
+      await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
     createSession,
@@ -644,12 +1131,130 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     setAgentSessionTreatments([]);
   }, []);
 
+  const resolveActionAppointment = React.useCallback((appointmentId?: string | null) => {
+    if (!appointmentId) return selectedAppointment;
+    return appointments.find((appointment) => appointment.id === appointmentId) ?? null;
+  }, [appointments, selectedAppointment]);
+
   const selectAppointment = React.useCallback((appointmentId: string, openMobileDetails = false) => {
     setSelectedAppointmentId(appointmentId);
     if (isMobile && openMobileDetails) {
       setMobileDetailsOpen(true);
     }
   }, [isMobile]);
+
+  const executeDoctorAgentAction = React.useCallback(async (action: DoctorAgentAction): Promise<DoctorAgentActionResult> => {
+    const payload = action.payload || {};
+    const targetAppointment = resolveActionAppointment(payload.appointment_id);
+
+    if (payload.appointment_id && !targetAppointment) {
+      return {
+        success: false,
+        message: t('focus.ai.actionAppointmentNotFound'),
+      };
+    }
+
+    if (targetAppointment && targetAppointment.id !== selectedAppointmentId) {
+      selectAppointment(targetAppointment.id, true);
+    }
+
+    switch (action.type) {
+      case 'select_appointment':
+        return { success: true };
+      case 'open_patient_detail':
+        if (!targetAppointment) {
+          return {
+            success: false,
+            message: t('focus.ai.actionPatientContextMissing'),
+          };
+        }
+        setPatientSheetInitialTab('clinical-history');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return { success: true };
+      case 'open_clinical_history':
+        if (!targetAppointment) {
+          return {
+            success: false,
+            message: t('focus.ai.actionPatientContextMissing'),
+          };
+        }
+        if (isMobile) {
+          setMobileDetailsOpen(true);
+        }
+        setPatientSheetInitialTab('clinical-history');
+        setPatientSheetDefaultView(payload.clinical_history_view || 'timeline');
+        setPatientSheetOpen(true);
+        return { success: true };
+      case 'open_patient_appointments':
+        if (!targetAppointment) {
+          return {
+            success: false,
+            message: t('focus.ai.actionPatientContextMissing'),
+          };
+        }
+        if (isMobile) {
+          setMobileDetailsOpen(true);
+        }
+        setPatientSheetInitialTab('appointments');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return { success: true };
+      case 'open_patient_messages':
+        if (!targetAppointment) {
+          return {
+            success: false,
+            message: t('focus.ai.actionPatientContextMissing'),
+          };
+        }
+        if (isMobile) {
+          setMobileDetailsOpen(true);
+        }
+        setPatientSheetInitialTab('messages');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return { success: true };
+      case 'open_patient_notes':
+        if (!targetAppointment) {
+          return {
+            success: false,
+            message: t('focus.ai.actionPatientContextMissing'),
+          };
+        }
+        if (isMobile) {
+          setMobileDetailsOpen(true);
+        }
+        setPatientSheetInitialTab('notes');
+        setPatientSheetDefaultView('timeline');
+        setPatientSheetOpen(true);
+        return { success: true };
+      case 'open_clinic_session':
+        if (!targetAppointment) {
+          return {
+            success: false,
+            message: t('focus.ai.actionAppointmentContextMissing'),
+          };
+        }
+        if (isMobile) {
+          setMobileDetailsOpen(true);
+        }
+        setAgentSessionPrefill({
+          doctor_id: payload.doctor_id,
+          doctor_name: payload.doctor_name,
+          procedimiento_realizado: payload.procedimiento_realizado,
+          plan_proxima_cita: payload.plan_proxima_cita,
+          fecha_proxima_cita: payload.fecha_proxima_cita,
+        });
+        setAgentSessionTreatments(payload.tratamientos || []);
+        setClinicSessionOpen(true);
+        return { success: true };
+      default:
+        return {
+          success: false,
+          message: t('focus.ai.actionUnsupported'),
+        };
+    }
+  }, [isMobile, resolveActionAppointment, selectAppointment, selectedAppointmentId, t]);
 
   const handleOpenNewAppointment = React.useCallback(() => {
     if (!firstNewAppointmentAlertItem) return;
@@ -673,63 +1278,12 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     }
   }, [clearAgentSessionDraft]);
 
-  const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => {
-    const payload = action.payload || {};
-
-    if (payload.appointment_id) {
-      selectAppointment(payload.appointment_id, true);
-    }
-
-    switch (action.type) {
-      case 'select_appointment':
-        return;
-      case 'open_patient_detail':
-        setPatientSheetInitialTab('clinical-history');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return;
-      case 'open_clinical_history':
-        if (isMobile) {
-          setMobileDetailsOpen(true);
-          return;
-        }
-        setPatientSheetInitialTab('clinical-history');
-        setPatientSheetDefaultView(payload.clinical_history_view || 'timeline');
-        setPatientSheetOpen(true);
-        return;
-      case 'open_patient_appointments':
-        setPatientSheetInitialTab('appointments');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return;
-      case 'open_patient_messages':
-        setPatientSheetInitialTab('messages');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return;
-      case 'open_patient_notes':
-        setPatientSheetInitialTab('notes');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return;
-      case 'open_clinic_session':
-        setAgentSessionPrefill({
-          doctor_id: payload.doctor_id,
-          doctor_name: payload.doctor_name,
-          procedimiento_realizado: payload.procedimiento_realizado,
-          plan_proxima_cita: payload.plan_proxima_cita,
-          fecha_proxima_cita: payload.fecha_proxima_cita,
-        });
-        setAgentSessionTreatments(payload.tratamientos || []);
-        setClinicSessionOpen(true);
-        return;
-      default:
-        return;
-    }
-  }, [isMobile, selectAppointment]);
+  const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
+    executeDoctorAgentAction(action)
+  ), [executeDoctorAgentAction]);
 
   const renderDetailPanel = selectedAppointment ? (
-    <Card className="border-border/70 xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:overflow-hidden">
+    <Card className="xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:overflow-hidden">
       <CardContent className="space-y-4 p-4 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-hidden">
         {isMobile && (
           <Button variant="ghost" className="h-9 w-fit px-2" onClick={() => setMobileDetailsOpen(false)}>
@@ -738,8 +1292,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           </Button>
         )}
 
-        <div className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(241,245,249,0.94))] shadow-[0_18px_40px_rgba(15,23,42,0.05)]">
-          <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/8">
                 {patientAlertTags.length > 0 ? (
@@ -789,51 +1342,73 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions}>
-                <ClipboardCheck className="mr-2 h-4 w-4" />
-                {nextActionLabel}
-              </Button>
-            </div>
-          </div>
         </div>
 
-        <div className={isMobile ? 'space-y-4' : 'grid min-h-0 flex-1 gap-4 xl:h-full xl:grid-cols-[minmax(0,1.18fr)_minmax(320px,0.82fr)]'}>
-          <div className="rounded-[2rem] border border-border/70 bg-white/88 p-4 shadow-sm xl:flex xl:min-h-0 xl:flex-col xl:overflow-hidden">
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {t('focus.timelineKicker')}
-                </p>
-                <h3 className="mt-2 text-lg font-semibold text-foreground">{t('focus.timelineTitle')}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{t('focus.timelineDescription')}</p>
+        <div className="min-h-0 flex-1">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden xl:overflow-hidden">
+            {/* Switch + action */}
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex overflow-hidden rounded-md border text-xs">
+                <button
+                  type="button"
+                  onClick={() => setActivePanel('sessions')}
+                  className={cn(
+                    'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
+                    activePanel === 'sessions'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {t('focus.tabSessions')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePanel('odontogram')}
+                  className={cn(
+                    'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
+                    activePanel === 'odontogram'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background text-muted-foreground hover:bg-muted',
+                  )}
+                >
+                  {t('focus.tabOdontogram')}
+                </button>
               </div>
+
+              {activePanel === 'sessions' && (
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions}>
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  {nextActionLabel}
+                </Button>
+              )}
             </div>
 
-            <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1">
-              <DoctorPatientTimeline
-                linkedAppointmentId={selectedAppointment.id}
-                sessions={patientSessions}
-                isLoading={isLoadingTimeline}
-              />
-            </div>
+            {/* Content */}
+            {activePanel === 'sessions' ? (
+              <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1">
+                <DoctorPatientTimeline
+                  linkedAppointmentId={selectedAppointment.id}
+                  sessions={patientSessions}
+                  isLoading={isLoadingTimeline}
+                />
+              </div>
+            ) : (
+              <div className="min-h-[500px] flex-1 overflow-y-auto xl:min-h-0 xl:overflow-hidden">
+                <DentalRecordViewer
+                  patientId={selectedAppointment.patientId}
+                  patientName={selectedAppointment.patientName}
+                  doctorId={selectedAppointment.doctorId}
+                  doctorName={selectedAppointment.doctorName}
+                />
+              </div>
+            )}
           </div>
 
-          {!isMobile && (
-            <DoctorAgentChat
-              appointmentId={selectedAppointment.id}
-              locale={locale}
-              patientName={selectedAppointment.patientName}
-              userId={user?.id ? String(user.id) : undefined}
-              onAction={handleDoctorAgentAction}
-              presentation="embedded"
-            />
-          )}
         </div>
       </CardContent>
     </Card>
   ) : (
-    <Card className="border-border/70">
+    <Card>
       <CardContent className="p-6">
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
           {t('focus.empty')}
@@ -849,74 +1424,24 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           renderDetailPanel
         ) : (
           <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(320px,30%)_minmax(0,70%)]">
-            <Card className="border-border/70 xl:sticky xl:top-4 xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:overflow-hidden">
-              <CardHeader className="space-y-4 border-b border-border/60 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <CardTitle>{t('agenda.title')}</CardTitle>
-                    <CardDescription>{t('agenda.description')}</CardDescription>
-                  </div>
-                  <Button variant="outline" size="sm" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
-                    <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                    {t('agenda.refresh')}
-                  </Button>
+            <Card className="xl:sticky xl:top-4 xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:overflow-hidden">
+              <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 border-b pb-3">
+                <div>
+                  <CardTitle className="text-sm font-semibold">{t('agenda.title')}</CardTitle>
+                  <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
                 </div>
-
-                <div className="rounded-3xl border border-slate-200/80 bg-white/80 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)]">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      {t('todayLabel', { date: formatDisplayDate(new Date()) })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {lastUpdatedAt ? t('lastUpdated', { time: formatDateTime(lastUpdatedAt) }) : t('lastUpdatedPending')}
-                    </p>
-                  </div>
-                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
+                  <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+                </Button>
               </CardHeader>
 
-              <CardContent className="min-h-0 space-y-3 overflow-auto xl:flex-1">
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('agenda.title')}</p>
-                </div>
-
-                {isLoadingAppointments ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-24 w-full rounded-2xl" />
-                    <Skeleton className="h-24 w-full rounded-2xl" />
-                    <Skeleton className="h-24 w-full rounded-2xl" />
-                  </div>
-                ) : appointments.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-8 text-center">
-                    <p className="text-sm font-medium text-foreground">{t('agenda.emptyTitle')}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
-                  </div>
-                ) : (
-                  appointments.map((appointment) => {
-                    const normalizedStatus = (appointment.status.toLowerCase() || 'confirmed') as AppointmentStatus;
-                    const serviceLabel = appointment.services?.length
-                      ? appointment.services.map((service) => service.name).join(', ')
-                      : appointment.service_name || appointment.summary;
-
-                    return (
-                      <DataCard
-                        key={appointment.id}
-                        title={appointment.patientName || t('agenda.unknownPatient')}
-                        subtitle={`${getTimeRangeLabel(appointment)} • ${serviceLabel}`}
-                        avatar={appointment.patientName || 'P'}
-                        accentColor={selectedAppointment?.id === appointment.id ? '#0f766e' : undefined}
-                        badge={(
-                          <Badge variant={STATUS_VARIANTS[normalizedStatus] || 'default'} className="capitalize">
-                            {tStatus(normalizedStatus)}
-                          </Badge>
-                        )}
-                        isSelected={selectedAppointment?.id === appointment.id}
-                        showArrow
-                        onClick={() => selectAppointment(appointment.id, true)}
-                        className="border-border/70 rounded-2xl bg-white/85"
-                      />
-                    );
-                  })
-                )}
+              <CardContent className="min-h-0 space-y-3 overflow-auto p-4 xl:flex-1">
+                <DoctorAgendaTimeline
+                  appointments={appointments}
+                  isLoading={isLoadingAppointments}
+                  onSelect={(appointmentId) => selectAppointment(appointmentId, true)}
+                  selectedAppointmentId={selectedAppointment?.id}
+                />
               </CardContent>
             </Card>
 
@@ -925,20 +1450,18 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         )}
       </div>
 
-      {isMobile && (
-        <DoctorAgentChat
-          appointmentId={selectedAppointment?.id}
-          locale={locale}
-          patientName={selectedAppointment?.patientName}
-          userId={user?.id ? String(user.id) : undefined}
-          onAction={handleDoctorAgentAction}
-          presentation="floating"
-        />
-      )}
+      <DoctorAgentChat
+        appointmentId={selectedAppointment?.id}
+        locale={locale}
+        patientName={selectedAppointment?.patientName}
+        userId={user?.id ? String(user.id) : undefined}
+        onAction={handleDoctorAgentAction}
+        presentation="floating"
+      />
 
       <Dialog open={newAppointmentsAlertOpen} onOpenChange={setNewAppointmentsAlertOpen}>
         <DialogContent maxWidth="md" className="overflow-hidden border-primary/20 p-0">
-          <DialogHeader className="bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(14,116,144,0.95))] text-white">
+          <DialogHeader className="bg-foreground text-background">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
                 <Sparkles className="h-5 w-5" />
@@ -959,6 +1482,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           </DialogHeader>
           <div className="space-y-3 bg-background px-6 py-5">
             {newAppointmentsAlertItems.map((appointment) => {
+              const normalizedStatus = normalizeAppointmentStatus(appointment.status);
               const serviceLabel = appointment.services?.length
                 ? appointment.services.map((service) => service.name).join(', ')
                 : appointment.service_name || appointment.summary || t('appointmentAlerts.unknownService');
@@ -971,7 +1495,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                     selectAppointment(appointment.id, true);
                     setNewAppointmentsAlertOpen(false);
                   }}
-                  className="flex w-full items-start justify-between gap-4 rounded-3xl border border-slate-200/80 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(255,255,255,0.98))] px-4 py-4 text-left shadow-sm transition-colors hover:border-sky-300 hover:bg-sky-50/70"
+                  className="flex w-full items-start justify-between gap-4 rounded-xl bg-muted/30 px-4 py-4 text-left transition-colors hover:bg-muted/50"
                 >
                   <div className="min-w-0">
                     <p className="text-base font-semibold text-foreground">
@@ -983,8 +1507,8 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-sm font-semibold text-sky-700">{getTimeRangeLabel(appointment)}</p>
-                    <Badge variant={STATUS_VARIANTS[(appointment.status.toLowerCase() as AppointmentStatus)] || 'default'} className="mt-2 capitalize">
-                      {tStatus(appointment.status.toLowerCase())}
+                    <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="mt-2 capitalize">
+                      {tStatus(normalizedStatus)}
                     </Badge>
                   </div>
                 </button>

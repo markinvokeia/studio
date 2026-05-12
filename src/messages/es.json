@@ -699,6 +699,10 @@
       "openFullAgenda": "Abrir agenda completa",
       "emptyTitle": "No hay citas para hoy",
       "emptyDescription": "Cuando se agenden nuevas citas o cambie el estado de una existente, aparecerán aquí.",
+      "hiddenPastAppointments": "{count} citas anteriores ocultas",
+      "historyHidden": "Historial",
+      "showHistory": "Ver historial",
+      "hideHistory": "Ocultar",
       "unknownPatient": "Paciente sin nombre",
       "viewPatient": "Paciente",
       "viewContext": "Contexto",
@@ -717,6 +721,8 @@
         "completeSession": "Completar sesión clínica",
         "backToAgenda": "Volver a la agenda",
         "empty": "Selecciona una cita del día para abrir el panel clínico rápido.",
+        "tabSessions": "Sesiones Clínicas",
+        "tabOdontogram": "Odontograma",
         "timelineKicker": "Historia clínica",
         "timelineTitle": "Línea de tiempo del paciente",
         "timelineDescription": "La sesión clínica más reciente aparece expandida primero para revisar el contexto antes de atender.",
@@ -795,7 +801,11 @@
         "voiceAssistantTitle": "Consulta rápida con voz",
         "voiceAssistantDescription": "Dicta tu pregunta con el micrófono del campo y la respuesta se leerá en voz alta.",
         "questionPlaceholder": "Pregunta por el último procedimiento, lo que corresponde hacer hoy o cualquier duda clínica puntual.",
-        "askAndRead": "Preguntar y leer respuesta"
+        "askAndRead": "Preguntar y leer respuesta",
+        "actionAppointmentNotFound": "No encontré esa cita dentro de la agenda cargada del doctor.",
+        "actionPatientContextMissing": "Necesito una cita válida del paciente para abrir esa vista.",
+        "actionAppointmentContextMissing": "Necesito una cita válida para abrir la sesión clínica.",
+        "actionUnsupported": "No pude ejecutar esa acción desde el workspace actual."
       }
     }
   },
@@ -5611,7 +5621,20 @@
       "doctorPlaceholder": "Seleccionar doctor",
       "doctorRequired": "Por favor selecciona un doctor",
       "delete": "Eliminar sesión",
-      "deleteConfirm": "Esta sesión será eliminada permanentemente. ¿Continuar?"
+      "deleteConfirm": "Esta sesión será eliminada permanentemente. ¿Continuar?",
+      "discharge": {
+        "checkboxLabel": "Dar de alta al paciente",
+        "checkboxDescription": "Establece una fecha de próxima cita para registrar el alta del paciente al guardar esta sesión.",
+        "optionsLabel": "Opciones rápidas",
+        "option1Month": "1 mes",
+        "option3Months": "3 meses",
+        "option6Months": "6 meses",
+        "option1Year": "1 año",
+        "dateLabel": "Fecha de alta",
+        "datePlaceholder": "Selecciona una fecha",
+        "toastSuccess": "Paciente dado de alta correctamente",
+        "dateRequired": "Debes seleccionar una fecha de alta."
+      }
     }
   },
   "StickyNotes": {

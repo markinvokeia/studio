@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { VoiceRecorderButton } from '@/components/ui/voice-recorder-button';
 import { VoiceChat, type ChatMessage } from '@/components/voice-chat';
 import type { DoctorAgentAction, DoctorAiQueryResponse, TreatmentDetail } from '@/lib/types';
@@ -19,7 +18,7 @@ interface DoctorAgentChatProps {
   locale: string;
   patientName?: string;
   userId?: string;
-  onAction?: (action: DoctorAgentAction) => void;
+  onAction?: (action: DoctorAgentAction) => void | { success?: boolean; message?: string } | Promise<void | { success?: boolean; message?: string }>;
   presentation?: 'floating' | 'embedded';
 }
 
@@ -48,6 +47,14 @@ type PersistedDoctorAgentChatState = {
     timestamp: string;
   }>;
 };
+
+function createChatMessageId(role: ChatMessage['role']) {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${role}-${crypto.randomUUID()}`;
+  }
+
+  return `${role}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function pickVoice(targetLocale: string): Promise<SpeechSynthesisVoice | null> {
   return new Promise((resolve) => {
@@ -123,6 +130,7 @@ function readDoctorAgentChatState(sessionId: string): PersistedDoctorAgentChatSt
     if (!rawValue) return null;
 
     const parsedValue = JSON.parse(rawValue) as Partial<PersistedDoctorAgentChatState>;
+    const seenMessageIds = new Set<string>();
     return {
       isOpen: parsedValue.isOpen ?? false,
       isMinimized: parsedValue.isMinimized ?? false,
@@ -132,8 +140,18 @@ function readDoctorAgentChatState(sessionId: string): PersistedDoctorAgentChatSt
         ? parsedValue.messages
             .filter((message) => message && typeof message === 'object')
             .map((message) => ({
-              id: String(message.id || `${Date.now()}`),
               role: message.role === 'assistant' ? 'assistant' : 'user',
+              id: (() => {
+                const baseId = String(message.id || '');
+                if (baseId && !seenMessageIds.has(baseId)) {
+                  seenMessageIds.add(baseId);
+                  return baseId;
+                }
+
+                const nextId = createChatMessageId(message.role === 'assistant' ? 'assistant' : 'user');
+                seenMessageIds.add(nextId);
+                return nextId;
+              })(),
               content: String(message.content || ''),
               isVoice: Boolean(message.isVoice),
               timestamp: String(message.timestamp || new Date().toISOString()),
@@ -247,23 +265,41 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
   return null;
 }
 
+function parseDoctorAgentPayload(rawValue: unknown): any {
+  if (rawValue && typeof rawValue === 'object') {
+    return rawValue;
+  }
+
+  if (typeof rawValue === 'string') {
+    try {
+      const parsedValue = JSON.parse(rawValue);
+      if (parsedValue && typeof parsedValue === 'object') {
+        return parseDoctorAgentPayload(parsedValue);
+      }
+    } catch {
+      return { output: rawValue };
+    }
+  }
+
+  return {};
+}
+
 function normalizeDoctorResponse(result: unknown): DoctorAiQueryResponse {
   const firstLayer = Array.isArray(result) ? result[0] : result;
   const nestedOutput = firstLayer && typeof firstLayer === 'object' && 'output' in (firstLayer as any)
     ? (firstLayer as any).output
     : firstLayer;
-  let outputObject: any = {};
+  let outputObject: any = parseDoctorAgentPayload(nestedOutput);
 
-  if (nestedOutput && typeof nestedOutput === 'object') {
-    outputObject = nestedOutput as any;
-  } else if (typeof nestedOutput === 'string') {
-    try {
-      const parsedOutput = JSON.parse(nestedOutput);
-      outputObject = parsedOutput && typeof parsedOutput === 'object'
-        ? parsedOutput
-        : { output: nestedOutput };
-    } catch {
-      outputObject = { output: nestedOutput };
+  if (typeof outputObject.output === 'string') {
+    const nestedObject = parseDoctorAgentPayload(outputObject.output);
+    if (nestedObject && typeof nestedObject === 'object' && (nestedObject.output || nestedObject.action)) {
+      outputObject = {
+        ...nestedObject,
+        ...outputObject,
+        output: typeof nestedObject.output === 'string' ? nestedObject.output : outputObject.output,
+        action: nestedObject.action ?? outputObject.action,
+      };
     }
   }
 
@@ -361,7 +397,7 @@ export function DoctorAgentChat({
     setMessages((prev) => [
       ...prev,
       {
-        id: `${Date.now()}-assistant`,
+        id: createChatMessageId('assistant'),
         role: 'assistant',
         content,
         timestamp: new Date(),
@@ -394,7 +430,10 @@ export function DoctorAgentChat({
     }
 
     if (result.action) {
-      onAction?.(result.action);
+      const actionResult = await onAction?.(result.action);
+      if (actionResult && typeof actionResult === 'object' && actionResult.success === false && actionResult.message) {
+        appendAssistantMessage(actionResult.message);
+      }
     }
   }, [appendAssistantMessage, locale, onAction, ttsEnabled]);
 
@@ -404,7 +443,7 @@ export function DoctorAgentChat({
     setMessages((prev) => [
       ...prev,
       {
-        id: `${Date.now()}-user`,
+        id: createChatMessageId('user'),
         role: 'user',
         content: prompt,
         timestamp: new Date(),
@@ -447,11 +486,11 @@ export function DoctorAgentChat({
       'flex h-full min-h-0 w-full flex-col overflow-hidden border-primary/20',
       isFloating
         ? 'h-[68vh] rounded-none shadow-2xl sm:rounded-2xl'
-        : 'rounded-[2rem] bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.06)]',
+        : 'rounded-xl',
     )}>
       <CardHeader className={cn(
         'flex shrink-0 flex-row items-center justify-between gap-3 border-b p-4',
-        isFloating ? 'bg-primary text-primary-foreground' : 'bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))]',
+        isFloating ? 'bg-primary text-primary-foreground' : '',
       )}>
         <div className="min-w-0">
           <CardTitle className={cn('flex items-center gap-2 text-sm font-bold', !isFloating && 'text-foreground')}>
@@ -507,42 +546,6 @@ export function DoctorAgentChat({
         </div>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-        <div className="border-b bg-muted/30 px-3 py-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {t('workspacePromptTitle')}
-            </p>
-            <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.16em]">
-              {t('sidebarStatus')}
-            </Badge>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {quickQuestions.map((item) => (
-              <Button
-                key={item}
-                type="button"
-                variant="ghost"
-                className="h-8 rounded-full border border-border/70 bg-background px-3 text-xs"
-                onClick={() => void askDoctorAgent(item)}
-                disabled={isSending}
-              >
-                {item}
-              </Button>
-            ))}
-            {suggestions.map((item, index) => (
-              <Button
-                key={`${item}-${index}`}
-                type="button"
-                variant="ghost"
-                className="h-8 rounded-full border border-border/70 bg-background px-3 text-xs"
-                onClick={() => void askDoctorAgent(item)}
-                disabled={isSending}
-              >
-                {item}
-              </Button>
-            ))}
-          </div>
-        </div>
         <div className="min-h-0 flex-1 overflow-y-auto">
           <VoiceChat
             messages={messages}

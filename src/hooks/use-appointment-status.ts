@@ -4,10 +4,9 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
 import { useToast } from '@/hooks/use-toast';
-import { api } from '@/services/api';
-import { API_ROUTES } from '@/constants/routes';
 import { canTransition } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
+import { updateAppointmentStatusRequest } from '@/services/appointments';
 
 interface UseAppointmentStatusOptions {
   onSuccess?: (appointment: Appointment, newStatus: AppointmentStatus) => void;
@@ -38,21 +37,13 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
 
       setIsUpdating(true);
       try {
-        const payload = {
-          appointment_id: appointment.id,
-          google_event_id: appointment.googleEventId,
-          calendar_source_id: appointment.calendar_source_id,
-          status: newStatus,
-          cancellation_reason: newStatus === 'cancelled' ? cancellation_reason : null,
-          cancellation_note: cancellation_reason === 'other' ? cancellation_note?.trim() : null,
+        await updateAppointmentStatusRequest({
+          appointment,
+          newStatus,
+          cancellation_reason,
+          cancellation_note,
           note,
-        };
-        const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, payload);
-        const result = Array.isArray(response) ? response[0] : response;
-
-        if (result?.error || (result?.code && result.code >= 400)) {
-          throw new Error(result?.message || tMenu('errorDesc'));
-        }
+        });
 
         toast({
           title: tMenu('updated'),

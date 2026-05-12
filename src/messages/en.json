@@ -699,6 +699,10 @@
       "openFullAgenda": "Open full schedule",
       "emptyTitle": "No appointments for today",
       "emptyDescription": "When new appointments are scheduled or a status changes, they will appear here.",
+      "hiddenPastAppointments": "{count} earlier appointments hidden",
+      "historyHidden": "History",
+      "showHistory": "Show history",
+      "hideHistory": "Hide",
       "unknownPatient": "Unnamed patient",
       "viewPatient": "Patient",
       "viewContext": "Context",
@@ -717,6 +721,8 @@
         "completeSession": "Complete clinical session",
         "backToAgenda": "Back to schedule",
         "empty": "Select an appointment from today to open the quick clinical panel.",
+        "tabSessions": "Clinical Sessions",
+        "tabOdontogram": "Odontogram",
         "timelineKicker": "Clinical history",
         "timelineTitle": "Patient timeline",
         "timelineDescription": "The most recent clinical session stays expanded first so the doctor can review context before care.",
@@ -795,7 +801,11 @@
         "voiceAssistantTitle": "Quick voice consultation",
         "voiceAssistantDescription": "Dictate your question with the field microphone and the answer will be read aloud.",
         "questionPlaceholder": "Ask about the last procedure, what should be done today, or any focused clinical question.",
-        "askAndRead": "Ask and read aloud"
+        "askAndRead": "Ask and read aloud",
+        "actionAppointmentNotFound": "I couldn't find that appointment in the doctor's loaded schedule.",
+        "actionPatientContextMissing": "I need a valid patient appointment to open that view.",
+        "actionAppointmentContextMissing": "I need a valid appointment to open the clinical session.",
+        "actionUnsupported": "I couldn't execute that action from the current workspace."
       }
     }
   },
@@ -5643,7 +5653,20 @@
       "doctorPlaceholder": "Select a doctor",
       "doctorRequired": "Please select a doctor",
       "delete": "Delete session",
-      "deleteConfirm": "This session will be permanently deleted. Continue?"
+      "deleteConfirm": "This session will be permanently deleted. Continue?",
+      "discharge": {
+        "checkboxLabel": "Discharge the patient",
+        "checkboxDescription": "Set a next appointment date to record the patient discharge after saving this session.",
+        "optionsLabel": "Quick options",
+        "option1Month": "1 month",
+        "option3Months": "3 months",
+        "option6Months": "6 months",
+        "option1Year": "1 year",
+        "dateLabel": "Discharge date",
+        "datePlaceholder": "Select a date",
+        "toastSuccess": "Patient discharged successfully",
+        "dateRequired": "You must select a discharge date."
+      }
     }
   },
   "StickyNotes": {
