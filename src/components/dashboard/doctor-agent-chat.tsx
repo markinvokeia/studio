@@ -20,6 +20,7 @@ interface DoctorAgentChatProps {
   patientName?: string;
   userId?: string;
   onAction?: (action: DoctorAgentAction) => void;
+  presentation?: 'floating' | 'embedded';
 }
 
 const PREFERRED_VOICE_NAMES = [
@@ -32,6 +33,21 @@ const PREFERRED_VOICE_NAMES = [
   'Microsoft Aria',
   'Samantha',
 ];
+const DOCTOR_AGENT_CHAT_STORAGE_PREFIX = 'doctor-agent:chat-state';
+
+type PersistedDoctorAgentChatState = {
+  isOpen: boolean;
+  isMinimized: boolean;
+  ttsEnabled: boolean;
+  suggestions: string[];
+  messages: Array<{
+    id: string;
+    role: ChatMessage['role'];
+    content: string;
+    isVoice?: boolean;
+    timestamp: string;
+  }>;
+};
 
 function pickVoice(targetLocale: string): Promise<SpeechSynthesisVoice | null> {
   return new Promise((resolve) => {
@@ -93,6 +109,51 @@ async function speakText(text: string, locale: string, enabled: boolean) {
 function buildDoctorDailySessionId(userId?: string) {
   const dateKey = formatDate(new Date());
   return `doctor-agent:${userId || 'anonymous'}:${dateKey}`;
+}
+
+function getDoctorAgentChatStorageKey(sessionId: string) {
+  return `${DOCTOR_AGENT_CHAT_STORAGE_PREFIX}:${sessionId}`;
+}
+
+function readDoctorAgentChatState(sessionId: string): PersistedDoctorAgentChatState | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawValue = window.localStorage.getItem(getDoctorAgentChatStorageKey(sessionId));
+    if (!rawValue) return null;
+
+    const parsedValue = JSON.parse(rawValue) as Partial<PersistedDoctorAgentChatState>;
+    return {
+      isOpen: parsedValue.isOpen ?? false,
+      isMinimized: parsedValue.isMinimized ?? false,
+      ttsEnabled: parsedValue.ttsEnabled ?? true,
+      suggestions: Array.isArray(parsedValue.suggestions) ? parsedValue.suggestions.map((item) => String(item)) : [],
+      messages: Array.isArray(parsedValue.messages)
+        ? parsedValue.messages
+            .filter((message) => message && typeof message === 'object')
+            .map((message) => ({
+              id: String(message.id || `${Date.now()}`),
+              role: message.role === 'assistant' ? 'assistant' : 'user',
+              content: String(message.content || ''),
+              isVoice: Boolean(message.isVoice),
+              timestamp: String(message.timestamp || new Date().toISOString()),
+            }))
+        : [],
+    };
+  } catch (error) {
+    console.error('Failed to restore doctor agent chat state:', error);
+    return null;
+  }
+}
+
+function writeDoctorAgentChatState(sessionId: string, state: PersistedDoctorAgentChatState) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.localStorage.setItem(getDoctorAgentChatStorageKey(sessionId), JSON.stringify(state));
+  } catch (error) {
+    console.error('Failed to persist doctor agent chat state:', error);
+  }
 }
 
 function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
@@ -191,8 +252,21 @@ function normalizeDoctorResponse(result: unknown): DoctorAiQueryResponse {
   const nestedOutput = firstLayer && typeof firstLayer === 'object' && 'output' in (firstLayer as any)
     ? (firstLayer as any).output
     : firstLayer;
+  let outputObject: any = {};
 
-  const outputObject = nestedOutput && typeof nestedOutput === 'object' ? nestedOutput as any : {};
+  if (nestedOutput && typeof nestedOutput === 'object') {
+    outputObject = nestedOutput as any;
+  } else if (typeof nestedOutput === 'string') {
+    try {
+      const parsedOutput = JSON.parse(nestedOutput);
+      outputObject = parsedOutput && typeof parsedOutput === 'object'
+        ? parsedOutput
+        : { output: nestedOutput };
+    } catch {
+      outputObject = { output: nestedOutput };
+    }
+  }
+
   const action = normalizeDoctorAction(outputObject.action);
 
   return {
@@ -207,7 +281,14 @@ function normalizeDoctorResponse(result: unknown): DoctorAiQueryResponse {
   };
 }
 
-export function DoctorAgentChat({ appointmentId, locale, patientName, userId, onAction }: DoctorAgentChatProps) {
+export function DoctorAgentChat({
+  appointmentId,
+  locale,
+  patientName,
+  userId,
+  onAction,
+  presentation = 'floating',
+}: DoctorAgentChatProps) {
   const t = useTranslations('DoctorWorkspace.focus.ai');
   const [isClient, setIsClient] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
@@ -216,6 +297,8 @@ export function DoctorAgentChat({ appointmentId, locale, patientName, userId, on
   const [ttsEnabled, setTtsEnabled] = React.useState(true);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
+  const sessionId = React.useMemo(() => buildDoctorDailySessionId(userId), [userId]);
+  const isFloating = presentation === 'floating';
 
   const quickQuestions = React.useMemo(
     () => [t('quickLastDone'), t('quickToday'), t('quickAlerts')],
@@ -227,11 +310,52 @@ export function DoctorAgentChat({ appointmentId, locale, patientName, userId, on
   }, []);
 
   React.useEffect(() => {
-    setMessages([]);
-    setSuggestions([]);
+    const persistedState = readDoctorAgentChatState(sessionId);
+    if (!persistedState) {
+      setMessages([]);
+      setSuggestions([]);
+      setIsOpen(false);
+      setIsMinimized(false);
+      setTtsEnabled(true);
+      return;
+    }
+
+    setMessages(
+      persistedState.messages.map((message) => ({
+        ...message,
+        timestamp: new Date(message.timestamp),
+      })),
+    );
+    setSuggestions(persistedState.suggestions);
+    setIsOpen(persistedState.isOpen);
+    setIsMinimized(persistedState.isMinimized);
+    setTtsEnabled(persistedState.ttsEnabled);
+  }, [sessionId]);
+
+  React.useEffect(() => {
+    if (!isClient) return;
+
+    writeDoctorAgentChatState(sessionId, {
+      isOpen,
+      isMinimized,
+      ttsEnabled,
+      suggestions,
+      messages: messages.map((message) => ({
+        id: message.id,
+        role: message.role,
+        content: message.content,
+        isVoice: message.isVoice,
+        timestamp: message.timestamp.toISOString(),
+      })),
+    });
+  }, [isClient, isMinimized, isOpen, messages, sessionId, suggestions, ttsEnabled]);
+
+  React.useEffect(() => {
+    if (appointmentId || !isFloating) return;
+
     setIsOpen(false);
     setIsMinimized(false);
-  }, [appointmentId]);
+  }, [appointmentId, isFloating]);
 
   const appendAssistantMessage = React.useCallback((content: string) => {
     setMessages((prev) => [
@@ -289,7 +413,6 @@ export function DoctorAgentChat({ appointmentId, locale, patientName, userId, on
 
     setIsSending(true);
     try {
-      const sessionId = buildDoctorDailySessionId(userId);
       const result = await queryDoctorAi({
         appointment_id: appointmentId,
         query: prompt,
@@ -303,7 +426,7 @@ export function DoctorAgentChat({ appointmentId, locale, patientName, userId, on
     } finally {
       setIsSending(false);
     }
-  }, [appendAssistantMessage, appointmentId, applyDoctorResponse, t, userId]);
+  }, [appendAssistantMessage, appointmentId, applyDoctorResponse, sessionId, t]);
 
   const openChat = React.useCallback(() => {
     if (!appointmentId) return;
@@ -318,6 +441,130 @@ export function DoctorAgentChat({ appointmentId, locale, patientName, userId, on
   }, []);
 
   if (!appointmentId) return null;
+
+  const chatCard = (
+    <Card className={cn(
+      'flex h-full min-h-0 w-full flex-col overflow-hidden border-primary/20',
+      isFloating
+        ? 'h-[68vh] rounded-none shadow-2xl sm:rounded-2xl'
+        : 'rounded-[2rem] bg-white/92 shadow-[0_18px_40px_rgba(15,23,42,0.06)]',
+    )}>
+      <CardHeader className={cn(
+        'flex shrink-0 flex-row items-center justify-between gap-3 border-b p-4',
+        isFloating ? 'bg-primary text-primary-foreground' : 'bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))]',
+      )}>
+        <div className="min-w-0">
+          <CardTitle className={cn('flex items-center gap-2 text-sm font-bold', !isFloating && 'text-foreground')}>
+            <MessageSquare className="h-4 w-4" />
+            {t('floatingTitle')}
+          </CardTitle>
+          <p className={cn('mt-1 truncate text-xs', isFloating ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+            {patientName ? t('chatPatientSubtitle', { patient: patientName }) : t('sidebarDescription')}
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setTtsEnabled((value) => {
+                if (value) window.speechSynthesis?.cancel();
+                return !value;
+              });
+            }}
+            className={cn(
+              'h-7 w-7',
+              isFloating
+                ? 'text-primary-foreground hover:bg-white/20'
+                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
+            )}
+            title={ttsEnabled ? t('ttsDisable') : t('ttsEnable')}
+          >
+            {ttsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </Button>
+          {isFloating && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMinimized(true)}
+                className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                title={t('minimizeChat')}
+              >
+                <ChevronRight className="h-4 w-4 rotate-90" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={closeChat}
+                className="h-7 w-7 text-primary-foreground hover:bg-white/20"
+                title={t('closeChat')}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+        <div className="border-b bg-muted/30 px-3 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              {t('workspacePromptTitle')}
+            </p>
+            <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.16em]">
+              {t('sidebarStatus')}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {quickQuestions.map((item) => (
+              <Button
+                key={item}
+                type="button"
+                variant="ghost"
+                className="h-8 rounded-full border border-border/70 bg-background px-3 text-xs"
+                onClick={() => void askDoctorAgent(item)}
+                disabled={isSending}
+              >
+                {item}
+              </Button>
+            ))}
+            {suggestions.map((item, index) => (
+              <Button
+                key={`${item}-${index}`}
+                type="button"
+                variant="ghost"
+                className="h-8 rounded-full border border-border/70 bg-background px-3 text-xs"
+                onClick={() => void askDoctorAgent(item)}
+                disabled={isSending}
+              >
+                {item}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <VoiceChat
+            messages={messages}
+            onSendText={(text) => void askDoctorAgent(text)}
+            isSending={isSending}
+            composerPlaceholder={t('questionPlaceholder')}
+            trailingActions={(
+              <VoiceRecorderButton
+                locale={locale}
+                disabled={isSending}
+                onTranscriptReady={(transcript) => askDoctorAgent(transcript)}
+              />
+            )}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (!isFloating) {
+    return chatCard;
+  }
 
   return (
     <>
@@ -351,106 +598,7 @@ export function DoctorAgentChat({ appointmentId, locale, patientName, userId, on
         <div className="pointer-events-none fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-4 sm:w-auto">
           {isMinimized ? null : (
             <div className="pointer-events-auto w-full px-0 md:w-[24rem] lg:w-[26rem]">
-              <Card className="h-[68vh] w-full rounded-none border-primary/20 shadow-2xl sm:rounded-2xl">
-                <CardHeader className="flex flex-row items-center justify-between gap-3 border-b bg-primary p-4 text-primary-foreground shrink-0">
-                  <div className="min-w-0">
-                    <CardTitle className="flex items-center gap-2 text-sm font-bold">
-                      <MessageSquare className="h-4 w-4" />
-                      {t('floatingTitle')}
-                    </CardTitle>
-                    <p className="mt-1 truncate text-xs text-primary-foreground/80">
-                      {patientName ? t('chatPatientSubtitle', { patient: patientName }) : t('sidebarDescription')}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setTtsEnabled((value) => {
-                          if (value) window.speechSynthesis?.cancel();
-                          return !value;
-                        });
-                      }}
-                      className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                      title={ttsEnabled ? t('ttsDisable') : t('ttsEnable')}
-                    >
-                      {ttsEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsMinimized(true)}
-                      className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                      title={t('minimizeChat')}
-                    >
-                      <ChevronRight className="h-4 w-4 rotate-90" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={closeChat}
-                      className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                      title={t('closeChat')}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex min-h-0 flex-1 flex-col p-0">
-                  <div className="border-b bg-muted/30 px-3 py-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        {t('workspacePromptTitle')}
-                      </p>
-                      <Badge variant="outline" className="rounded-full text-[10px] uppercase tracking-[0.16em]">
-                        {t('sidebarStatus')}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {quickQuestions.map((item) => (
-                        <Button
-                          key={item}
-                          type="button"
-                          variant="ghost"
-                          className="h-8 rounded-full border border-border/70 bg-background px-3 text-xs"
-                          onClick={() => void askDoctorAgent(item)}
-                          disabled={isSending}
-                        >
-                          {item}
-                        </Button>
-                      ))}
-                      {suggestions.map((item, index) => (
-                        <Button
-                          key={`${item}-${index}`}
-                          type="button"
-                          variant="ghost"
-                          className="h-8 rounded-full border border-border/70 bg-background px-3 text-xs"
-                          onClick={() => void askDoctorAgent(item)}
-                          disabled={isSending}
-                        >
-                          {item}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="min-h-0 flex-1">
-                    <VoiceChat
-                      messages={messages}
-                      onSendText={(text) => void askDoctorAgent(text)}
-                      isSending={isSending}
-                      composerPlaceholder={t('questionPlaceholder')}
-                      trailingActions={(
-                        <VoiceRecorderButton
-                          locale={locale}
-                          disabled={isSending}
-                          onTranscriptReady={(transcript) => askDoctorAgent(transcript)}
-                        />
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              {chatCard}
             </div>
           )}
         </div>,

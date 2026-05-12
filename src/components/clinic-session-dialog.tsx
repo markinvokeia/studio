@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
 import { AttachedFile, PatientSession, TreatmentDetail } from '@/lib/types';
-import { format } from 'date-fns';
+import { addMonths, format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { Calendar as CalendarIcon, File, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -128,6 +129,8 @@ export function ClinicSessionDialog({
     const [doctors, setDoctors] = React.useState<Doctor[]>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [doctorError, setDoctorError] = React.useState(false);
+    const [shouldDischargePatient, setShouldDischargePatient] = React.useState(false);
+    const [dischargeDate, setDischargeDate] = React.useState('');
 
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
@@ -198,6 +201,8 @@ export function ClinicSessionDialog({
         setAttachedFiles([]);
         setDeletedAttachmentIds([]);
         setDoctorError(false);
+        setShouldDischargePatient(false);
+        setDischargeDate('');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
@@ -223,6 +228,11 @@ export function ClinicSessionDialog({
             return;
         }
 
+        if (shouldDischargePatient && !dischargeDate) {
+            toast({ title: t('discharge.dateRequired'), variant: 'destructive' });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const dataToSave: ClinicSessionFormData = {
@@ -240,10 +250,23 @@ export function ClinicSessionDialog({
             // If there's pending appointment data, the parent handles creating both appointment and session
             // Otherwise, just save the session normally
             await onSave(dataToSave);
+
+            if (shouldDischargePatient && dischargeDate) {
+                await api.post(API_ROUTES.PATIENT_DISCHARGE, {
+                    id: userId,
+                    appointment_date: dischargeDate,
+                });
+                toast({ title: tCommon('discharge.toast.success') });
+            }
+
             toast({ title: t('save') });
             onOpenChange(false);
-        } catch (error) {
-            toast({ title: t('fileUploadError'), variant: 'destructive' });
+        } catch (error: any) {
+            toast({
+                title: shouldDischargePatient ? tCommon('discharge.toast.error') : t('fileUploadError'),
+                description: error?.message || '',
+                variant: 'destructive'
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -478,6 +501,109 @@ export function ClinicSessionDialog({
                                         </Popover>
                                     </div>
                                 )}
+
+                                <div className="space-y-3 md:col-span-2">
+                                    <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <Checkbox
+                                            id="discharge-patient"
+                                            checked={shouldDischargePatient}
+                                            onCheckedChange={(checked) => {
+                                                const enabled = Boolean(checked);
+                                                setShouldDischargePatient(enabled);
+                                                if (!enabled) {
+                                                    setDischargeDate('');
+                                                }
+                                            }}
+                                            className="mt-0.5"
+                                        />
+                                        <div className="space-y-1">
+                                            <Label htmlFor="discharge-patient" className="cursor-pointer text-sm font-medium">
+                                                {t('discharge.checkboxLabel')}
+                                            </Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                {t('discharge.checkboxDescription')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {shouldDischargePatient && (
+                                        <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
+                                            <div className="space-y-3">
+                                                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                                                    {tCommon('discharge.optionsLabel')}
+                                                </Label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option1Month')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option3Months')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option6Months')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option1Year')}
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>{tCommon('discharge.dateLabel')}</Label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "w-full justify-start text-left font-normal h-10 border-input",
+                                                                !dischargeDate && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                                            {dischargeDate
+                                                                ? format(new Date(dischargeDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
+                                                                : tCommon('discharge.datePlaceholder')}
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={dischargeDate ? new Date(dischargeDate + 'T00:00:00') : undefined}
+                                                            onSelect={(date) => setDischargeDate(date ? formatDate(date) : '')}
+                                                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* RIGHT column — treatments + attachments (only rendered when enabled) */}
