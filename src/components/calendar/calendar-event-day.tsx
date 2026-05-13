@@ -13,8 +13,8 @@ import type { Locale } from 'date-fns';
 import { parseISO } from 'date-fns';
 
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
-import type { AppointmentStatus } from '@/lib/types';
-import { STATUS_ICONS } from '@/components/appointments/status-icons';
+import type { AppointmentStatus, CancellationReason } from '@/lib/types';
+import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
@@ -43,6 +43,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   const isShortEvent = durationMinutes < 60;
   const rawStatus = event.data?.status as string | undefined;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
+  const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
   const accentColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
   const textColor = isCancelled ? undefined : getReadableTextColor(event.color);
@@ -70,9 +71,6 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             onEventClick(event.data);
           }}
         >
-          {accentColor && !isCancelled && (
-            <span className="event-status-accent" style={{ backgroundColor: accentColor }} />
-          )}
           <span className="event-day-title">{event.title}</span>
           <span className="event-day-time whitespace-nowrap">
             {isShortEvent
@@ -80,13 +78,13 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               : `${formatEventTime(event.start, dateLocale)} - ${formatEventTime(event.end, dateLocale)}`}
           </span>
           {status && accentColor && (() => {
-            const StatusIcon = STATUS_ICONS[status];
+            const StatusIcon = getStatusIcon(status, cancellationReason);
             if (!StatusIcon) return null;
             return (
               <span
                 aria-hidden
                 className="event-status-corner"
-                title={status}
+                title={cancellationReason ? `${status} - ${cancellationReason}` : status}
                 style={{ backgroundColor: accentColor }}
               >
                 <StatusIcon className="h-3 w-3" strokeWidth={2.5} />

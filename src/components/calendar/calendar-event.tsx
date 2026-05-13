@@ -12,8 +12,8 @@ import type { Locale } from 'date-fns';
 
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
-import type { AppointmentStatus } from '@/lib/types';
-import { STATUS_ICONS } from '@/components/appointments/status-icons';
+import type { AppointmentStatus, CancellationReason } from '@/lib/types';
+import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
@@ -36,6 +36,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
 }: CalendarEventChipProps) {
   const rawStatus = event.data?.status as string | undefined;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
+  const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
   const accentColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
 
@@ -55,19 +56,16 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
             onEventClick(event.data);
           }}
         >
-          {accentColor && !isCancelled && (
-            <span className="event-status-accent" style={{ backgroundColor: accentColor }} />
-          )}
           <span className="event-time">{formatEventTime(event.start, dateLocale)}</span>
           <span className="event-title">{event.title}</span>
           {status && accentColor && (() => {
-            const StatusIcon = STATUS_ICONS[status];
+            const StatusIcon = getStatusIcon(status, cancellationReason);
             if (!StatusIcon) return null;
             return (
               <span
                 aria-hidden
                 className="event-status-corner"
-                title={status}
+                title={cancellationReason ? `${status} - ${cancellationReason}` : status}
                 style={{ backgroundColor: accentColor }}
               >
                 <StatusIcon className="h-3 w-3" strokeWidth={2.5} />
