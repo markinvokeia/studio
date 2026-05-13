@@ -278,6 +278,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
 
   function handleCancelEditing() {
     setIsEditing(false);
+    setIsFullscreen(false);
     setEditingState({});
     setNotes('');
     setEditingDefaultDescription('');
@@ -317,6 +318,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     setHistory(updated);
     setHistoryIndex(updated.length - 1);
     setIsEditing(false);
+    setIsFullscreen(false);
     setEditingState({});
     setNotes('');
     setEditingDefaultDescription('');

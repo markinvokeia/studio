@@ -406,7 +406,7 @@ function DoctorAgendaTimeline({
 
   return (
     <div>
-      <div className="max-h-[60vh] overflow-y-auto overscroll-contain py-2 xl:max-h-none xl:flex-1">
+      <div className="py-2">
         {visibleTimeline.hiddenCount > 0 ? (
           <button
             type="button"
@@ -826,7 +826,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
               )}>
                 <CardHeader className="px-4 pt-3.5 pb-1">
                   <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="break-words text-sm font-semibold leading-tight text-foreground">
+                    <CardTitle className="line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground">
                       {session.procedimiento_realizado || tTimeline('noTitle')}
                     </CardTitle>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -877,16 +877,18 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                             const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
                             const label = def ? tTimeline(`conditions.${condition}` as Parameters<typeof tTimeline>[0]) : condition;
                             return (
-                              <div key={condition} className="flex items-center gap-2">
-                                {def && (
-                                  <span
-                                    className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold text-white"
-                                    style={{ backgroundColor: def.color }}
-                                  >
-                                    {def.icon}
-                                  </span>
-                                )}
-                                <span className="text-xs font-medium text-foreground/80">{label}:</span>
+                              <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <div className="flex shrink-0 items-center gap-1.5">
+                                  {def && (
+                                    <span
+                                      className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold text-white"
+                                      style={{ backgroundColor: def.color }}
+                                    >
+                                      {def.icon}
+                                    </span>
+                                  )}
+                                  <span className="text-xs font-medium text-foreground/80">{label}:</span>
+                                </div>
                                 <span className="text-xs text-muted-foreground tabular-nums">
                                   {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
                                 </span>
@@ -1305,7 +1307,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   );
 
   const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
-  const visibleAlertTags = patientAlertTags.slice(0, 4);
+  const visibleAlertTags = patientAlertTags.slice(0, isMobile ? 2 : 4);
   const hiddenAlertCount = Math.max(patientAlertTags.length - visibleAlertTags.length, 0);
   const firstNewAppointmentAlertItem = newAppointmentsAlertItems[0] ?? null;
 
@@ -1388,29 +1390,29 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   ), [executeDoctorAgentAction]);
 
   const renderDetailPanel = selectedAppointment ? (
-    <Card className="xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:overflow-hidden">
-      <CardContent className="space-y-4 p-4 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-hidden">
+    <Card className="flex h-full flex-col overflow-hidden">
+      <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden gap-3 p-3 sm:p-4">
         {isMobile && (
-          <Button variant="ghost" className="h-9 w-fit px-2" onClick={() => setMobileDetailsOpen(false)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
+          <Button variant="ghost" className="-ml-1 h-8 w-fit px-2 text-sm" onClick={() => setMobileDetailsOpen(false)}>
+            <ArrowLeft className="mr-1.5 h-4 w-4" />
             {t('focus.backToAgenda')}
           </Button>
         )}
 
-        <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex shrink-0 flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:pb-4">
             <div className="flex min-w-0 items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/8">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/8 sm:h-11 sm:w-11">
                 {patientAlertTags.length > 0 ? (
-                  <AlertTriangle className="h-7 w-7 text-destructive" />
+                  <AlertTriangle className="h-5 w-5 text-destructive sm:h-7 sm:w-7" />
                 ) : (
                   <UserRound className="h-4 w-4 text-primary" />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-2xl font-semibold leading-tight text-foreground">
+                <p className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">
                   {selectedAppointment.patientName || t('agenda.unknownPatient')}
                 </p>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <div className="mt-1 flex flex-wrap items-center gap-1 sm:mt-2 sm:gap-1.5">
                   {visibleAlertTags.length > 0 ? (
                     <>
                       {visibleAlertTags.map((item, index) => (
@@ -1449,10 +1451,9 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
 
         </div>
 
-        <div className="min-h-0 flex-1">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden xl:overflow-hidden">
+        <div className="flex flex-col flex-1 min-h-0">
             {/* Switch + action */}
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 shrink-0 flex items-center justify-between gap-3">
               <div className="flex overflow-hidden rounded-md border text-xs">
                 <button
                   type="button"
@@ -1481,16 +1482,16 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions}>
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  {nextActionLabel}
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions} className="shrink-0">
+                  <ClipboardCheck className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
               )}
             </div>
 
             {/* Content */}
             {activePanel === 'sessions' ? (
-              <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1">
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-6">
                 <DoctorPatientTimeline
                   linkedAppointmentId={selectedAppointment.id}
                   sessions={patientSessions}
@@ -1498,7 +1499,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                 />
               </div>
             ) : (
-              <div className="min-h-[500px] flex-1 overflow-y-auto xl:min-h-0 xl:overflow-hidden">
+              <div className="flex-1 min-h-0 overflow-y-auto pb-6">
                 <DentalRecordViewer
                   patientId={selectedAppointment.patientId}
                   patientName={selectedAppointment.patientName}
@@ -1512,13 +1513,11 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                 />
               </div>
             )}
-          </div>
-
         </div>
       </CardContent>
     </Card>
   ) : (
-    <Card>
+    <Card className="flex h-full flex-col overflow-hidden">
       <CardContent className="p-6">
         <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
           {t('focus.empty')}
@@ -1528,14 +1527,14 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-1 overflow-hidden p-4 pr-2">
+    <div className="flex h-full min-h-0 flex-1 overflow-hidden p-2 sm:p-4 sm:pr-2">
       <div className="flex h-full w-full min-h-0 flex-col gap-4">
         {isMobile && mobileDetailsOpen ? (
           renderDetailPanel
         ) : (
           <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(320px,30%)_minmax(0,70%)]">
-            <Card className="xl:sticky xl:top-4 xl:flex xl:h-full xl:min-h-0 xl:flex-col xl:overflow-hidden">
-              <CardHeader className="flex-row items-center justify-between gap-3 space-y-0 border-b pb-3">
+            <Card className="flex h-full flex-col overflow-hidden xl:sticky xl:top-4">
+              <CardHeader className="shrink-0 flex-row items-center justify-between gap-3 space-y-0 border-b pb-3">
                 <div>
                   <CardTitle className="text-sm font-semibold">{t('agenda.title')}</CardTitle>
                   <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
@@ -1545,7 +1544,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                 </Button>
               </CardHeader>
 
-              <CardContent className="min-h-0 space-y-3 overflow-auto p-4 xl:flex-1">
+              <CardContent className="flex-1 min-h-0 overflow-y-auto p-4">
                 <DoctorAgendaTimeline
                   appointments={appointments}
                   isLoading={isLoadingAppointments}
