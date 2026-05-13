@@ -4,6 +4,8 @@ import { api } from '@/services/api';
 
 export interface DoctorAiQueryPayload {
   appointment_id: string;
+  patient_id?: string;
+  doctor_id?: string;
   query: string;
   channel?: 'voice' | 'text';
   transcript?: string;

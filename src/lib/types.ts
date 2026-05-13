@@ -720,6 +720,7 @@ export type DoctorAiSessionPatch = {
 
 export type DoctorAgentActionType =
   | 'open_clinic_session'
+  | 'open_odontogram'
   | 'open_patient_detail'
   | 'open_clinical_history'
   | 'open_patient_appointments'
@@ -727,15 +728,23 @@ export type DoctorAgentActionType =
   | 'open_patient_notes'
   | 'select_appointment';
 
+export type OdontogramMarcacion = {
+  diente: string;
+  condicion: OdontogramCondition;
+  superficie?: OdontogramSurface | 'whole' | 'overlay';
+};
+
 export type DoctorAgentActionPayload = {
   appointment_id?: string;
   clinical_history_view?: 'anamnesis' | 'timeline' | 'documents';
   doctor_id?: string;
   doctor_name?: string;
   procedimiento_realizado?: string;
+  notas_clinicas?: string;
   plan_proxima_cita?: string;
   fecha_proxima_cita?: string;
   tratamientos?: TreatmentDetail[];
+  marcaciones?: OdontogramMarcacion[];
 };
 
 export type DoctorAgentAction = {

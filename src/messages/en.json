@@ -216,7 +216,17 @@
     "logout": "Logout",
     "commandPlaceholder": "Enter a command...",
     "changePassword": "Change Password",
-    "communicationPreferences": "Preferences",
+    "communicationPreferences": "Notifications",
+    "preferences": "Preferences",
+    "preferencesSheet": {
+      "workspaceSection": "Doctor Workspace",
+      "alertStyleLabel": "Appointment notification style",
+      "alertStyleDescription": "Choose how you want to be notified when an appointment is added or changes status.",
+      "alertStyle": {
+        "modal": "Modal",
+        "toast": "Notification"
+      }
+    },
     "alerts": "Alerts",
     "toggleTheme": "Toggle theme",
     "light": "Invoke",
@@ -674,6 +684,13 @@
       "dismiss": "Dismiss",
       "openFirst": "Open first appointment",
       "unknownService": "clinical consultation"
+    },
+    "statusChangeAlerts": {
+      "singleTitle": "An appointment status changed",
+      "multipleTitle": "{count} appointments changed status",
+      "modalSingleDescription": "The status of one of your appointments today was updated externally.",
+      "modalMultipleDescription": "{count} appointments on your schedule today changed status.",
+      "dismiss": "Dismiss"
     },
     "todayLabel": "Today: {date}",
     "lastUpdated": "Last updated: {time}",

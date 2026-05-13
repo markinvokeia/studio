@@ -2,10 +2,10 @@
 
 import * as React from 'react';
 
-import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
+import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -28,6 +30,8 @@ import { format, parseISO } from 'date-fns';
 import {
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
+  Bell,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
@@ -62,6 +66,9 @@ interface DoctorPatientTimelineProps {
 
 const AUTO_REFRESH_MS = 60_000;
 const KNOWN_APPOINTMENTS_STORAGE_PREFIX = 'doctor-workspace:known-appointments';
+const APPOINTMENT_STATUSES_STORAGE_PREFIX = 'doctor-workspace:appointment-statuses';
+const LOCALLY_UPDATED_STORAGE_PREFIX = 'doctor-workspace:locally-updated';
+const LOCALLY_UPDATED_TTL_MS = 120_000;
 const TIMELINE_MIN_BLOCK_HEIGHT = 74;
 const TIMELINE_BASE_GAP = 14;
 const TIMELINE_MAX_GAP = 34;
@@ -438,7 +445,7 @@ function DoctorAgendaTimeline({
             </div>
           )}
 
-          <div className="absolute bottom-0 left-4 top-0 w-px bg-border" />
+          <div className="absolute bottom-0 left-4 top-0 w-px bg-gradient-to-b from-border/20 via-border/70 to-border/20" />
 
           {visibleTimeline.hiddenCurrentTimeRatio != null ? (
             <div className="absolute inset-x-0 z-20" style={{ top: TIMELINE_HIDDEN_MARKER_LANE_HEIGHT / 2 }}>
@@ -482,18 +489,19 @@ function DoctorAgendaTimeline({
               >
                 {/* Dot on the vertical line */}
                 <div
-                  className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-200"
+                  className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-300"
                   style={{
                     left: '1rem',
                     top: '1.25rem',
-                    width: isInProgress ? '0.75rem' : '0.5rem',
-                    height: isInProgress ? '0.75rem' : '0.5rem',
-                    backgroundColor: isPast
-                      ? 'hsl(var(--border))'
-                      : (isInProgress || isSelected)
-                        ? layout.accentColor
-                        : 'hsl(var(--border))',
-                    boxShadow: isInProgress && !isPast ? `0 0 0 4px ${layout.accentColor}30` : 'none',
+                    width: isInProgress ? '0.875rem' : '0.625rem',
+                    height: isInProgress ? '0.875rem' : '0.625rem',
+                    backgroundColor: isPast ? 'hsl(var(--muted-foreground))' : layout.accentColor,
+                    opacity: isPast ? 0.35 : 1,
+                    boxShadow: isInProgress && !isPast
+                      ? `0 0 0 2px hsl(var(--background)), 0 0 0 5px ${layout.accentColor}40`
+                      : isPast
+                        ? `0 0 0 2px hsl(var(--background))`
+                        : `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${layout.accentColor}30`,
                   }}
                 />
 
@@ -502,22 +510,24 @@ function DoctorAgendaTimeline({
                   type="button"
                   onClick={() => onSelect(layout.appointment.id)}
                   className={cn(
-                    'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-200',
-                    'border border-border/60 bg-card shadow-sm',
-                    'hover:border-border hover:shadow-md',
-                    isSelected && 'border-border shadow-md',
-                    isPast && 'opacity-55',
+                    'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-300',
+                    'border bg-card',
+                    isSelected ? 'shadow-lg' : 'shadow-sm hover:shadow-md border-border/40 hover:border-border/60',
+                    isPast && 'opacity-50',
                   )}
+                  style={isSelected && !isPast ? { borderColor: layout.accentColor } : undefined}
                 >
                   <div className="relative h-full overflow-hidden rounded-xl">
-                    {isSelected && (
-                      <span
-                        className="absolute left-0 top-0 h-full w-0.5"
-                        style={{ backgroundColor: layout.accentColor }}
-                      />
-                    )}
+                    <span
+                      className="absolute left-0 top-0 h-full transition-all duration-300"
+                      style={{
+                        width: isSelected ? '4px' : '2px',
+                        backgroundColor: layout.accentColor,
+                        opacity: isPast ? 0.3 : (isSelected ? 1 : 0.4),
+                      }}
+                    />
 
-                    <div className="flex h-full flex-col gap-2 px-4 py-3">
+                    <div className="flex h-full flex-col px-4 py-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold leading-tight text-foreground">
@@ -527,21 +537,25 @@ function DoctorAgendaTimeline({
                             {serviceLabel}
                           </p>
                         </div>
-                        <div className="flex shrink-0 flex-col items-end gap-1">
-                          <span className="text-xs font-semibold tabular-nums text-muted-foreground">
-                            {layout.appointment.time || '--:--'}
-                          </span>
-                          <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="shrink-0 capitalize text-[10px] h-5 px-1.5">
-                            {tStatus(normalizedStatus)}
-                          </Badge>
-                        </div>
+                        <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="shrink-0 capitalize text-[10px] h-5 px-1.5">
+                          {tStatus(normalizedStatus)}
+                        </Badge>
                       </div>
 
                       {showNotes ? (
-                        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                        <p className="mt-1.5 line-clamp-1 text-xs leading-relaxed text-muted-foreground">
                           {layout.appointment.notes}
                         </p>
                       ) : null}
+
+                      <div className="mt-auto flex items-center justify-between pt-2">
+                        <span className="text-xs font-medium tabular-nums text-muted-foreground">
+                          {getTimeRangeLabel(layout.appointment)}
+                        </span>
+                        <span className="text-[10px] tabular-nums text-muted-foreground/55">
+                          {getAppointmentDurationMinutes(layout.appointment)} min
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -580,6 +594,71 @@ function writeKnownAppointmentIds(storageKey: string, appointmentIds: string[]) 
     window.localStorage.setItem(storageKey, JSON.stringify(appointmentIds));
   } catch (error) {
     console.error('Failed to store known doctor appointments:', error);
+  }
+}
+
+type StatusChangedAlertItem = {
+  appointment: Appointment;
+  previousStatus: AppointmentStatus;
+};
+
+function getAppointmentStatusesStorageKey(doctorId: string, dateKey: string): string {
+  return `${APPOINTMENT_STATUSES_STORAGE_PREFIX}:${doctorId}:${dateKey}`;
+}
+
+function readAppointmentStatuses(storageKey: string): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeAppointmentStatuses(storageKey: string, statuses: Record<string, string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(statuses));
+  } catch (error) {
+    console.error('Failed to store appointment statuses:', error);
+  }
+}
+
+function getLocallyUpdatedStorageKey(doctorId: string): string {
+  return `${LOCALLY_UPDATED_STORAGE_PREFIX}:${doctorId}`;
+}
+
+function readLocallyUpdatedIds(doctorId: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(getLocallyUpdatedStorageKey(doctorId));
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.ids)) return new Set();
+    if (typeof parsed.expiresAt === 'number' && Date.now() > parsed.expiresAt) {
+      window.localStorage.removeItem(getLocallyUpdatedStorageKey(doctorId));
+      return new Set();
+    }
+    return new Set<string>(parsed.ids.map(String));
+  } catch {
+    return new Set();
+  }
+}
+
+function markAppointmentLocallyUpdated(doctorId: string, appointmentId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = readLocallyUpdatedIds(doctorId);
+    existing.add(appointmentId);
+    window.localStorage.setItem(
+      getLocallyUpdatedStorageKey(doctorId),
+      JSON.stringify({ ids: Array.from(existing), expiresAt: Date.now() + LOCALLY_UPDATED_TTL_MS }),
+    );
+  } catch (error) {
+    console.error('Failed to mark appointment as locally updated:', error);
   }
 }
 
@@ -704,7 +783,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
 
   return (
     <div className="relative space-y-3">
-      <div className="absolute bottom-0 left-[3.5rem] top-0 w-px bg-border" />
+      <div className="absolute bottom-0 left-[3.5rem] top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent" />
       {sessions.map((session, index) => {
         const sessionId = String(session.sesion_id);
         const isOpen = openItems.includes(sessionId);
@@ -729,33 +808,35 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
               {/* Date + dot in the left gutter */}
               <div className="absolute left-0 top-0 flex items-center gap-1.5">
                 <div className="w-10 text-right">
-                  <p className="text-[10px] font-medium leading-tight text-muted-foreground tabular-nums">{dateLabel}</p>
-                  <p className="text-[9px] text-muted-foreground/50 tabular-nums">{yearLabel}</p>
+                  <p className="text-[11px] font-semibold leading-tight text-foreground/75 tabular-nums">{dateLabel}</p>
+                  <p className="text-[9px] font-medium text-muted-foreground/60 tabular-nums">{yearLabel}</p>
                 </div>
                 <div className={cn(
-                  'z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-background shadow-sm',
-                  isLinkedToCurrentAppointment ? 'bg-primary' : 'bg-muted',
+                  'z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background shadow-md',
+                  isLinkedToCurrentAppointment ? 'bg-primary' : 'bg-muted-foreground/15',
                 )}>
                   <SessionIcon className={cn('h-3 w-3', isLinkedToCurrentAppointment ? 'text-primary-foreground' : 'text-muted-foreground')} />
                 </div>
               </div>
               <Card className={cn(
-                'min-w-0 flex-1 border-0 shadow-none transition-colors',
-                isLinkedToCurrentAppointment ? 'bg-primary/8' : 'bg-muted/30',
+                'min-w-0 flex-1 transition-all duration-200',
+                isLinkedToCurrentAppointment
+                  ? 'border border-primary/20 bg-primary/5 shadow-sm'
+                  : 'border border-border/50 bg-card shadow-sm',
               )}>
-                <CardHeader className="p-3 pb-1">
+                <CardHeader className="px-4 pt-3.5 pb-1">
                   <div className="flex items-start justify-between gap-3">
                     <CardTitle className="break-words text-sm font-semibold leading-tight text-foreground">
                       {session.procedimiento_realizado || tTimeline('noTitle')}
                     </CardTitle>
                     <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                       {isLinkedToCurrentAppointment && (
-                        <Badge variant="default" className="rounded-full text-[10px]">
+                        <Badge variant="default" className="rounded-full text-[10px] shadow-sm">
                           {t('focus.currentAppointmentBadge')}
                         </Badge>
                       )}
                       {index === 0 && !isLinkedToCurrentAppointment && (
-                        <Badge variant="secondary" className="rounded-full bg-sky-100 text-[10px] text-sky-800 hover:bg-sky-100">
+                        <Badge variant="secondary" className="rounded-full border border-sky-200/80 bg-sky-50 text-[10px] font-medium text-sky-700 hover:bg-sky-50">
                           {t('focus.latestSessionBadge')}
                         </Badge>
                       )}
@@ -764,41 +845,85 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                 </CardHeader>
 
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-full justify-start px-4 py-1 text-xs text-muted-foreground hover:text-foreground">
+                  <Button variant="ghost" size="sm" className="h-7 w-full justify-start px-4 py-1 text-xs text-muted-foreground/70 hover:bg-transparent hover:text-foreground">
                     {isOpen ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
                     {isOpen ? tTimeline('hideDetails') : tTimeline('showDetails')}
                   </Button>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent>
-                  <CardContent className="space-y-3 px-4 pb-4 pt-1 sm:px-6">
+                  <CardContent className="space-y-2.5 px-4 pb-4 pt-2">
+                  {session.tipo_sesion === 'odontograma' && session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (() => {
+                    const grouped: Record<string, string[]> = {};
+                    Object.entries(session.estado_odontograma as Record<string, Record<string, string>>).forEach(([tooth, surfaces]) => {
+                      const seen = new Set<string>();
+                      Object.values(surfaces).forEach((condition) => {
+                        if (!seen.has(condition)) {
+                          seen.add(condition);
+                          if (!grouped[condition]) grouped[condition] = [];
+                          grouped[condition].push(tooth);
+                        }
+                      });
+                    });
+                    const entries = Object.entries(grouped);
+                    if (entries.length === 0) return null;
+                    return (
+                      <div className="rounded-lg border-l-[3px] border-violet-400/60 bg-violet-50/60 px-3 py-2.5">
+                        <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-violet-600/90">
+                          {tTimeline('odontogramUpdate')}
+                        </p>
+                        <div className="space-y-1.5">
+                          {entries.map(([condition, teeth]) => {
+                            const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
+                            const label = def ? tTimeline(`conditions.${condition}` as Parameters<typeof tTimeline>[0]) : condition;
+                            return (
+                              <div key={condition} className="flex items-center gap-2">
+                                {def && (
+                                  <span
+                                    className="inline-flex shrink-0 items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold text-white"
+                                    style={{ backgroundColor: def.color }}
+                                  >
+                                    {def.icon}
+                                  </span>
+                                )}
+                                <span className="text-xs font-medium text-foreground/80">{label}:</span>
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                  {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {session.diagnostico && (
-                    <div className="rounded-r-md border-l-2 border-red-400/50 bg-red-50/40 py-1 pl-3">
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-600">
+                    <div className="rounded-lg border-l-[3px] border-red-400/60 bg-red-50/60 px-3 py-2.5">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-red-500">
                         {tTimeline('diagnosis')}
                       </p>
                       <p className="text-sm leading-relaxed text-foreground">{session.diagnostico}</p>
                     </div>
                   )}
                   {session.notas_clinicas && (
-                    <div className="rounded-r-md border-l-2 border-cyan-400/50 bg-cyan-50/40 py-1 pl-3">
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-cyan-600">
+                    <div className="rounded-lg border-l-[3px] border-cyan-400/60 bg-cyan-50/60 px-3 py-2.5">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-cyan-600/90">
                         {tTimeline('notes')}
                       </p>
                       <p className="text-sm leading-relaxed text-foreground">{session.notas_clinicas}</p>
                     </div>
                   )}
-                  {session.plan_proxima_cita && (
-                    <div className="rounded-r-md border-l-2 border-blue-400/50 bg-blue-50/40 py-1 pl-3">
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
+                  {session.plan_proxima_cita && session.plan_proxima_cita.trim() !== '{}' && (
+                    <div className="rounded-lg border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-blue-600/90">
                         {tTimeline('nextPlan')}
                       </p>
                       <p className="text-sm leading-relaxed text-foreground">{session.plan_proxima_cita}</p>
                     </div>
                   )}
                   {hasTreatments && (
-                    <div className="rounded-r-md border-l-2 border-green-500/50 bg-green-50/40 py-1 pl-3">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-green-600">
+                    <div className="rounded-lg border-l-[3px] border-green-500/60 bg-green-50/60 px-3 py-2.5">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-green-600/90">
                         {tTimeline('treatments')}
                       </p>
                       <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
@@ -808,7 +933,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                             className="flex min-w-0 items-baseline gap-2"
                           >
                             {treatment.numero_diente ? (
-                              <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-medium text-primary">
+                              <span className="shrink-0 rounded-md border border-primary/15 bg-primary/8 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary/80">
                                 {tTimeline('tooth')} {treatment.numero_diente}
                               </span>
                             ) : null}
@@ -821,8 +946,8 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     </div>
                   )}
                   {hasAttachments && (
-                    <div className="rounded-r-md border-l-2 border-amber-500/50 bg-amber-50/40 py-1 pl-3">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-600">
+                    <div className="rounded-lg border-l-[3px] border-amber-500/60 bg-amber-50/60 px-3 py-2.5">
+                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-amber-600/90">
                         {tTimeline('attachments')}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
@@ -855,6 +980,10 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   const { user } = useAuth();
   const { permissions } = usePermissions();
   const { createSession, updateSession } = useClinicHistory();
+  const { toast } = useToast();
+  const [alertStyle] = useDoctorAlertStyle(user?.id);
+  const alertStyleRef = React.useRef(alertStyle);
+  React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions), [permissions]);
   const isMobile = useViewportNarrow(1024);
 
@@ -867,11 +996,8 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   const [isLoadingAppointments, setIsLoadingAppointments] = React.useState(true);
   const [isLoadingTimeline, setIsLoadingTimeline] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [patientSheetOpen, setPatientSheetOpen] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
-  const [patientSheetInitialTab, setPatientSheetInitialTab] = React.useState<'clinical-history' | 'appointments' | 'messages' | 'notes'>('clinical-history');
-  const [patientSheetDefaultView, setPatientSheetDefaultView] = React.useState<'anamnesis' | 'timeline' | 'documents'>('timeline');
   const [agentSessionPrefill, setAgentSessionPrefill] = React.useState<{
     doctor_id?: string;
     doctor_name?: string;
@@ -881,9 +1007,13 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
+  const [odontogramAutoStart, setOdontogramAutoStart] = React.useState(false);
+  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ description: string; notes: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
   const [newAppointmentsAlertOpen, setNewAppointmentsAlertOpen] = React.useState(false);
   const [newAppointmentsAlertItems, setNewAppointmentsAlertItems] = React.useState<Appointment[]>([]);
+  const [statusChangedAlertOpen, setStatusChangedAlertOpen] = React.useState(false);
+  const [statusChangedAlertItems, setStatusChangedAlertItems] = React.useState<StatusChangedAlertItem[]>([]);
   const contextRequestRef = React.useRef(0);
 
   const selectedAppointment = React.useMemo(
@@ -899,6 +1029,8 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
 
   React.useEffect(() => {
     setActivePanel('sessions');
+    setOdontogramAutoStart(false);
+    setOdontogramPrefill(null);
   }, [selectedAppointmentId]);
 
   const loadAppointments = React.useCallback(async (background = false) => {
@@ -921,7 +1053,28 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         ? data.filter((appointment) => !previousAppointmentIdsSet.has(appointment.id))
         : [];
 
+      const statusesStorageKey = getAppointmentStatusesStorageKey(String(user.id), dateKey);
+      const previousStatuses = readAppointmentStatuses(statusesStorageKey);
+      const locallyUpdatedIds = readLocallyUpdatedIds(String(user.id));
+      const changedAppointments: StatusChangedAlertItem[] = Object.keys(previousStatuses).length > 0
+        ? data
+            .filter((appointment) => {
+              const prev = previousStatuses[appointment.id];
+              return (
+                prev !== undefined &&
+                prev !== appointment.status &&
+                !locallyUpdatedIds.has(appointment.id) &&
+                previousAppointmentIdsSet.has(appointment.id)
+              );
+            })
+            .map((appointment) => ({
+              appointment,
+              previousStatus: previousStatuses[appointment.id] as AppointmentStatus,
+            }))
+        : [];
+
       writeKnownAppointmentIds(storageKey, data.map((appointment) => appointment.id));
+      writeAppointmentStatuses(statusesStorageKey, Object.fromEntries(data.map((a) => [a.id, a.status])));
 
       React.startTransition(() => {
         setAppointments(data);
@@ -933,8 +1086,37 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
       });
 
       if (newAppointments.length > 0) {
-        setNewAppointmentsAlertItems(newAppointments);
-        setNewAppointmentsAlertOpen(true);
+        if (alertStyleRef.current === 'toast') {
+          const first = newAppointments[0];
+          toast({
+            title: newAppointments.length === 1
+              ? t('appointmentAlerts.singleTitle')
+              : t('appointmentAlerts.multipleTitle', { count: newAppointments.length }),
+            description: newAppointments.length === 1
+              ? `${first.patientName} · ${getTimeRangeLabel(first)}`
+              : t('appointmentAlerts.multipleDescription', { count: newAppointments.length }),
+          });
+        } else {
+          setNewAppointmentsAlertItems(newAppointments);
+          setNewAppointmentsAlertOpen(true);
+        }
+      }
+
+      if (changedAppointments.length > 0) {
+        if (alertStyleRef.current === 'toast') {
+          const { appointment: first, previousStatus: firstPrev } = changedAppointments[0];
+          toast({
+            title: changedAppointments.length === 1
+              ? t('statusChangeAlerts.singleTitle')
+              : t('statusChangeAlerts.multipleTitle', { count: changedAppointments.length }),
+            description: changedAppointments.length === 1
+              ? `${first.patientName} · ${tStatus(normalizeAppointmentStatus(firstPrev))} → ${tStatus(normalizeAppointmentStatus(first.status))}`
+              : t('statusChangeAlerts.modalMultipleDescription', { count: changedAppointments.length }),
+          });
+        } else {
+          setStatusChangedAlertItems(changedAppointments);
+          setStatusChangedAlertOpen(true);
+        }
       }
     } catch (error) {
       console.error('Failed to load doctor workspace appointments:', error);
@@ -1089,6 +1271,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
       } else {
         await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
         if (selectedAppointment.status !== 'completed') {
+          markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
           await updateAppointmentStatusRequest({
             appointment: selectedAppointment,
             newStatus: 'completed',
@@ -1131,11 +1314,6 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     setAgentSessionTreatments([]);
   }, []);
 
-  const resolveActionAppointment = React.useCallback((appointmentId?: string | null) => {
-    if (!appointmentId) return selectedAppointment;
-    return appointments.find((appointment) => appointment.id === appointmentId) ?? null;
-  }, [appointments, selectedAppointment]);
-
   const selectAppointment = React.useCallback((appointmentId: string, openMobileDetails = false) => {
     setSelectedAppointmentId(appointmentId);
     if (isMobile && openMobileDetails) {
@@ -1144,117 +1322,40 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
   }, [isMobile]);
 
   const executeDoctorAgentAction = React.useCallback(async (action: DoctorAgentAction): Promise<DoctorAgentActionResult> => {
-    const payload = action.payload || {};
-    const targetAppointment = resolveActionAppointment(payload.appointment_id);
-
-    if (payload.appointment_id && !targetAppointment) {
-      return {
-        success: false,
-        message: t('focus.ai.actionAppointmentNotFound'),
-      };
+    if (!selectedAppointment) {
+      return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
     }
 
-    if (targetAppointment && targetAppointment.id !== selectedAppointmentId) {
-      selectAppointment(targetAppointment.id, true);
+    if (action.type === 'open_odontogram') {
+      const payload = action.payload || {};
+      if (isMobile) setMobileDetailsOpen(true);
+      setActivePanel('odontogram');
+      setOdontogramAutoStart(true);
+      setOdontogramPrefill({
+        description: payload.procedimiento_realizado || '',
+        notes: payload.notas_clinicas || '',
+        marcaciones: payload.marcaciones ?? [],
+      });
+      return { success: true };
     }
 
-    switch (action.type) {
-      case 'select_appointment':
-        return { success: true };
-      case 'open_patient_detail':
-        if (!targetAppointment) {
-          return {
-            success: false,
-            message: t('focus.ai.actionPatientContextMissing'),
-          };
-        }
-        setPatientSheetInitialTab('clinical-history');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return { success: true };
-      case 'open_clinical_history':
-        if (!targetAppointment) {
-          return {
-            success: false,
-            message: t('focus.ai.actionPatientContextMissing'),
-          };
-        }
-        if (isMobile) {
-          setMobileDetailsOpen(true);
-        }
-        setPatientSheetInitialTab('clinical-history');
-        setPatientSheetDefaultView(payload.clinical_history_view || 'timeline');
-        setPatientSheetOpen(true);
-        return { success: true };
-      case 'open_patient_appointments':
-        if (!targetAppointment) {
-          return {
-            success: false,
-            message: t('focus.ai.actionPatientContextMissing'),
-          };
-        }
-        if (isMobile) {
-          setMobileDetailsOpen(true);
-        }
-        setPatientSheetInitialTab('appointments');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return { success: true };
-      case 'open_patient_messages':
-        if (!targetAppointment) {
-          return {
-            success: false,
-            message: t('focus.ai.actionPatientContextMissing'),
-          };
-        }
-        if (isMobile) {
-          setMobileDetailsOpen(true);
-        }
-        setPatientSheetInitialTab('messages');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return { success: true };
-      case 'open_patient_notes':
-        if (!targetAppointment) {
-          return {
-            success: false,
-            message: t('focus.ai.actionPatientContextMissing'),
-          };
-        }
-        if (isMobile) {
-          setMobileDetailsOpen(true);
-        }
-        setPatientSheetInitialTab('notes');
-        setPatientSheetDefaultView('timeline');
-        setPatientSheetOpen(true);
-        return { success: true };
-      case 'open_clinic_session':
-        if (!targetAppointment) {
-          return {
-            success: false,
-            message: t('focus.ai.actionAppointmentContextMissing'),
-          };
-        }
-        if (isMobile) {
-          setMobileDetailsOpen(true);
-        }
-        setAgentSessionPrefill({
-          doctor_id: payload.doctor_id,
-          doctor_name: payload.doctor_name,
-          procedimiento_realizado: payload.procedimiento_realizado,
-          plan_proxima_cita: payload.plan_proxima_cita,
-          fecha_proxima_cita: payload.fecha_proxima_cita,
-        });
-        setAgentSessionTreatments(payload.tratamientos || []);
-        setClinicSessionOpen(true);
-        return { success: true };
-      default:
-        return {
-          success: false,
-          message: t('focus.ai.actionUnsupported'),
-        };
+    if (action.type === 'open_clinic_session') {
+      const payload = action.payload || {};
+      if (isMobile) setMobileDetailsOpen(true);
+      setAgentSessionPrefill({
+        doctor_id: payload.doctor_id,
+        doctor_name: payload.doctor_name,
+        procedimiento_realizado: payload.procedimiento_realizado,
+        plan_proxima_cita: payload.plan_proxima_cita,
+        fecha_proxima_cita: payload.fecha_proxima_cita,
+      });
+      setAgentSessionTreatments(payload.tratamientos || []);
+      setClinicSessionOpen(true);
+      return { success: true };
     }
-  }, [isMobile, resolveActionAppointment, selectAppointment, selectedAppointmentId, t]);
+
+    return { success: false, message: t('focus.ai.actionUnsupported') };
+  }, [isMobile, selectedAppointment, t]);
 
   const handleOpenNewAppointment = React.useCallback(() => {
     if (!firstNewAppointmentAlertItem) return;
@@ -1263,13 +1364,17 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     setNewAppointmentsAlertOpen(false);
   }, [firstNewAppointmentAlertItem, selectAppointment]);
 
-  const handlePatientSheetOpenChange = React.useCallback((open: boolean) => {
-    setPatientSheetOpen(open);
-    if (!open) {
-      setPatientSheetInitialTab('clinical-history');
-      setPatientSheetDefaultView('timeline');
+  const handleOdontogramSessionSaved = React.useCallback(async () => {
+    if (!selectedAppointment) return;
+    if (selectedAppointment.status !== 'completed') {
+      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
+      await updateAppointmentStatusRequest({
+        appointment: selectedAppointment,
+        newStatus: 'completed',
+      });
     }
-  }, []);
+    await loadAppointments(true);
+  }, [loadAppointments, selectedAppointment, user?.id]);
 
   const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
     setClinicSessionOpen(open);
@@ -1351,7 +1456,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               <div className="flex overflow-hidden rounded-md border text-xs">
                 <button
                   type="button"
-                  onClick={() => setActivePanel('sessions')}
+                  onClick={() => { setActivePanel('sessions'); setOdontogramAutoStart(false); setOdontogramPrefill(null); }}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
                     activePanel === 'sessions'
@@ -1399,6 +1504,11 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
                   patientName={selectedAppointment.patientName}
                   doctorId={selectedAppointment.doctorId}
                   doctorName={selectedAppointment.doctorName}
+                  autoStartSession={odontogramAutoStart}
+                  autoStartDescription={odontogramPrefill?.description}
+                  autoStartNotes={odontogramPrefill?.notes}
+                  autoStartMarcaciones={odontogramPrefill?.marcaciones}
+                  onSessionSaved={handleOdontogramSessionSaved}
                 />
               </div>
             )}
@@ -1452,6 +1562,8 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
 
       <DoctorAgentChat
         appointmentId={selectedAppointment?.id}
+        patientId={selectedAppointment?.patientId}
+        doctorId={selectedAppointment?.doctorId}
         locale={locale}
         patientName={selectedAppointment?.patientName}
         userId={user?.id ? String(user.id) : undefined}
@@ -1526,19 +1638,72 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         </DialogContent>
       </Dialog>
 
-      {selectedAppointment && (
-        <PatientDetailSheet
-          open={patientSheetOpen}
-          onOpenChange={handlePatientSheetOpenChange}
-          userId={selectedAppointment.patientId}
-          userName={selectedAppointment.patientName}
-          userEmail={selectedAppointment.patientEmail}
-          userPhone={selectedAppointment.patientPhone}
-          mode="doctor"
-          clinicalHistoryDefaultView={patientSheetDefaultView}
-          initialTab={patientSheetInitialTab}
-        />
-      )}
+      <Dialog open={statusChangedAlertOpen} onOpenChange={setStatusChangedAlertOpen}>
+        <DialogContent maxWidth="md" className="overflow-hidden border-primary/20 p-0">
+          <DialogHeader className="bg-foreground text-background">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
+                <Bell className="h-5 w-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-white">
+                  {statusChangedAlertItems.length === 1
+                    ? t('statusChangeAlerts.singleTitle')
+                    : t('statusChangeAlerts.multipleTitle', { count: statusChangedAlertItems.length })}
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-white/75">
+                  {statusChangedAlertItems.length === 1
+                    ? t('statusChangeAlerts.modalSingleDescription')
+                    : t('statusChangeAlerts.modalMultipleDescription', { count: statusChangedAlertItems.length })}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-3 bg-background px-6 py-5">
+            {statusChangedAlertItems.map(({ appointment, previousStatus }) => {
+              const serviceLabel = appointment.services?.length
+                ? appointment.services.map((s) => s.name).join(', ')
+                : appointment.service_name || appointment.summary || t('appointmentAlerts.unknownService');
+
+              return (
+                <button
+                  key={appointment.id}
+                  type="button"
+                  onClick={() => {
+                    selectAppointment(appointment.id, true);
+                    setStatusChangedAlertOpen(false);
+                  }}
+                  className="flex w-full items-start justify-between gap-4 rounded-xl bg-muted/30 px-4 py-4 text-left transition-colors hover:bg-muted/50"
+                >
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-foreground">
+                      {appointment.patientName || t('agenda.unknownPatient')}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{serviceLabel}</p>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <Badge variant={getAppointmentStatusVariant(normalizeAppointmentStatus(previousStatus))} className="capitalize">
+                        {tStatus(normalizeAppointmentStatus(previousStatus))}
+                      </Badge>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <Badge variant={getAppointmentStatusVariant(normalizeAppointmentStatus(appointment.status))} className="capitalize">
+                        {tStatus(normalizeAppointmentStatus(appointment.status))}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-sm font-semibold text-sky-700">{getTimeRangeLabel(appointment)}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <DialogFooter className="bg-background">
+            <Button variant="outline" onClick={() => setStatusChangedAlertOpen(false)}>
+              {t('statusChangeAlerts.dismiss')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedAppointment && canManageSessions && (
         <ClinicSessionDialog

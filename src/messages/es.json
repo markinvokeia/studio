@@ -216,7 +216,17 @@
     "logout": "Cerrar Sesión",
     "commandPlaceholder": "Escriba un comando...",
     "changePassword": "Cambiar Contraseña",
-    "communicationPreferences": "Preferencias",
+    "communicationPreferences": "Notificaciones",
+    "preferences": "Preferencias",
+    "preferencesSheet": {
+      "workspaceSection": "Workspace del Doctor",
+      "alertStyleLabel": "Estilo de notificaciones de citas",
+      "alertStyleDescription": "Elige cómo quieres recibir avisos cuando una cita cambia o se agrega a tu agenda.",
+      "alertStyle": {
+        "modal": "Modal",
+        "toast": "Notificación"
+      }
+    },
     "alerts": "Alertas",
     "toggleTheme": "Cambiar tema",
     "light": "Invoke",
@@ -674,6 +684,13 @@
       "dismiss": "Cerrar aviso",
       "openFirst": "Abrir primera cita",
       "unknownService": "consulta clínica"
+    },
+    "statusChangeAlerts": {
+      "singleTitle": "Una cita cambió de estado",
+      "multipleTitle": "{count} citas cambiaron de estado",
+      "modalSingleDescription": "El estado de una de tus citas de hoy fue actualizado externamente.",
+      "modalMultipleDescription": "{count} citas en tu agenda de hoy cambiaron de estado.",
+      "dismiss": "Cerrar aviso"
     },
     "todayLabel": "Hoy: {date}",
     "lastUpdated": "Última actualización: {time}",

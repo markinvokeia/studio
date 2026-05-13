@@ -15,6 +15,8 @@ import { useTranslations } from 'next-intl';
 
 interface DoctorAgentChatProps {
   appointmentId?: string;
+  patientId?: string;
+  doctorId?: string;
   locale: string;
   patientName?: string;
   userId?: string;
@@ -113,9 +115,9 @@ async function speakText(text: string, locale: string, enabled: boolean) {
   window.speechSynthesis.speak(utterance);
 }
 
-function buildDoctorDailySessionId(userId?: string) {
+function buildDoctorDailySessionId(userId?: string, appointmentId?: string) {
   const dateKey = formatDate(new Date());
-  return `doctor-agent:${userId || 'anonymous'}:${dateKey}`;
+  return `doctor-agent:${userId || 'anonymous'}:${appointmentId || 'no-appointment'}:${dateKey}`;
 }
 
 function getDoctorAgentChatStorageKey(sessionId: string) {
@@ -177,7 +179,7 @@ function writeDoctorAgentChatState(sessionId: string, state: PersistedDoctorAgen
 function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
   if (!rawAction || typeof rawAction !== 'object') return null;
 
-  if (rawAction.type === 'sesion_clinica') {
+  if (rawAction.type === 'sesion_clinica' || rawAction.type === 'open_clinic_session') {
     const tratamientos: TreatmentDetail[] = Array.isArray(rawAction.tratamientos)
       ? rawAction.tratamientos.map((item: any) => ({
           numero_diente: item?.diente != null ? Number(item.diente) : null,
@@ -195,71 +197,16 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
     };
   }
 
-  if (rawAction.type === 'ficha_paciente') {
+  if (rawAction.type === 'abrir_odontograma' || rawAction.type === 'open_odontogram') {
     return {
-      type: 'open_patient_detail',
+      type: 'open_odontogram',
       payload: {
-        appointment_id: rawAction.appointment_id,
+        procedimiento_realizado: rawAction.procedimiento_realizado || '',
+        notas_clinicas: rawAction.notas_clinicas || rawAction.notas || '',
+        plan_proxima_cita: rawAction.plan_proxima_cita || '',
+        marcaciones: Array.isArray(rawAction.marcaciones) ? rawAction.marcaciones : [],
       },
     };
-  }
-
-  if (rawAction.type === 'historia_clinica') {
-    return {
-      type: 'open_clinical_history',
-      payload: {
-        appointment_id: rawAction.appointment_id,
-        clinical_history_view: rawAction.vista || rawAction.clinical_history_view || 'timeline',
-      },
-    };
-  }
-
-  if (rawAction.type === 'citas_paciente') {
-    return {
-      type: 'open_patient_appointments',
-      payload: {
-        appointment_id: rawAction.appointment_id,
-      },
-    };
-  }
-
-  if (rawAction.type === 'mensajes_paciente') {
-    return {
-      type: 'open_patient_messages',
-      payload: {
-        appointment_id: rawAction.appointment_id,
-      },
-    };
-  }
-
-  if (rawAction.type === 'notas_paciente') {
-    return {
-      type: 'open_patient_notes',
-      payload: {
-        appointment_id: rawAction.appointment_id,
-      },
-    };
-  }
-
-  if (rawAction.type === 'seleccionar_cita') {
-    return {
-      type: 'select_appointment',
-      payload: {
-        appointment_id: rawAction.appointment_id,
-      },
-    };
-  }
-
-  if (
-    rawAction.type === 'open_clinic_session' ||
-    rawAction.type === 'open_patient_detail' ||
-    rawAction.type === 'open_clinical_history' ||
-    rawAction.type === 'open_patient_appointments' ||
-    rawAction.type === 'open_patient_messages' ||
-    rawAction.type === 'open_patient_notes' ||
-    rawAction.type === 'select_appointment'
-  ) {
-    return rawAction as DoctorAgentAction;
   }
 
   return null;
@@ -319,6 +266,8 @@ function normalizeDoctorResponse(result: unknown): DoctorAiQueryResponse {
 
 export function DoctorAgentChat({
   appointmentId,
+  patientId,
+  doctorId,
   locale,
   patientName,
   userId,
@@ -333,7 +282,7 @@ export function DoctorAgentChat({
   const [ttsEnabled, setTtsEnabled] = React.useState(true);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
-  const sessionId = React.useMemo(() => buildDoctorDailySessionId(userId), [userId]);
+  const sessionId = React.useMemo(() => buildDoctorDailySessionId(userId, appointmentId), [userId, appointmentId]);
   const isFloating = presentation === 'floating';
 
   const quickQuestions = React.useMemo(
@@ -454,6 +403,8 @@ export function DoctorAgentChat({
     try {
       const result = await queryDoctorAi({
         appointment_id: appointmentId,
+        patient_id: patientId,
+        doctor_id: doctorId,
         query: prompt,
         channel: 'text',
         session_id: sessionId,
@@ -465,7 +416,7 @@ export function DoctorAgentChat({
     } finally {
       setIsSending(false);
     }
-  }, [appendAssistantMessage, appointmentId, applyDoctorResponse, sessionId, t]);
+  }, [appendAssistantMessage, appointmentId, patientId, doctorId, applyDoctorResponse, sessionId, t]);
 
   const openChat = React.useCallback(() => {
     if (!appointmentId) return;
