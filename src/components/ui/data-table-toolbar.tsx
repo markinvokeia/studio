@@ -21,8 +21,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tool
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
-  filterColumnId: string;
-  filterPlaceholder: string;
+  filterColumnId?: string;
+  filterPlaceholder?: string;
+  /** When true the search input filters across all columns instead of a single column */
+  useGlobalFilter?: boolean;
   onCreate?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
@@ -39,6 +41,7 @@ export function DataTableToolbar<TData>({
   table,
   filterColumnId,
   filterPlaceholder,
+  useGlobalFilter = false,
   onCreate,
   onRefresh,
   isRefreshing,
@@ -60,22 +63,33 @@ export function DataTableToolbar<TData>({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder={filterPlaceholder}
-              value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
+              value={
+                useGlobalFilter
+                  ? ((table.getState().globalFilter as string) ?? '')
+                  : ((table.getColumn(filterColumnId ?? '')?.getFilterValue() as string) ?? '')
+              }
               onChange={(event) => {
-                const column = table.getColumn(filterColumnId);
-                if (column) {
-                  column.setFilterValue(event.target.value);
+                if (useGlobalFilter) {
+                  table.setGlobalFilter(event.target.value);
+                } else {
+                  const column = table.getColumn(filterColumnId ?? '');
+                  if (column) column.setFilterValue(event.target.value);
                 }
               }}
               className="h-9 w-full pl-9 pr-9"
             />
-            {((table.getColumn(filterColumnId)?.getFilterValue() as string) ?? '').length > 0 && (
+            {(useGlobalFilter
+              ? ((table.getState().globalFilter as string) ?? '').length > 0
+              : ((table.getColumn(filterColumnId ?? '')?.getFilterValue() as string) ?? '').length > 0
+            ) && (
               <Button
                 variant="ghost"
                 onClick={() => {
-                  const column = table.getColumn(filterColumnId);
-                  if (column) {
-                    column.setFilterValue('');
+                  if (useGlobalFilter) {
+                    table.setGlobalFilter('');
+                  } else {
+                    const column = table.getColumn(filterColumnId ?? '');
+                    if (column) column.setFilterValue('');
                   }
                 }}
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
@@ -170,7 +184,9 @@ export function DataTableToolbar<TData>({
                     typeof column.accessorFn !== 'undefined' && column.getCanHide()
                 )
                 .map((column) => {
-                  const translatedHeader = columnTranslations[column.id] || column.id;
+                  // Prefer explicit translation → column header string → raw accessor id
+                  const headerStr = typeof column.columnDef.header === 'string' ? column.columnDef.header : undefined;
+                  const translatedHeader = columnTranslations[column.id] || headerStr || column.id;
                   return (
                     <DropdownMenuCheckboxItem
                       key={column.id}

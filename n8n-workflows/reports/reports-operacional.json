@@ -1,0 +1,422 @@
+{
+  "name": "Reportes - Bloque Operacional",
+  "nodes": [
+    {
+      "id": "wh-cierre-caja",
+      "name": "GET /reports/cierre-caja",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/cierre-caja",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-cierre-caja",
+      "name": "Query Cierre Caja",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH movimientos AS (\n  SELECT\n    cm.cash_session_id,\n    COALESCE(pm.name, 'Sin método') AS payment_method,\n    cm.currency,\n    SUM(CASE WHEN (cm.type = 'INFLOW' OR cm.type = 'income') AND cm.source_type != 'opening' THEN cm.amount ELSE 0 END) AS total_ingresos,\n    SUM(CASE WHEN cm.type = 'expense' THEN cm.amount ELSE 0 END) AS total_egresos,\n    COUNT(cm.id) AS num_movimientos\n  FROM cash_movements cm\n  LEFT JOIN payment_methods pm ON pm.id = cm.payment_method_id\n  WHERE ($5::integer = -1 OR cm.payment_method_id = $5::integer)\n    AND ($6 = 'all'\n         OR ($6 = 'ingresos' AND (cm.type = 'INFLOW' OR cm.type = 'income') AND cm.source_type != 'opening')\n         OR ($6 = 'egresos' AND cm.type = 'expense'))\n  GROUP BY cm.cash_session_id, pm.name, cm.currency\n)\nSELECT\n  cs.id AS session_id,\n  cs.opened_at,\n  cs.closed_at,\n  cs.status,\n  u.name AS cashier_name,\n  cp.name AS cash_point_name,\n  m.payment_method,\n  m.currency,\n  COALESCE(m.total_ingresos, 0) AS total_ingresos,\n  COALESCE(m.total_egresos, 0) AS total_egresos,\n  COALESCE(m.num_movimientos, 0) AS num_movimientos\nFROM cash_sessions cs\nJOIN users u ON u.id = cs.user_id\nJOIN cash_points cp ON cp.id = cs.cash_point_id\nLEFT JOIN movimientos m ON m.cash_session_id = cs.id\nWHERE cs.opened_at::date BETWEEN $1::date AND $2::date\n  AND ($3::integer = -1 OR cs.cash_point_id = $3::integer)\n  AND ($4 = 'all' OR m.currency = $4::varchar)\nORDER BY cs.opened_at DESC, m.payment_method",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.cash_point_id ? Number($input.first().json.query.cash_point_id) : -1,\n  $input.first().json.query?.currency || 'all',\n  $input.first().json.query?.payment_method_id ? Number($input.first().json.query.payment_method_id) : -1,\n  $input.first().json.query?.movement_type || 'all'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-cierre-caja-build",
+      "name": "Build Cierre Caja Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst totalIngresos = rows.reduce((s, r) => s + Number(r.total_ingresos || 0), 0);\nconst totalEgresos = rows.reduce((s, r) => s + Number(r.total_egresos || 0), 0);\nconst sessions = new Set(rows.map(r => r.session_id));\n\n// Aggregate by method for chart\nconst methodMap = {};\nfor (const r of rows) {\n  const key = `${r.payment_method}|${r.currency}`;\n  if (!methodMap[key]) methodMap[key] = { payment_method: r.payment_method, currency: r.currency, total_ingresos: 0, total_egresos: 0 };\n  methodMap[key].total_ingresos += Number(r.total_ingresos || 0);\n  methodMap[key].total_egresos += Number(r.total_egresos || 0);\n}\n\nreturn [{ json: {\n  summary: {\n    total_ingresos: totalIngresos,\n    total_egresos: totalEgresos,\n    resultado: totalIngresos - totalEgresos,\n    num_sesiones: sessions.size\n  },\n  by_method: Object.values(methodMap),\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-cierre-caja",
+      "name": "Respond Cierre Caja",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-cobros-dia",
+      "name": "GET /reports/cobros-dia",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/cobros-dia",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-cobros-dia",
+      "name": "Query Cobros Dia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  p.id,\n  p.doc_no,\n  p.payment_date,\n  u.name AS patient_name,\n  u.phone_number,\n  COALESCE(pm.name, 'Sin método') AS payment_method,\n  p.amount_applied AS amount,\n  p.source_currency AS currency,\n  COALESCE(p.exchange_rate, 1) AS exchange_rate,\n  p.transaction_type,\n  p.status,\n  p.notes\nFROM payments p\nJOIN users u ON u.id = p.user_id\nLEFT JOIN payment_methods pm ON pm.id = p.payment_method_id\nWHERE p.payment_date::date BETWEEN $1::date AND $2::date\n  AND p.is_sales = true\n  AND p.status = 'completed'\n  AND ($3::integer IS NULL OR p.payment_method_id = $3::integer)\n  AND ($4::varchar IS NULL OR p.source_currency = $4::varchar)\nORDER BY p.payment_date DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.payment_method_id ? Number($input.first().json.query.payment_method_id) : null,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-cobros-dia-build",
+      "name": "Build Cobros Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst amounts = rows.map(r => Number(r.amount || 0));\nconst totalCobrado = amounts.reduce((s, a) => s + a, 0);\nconst mayorCobro = amounts.length ? Math.max(...amounts) : 0;\n\nconst methodMap = {};\nfor (const r of rows) {\n  if (!methodMap[r.payment_method]) methodMap[r.payment_method] = { payment_method: r.payment_method, total: 0, count: 0 };\n  methodMap[r.payment_method].total += Number(r.amount || 0);\n  methodMap[r.payment_method].count += 1;\n}\n\nreturn [{ json: {\n  summary: {\n    total_cobrado: totalCobrado,\n    num_cobros: rows.length,\n    promedio: rows.length ? totalCobrado / rows.length : 0,\n    mayor_cobro: mayorCobro\n  },\n  by_method: Object.values(methodMap),\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-cobros-dia",
+      "name": "Respond Cobros Dia",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-cuentas-corrientes",
+      "name": "GET /reports/cuentas-corrientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        500
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/cuentas-corrientes",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-cuentas-corrientes",
+      "name": "Query Cuentas Corrientes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        500
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.id,\n  u.name           AS patient_name,\n  u.phone_number,\n  u.email,\n  COALESCE(SUM(i.total), 0)                              AS total_invoiced,\n  COALESCE(SUM(COALESCE(i.paid_amount, 0)), 0)           AS total_paid,\n  COALESCE(SUM(i.total - COALESCE(i.paid_amount, 0)), 0) AS saldo\nFROM users u\nJOIN invoices i ON i.user_id = u.id\n  AND i.is_sales = true\n  AND i.currency = $1::varchar\n  AND i.status = 'booked'\n  AND i.type = 'invoice'\nWHERE u.is_sales = true\nGROUP BY u.id, u.name, u.phone_number, u.email\nHAVING (\n  $2::text = 'all'\n  OR ($2::text = 'con_deuda' AND SUM(i.total - COALESCE(i.paid_amount, 0)) > 0)\n  OR ($2::text = 'al_dia'   AND SUM(i.total - COALESCE(i.paid_amount, 0)) <= 0)\n)\nORDER BY saldo DESC, total_invoiced DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.currency || 'UYU',\n  $input.first().json.query?.estado || 'all'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-cuentas-build",
+      "name": "Build Cuentas Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        500
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).map(r => ({\n  ...r,\n  total_invoiced: Number(r.total_invoiced || 0),\n  total_paid:     Number(r.total_paid     || 0),\n  saldo:          Number(r.saldo          || 0),\n}));\nconst total_facturado = rows.reduce((s, r) => s + r.total_invoiced, 0);\nconst total_cobrado   = rows.reduce((s, r) => s + r.total_paid,     0);\nconst saldo_neto      = rows.reduce((s, r) => s + r.saldo,          0);\nconst num_con_deuda   = rows.filter(r => r.saldo > 0).length;\nreturn [{ json: {\n  summary: { total_facturado, total_cobrado, saldo_neto, num_pacientes: rows.length, num_con_deuda },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-cuentas-corrientes",
+      "name": "Respond Cuentas Corrientes",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        500
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-presupuestos",
+      "name": "GET /reports/presupuestos-pendientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        700
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/presupuestos-pendientes",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-presupuestos",
+      "name": "Query Presupuestos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        700
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  q.id,\n  q.doc_no,\n  q.created_at,\n  u.name AS patient_name,\n  u.phone_number,\n  q.total,\n  q.currency,\n  q.status,\n  q.billing_status,\n  CURRENT_DATE - q.created_at::date AS days_pending\nFROM quotes q\nJOIN users u ON u.id = q.user_id\nWHERE q.is_sales = true\n  AND q.status IN ('confirmed', 'draft', 'rejected')\n  AND q.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR q.status = $3::varchar)\n  AND ($4::numeric IS NULL OR q.total >= $4::numeric)\n  AND ($5::varchar IS NULL OR q.currency = $5::varchar)\nORDER BY q.created_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.status || null,\n  $input.first().json.query?.min_amount ? Number($input.first().json.query.min_amount) : null,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-presupuestos-build",
+      "name": "Build Presupuestos Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        700
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst total = rows.reduce((s, r) => s + Number(r.total || 0), 0);\nconst dias = rows.length ? rows.reduce((s, r) => s + Number(r.days_pending || 0), 0) / rows.length : 0;\n\nreturn [{ json: {\n  summary: {\n    num_presupuestos: rows.length,\n    total_potencial: total,\n    dias_promedio: Math.round(dias),\n    tasa_conversion: 0\n  },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-presupuestos",
+      "name": "Respond Presupuestos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        700
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/cierre-caja": {
+      "main": [
+        [
+          {
+            "node": "Query Cierre Caja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Cierre Caja": {
+      "main": [
+        [
+          {
+            "node": "Build Cierre Caja Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cierre Caja Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Cierre Caja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/cobros-dia": {
+      "main": [
+        [
+          {
+            "node": "Query Cobros Dia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Cobros Dia": {
+      "main": [
+        [
+          {
+            "node": "Build Cobros Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cobros Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Cobros Dia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/cuentas-corrientes": {
+      "main": [
+        [
+          {
+            "node": "Query Cuentas Corrientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Cuentas Corrientes": {
+      "main": [
+        [
+          {
+            "node": "Build Cuentas Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cuentas Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Cuentas Corrientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/presupuestos-pendientes": {
+      "main": [
+        [
+          {
+            "node": "Query Presupuestos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Presupuestos": {
+      "main": [
+        [
+          {
+            "node": "Build Presupuestos Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Presupuestos Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Presupuestos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "notes": "BLOQUE 1 - OPERACIONAL\nR-01: GET /reports/cierre-caja?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&cash_point_id=&currency=\nR-02: GET /reports/cobros-dia?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&payment_method_id=&currency=\nR-03: GET /reports/cuentas-corrientes?currency=UYU&min_amount=\nR-04: GET /reports/presupuestos-pendientes?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD&status=&min_amount=\n\nCONFIGURACIÓN:\n1. Crear credencial Postgres en n8n.\n2. Reemplazar POSTGRES_CREDENTIAL_ID con el ID real.\n3. Activar el workflow."
+  }
+}

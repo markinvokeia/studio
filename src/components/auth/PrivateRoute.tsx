@@ -114,16 +114,20 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const effectivePathname = getEffectivePathname(pathname, locale);
 
   return (
-    <div className="flex h-[100dvh] bg-background overflow-hidden text-foreground">
-      <Sidebar />
-      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 min-w-0 h-full overflow-hidden")}>
-        <Header />
-        <main className="flex-1 flex flex-col min-h-0 bg-background px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden relative">
-          <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 overflow-hidden relative">
+    <div className="flex h-[100dvh] print:h-auto print:block bg-background overflow-hidden print:overflow-visible text-foreground">
+      <div className="print:hidden">
+        <Sidebar />
+      </div>
+      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible")}>
+        <div className="print:hidden">
+          <Header />
+        </div>
+        <main className="flex-1 flex flex-col min-h-0 bg-background px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
+          <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 print:pt-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {children}
           </div>
         </main>
-        <footer className="sm:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">
+        <footer className="sm:hidden print:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">
           <p className="text-[10px] text-white/70 select-none">
             © Invoke IA 2025 ·{' '}
             <a
