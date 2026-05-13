@@ -11,16 +11,13 @@ export const APPOINTMENT_STATUSES: AppointmentStatus[] = [
   'pending',
 ];
 
-export const ALLOWED_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-  pending:     ['scheduled', 'confirmed', 'cancelled'],
-  scheduled:   ['confirmed', 'arrived', 'no_show', 'cancelled'],
-  confirmed:   ['arrived', 'in_progress', 'no_show', 'cancelled'],
-  arrived:     ['in_progress', 'completed', 'cancelled'],
-  in_progress: ['completed', 'cancelled'],
-  completed:   [],
-  no_show:     ['cancelled'],
-  cancelled:   [],
-};
+export const ALLOWED_STATUS_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> =
+  Object.fromEntries(
+    APPOINTMENT_STATUSES.map((from) => [
+      from,
+      APPOINTMENT_STATUSES.filter((to) => to !== from),
+    ]),
+  ) as Record<AppointmentStatus, AppointmentStatus[]>;
 
 export const STATUS_BADGE_VARIANT: Record<AppointmentStatus, string> = {
   pending:     'info',
@@ -50,8 +47,7 @@ export const STATUS_ACCENT_COLOR: Record<AppointmentStatus, string> = {
 };
 
 export function canTransition(from: AppointmentStatus, to: AppointmentStatus): boolean {
-  if (from === to) return false;
-  return ALLOWED_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
+  return from !== to;
 }
 
 /**
