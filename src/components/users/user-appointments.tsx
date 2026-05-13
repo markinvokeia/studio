@@ -79,7 +79,11 @@ function sortAppointmentsForPatientTimeline(appointments: Appointment[]): Appoin
   });
 }
 
-const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
+const getColumns = (
+  t: (key: string) => string,
+  onStatusChange: (appointment: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => void,
+  onRequestCustomCancellation: (appointment: Appointment) => void,
+): ColumnDef<Appointment>[] => [
   {
     accessorKey: 'summary',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} />,

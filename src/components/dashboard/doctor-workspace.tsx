@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
+  CalendarDays,
   ChevronDown,
   ChevronUp,
   ClipboardCheck,
@@ -180,8 +181,7 @@ function DoctorAgendaTimeline({
       };
     });
 
-    let cursorTop = 0;
-    const layouts: AgendaTimelineLayout[] = appointmentRanges.map(({ appointment, startMinutes, endMinutes }, index) => {
+    const layouts: AgendaTimelineLayout[] = appointmentRanges.reduce<AgendaTimelineLayout[]>((acc, { appointment, startMinutes, endMinutes }, index) => {
       const durationMinutes = Math.max(endMinutes - startMinutes, 15);
       const contentMinHeight = estimateAgendaCardMinHeight(appointment);
       const height = Math.max(TIMELINE_MIN_BLOCK_HEIGHT, contentMinHeight, 58 + durationMinutes * 0.45);
@@ -190,9 +190,8 @@ function DoctorAgendaTimeline({
       const gapBefore = previousEndMinutes == null
         ? 0
         : Math.min(TIMELINE_MAX_GAP, TIMELINE_BASE_GAP + naturalGapMinutes * 0.06);
-      cursorTop += gapBefore;
-      const top = cursorTop;
-      cursorTop += height;
+      const prevBottom = acc.length > 0 ? acc[acc.length - 1].top + acc[acc.length - 1].height : 0;
+      const top = prevBottom + gapBefore;
 
       const nextStartMinutes = appointmentRanges[index + 1]?.startMinutes;
       const gapAfterMinutes = nextStartMinutes == null ? 0 : Math.max(nextStartMinutes - endMinutes, 0);
@@ -200,7 +199,7 @@ function DoctorAgendaTimeline({
         ? 0
         : Math.min(TIMELINE_MAX_GAP, TIMELINE_BASE_GAP + gapAfterMinutes * 0.06);
 
-      return {
+      return [...acc, {
         appointment,
         startMinutes,
         endMinutes,
@@ -209,8 +208,8 @@ function DoctorAgendaTimeline({
         gapAfter,
         key: `${appointment.id}-${startMinutes}-${index}`,
         accentColor: getAppointmentAccentColor(appointment, normalizeAppointmentStatus(appointment.status)),
-      };
-    });
+      }];
+    }, []);
 
     const timelineHeight = Math.max(0, layouts.at(-1)?.top ?? 0) + Math.max(layouts.at(-1)?.height ?? 0, 0);
 
@@ -646,6 +645,15 @@ function readLocallyUpdatedIds(doctorId: string): Set<string> {
   } catch {
     return new Set();
   }
+}
+
+function updateKnownAppointmentStatus(doctorId: string, appointmentId: string, newStatus: string) {
+  if (typeof window === 'undefined') return;
+  const dateKey = formatDate(new Date());
+  const storageKey = getAppointmentStatusesStorageKey(doctorId, dateKey);
+  const statuses = readAppointmentStatuses(storageKey);
+  statuses[appointmentId] = newStatus;
+  writeAppointmentStatuses(storageKey, statuses);
 }
 
 function markAppointmentLocallyUpdated(doctorId: string, appointmentId: string) {
@@ -1274,6 +1282,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
         if (selectedAppointment.status !== 'completed') {
           markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
+          updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
           await updateAppointmentStatusRequest({
             appointment: selectedAppointment,
             newStatus: 'completed',
@@ -1370,6 +1379,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     if (!selectedAppointment) return;
     if (selectedAppointment.status !== 'completed') {
       markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
+      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
       await updateAppointmentStatusRequest({
         appointment: selectedAppointment,
         newStatus: 'completed',
@@ -1535,9 +1545,14 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
           <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(320px,30%)_minmax(0,70%)]">
             <Card className="flex h-full flex-col overflow-hidden xl:sticky xl:top-4">
               <CardHeader className="shrink-0 flex-row items-center justify-between gap-3 space-y-0 border-b pb-3">
-                <div>
-                  <CardTitle className="text-sm font-semibold">{t('agenda.title')}</CardTitle>
-                  <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
+                <div className="flex items-start gap-2.5">
+                  <div className="header-icon-circle mt-0.5">
+                    <CalendarDays className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-sm font-semibold">{t('agenda.title')}</CardTitle>
+                    <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
+                  </div>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
                   <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
@@ -1571,27 +1586,21 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
       />
 
       <Dialog open={newAppointmentsAlertOpen} onOpenChange={setNewAppointmentsAlertOpen}>
-        <DialogContent maxWidth="md" className="overflow-hidden border-primary/20 p-0">
-          <DialogHeader className="bg-foreground text-background">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-white">
-                  {newAppointmentsAlertItems.length === 1
-                    ? t('appointmentAlerts.singleTitle')
-                    : t('appointmentAlerts.multipleTitle', { count: newAppointmentsAlertItems.length })}
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-white/75">
-                  {newAppointmentsAlertItems.length === 1
-                    ? t('appointmentAlerts.modalSingleDescription')
-                    : t('appointmentAlerts.modalMultipleDescription', { count: newAppointmentsAlertItems.length })}
-                </DialogDescription>
-              </div>
-            </div>
+        <DialogContent maxWidth="md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary shrink-0" />
+              {newAppointmentsAlertItems.length === 1
+                ? t('appointmentAlerts.singleTitle')
+                : t('appointmentAlerts.multipleTitle', { count: newAppointmentsAlertItems.length })}
+            </DialogTitle>
+            <DialogDescription>
+              {newAppointmentsAlertItems.length === 1
+                ? t('appointmentAlerts.modalSingleDescription')
+                : t('appointmentAlerts.modalMultipleDescription', { count: newAppointmentsAlertItems.length })}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 bg-background px-6 py-5">
+          <div className="space-y-3 px-6 py-5">
             {newAppointmentsAlertItems.map((appointment) => {
               const normalizedStatus = normalizeAppointmentStatus(appointment.status);
               const serviceLabel = appointment.services?.length
@@ -1626,7 +1635,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               );
             })}
           </div>
-          <DialogFooter className="bg-background">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setNewAppointmentsAlertOpen(false)}>
               {t('appointmentAlerts.dismiss')}
             </Button>
@@ -1638,27 +1647,21 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
       </Dialog>
 
       <Dialog open={statusChangedAlertOpen} onOpenChange={setStatusChangedAlertOpen}>
-        <DialogContent maxWidth="md" className="overflow-hidden border-primary/20 p-0">
-          <DialogHeader className="bg-foreground text-background">
-            <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
-                <Bell className="h-5 w-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-white">
-                  {statusChangedAlertItems.length === 1
-                    ? t('statusChangeAlerts.singleTitle')
-                    : t('statusChangeAlerts.multipleTitle', { count: statusChangedAlertItems.length })}
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-white/75">
-                  {statusChangedAlertItems.length === 1
-                    ? t('statusChangeAlerts.modalSingleDescription')
-                    : t('statusChangeAlerts.modalMultipleDescription', { count: statusChangedAlertItems.length })}
-                </DialogDescription>
-              </div>
-            </div>
+        <DialogContent maxWidth="md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary shrink-0" />
+              {statusChangedAlertItems.length === 1
+                ? t('statusChangeAlerts.singleTitle')
+                : t('statusChangeAlerts.multipleTitle', { count: statusChangedAlertItems.length })}
+            </DialogTitle>
+            <DialogDescription>
+              {statusChangedAlertItems.length === 1
+                ? t('statusChangeAlerts.modalSingleDescription')
+                : t('statusChangeAlerts.modalMultipleDescription', { count: statusChangedAlertItems.length })}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 bg-background px-6 py-5">
+          <div className="space-y-3 px-6 py-5">
             {statusChangedAlertItems.map(({ appointment, previousStatus }) => {
               const serviceLabel = appointment.services?.length
                 ? appointment.services.map((s) => s.name).join(', ')
@@ -1696,7 +1699,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               );
             })}
           </div>
-          <DialogFooter className="bg-background">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setStatusChangedAlertOpen(false)}>
               {t('statusChangeAlerts.dismiss')}
             </Button>

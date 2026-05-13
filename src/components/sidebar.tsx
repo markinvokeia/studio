@@ -29,13 +29,6 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
-import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
@@ -46,21 +39,17 @@ import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
-import { useDoctorAlertStyle, type DoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { filterNavByPermissions, hasDoctorWorkspaceAccess } from '@/lib/permissions';
+import { filterNavByPermissions } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     AlertTriangle,
-    Bell,
-    BellRing,
     Check,
     ChevronDown,
     KeyRound,
-    LayoutGrid,
     LogOut,
     Menu,
     Moon,
@@ -109,11 +98,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
 
     const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
-    const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
-
-    const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
-    const [alertStyle, setAlertStyle] = useDoctorAlertStyle(isDoctor ? user?.id : undefined);
 
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordFormSchema(tHeader)),
@@ -298,14 +283,10 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                     )}
                                     <Link href={`/${locale}/preferences`} passHref>
                                         <DropdownMenuItem className="rounded-lg font-medium">
-                                            <Bell className="mr-2 h-4 w-4" />
-                                            <span>{tHeader('communicationPreferences')}</span>
+                                            <Settings2 className="mr-2 h-4 w-4" />
+                                            <span>{tHeader('preferences')}</span>
                                         </DropdownMenuItem>
                                     </Link>
-                                    <DropdownMenuItem onClick={() => setIsPreferencesOpen(true)} className="rounded-lg font-medium">
-                                        <Settings2 className="mr-2 h-4 w-4" />
-                                        <span>{tHeader('preferences')}</span>
-                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogoutClick} className="rounded-lg font-medium text-destructive focus:text-destructive">
                                         <LogOut className="mr-2 h-4 w-4" />
@@ -318,64 +299,6 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                     </Tooltip>
                 </div>
             </TooltipProvider>
-
-            <Sheet open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                <SheetContent side="right" className="w-full sm:max-w-sm flex flex-col gap-0 p-0">
-                    <SheetHeader className="bg-foreground text-background px-6 py-5 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
-                                <Settings2 className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <SheetTitle className="text-white">{tHeader('preferences')}</SheetTitle>
-                                <SheetDescription className="mt-0.5 text-white/70 text-sm">
-                                    {user?.name || user?.email}
-                                </SheetDescription>
-                            </div>
-                        </div>
-                    </SheetHeader>
-                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-                        {isDoctor && (
-                            <section className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                        {tHeader('preferencesSheet.workspaceSection')}
-                                    </h3>
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {tHeader('preferencesSheet.alertStyleLabel')}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {tHeader('preferencesSheet.alertStyleDescription')}
-                                    </p>
-                                    <div className="mt-3 flex gap-2">
-                                        {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
-                                            <button
-                                                key={style}
-                                                type="button"
-                                                onClick={() => setAlertStyle(style)}
-                                                className={cn(
-                                                    'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
-                                                    alertStyle === style
-                                                        ? 'border-primary bg-primary/8 text-primary'
-                                                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                                                )}
-                                            >
-                                                {style === 'modal'
-                                                    ? <BellRing className="h-5 w-5" />
-                                                    : <Bell className="h-5 w-5" />}
-                                                {tHeader(`preferencesSheet.alertStyle.${style}`)}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-                    </div>
-                </SheetContent>
-            </Sheet>
 
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
                 <AlertDialogContent className="max-w-xl">
@@ -526,7 +449,6 @@ function MobileNav() {
     const [expandedItem, setExpandedItem] = React.useState<string | null>(null);
     const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
-    const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
     const [mobileFooterPanel, setMobileFooterPanel] = React.useState<'theme' | 'user' | null>(null);
     const pathname = usePathname();
@@ -539,9 +461,6 @@ function MobileNav() {
     const { hasPermission, permissions, roles } = usePermissions();
     const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
-
-    const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
-    const [alertStyle, setAlertStyle] = useDoctorAlertStyle(isDoctor ? user?.id : undefined);
 
     const form = useForm<PasswordFormValues>({
         resolver: zodResolver(passwordFormSchema(tHeader)),
@@ -793,19 +712,12 @@ function MobileNav() {
                                         )}
                                         <Link
                                             href={`/${locale}/preferences`}
-                                            className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
-                                        >
-                                            <Bell className="h-4 w-4 shrink-0" />
-                                            <span>{tHeader('communicationPreferences')}</span>
-                                        </Link>
-                                        <button
-                                            type="button"
-                                            onClick={() => { setIsPreferencesOpen(true); setIsOpen(false); setMobileFooterPanel(null); }}
+                                            onClick={() => { setIsOpen(false); setMobileFooterPanel(null); }}
                                             className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
                                         >
                                             <Settings2 className="h-4 w-4 shrink-0" />
                                             <span>{tHeader('preferences')}</span>
-                                        </button>
+                                        </Link>
                                         <button
                                             type="button"
                                             onClick={() => { handleLogoutClick(); setIsOpen(false); setMobileFooterPanel(null); }}
@@ -851,64 +763,6 @@ function MobileNav() {
                     </div>
                 </div>
             )}
-
-            <Sheet open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                <SheetContent side="right" className="w-full sm:max-w-sm flex flex-col gap-0 p-0">
-                    <SheetHeader className="bg-foreground text-background px-6 py-5 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/15">
-                                <Settings2 className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <SheetTitle className="text-white">{tHeader('preferences')}</SheetTitle>
-                                <SheetDescription className="mt-0.5 text-white/70 text-sm">
-                                    {user?.name || user?.email}
-                                </SheetDescription>
-                            </div>
-                        </div>
-                    </SheetHeader>
-                    <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
-                        {isDoctor && (
-                            <section className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                                        {tHeader('preferencesSheet.workspaceSection')}
-                                    </h3>
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {tHeader('preferencesSheet.alertStyleLabel')}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {tHeader('preferencesSheet.alertStyleDescription')}
-                                    </p>
-                                    <div className="mt-3 flex gap-2">
-                                        {(['modal', 'toast'] as DoctorAlertStyle[]).map((style) => (
-                                            <button
-                                                key={style}
-                                                type="button"
-                                                onClick={() => setAlertStyle(style)}
-                                                className={cn(
-                                                    'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',
-                                                    alertStyle === style
-                                                        ? 'border-primary bg-primary/8 text-primary'
-                                                        : 'border-border bg-muted/30 text-muted-foreground hover:border-primary/40 hover:text-foreground',
-                                                )}
-                                            >
-                                                {style === 'modal'
-                                                    ? <BellRing className="h-5 w-5" />
-                                                    : <Bell className="h-5 w-5" />}
-                                                {tHeader(`preferencesSheet.alertStyle.${style}`)}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        )}
-                    </div>
-                </SheetContent>
-            </Sheet>
 
             <AlertDialog open={isLogoutAlertOpen} onOpenChange={setIsLogoutAlertOpen}>
                 <AlertDialogContent className="max-w-xl">

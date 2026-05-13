@@ -5004,6 +5004,18 @@
       "saveErrorDescription": "Error al guardar la configuración de notificaciones."
     }
   },
+  "PreferencesPage": {
+    "title": "Preferencias",
+    "description": "Gestiona tus preferencias de notificaciones y espacio de trabajo",
+    "notificationsSection": "Notificaciones",
+    "workspaceSection": "Espacio de trabajo",
+    "alertStyleLabel": "Estilo de alertas",
+    "alertStyleDescription": "Elige cómo se muestran las alertas de nuevas citas.",
+    "alertStyle": {
+      "modal": "Modal",
+      "toast": "Notificación"
+    }
+  },
   "UserCommunicationPreferences": {
     "title": "Preferencias",
     "description": "Selecciona cómo deseas recibir comunicaciones",

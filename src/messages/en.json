@@ -5036,6 +5036,18 @@
       "saveErrorDescription": "Error saving notification settings."
     }
   },
+  "PreferencesPage": {
+    "title": "Preferences",
+    "description": "Manage your notification and workspace preferences",
+    "notificationsSection": "Notifications",
+    "workspaceSection": "Workspace",
+    "alertStyleLabel": "Alert notification style",
+    "alertStyleDescription": "Choose how new appointment alerts are shown to you.",
+    "alertStyle": {
+      "modal": "Modal",
+      "toast": "Notification"
+    }
+  },
   "UserCommunicationPreferences": {
     "title": "Preferences",
     "description": "Select how you want to receive communications",
