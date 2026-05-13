@@ -62,6 +62,21 @@ export function normalizeAppointmentStatus(value: unknown): AppointmentStatus {
     : 'confirmed';
 }
 
+export function normalizeCancellationReason(value: unknown): CancellationReason | null {
+  const raw = String(value ?? '').toLowerCase().trim();
+  const reasons: CancellationReason[] = [
+    'late',
+    'in_time',
+    'no_notice',
+    'by_doctor',
+    'by_clinic',
+    'other',
+    'reschedule',
+  ];
+
+  return (reasons as readonly string[]).includes(raw) ? (raw as CancellationReason) : null;
+}
+
 /**
  * Cancellation reasons selectable from the UI. 'reschedule' is intentionally
  * excluded — it's only set by the reschedule endpoint, never picked manually.

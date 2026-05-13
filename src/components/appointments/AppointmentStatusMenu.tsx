@@ -30,7 +30,7 @@ import {
   STATUS_BADGE_VARIANT,
 } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
-import { STATUS_ICONS } from './status-icons';
+import { CANCELLATION_REASON_ICONS, getStatusIcon, STATUS_ICONS } from './status-icons';
 
 // Small colored dot used as a swatch in front of each status / reason item.
 function ColorDot({ color, className }: { color: string; className?: string }) {
@@ -80,7 +80,7 @@ export function AppointmentStatusMenu({
   const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
   const variant = (STATUS_BADGE_VARIANT[current] ?? 'default') as
     | 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
-  const CurrentIcon = STATUS_ICONS[current] ?? ClipboardList;
+  const CurrentIcon = getStatusIcon(current, appointment.cancellation_reason) ?? ClipboardList;
   const canCancel = allowed.includes('cancelled');
 
   return (
@@ -105,7 +105,9 @@ export function AppointmentStatusMenu({
             ) : (
               <CurrentIcon className="h-3 w-3" />
             )}
-            {tStatus(current)}
+            {current === 'cancelled' && appointment.cancellation_reason
+              ? tReason(appointment.cancellation_reason)
+              : tStatus(current)}
           </Badge>
         </button>
       </DropdownMenuTrigger>
@@ -145,17 +147,24 @@ export function AppointmentStatusMenu({
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   {CANCELLATION_REASONS_QUICK.map((reason) => (
-                    <DropdownMenuItem
-                      key={reason}
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        onChange('cancelled', { cancellation_reason: reason });
-                      }}
-                      className="gap-2 text-sm"
-                    >
-                      <ColorDot color={CANCELLATION_REASON_COLOR} />
-                      <span>{tReason(reason)}</span>
-                    </DropdownMenuItem>
+                    (() => {
+                      const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
+
+                      return (
+                        <DropdownMenuItem
+                          key={reason}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            onChange('cancelled', { cancellation_reason: reason });
+                          }}
+                          className="gap-2 text-sm"
+                        >
+                          <ReasonIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
+                          <ColorDot color={CANCELLATION_REASON_COLOR} />
+                          <span>{tReason(reason)}</span>
+                        </DropdownMenuItem>
+                      );
+                    })()
                   ))}
                   {onRequestCustomCancellation && (
                     <>
@@ -270,17 +279,24 @@ export function AppointmentStatusContextItems({
               </SubTriggerComponent>
               <SubContentComponent>
                 {CANCELLATION_REASONS_QUICK.map((reason) => (
-                  <ItemComponent
-                    key={reason}
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      onChange('cancelled', { cancellation_reason: reason });
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <ColorDot color={CANCELLATION_REASON_COLOR} />
-                    <span>{tReason(reason)}</span>
-                  </ItemComponent>
+                  (() => {
+                    const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
+
+                    return (
+                      <ItemComponent
+                        key={reason}
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          onChange('cancelled', { cancellation_reason: reason });
+                        }}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <ReasonIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
+                        <ColorDot color={CANCELLATION_REASON_COLOR} />
+                        <span>{tReason(reason)}</span>
+                      </ItemComponent>
+                    );
+                  })()
                 ))}
                 {onRequestCustomCancellation && (
                   <>

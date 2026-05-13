@@ -10,7 +10,14 @@ import { canTransition } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 
 interface UseAppointmentStatusOptions {
-  onSuccess?: (appointment: Appointment, newStatus: AppointmentStatus) => void;
+  onSuccess?: (
+    appointment: Appointment,
+    newStatus: AppointmentStatus,
+    extra?: {
+      cancellation_reason?: CancellationReason | null;
+      cancellation_note?: string | null;
+    },
+  ) => void;
 }
 
 interface UpdateStatusArgs {
@@ -58,7 +65,10 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
           title: tMenu('updated'),
           description: tMenu('updatedDesc', { status: tStatus(newStatus) }),
         });
-        options.onSuccess?.(appointment, newStatus);
+        options.onSuccess?.(appointment, newStatus, {
+          cancellation_reason: newStatus === 'cancelled' ? cancellation_reason ?? null : null,
+          cancellation_note: newStatus === 'cancelled' ? cancellation_note?.trim() || null : null,
+        });
         return true;
       } catch (error) {
         toast({

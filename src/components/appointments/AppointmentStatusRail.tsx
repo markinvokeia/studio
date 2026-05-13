@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 
-import { getStatusIcon, STATUS_ICONS } from './status-icons';
+import { CANCELLATION_REASON_ICONS, getStatusIcon, STATUS_ICONS } from './status-icons';
 
 export interface StatusChangeExtra {
   cancellation_reason?: CancellationReason;
@@ -74,21 +74,26 @@ export function AppointmentStatusRail({
   const renderCancellationMenuItems = () => (
     <>
       {CANCELLATION_REASONS_QUICK.map((reason) => (
-        <DropdownMenuItem
-          key={reason}
-          onSelect={(event) => {
-            event.preventDefault();
-            onChange('cancelled', { cancellation_reason: reason });
-          }}
-          className="gap-2 text-sm"
-        >
-          <span
-            aria-hidden
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ backgroundColor: STATUS_ACCENT_COLOR.cancelled }}
-          />
-          <span>{tReason(reason)}</span>
-        </DropdownMenuItem>
+        (() => {
+          const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
+
+          return (
+            <DropdownMenuItem
+              key={reason}
+              onSelect={(event) => {
+                event.preventDefault();
+                onChange('cancelled', { cancellation_reason: reason });
+              }}
+              className="gap-2 text-sm"
+            >
+              <ReasonIcon
+                className="h-4 w-4 shrink-0"
+                style={{ color: STATUS_ACCENT_COLOR.cancelled }}
+              />
+              <span>{tReason(reason)}</span>
+            </DropdownMenuItem>
+          );
+        })()
       ))}
       {onRequestCustomCancellation && (
         <>

@@ -56,7 +56,7 @@ import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { canReschedule, normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
 
@@ -216,6 +216,10 @@ async function getAppointments(
                 date: format(appointmentDateTime, 'yyyy-MM-dd'),
                 time: format(appointmentDateTime, 'HH:mm'),
                 status: normalizeAppointmentStatus(apiAppt.status),
+                cancellation_reason: normalizeCancellationReason(
+                    apiAppt.cancellation_reason || apiAppt.cancellationReason || apiAppt.cancellationreason,
+                ),
+                cancellation_note: apiAppt.cancellation_note || apiAppt.cancellationNote || apiAppt.cancellationnote || null,
                 created_at: apiAppt.created_at || apiAppt.createdat,
                 google_calendar_id: apiAppt.google_calendar_id || apiAppt.googleCalendarId || undefined,
                 googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
@@ -554,13 +558,19 @@ export default function AppointmentsPage() {
     };
 
     const { updateStatus } = useAppointmentStatus({
-        onSuccess: (appt, newStatus) => {
+        onSuccess: (appt, newStatus, extra) => {
+            const patch = {
+                status: newStatus,
+                cancellation_reason: extra?.cancellation_reason ?? null,
+                cancellation_note: extra?.cancellation_note ?? null,
+            };
+
             // Optimistic update so the UI feels instant; the next refresh confirms.
             setAppointments((prev) =>
-                prev.map((a) => (a.id === appt.id ? { ...a, status: newStatus } : a)),
+                prev.map((a) => (a.id === appt.id ? { ...a, ...patch } : a)),
             );
             setSelectedAppointment((prev) =>
-                prev && prev.id === appt.id ? { ...prev, status: newStatus } : prev,
+                prev && prev.id === appt.id ? { ...prev, ...patch } : prev,
             );
         },
     });

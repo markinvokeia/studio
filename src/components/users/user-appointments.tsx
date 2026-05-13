@@ -12,7 +12,7 @@ import { api } from '@/services/api';
 import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
-import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -173,6 +173,10 @@ async function getAppointmentsForUser(
         date: format(appointmentDateTime, 'yyyy-MM-dd'),
         time: format(appointmentDateTime, 'HH:mm'),
         status: normalizeAppointmentStatus(apiAppt.status),
+        cancellation_reason: normalizeCancellationReason(
+          apiAppt.cancellation_reason || apiAppt.cancellationReason || apiAppt.cancellationreason,
+        ),
+        cancellation_note: apiAppt.cancellation_note || apiAppt.cancellationNote || apiAppt.cancellationnote || null,
         created_at: apiAppt.created_at || apiAppt.createdat,
         google_calendar_id: apiAppt.google_calendar_id || undefined,
         calendar_source_id: apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '',
@@ -231,12 +235,18 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   const [isLoadingLinkedSessions, setIsLoadingLinkedSessions] = React.useState(false);
 
   const { updateStatus } = useAppointmentStatus({
-    onSuccess: (appt, newStatus) => {
+    onSuccess: (appt, newStatus, extra) => {
+      const patch = {
+        status: newStatus,
+        cancellation_reason: extra?.cancellation_reason ?? null,
+        cancellation_note: extra?.cancellation_note ?? null,
+      };
+
       setAppointments((prev) =>
-        prev.map((a) => (a.id === appt.id ? { ...a, status: newStatus } : a)),
+        prev.map((a) => (a.id === appt.id ? { ...a, ...patch } : a)),
       );
       setSelectedAppointment((prev) =>
-        prev && prev.id === appt.id ? { ...prev, status: newStatus } : prev,
+        prev && prev.id === appt.id ? { ...prev, ...patch } : prev,
       );
     },
   });

@@ -143,6 +143,7 @@ export function AppointmentPanel({
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
+  const tReason = useTranslations('CancellationReason');
   const tReschedule = useTranslations('AppointmentReschedule');
   const tPanel = useTranslations('AppointmentPanel');
 
@@ -165,6 +166,12 @@ export function AppointmentPanel({
   const patientMeta = [appointment.patientPhone].filter(Boolean).join(' · ');
   const hasServices = appointment.services && appointment.services.length > 0;
   const invoiceCount = quoteInvoices.length;
+  const isCancelled = appointment.status === 'cancelled';
+  const cancellationReasonLabel = isCancelled
+    ? appointment.cancellation_reason
+      ? tReason(appointment.cancellation_reason)
+      : tPanel('cancellationReasonUnknown')
+    : null;
 
   return (
     <>
@@ -224,13 +231,41 @@ export function AppointmentPanel({
 
               <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
                 <StatusIcon className="h-3.5 w-3.5" style={{ color: statusColor }} />
-                {tStatus(appointment.status)}
+                {cancellationReasonLabel ?? tStatus(appointment.status)}
               </span>
             </div>
           </div>
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <div className="min-w-0 flex-1 overflow-auto px-5 py-4">
+              {isCancelled && (
+                <section className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background text-destructive shadow-sm">
+                      <StatusIcon className="h-5 w-5" strokeWidth={2.4} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {tPanel('cancellationReasonLabel')}
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold text-foreground">
+                        {cancellationReasonLabel}
+                      </p>
+                      {appointment.cancellation_note && (
+                        <div className="mt-3 border-t border-destructive/15 pt-3">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {tPanel('cancellationNoteLabel')}
+                          </p>
+                          <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground/85">
+                            {appointment.cancellation_note}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
               <section>
                 <div className="mb-3 flex items-center gap-2">
                   <Info className="h-4 w-4 text-muted-foreground" />

@@ -643,6 +643,7 @@
     "durationMinutes": "{minutes} min",
     "cancellationReasonLabel": "Motivo",
     "cancellationNoteLabel": "Detalle",
+    "cancellationReasonUnknown": "Motivo no registrado",
     "treatmentPlanGoTo": "Ir al plan",
     "noNotes": "Sin notas",
     "delete": "Eliminar",
