@@ -31,6 +31,7 @@ interface AppointmentStatusRailProps {
   appointment: Appointment;
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
+  variant?: 'top' | 'side';
 }
 
 const STATUS_FLOW: AppointmentStatus[] = [
@@ -48,6 +49,7 @@ export function AppointmentStatusRail({
   appointment,
   onChange,
   onRequestCustomCancellation,
+  variant = 'top',
 }: AppointmentStatusRailProps) {
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
@@ -106,8 +108,73 @@ export function AppointmentStatusRail({
     </>
   );
 
+  if (variant === 'side') {
+    return (
+      <aside className="w-14 shrink-0 overflow-y-auto border-l border-border bg-card px-1.5 py-3 sm:w-52 sm:px-3 sm:py-4 xl:w-56">
+        <div className="flex flex-col gap-2">
+          {STATUS_FLOW.map((status) => {
+            if (!APPOINTMENT_STATUSES.includes(status)) return null;
+
+            const isCurrent = status === current;
+            const isDone = currentIndex > -1 && status !== 'cancelled' && status !== 'no_show' && STATUS_FLOW.indexOf(status) < currentIndex;
+            const isEnabled = !isCurrent && allowed.includes(status);
+            const statusColor = STATUS_ACCENT_COLOR[status];
+            const StatusIcon = isCurrent ? getStatusIcon(status, appointment.cancellation_reason) : STATUS_ICONS[status];
+            const item = (
+              <button
+                type="button"
+                disabled={!isEnabled && status !== 'cancelled'}
+                onClick={() => {
+                  if (status !== 'cancelled' && isEnabled) onChange(status);
+                }}
+                className={cn(
+                  'inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border px-2 text-left text-sm font-semibold transition-colors sm:justify-start sm:px-3',
+                  isCurrent
+                    ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                    : isDone
+                      ? 'border-primary/15 bg-primary/10 text-primary hover:bg-primary/15'
+                      : isEnabled
+                        ? 'border-border bg-card text-foreground hover:border-primary/30 hover:bg-primary/8 hover:text-primary'
+                        : 'border-transparent bg-muted/45 text-muted-foreground opacity-75',
+                )}
+                aria-current={isCurrent ? 'step' : undefined}
+              >
+                <span
+                  className={cn(
+                    'grid h-6 w-6 shrink-0 place-items-center rounded-full',
+                    isCurrent ? 'bg-primary-foreground/20' : isDone ? 'bg-primary/15' : 'bg-background/80',
+                  )}
+                >
+                  <StatusIcon
+                    className="h-3.5 w-3.5"
+                    style={!isCurrent ? { color: statusColor } : undefined}
+                    strokeWidth={2.5}
+                  />
+                </span>
+                <span className="hidden min-w-0 flex-1 truncate sm:inline">{tStatus(status)}</span>
+              </button>
+            );
+
+            if (status === 'cancelled' && canCancel) {
+              return (
+                <DropdownMenu key={status} modal={false}>
+                  <DropdownMenuTrigger asChild>{item}</DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onCloseAutoFocus={(event) => event.preventDefault()}>
+                    {renderCancellationMenuItems()}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              );
+            }
+
+            return <React.Fragment key={status}>{item}</React.Fragment>;
+          })}
+        </div>
+      </aside>
+    );
+  }
+
   return (
-    <div className="border-b border-border bg-card px-3 py-3 sm:px-5 sm:py-4">
+    <div className="border-b border-border bg-card px-3 py-3 sm:px-5 sm:py-4 min-[1200px]:hidden">
       <div className="sm:hidden">
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>

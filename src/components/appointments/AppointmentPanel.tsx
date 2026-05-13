@@ -229,190 +229,193 @@ export function AppointmentPanel({
             </div>
           </div>
 
-          <AppointmentStatusRail
-            appointment={appointment}
-            onChange={(status, extra) => onStatusChange(appointment, status, extra)}
-            onRequestCustomCancellation={
-              onRequestCustomCancellation
-                ? () => onRequestCustomCancellation(appointment)
-                : undefined
-            }
-          />
-
-          <div className="flex-1 overflow-auto px-5 py-4">
-            <section>
-              <div className="mb-3 flex items-center gap-2">
-                <Info className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-base font-semibold">{t('panelTabs.info')}</h3>
-              </div>
-
-              <div className="grid gap-x-8 md:grid-cols-2">
-                <DetailRow
-                  icon={CalendarIcon}
-                  label={tColumns('date')}
-                  value={formatDisplayDate(appointment.date)}
-                />
-                <DetailRow
-                  icon={Clock}
-                  label={tColumns('time')}
-                  value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
-                  detail={durationMin != null && durationMin > 0
-                    ? tPanel('durationMinutes', { minutes: durationMin })
-                    : undefined}
-                />
-                <DetailRow
-                  icon={MapPin}
-                  label={tColumns('calendar')}
-                  value={appointment.calendar_name || '-'}
-                />
-                <DetailRow
-                  icon={UserSquare}
-                  label={tColumns('doctor')}
-                  value={appointment.doctorName || '-'}
-                  detail={doctorColor ? (
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
-                      {tPanel('openDoctor')}
-                    </span>
-                  ) : undefined}
-                  onClick={appointment.doctorId ? () => setIsDoctorSheetOpen(true) : undefined}
-                />
-              </div>
-
-              {hasServices && (
-                <DetailRow
-                  icon={Layers}
-                  label={tPanel('servicesCount', { count: appointment.services?.length ?? 0 })}
-                  value={
-                    <span className="flex flex-col">
-                      {appointment.services?.map((service) => (
-                        <span key={service.id} className="flex items-center gap-2 border-b border-dashed border-border/70 py-2 last:border-b-0">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
-                          />
-                          <span className="min-w-0 flex-1 truncate">{service.name}</span>
-                          {service.duration_minutes ? (
-                            <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                              {tPanel('durationMinutes', { minutes: service.duration_minutes })}
-                            </span>
-                          ) : null}
-                        </span>
-                      ))}
-                    </span>
-                  }
-                  className="md:col-span-2"
-                />
-              )}
-
-              {appointment.notes && (
-                <DetailRow
-                  icon={StickyNote}
-                  label={t('contextMenu.notes')}
-                  value={<span className="whitespace-pre-wrap font-medium">{appointment.notes}</span>}
-                  tone="warning"
-                  className="md:col-span-2"
-                />
-              )}
-            </section>
-
-            {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null) && (
-              <section className="mt-6 border-t border-border pt-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <HeartPulse className="h-4 w-4 text-muted-foreground" />
-                    <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
-                  </div>
-                  <Button
-                    variant="link"
-                    className="h-auto px-0 text-primary"
-                    onClick={() => onOpenClinicSession(appointment)}
-                  >
-                    {linkedSession ? t('editSession') : t('createSession')}
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <div className="min-w-0 flex-1 overflow-auto px-5 py-4">
+              <section>
+                <div className="mb-3 flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-base font-semibold">{t('panelTabs.info')}</h3>
                 </div>
 
-                {isLoadingLinkedSession ? (
-                  <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    {t('linkedSession')}
-                  </div>
-                ) : linkedSession ? (
-                  <div className="grid gap-4 rounded-xl border border-border bg-primary/5 p-4 md:grid-cols-[auto_1fr_auto] md:items-center">
-                    <div className="space-y-1">
-                      <p className="font-mono text-sm font-semibold text-muted-foreground">
-                        #S-{String(linkedSession.sesion_id).padStart(4, '0')}
-                      </p>
-                      <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                        <span className="h-2 w-2 rounded-full bg-primary" />
-                        {formatDisplayDate(linkedSession.fecha_sesion)}
-                      </p>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">
-                        {linkedSession.procedimiento_realizado || t('procedure')}
-                      </p>
-                      <p className="mt-1 truncate text-sm text-muted-foreground">
-                        {[linkedSession.doctor_name || linkedSession.nombre_doctor, linkedSession.notas_clinicas]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </p>
+                <div className="grid gap-x-8 md:grid-cols-2">
+                  <DetailRow
+                    icon={CalendarIcon}
+                    label={tColumns('date')}
+                    value={formatDisplayDate(appointment.date)}
+                  />
+                  <DetailRow
+                    icon={Clock}
+                    label={tColumns('time')}
+                    value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
+                    detail={durationMin != null && durationMin > 0
+                      ? tPanel('durationMinutes', { minutes: durationMin })
+                      : undefined}
+                  />
+                  <DetailRow
+                    icon={MapPin}
+                    label={tColumns('calendar')}
+                    value={appointment.calendar_name || '-'}
+                  />
+                  <DetailRow
+                    icon={UserSquare}
+                    label={tColumns('doctor')}
+                    value={appointment.doctorName || '-'}
+                    detail={doctorColor ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
+                        {tPanel('openDoctor')}
+                      </span>
+                    ) : undefined}
+                    onClick={appointment.doctorId ? () => setIsDoctorSheetOpen(true) : undefined}
+                  />
+                </div>
+
+                {hasServices && (
+                  <DetailRow
+                    icon={Layers}
+                    label={tPanel('servicesCount', { count: appointment.services?.length ?? 0 })}
+                    value={
+                      <span className="flex flex-col">
+                        {appointment.services?.map((service) => (
+                          <span key={service.id} className="flex items-center gap-2 border-b border-dashed border-border/70 py-2 last:border-b-0">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full"
+                              style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
+                            />
+                            <span className="min-w-0 flex-1 truncate">{service.name}</span>
+                            {service.duration_minutes ? (
+                              <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                                {tPanel('durationMinutes', { minutes: service.duration_minutes })}
+                              </span>
+                            ) : null}
+                          </span>
+                        ))}
+                      </span>
+                    }
+                    className="md:col-span-2"
+                  />
+                )}
+
+                {appointment.notes && (
+                  <DetailRow
+                    icon={StickyNote}
+                    label={t('contextMenu.notes')}
+                    value={<span className="whitespace-pre-wrap font-medium">{appointment.notes}</span>}
+                    tone="warning"
+                    className="md:col-span-2"
+                  />
+                )}
+              </section>
+
+              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null) && (
+                <section className="mt-6 border-t border-border pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
                     </div>
                     <Button
-                      variant="outline"
-                      className="justify-self-start gap-2 border-primary/25 text-primary hover:bg-primary/10 md:justify-self-end"
+                      variant="link"
+                      className="h-auto px-0 text-primary"
                       onClick={() => onOpenClinicSession(appointment)}
                     >
-                      <Stethoscope className="h-4 w-4" />
-                      {t('editSession')}
+                      {linkedSession ? t('editSession') : t('createSession')}
+                      <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
-                ) : (
+
+                  {isLoadingLinkedSession ? (
+                    <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('linkedSession')}
+                    </div>
+                  ) : linkedSession ? (
+                    <div className="grid gap-4 rounded-xl border border-border bg-primary/5 p-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+                      <div className="space-y-1">
+                        <p className="font-mono text-sm font-semibold text-muted-foreground">
+                          #S-{String(linkedSession.sesion_id).padStart(4, '0')}
+                        </p>
+                        <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                          <span className="h-2 w-2 rounded-full bg-primary" />
+                          {formatDisplayDate(linkedSession.fecha_sesion)}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">
+                          {linkedSession.procedimiento_realizado || t('procedure')}
+                        </p>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                          {[linkedSession.doctor_name || linkedSession.nombre_doctor, linkedSession.notas_clinicas]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="justify-self-start gap-2 border-primary/25 text-primary hover:bg-primary/10 md:justify-self-end"
+                        onClick={() => onOpenClinicSession(appointment)}
+                      >
+                        <Stethoscope className="h-4 w-4" />
+                        {t('editSession')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => onOpenClinicSession(appointment)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-4 text-left transition-colors hover:bg-muted/35"
+                    >
+                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                      <span className="flex-1">
+                        <span className="block font-semibold">{t('noLinkedSession')}</span>
+                        <span className="text-xs text-muted-foreground">{t('createSession')}</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </section>
+              )}
+
+              {(appointment.quote_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
+                <section className="mt-6 border-t border-border pt-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => onOpenClinicSession(appointment)}
-                    className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-4 text-left transition-colors hover:bg-muted/35"
+                    onClick={() => appointment.quote_id && setIsQuoteSheetOpen(true)}
+                    disabled={!appointment.quote_id}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/35 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Stethoscope className="h-5 w-5 text-muted-foreground" />
                     <span className="flex-1">
-                      <span className="block font-semibold">{t('noLinkedSession')}</span>
-                    <span className="text-xs text-muted-foreground">{t('createSession')}</span>
+                      <span className="block font-mono text-xs font-semibold">
+                        {appointment.quote_doc_no || appointment.quote_id || t('noLinkedOrder')}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {isLoadingQuoteInfo
+                          ? t('linkedInvoice')
+                          : invoiceCount > 0
+                            ? `${t('linkedInvoice')} · ${invoiceCount}`
+                            : t('notInvoiced')}
+                      </span>
                     </span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </button>
-                )}
-              </section>
-            )}
+                </section>
+              )}
+            </div>
 
-            {(appointment.quote_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
-              <section className="mt-6 border-t border-border pt-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => appointment.quote_id && setIsQuoteSheetOpen(true)}
-                  disabled={!appointment.quote_id}
-                  className="flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/35 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="flex-1">
-                    <span className="block font-mono text-xs font-semibold">
-                      {appointment.quote_doc_no || appointment.quote_id || t('noLinkedOrder')}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {isLoadingQuoteInfo
-                        ? t('linkedInvoice')
-                        : invoiceCount > 0
-                          ? `${t('linkedInvoice')} · ${invoiceCount}`
-                          : t('notInvoiced')}
-                    </span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </section>
-            )}
+            <AppointmentStatusRail
+              variant="side"
+              appointment={appointment}
+              onChange={(status, extra) => onStatusChange(appointment, status, extra)}
+              onRequestCustomCancellation={
+                onRequestCustomCancellation
+                  ? () => onRequestCustomCancellation(appointment)
+                  : undefined
+              }
+            />
           </div>
 
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
