@@ -112,9 +112,9 @@ interface AppointmentPanelProps {
   quoteInvoices: Invoice[];
   isLoadingQuoteInfo: boolean;
   doctorColor?: string;
-  onEdit: (appointment: Appointment) => void;
-  onCancel: (appointment: Appointment) => void;
-  onOpenClinicSession: (appointment: Appointment) => void;
+  onEdit?: (appointment: Appointment) => void;
+  onCancel?: (appointment: Appointment) => void;
+  onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
   onStatusChange: (
     appointment: Appointment,
@@ -314,14 +314,16 @@ export function AppointmentPanel({
                       <HeartPulse className="h-4 w-4 text-muted-foreground" />
                       <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
                     </div>
-                    <Button
-                      variant="link"
-                      className="h-auto px-0 text-primary"
-                      onClick={() => onOpenClinicSession(appointment)}
-                    >
-                      {linkedSession ? t('editSession') : t('createSession')}
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    {onOpenClinicSession && (
+                      <Button
+                        variant="link"
+                        className="h-auto px-0 text-primary"
+                        onClick={() => onOpenClinicSession(appointment)}
+                      >
+                        {linkedSession ? t('editSession') : t('createSession')}
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                   {isLoadingLinkedSession ? (
@@ -350,16 +352,18 @@ export function AppointmentPanel({
                             .join(' · ')}
                         </p>
                       </div>
-                      <Button
-                        variant="outline"
-                        className="justify-self-start gap-2 border-primary/25 text-primary hover:bg-primary/10 md:justify-self-end"
-                        onClick={() => onOpenClinicSession(appointment)}
-                      >
-                        <Stethoscope className="h-4 w-4" />
-                        {t('editSession')}
-                      </Button>
+                      {onOpenClinicSession && (
+                        <Button
+                          variant="outline"
+                          className="justify-self-start gap-2 border-primary/25 text-primary hover:bg-primary/10 md:justify-self-end"
+                          onClick={() => onOpenClinicSession(appointment)}
+                        >
+                          <Stethoscope className="h-4 w-4" />
+                          {t('editSession')}
+                        </Button>
+                      )}
                     </div>
-                  ) : (
+                  ) : onOpenClinicSession ? (
                     <button
                       type="button"
                       onClick={() => onOpenClinicSession(appointment)}
@@ -372,6 +376,14 @@ export function AppointmentPanel({
                       </span>
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </button>
+                  ) : (
+                    <div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-4 text-left">
+                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                      <span className="flex-1">
+                        <span className="block font-semibold">{t('noLinkedSession')}</span>
+                        <span className="text-xs text-muted-foreground">{t('createSession')}</span>
+                      </span>
+                    </div>
                   )}
                 </section>
               )}
@@ -418,31 +430,37 @@ export function AppointmentPanel({
             />
           </div>
 
-          <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
-            <div className="flex items-center justify-end gap-3">
-              <Button
-                size="lg"
-                variant="outline"
-                className="gap-2"
-                disabled={!onReschedule || !canReschedule(appointment.status)}
-                title={!canReschedule(appointment.status)
-                  ? tReschedule('blockedTooltip', { status: tStatus(appointment.status) })
-                  : undefined}
-                onClick={() => { onReschedule?.(appointment); onOpenChange(false); }}
-              >
-                <CalendarSync className="h-4 w-4" />
-                {tReschedule('action')}
-              </Button>
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={() => { onEdit(appointment); onOpenChange(false); }}
-              >
-                <Edit className="h-4 w-4" />
-                {tColumns('edit')}
-              </Button>
+          {(onReschedule || onEdit) && (
+            <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
+              <div className="flex items-center justify-end gap-3">
+                {onReschedule && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="gap-2"
+                    disabled={!canReschedule(appointment.status)}
+                    title={!canReschedule(appointment.status)
+                      ? tReschedule('blockedTooltip', { status: tStatus(appointment.status) })
+                      : undefined}
+                    onClick={() => { onReschedule(appointment); onOpenChange(false); }}
+                  >
+                    <CalendarSync className="h-4 w-4" />
+                    {tReschedule('action')}
+                  </Button>
+                )}
+                {onEdit && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={() => { onEdit(appointment); onOpenChange(false); }}
+                  >
+                    <Edit className="h-4 w-4" />
+                    {tColumns('edit')}
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </ResizableSheet>
 

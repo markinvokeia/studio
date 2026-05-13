@@ -1,15 +1,12 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { API_ROUTES } from '@/constants/routes';
-import { usePermissions } from '@/hooks/usePermissions';
 import { Appointment, AppointmentStatus, CancellationReason, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
 import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
@@ -17,7 +14,7 @@ import { CancellationNoteDialog } from '@/components/appointments/CancellationNo
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { FileText, Stethoscope, Calendar as CalendarIcon, Clock, UserCircle, RefreshCw, Info } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -212,39 +209,6 @@ async function getAppointmentsForUser(
   }
 }
 
-// Linked session columns
-function getLinkedSessionColumns(t: (key: string) => string): ColumnDef<PatientSession>[] {
-  return [
-    {
-      accessorKey: 'fecha_sesion',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />,
-      cell: ({ row }) => {
-        const val: string = row.original.fecha_sesion;
-        if (!val) return <span className="text-muted-foreground">—</span>;
-        const d = parseISO(val);
-        return <span>{format(d, 'dd/MM/yyyy')}</span>;
-      },
-    },
-    {
-      accessorKey: 'procedimiento_realizado',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.procedure')} />,
-      cell: ({ row }) => (
-        <span className="truncate max-w-[300px] block" title={row.original.procedimiento_realizado}>
-          {row.original.procedimiento_realizado || '—'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'doctor_name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.doctor')} />,
-      cell: ({ row }) => {
-        const val = row.original.doctor_name || row.original.nombre_doctor;
-        return <span>{val || '—'}</span>;
-      },
-    },
-  ];
-}
-
 interface UserAppointmentsProps {
   user: User;
   refreshTrigger?: number;
@@ -253,8 +217,6 @@ interface UserAppointmentsProps {
 export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps) {
   const t = useTranslations('AppointmentsColumns');
   const tAppointmentsPage = useTranslations('AppointmentsPage');
-  const tUserAppointments = useTranslations('UserAppointments');
-  const { hasPermission } = usePermissions();
   const isViewportNarrow = useViewportNarrow();
   
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -402,7 +364,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
       setIsSheetOpen(false);
       setLinkedSessions([]);
     }
-  }, [loadLinkedSessions]);
+  }, [loadLinkedSessions, user.id]);
 
   if (isLoading) {
     return (
@@ -456,8 +418,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         </CardContent>
       </Card>
 
-      {/* Appointment Detail Sheet */}
-      <ResizableSheet
+      <AppointmentPanel
         open={isSheetOpen}
         onOpenChange={(open) => {
           setIsSheetOpen(open);
@@ -467,150 +428,15 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
             setLinkedSessions([]);
           }
         }}
-        defaultWidth={700}
-        minWidth={500}
-        maxWidth={1200}
-        storageKey="user-appointments-sheet-width"
-      >
-        {selectedAppointment && (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex-none border-b border-border bg-card">
-              <div className="px-6 py-5 pr-12">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <SheetTitle className="text-lg font-semibold text-card-foreground truncate">
-                      {selectedAppointment.summary}
-                    </SheetTitle>
-                    <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                      {tUserAppointments('appointmentDetails')}
-                    </SheetDescription>
-                  </div>
-                  <AppointmentStatusMenu
-                    appointment={selectedAppointment}
-                    onChange={(s, extra) => handleStatusChange(selectedAppointment, s, extra)}
-                    onRequestCustomCancellation={() => handleRequestCustomCancellation(selectedAppointment)}
-                    className="shrink-0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Appointment Info Grid */}
-            <div className="flex-none px-6 py-4 border-b border-border">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('date')}</p>
-                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.date}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('time')}</p>
-                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.time}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <UserCircle className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('doctor')}</p>
-                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.doctorName || '—'}</p>
-                  </div>
-                </div>
-                {selectedAppointment.quote_doc_no && (
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('quote')}</p>
-                      <Badge variant="secondary" className="font-mono mt-0.5 text-xs">
-                        {selectedAppointment.quote_doc_no}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {selectedAppointment.description && (
-                <>
-                  <Separator className="my-3" />
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">{tUserAppointments('notes')}</p>
-                    <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
-                      {selectedAppointment.description}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Linked Sessions */}
-            <div className="flex-1 flex flex-col overflow-hidden px-6 py-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                  {tUserAppointments('linkedSessions')}
-                  {linkedSessions.length > 0 && (
-                    <Badge variant="secondary" className="text-xs px-1.5 py-0 font-normal">
-                      {linkedSessions.length}
-                    </Badge>
-                  )}
-                </h4>
-                {selectedAppointment.quote_id && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => selectedAppointment.quote_id && loadLinkedSessions(String(user.id), selectedAppointment.quote_id)}
-                    disabled={isLoadingLinkedSessions}
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isLoadingLinkedSessions ? 'animate-spin' : ''}`} />
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                {!selectedAppointment.quote_id ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
-                      <Info className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {tUserAppointments('noLinkedQuote')}
-                    </p>
-                  </div>
-                ) : linkedSessions.length === 0 && !isLoadingLinkedSessions ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
-                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {tUserAppointments('noLinkedSessions')}
-                    </p>
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={getLinkedSessionColumns(tUserAppointments)}
-                    data={linkedSessions}
-                    isRefreshing={isLoadingLinkedSessions}
-                    onRefresh={() => selectedAppointment.quote_id && loadLinkedSessions(String(user.id), selectedAppointment.quote_id)}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </ResizableSheet>
+        appointment={selectedAppointment}
+        linkedSession={linkedSessions[0] ?? null}
+        isLoadingLinkedSession={isLoadingLinkedSessions}
+        quoteOrder={null}
+        quoteInvoices={[]}
+        isLoadingQuoteInfo={false}
+        onStatusChange={handleStatusChange}
+        onRequestCustomCancellation={handleRequestCustomCancellation}
+      />
       <CancellationNoteDialog
         open={!!pendingCancellation}
         onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
