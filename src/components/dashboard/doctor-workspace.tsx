@@ -880,7 +880,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     const entries = Object.entries(grouped);
                     if (entries.length === 0) return null;
                     return (
-                      <div className="rounded-lg border-l-[3px] border-violet-400/60 bg-violet-50/60 px-3 py-2.5">
+                      <div className="border-l-[3px] border-violet-400/60 bg-violet-50/60 px-3 py-2.5">
                         <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-violet-600/90">
                           {tTimeline('odontogramUpdate')}
                         </p>
@@ -912,7 +912,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     );
                   })()}
                   {session.diagnostico && (
-                    <div className="rounded-lg border-l-[3px] border-red-400/60 bg-red-50/60 px-3 py-2.5">
+                    <div className="border-l-[3px] border-red-400/60 bg-red-50/60 px-3 py-2.5">
                       <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-red-500">
                         {tTimeline('diagnosis')}
                       </p>
@@ -920,7 +920,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     </div>
                   )}
                   {session.notas_clinicas && (
-                    <div className="rounded-lg border-l-[3px] border-cyan-400/60 bg-cyan-50/60 px-3 py-2.5">
+                    <div className="border-l-[3px] border-cyan-400/60 bg-cyan-50/60 px-3 py-2.5">
                       <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-cyan-600/90">
                         {tTimeline('notes')}
                       </p>
@@ -928,7 +928,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     </div>
                   )}
                   {session.plan_proxima_cita && session.plan_proxima_cita.trim() !== '{}' && (
-                    <div className="rounded-lg border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
+                    <div className="border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
                       <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-blue-600/90">
                         {tTimeline('nextPlan')}
                       </p>
@@ -936,7 +936,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     </div>
                   )}
                   {hasTreatments && (
-                    <div className="rounded-lg border-l-[3px] border-green-500/60 bg-green-50/60 px-3 py-2.5">
+                    <div className="border-l-[3px] border-green-500/60 bg-green-50/60 px-3 py-2.5">
                       <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-green-600/90">
                         {tTimeline('treatments')}
                       </p>
@@ -960,7 +960,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     </div>
                   )}
                   {hasAttachments && (
-                    <div className="rounded-lg border-l-[3px] border-amber-500/60 bg-amber-50/60 px-3 py-2.5">
+                    <div className="border-l-[3px] border-amber-500/60 bg-amber-50/60 px-3 py-2.5">
                       <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-amber-600/90">
                         {tTimeline('attachments')}
                       </p>

@@ -64,7 +64,7 @@ export function SecretarySessionNotificationModal({
           <div className="space-y-3 px-6 py-4">
             {/* Procedure */}
             {session.procedimiento_realizado && (
-              <div className="rounded-lg border-l-[3px] border-primary/40 bg-primary/5 px-3 py-2.5">
+              <div className="border-l-[3px] border-primary/40 bg-primary/5 px-3 py-2.5">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-primary/70">
                   {t('procedure')}
                 </p>
@@ -74,7 +74,7 @@ export function SecretarySessionNotificationModal({
 
             {/* Next plan */}
             {hasNextPlan && (
-              <div className="rounded-lg border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
+              <div className="border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-blue-600/80">
                   {t('nextPlan')}
                 </p>
@@ -89,7 +89,7 @@ export function SecretarySessionNotificationModal({
 
             {/* Treatments summary */}
             {hasTreatments && (
-              <div className="rounded-lg border-l-[3px] border-green-500/50 bg-green-50/60 px-3 py-2.5">
+              <div className="border-l-[3px] border-green-500/50 bg-green-50/60 px-3 py-2.5">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-green-600/80">
                   {t('treatments')}
                 </p>
