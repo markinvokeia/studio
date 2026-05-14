@@ -165,3 +165,15 @@ export function fmtMultiCurrency(amounts: Record<string, number>): string {
   if (entries.length === 0) return '—';
   return entries.map(([c, v]) => `${_moneyFmt.format(v)} (${c})`).join(' / ');
 }
+
+export function sanitizeTextForSpeech(value: string): string {
+  return value
+    .replace(/\\n/g, '. ')
+    .replace(/\r?\n/g, '. ')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/[_`#>~]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\.\s*\./g, '.')
+    .trim();
+}

@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,14 +22,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
-import { TreatmentDetail, AttachedFile, PatientSession } from '@/lib/types';
-import { format } from 'date-fns';
+import { AttachedFile, PatientSession, TreatmentDetail } from '@/lib/types';
+import { addMonths, format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Loader2, Plus, Trash2, Upload, File, X, Eye } from 'lucide-react';
+import { Calendar as CalendarIcon, File, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
-import { cn } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 
 interface ClinicSessionDialogProps {
     open: boolean;
@@ -46,9 +47,13 @@ interface ClinicSessionDialogProps {
         doctor_id?: string;
         doctor_name?: string;
         procedimiento_realizado?: string;
+        plan_proxima_cita?: string;
+        fecha_proxima_cita?: string;
     };
     prefillTreatments?: { numero_diente: number | null; descripcion: string }[];
     existingSession?: PatientSession;  // Para edición de sesión existente
+    hideNextAppointmentDate?: boolean;
+    lockDoctor?: boolean;
     // Datos de cita pendiente para crear junto con la sesión
     pendingAppointmentData?: {
         start: string;
@@ -111,6 +116,8 @@ export function ClinicSessionDialog({
     prefillData,
     prefillTreatments,
     existingSession,
+    hideNextAppointmentDate = false,
+    lockDoctor = false,
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
     const t = useTranslations('ClinicSessionDialog');
@@ -122,6 +129,8 @@ export function ClinicSessionDialog({
     const [doctors, setDoctors] = React.useState<Doctor[]>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [doctorError, setDoctorError] = React.useState(false);
+    const [shouldDischargePatient, setShouldDischargePatient] = React.useState(false);
+    const [dischargeDate, setDischargeDate] = React.useState('');
 
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
@@ -135,7 +144,7 @@ export function ClinicSessionDialog({
     const [form, setForm] = React.useState<ClinicSessionFormData>({
         doctor_id: '',
         doctor_name: '',
-        fecha_sesion: defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        fecha_sesion: defaultDate ? formatDate(defaultDate) : formatDate(new Date()),
         procedimiento_realizado: serviceName || '',
         plan_proxima_cita: '',
         fecha_proxima_cita: '',
@@ -161,13 +170,13 @@ export function ClinicSessionDialog({
             doctor_id: existingSession?.doctor_id || prefillData?.doctor_id || '',
             doctor_name: existingSession?.doctor_name || prefillData?.doctor_name || '',
             fecha_sesion: existingSession?.fecha_sesion
-                ? existingSession.fecha_sesion.split('T')[0]
-                : (defaultDate ? defaultDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+                ? formatDate(existingSession.fecha_sesion)
+                : (defaultDate ? formatDate(defaultDate) : formatDate(new Date())),
             procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
-            plan_proxima_cita: existingSession?.plan_proxima_cita || '',
+            plan_proxima_cita: existingSession?.plan_proxima_cita || prefillData?.plan_proxima_cita || '',
             fecha_proxima_cita: existingSession?.fecha_proxima_cita
-                ? existingSession.fecha_proxima_cita.split('T')[0]
-                : '',
+                ? formatDate(existingSession.fecha_proxima_cita)
+                : (prefillData?.fecha_proxima_cita ? formatDate(prefillData.fecha_proxima_cita) : ''),
             quote_id: existingSession?.quote_id || quoteId,
             appointment_id: existingSession?.appointment_id || appointmentId,
             sesion_id: existingSession?.sesion_id,
@@ -192,6 +201,8 @@ export function ClinicSessionDialog({
         setAttachedFiles([]);
         setDeletedAttachmentIds([]);
         setDoctorError(false);
+        setShouldDischargePatient(false);
+        setDischargeDate('');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
@@ -217,6 +228,11 @@ export function ClinicSessionDialog({
             return;
         }
 
+        if (shouldDischargePatient && !dischargeDate) {
+            toast({ title: t('discharge.dateRequired'), variant: 'destructive' });
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             const dataToSave: ClinicSessionFormData = {
@@ -234,10 +250,23 @@ export function ClinicSessionDialog({
             // If there's pending appointment data, the parent handles creating both appointment and session
             // Otherwise, just save the session normally
             await onSave(dataToSave);
+
+            if (shouldDischargePatient && dischargeDate) {
+                await api.post(API_ROUTES.PATIENT_DISCHARGE, {
+                    id: userId,
+                    appointment_date: dischargeDate,
+                });
+                toast({ title: tCommon('discharge.toast.success') });
+            }
+
             toast({ title: t('save') });
             onOpenChange(false);
-        } catch (error) {
-            toast({ title: t('fileUploadError'), variant: 'destructive' });
+        } catch (error: any) {
+            toast({
+                title: shouldDischargePatient ? tCommon('discharge.toast.error') : t('fileUploadError'),
+                description: error?.message || '',
+                variant: 'destructive'
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -378,7 +407,7 @@ export function ClinicSessionDialog({
                                             <Calendar
                                                 mode="single"
                                                 selected={form.fecha_sesion ? new Date(form.fecha_sesion + 'T00:00:00') : undefined}
-                                                onSelect={(date) => setForm({ ...form, fecha_sesion: date ? date.toISOString().split('T')[0] : '' })}
+                                                onSelect={(date) => setForm({ ...form, fecha_sesion: date ? formatDate(date) : '' })}
                                                 initialFocus
                                             />
                                         </PopoverContent>
@@ -391,6 +420,7 @@ export function ClinicSessionDialog({
                                     <Select
                                         value={form.doctor_id}
                                         onValueChange={(value) => {
+                                            if (lockDoctor) return;
                                             const selectedDoc = doctors.find(d => d.id === value);
                                             setForm({
                                                 ...form,
@@ -399,6 +429,7 @@ export function ClinicSessionDialog({
                                             });
                                             setDoctorError(false);
                                         }}
+                                        disabled={lockDoctor}
                                     >
                                         <SelectTrigger className={cn("w-full", doctorError && "border-destructive")}>
                                             <SelectValue placeholder={t('selectDoctor')} />
@@ -440,33 +471,138 @@ export function ClinicSessionDialog({
                                 </div>
 
                                 {/* Next Appointment Date */}
-                                <div className="space-y-2">
-                                    <Label>{t('nextAppointmentDate')}</Label>
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full justify-start text-left font-normal h-10 border-input",
-                                                    !form.fecha_proxima_cita && "text-muted-foreground"
-                                                )}
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {form.fecha_proxima_cita
-                                                    ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
-                                                    : t('selectNextAppointmentDate')}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                mode="single"
-                                                selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
-                                                onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? date.toISOString().split('T')[0] : '' })}
-                                                initialFocus
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
+                                {!hideNextAppointmentDate && (
+                                    <div className="space-y-2">
+                                        <Label>{t('nextAppointmentDate')}</Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal h-10 border-input",
+                                                        !form.fecha_proxima_cita && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {form.fecha_proxima_cita
+                                                        ? format(new Date(form.fecha_proxima_cita + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
+                                                        : t('selectNextAppointmentDate')}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={form.fecha_proxima_cita ? new Date(form.fecha_proxima_cita + 'T00:00:00') : undefined}
+                                                    onSelect={(date) => setForm({ ...form, fecha_proxima_cita: date ? formatDate(date) : '' })}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                )}
+
+                                <div className="space-y-3 md:col-span-2">
+                                    <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                                        <Checkbox
+                                            id="discharge-patient"
+                                            checked={shouldDischargePatient}
+                                            onCheckedChange={(checked) => {
+                                                const enabled = Boolean(checked);
+                                                setShouldDischargePatient(enabled);
+                                                if (!enabled) {
+                                                    setDischargeDate('');
+                                                }
+                                            }}
+                                            className="mt-0.5"
+                                        />
+                                        <div className="space-y-1">
+                                            <Label htmlFor="discharge-patient" className="cursor-pointer text-sm font-medium">
+                                                {t('discharge.checkboxLabel')}
+                                            </Label>
+                                            <p className="text-xs text-muted-foreground">
+                                                {t('discharge.checkboxDescription')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {shouldDischargePatient && (
+                                        <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
+                                            <div className="space-y-3">
+                                                <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                                                    {tCommon('discharge.optionsLabel')}
+                                                </Label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option1Month')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option3Months')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option6Months')}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="rounded-full"
+                                                        onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}
+                                                    >
+                                                        {tCommon('discharge.option1Year')}
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>{tCommon('discharge.dateLabel')}</Label>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className={cn(
+                                                                "w-full justify-start text-left font-normal h-10 border-input",
+                                                                !dischargeDate && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                                            {dischargeDate
+                                                                ? format(new Date(dischargeDate + 'T00:00:00'), 'dd/MM/yyyy', { locale: dateLocale })
+                                                                : tCommon('discharge.datePlaceholder')}
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={dischargeDate ? new Date(dischargeDate + 'T00:00:00') : undefined}
+                                                            onSelect={(date) => setDischargeDate(date ? formatDate(date) : '')}
+                                                            disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

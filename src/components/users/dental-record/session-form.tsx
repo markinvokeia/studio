@@ -1,12 +1,16 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { Loader2, Paperclip, Save, X } from 'lucide-react';
+import { addMonths, format } from 'date-fns';
+import { CalendarIcon, Loader2, Paperclip, Save, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import type { DoctorOption } from '@/services/dental-record';
@@ -17,6 +21,8 @@ export interface SessionFormValues {
   notes: string;
   files: File[];
   doctorId: string;
+  shouldDischarge?: boolean;
+  dischargeDate?: string;
 }
 
 interface SessionFormProps {
@@ -28,6 +34,8 @@ interface SessionFormProps {
   onNotesChange?: (v: string) => void;
   onSave: (values: SessionFormValues) => Promise<void>;
   onCancel: () => void;
+  lockDoctorId?: string;
+  lockDoctorName?: string;
 }
 
 export function SessionForm({
@@ -38,6 +46,8 @@ export function SessionForm({
   onNotesChange,
   onSave,
   onCancel,
+  lockDoctorId,
+  lockDoctorName,
 }: SessionFormProps) {
   const t = useTranslations('DentalRecord');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +57,7 @@ export function SessionForm({
     if (!defaultDate && !date) setDate(new Date().toISOString().split('T')[0]);
   }, [defaultDate]); // eslint-disable-line react-hooks/exhaustive-deps
   const [description, setDescription] = useState(defaultDescription ?? '');
-  const [doctorId, setDoctorId] = useState('');
+  const [doctorId, setDoctorId] = useState(lockDoctorId ?? '');
   const [internalNotes, setInternalNotes] = useState('');
   const notes = controlledNotes !== undefined ? controlledNotes : internalNotes;
   const setNotes = (v: string) => { if (onNotesChange) onNotesChange(v); else setInternalNotes(v); };
@@ -55,6 +65,8 @@ export function SessionForm({
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shouldDischarge, setShouldDischarge] = useState(false);
+  const [dischargeDate, setDischargeDate] = useState('');
 
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
@@ -69,10 +81,14 @@ export function SessionForm({
     e.preventDefault();
     if (!description.trim()) { setError(t('session.descriptionRequired')); return; }
     if (doctors.length > 0 && !doctorId) { setError(t('session.doctorRequired')); return; }
+    if (shouldDischarge && !dischargeDate) {
+      setError(t('session.discharge.dateRequired'));
+      return;
+    }
     setError(null);
     setIsSaving(true);
     try {
-      await onSave({ date, description, notes, files, doctorId });
+      await onSave({ date, description, notes, files, doctorId, shouldDischarge, dischargeDate });
     } catch {
       setError(t('session.saveError'));
     } finally {
@@ -99,7 +115,14 @@ export function SessionForm({
       </div>
 
       {/* Doctor */}
-      {doctors.length > 0 && (
+      {lockDoctorId ? (
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">{t('session.doctor')}</Label>
+          <div className="h-8 flex items-center rounded-md border border-input bg-muted/50 px-3 text-xs text-foreground">
+            {lockDoctorName ?? lockDoctorId}
+          </div>
+        </div>
+      ) : doctors.length > 0 && (
         <div className="flex flex-col gap-1">
           <Label className="text-xs">
             {t('session.doctor')}
@@ -168,6 +191,85 @@ export function SessionForm({
                 </button>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Discharge */}
+      <div className="space-y-3">
+        <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+          <Checkbox
+            id="discharge-patient-session"
+            checked={shouldDischarge}
+            onCheckedChange={(checked) => {
+              const enabled = Boolean(checked);
+              setShouldDischarge(enabled);
+              if (!enabled) setDischargeDate('');
+            }}
+            className="mt-0.5"
+          />
+          <div className="space-y-1">
+            <Label htmlFor="discharge-patient-session" className="cursor-pointer text-sm font-medium">
+              {t('session.discharge.checkboxLabel')}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {t('session.discharge.checkboxDescription')}
+            </p>
+          </div>
+        </div>
+
+        {shouldDischarge && (
+          <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                {t('session.discharge.optionsLabel')}
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" size="sm" className="rounded-full"
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}>
+                  {t('session.discharge.option1Month')}
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full"
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}>
+                  {t('session.discharge.option3Months')}
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full"
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}>
+                  {t('session.discharge.option6Months')}
+                </Button>
+                <Button type="button" variant="secondary" size="sm" className="rounded-full"
+                  onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}>
+                  {t('session.discharge.option1Year')}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('session.discharge.dateLabel')}</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className={cn('w-full justify-start text-left font-normal h-10 border-input', !dischargeDate && 'text-muted-foreground')}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dischargeDate
+                      ? format(new Date(dischargeDate + 'T00:00:00'), 'dd/MM/yyyy')
+                      : t('session.discharge.datePlaceholder')}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dischargeDate ? new Date(dischargeDate + 'T00:00:00') : undefined}
+                    onSelect={(date) => setDischargeDate(date ? format(date, 'yyyy-MM-dd') : '')}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         )}
       </div>

@@ -47,13 +47,13 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
     AlertTriangle,
-    Bell,
     Check,
     ChevronDown,
     KeyRound,
     LogOut,
     Menu,
     Moon,
+    Settings2,
     Sun,
     X,
 } from 'lucide-react';
@@ -283,8 +283,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                     )}
                                     <Link href={`/${locale}/preferences`} passHref>
                                         <DropdownMenuItem className="rounded-lg font-medium">
-                                            <Bell className="mr-2 h-4 w-4" />
-                                            <span>{tHeader('communicationPreferences')}</span>
+                                            <Settings2 className="mr-2 h-4 w-4" />
+                                            <span>{tHeader('preferences')}</span>
                                         </DropdownMenuItem>
                                     </Link>
                                     <DropdownMenuSeparator />
@@ -712,10 +712,11 @@ function MobileNav() {
                                         )}
                                         <Link
                                             href={`/${locale}/preferences`}
+                                            onClick={() => { setIsOpen(false); setMobileFooterPanel(null); }}
                                             className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
                                         >
-                                            <Bell className="h-4 w-4 shrink-0" />
-                                            <span>{tHeader('communicationPreferences')}</span>
+                                            <Settings2 className="h-4 w-4 shrink-0" />
+                                            <span>{tHeader('preferences')}</span>
                                         </Link>
                                         <button
                                             type="button"

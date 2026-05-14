@@ -46,6 +46,7 @@ import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarSettings, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
+import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
@@ -658,6 +659,24 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionUpdated') });
             } else {
                 await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
+                if (clinicSessionAppointment.status !== 'completed') {
+                    await updateAppointmentStatusRequest({
+                        appointment: clinicSessionAppointment,
+                        newStatus: 'completed',
+                    });
+                    setAppointments((prev) =>
+                        prev.map((appointment) =>
+                            appointment.id === clinicSessionAppointment.id
+                                ? { ...appointment, status: 'completed' }
+                                : appointment,
+                        ),
+                    );
+                    setSelectedAppointment((prev) =>
+                        prev && prev.id === clinicSessionAppointment.id
+                            ? { ...prev, status: 'completed' }
+                            : prev,
+                    );
+                }
                 toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
             }
 

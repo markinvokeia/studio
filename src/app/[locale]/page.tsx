@@ -4,6 +4,7 @@ import { Stats } from '@/components/dashboard/stats';
 import { SalesSummaryChart } from '@/components/charts/sales-summary-chart';
 import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart';
 import { InvoiceStatusChart } from '@/components/charts/invoice-status-chart';
+import { DoctorWorkspace } from '@/components/dashboard/doctor-workspace';
 import { ReportFilters } from '@/components/dashboard/report-filters';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { NewPatientsTable } from '@/components/tables/new-patients-table';
@@ -13,7 +14,7 @@ import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { subMonths, format } from 'date-fns';
 import { KpiRow } from '@/components/dashboard/kpi-row';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
@@ -22,6 +23,7 @@ import { Can } from '@/components/auth/Can';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime } from '@/lib/utils';
+import { hasDoctorWorkspaceAccess } from '@/lib/permissions';
 
 type DashboardSummary = {
     stats: Stat[],
@@ -289,6 +291,21 @@ async function getPatientsData(pagination: PaginationState, columnFilters: Colum
 }
 
 export default function DashboardPage() {
+    const locale = useLocale();
+    const { permissions, isLoading } = usePermissions();
+
+    if (isLoading) {
+        return <div className="flex-1 p-4" />;
+    }
+
+    if (hasDoctorWorkspaceAccess(permissions)) {
+        return <DoctorWorkspace locale={locale} />;
+    }
+
+    return <LegacyDashboardPage />;
+}
+
+function LegacyDashboardPage() {
     const tStats = useTranslations('Stats');
     const tKpi = useTranslations('KpiRow');
     const t = useTranslations();
