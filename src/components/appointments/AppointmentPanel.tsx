@@ -18,13 +18,22 @@ import {
   Stethoscope,
   UserSquare,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
 import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
-import { formatDisplayDate, cn } from '@/lib/utils';
+import { formatDisplayDate, cn, formatServicePrice } from '@/lib/utils';
 import type { Appointment, AppointmentStatus, Invoice, Order, PatientSession } from '@/lib/types';
 
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
@@ -60,6 +69,26 @@ function timeFromDateTime(value: unknown): string | null {
 
   const timePart = value.replace(/Z$/, '').split('T')[1];
   return timePart ? timePart.slice(0, 5) : null;
+}
+
+function openInNewTab(path: string) {
+  const url = new URL(path, window.location.origin);
+  window.open(url.toString(), '_blank', 'noopener,noreferrer');
+}
+
+function useCanOpenDetailDeepLinks() {
+  const [canOpenDetailDeepLinks, setCanOpenDetailDeepLinks] = React.useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => setCanOpenDetailDeepLinks(media.matches);
+
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  return canOpenDetailDeepLinks;
 }
 
 interface DetailRowProps {
@@ -140,16 +169,57 @@ export function AppointmentPanel({
   onStatusChange,
   onRequestCustomCancellation,
 }: AppointmentPanelProps) {
+  const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
   const tReason = useTranslations('CancellationReason');
   const tReschedule = useTranslations('AppointmentReschedule');
   const tPanel = useTranslations('AppointmentPanel');
+  const tServices = useTranslations('ServicesPage');
+  const tServicesColumns = useTranslations('ServicesColumns');
+  const tGeneral = useTranslations('General');
 
   const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
+  const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
+  const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
+
+  const openPatientDetail = React.useCallback(() => {
+    if (!appointment?.patientId) return;
+    if (canOpenDetailDeepLinks) {
+      const params = new URLSearchParams({ f: appointment.patientId });
+      openInNewTab(`/${locale}/patients?${params.toString()}`);
+      return;
+    }
+    setIsPatientSheetOpen(true);
+  }, [appointment, canOpenDetailDeepLinks, locale]);
+
+  const openDoctorDetail = React.useCallback(() => {
+    if (!appointment?.doctorId) return;
+    if (canOpenDetailDeepLinks) {
+      const params = new URLSearchParams({ f: appointment.doctorId, t: 'Detalles' });
+      openInNewTab(`/${locale}/config/doctors?${params.toString()}`);
+      return;
+    }
+    setIsDoctorSheetOpen(true);
+  }, [appointment, canOpenDetailDeepLinks, locale]);
+
+  const openServiceDetail = React.useCallback((service: NonNullable<Appointment['services']>[number]) => {
+    const filter = service.name || service.id;
+    if (!filter) return;
+
+    const params = new URLSearchParams({ f: filter, t: 'Detalles' });
+    const path = `/${locale}/sales/services?${params.toString()}`;
+
+    if (canOpenDetailDeepLinks) {
+      openInNewTab(path);
+      return;
+    }
+
+    setSelectedService(service);
+  }, [canOpenDetailDeepLinks, locale]);
 
   if (!appointment) return null;
 
@@ -188,7 +258,7 @@ export function AppointmentPanel({
             <div className="flex items-start gap-3">
               <button
                 type="button"
-                onClick={() => appointment.patientId && setIsPatientSheetOpen(true)}
+                onClick={openPatientDetail}
                 className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
                 aria-label={tPanel('openPatient')}
                 disabled={!appointment.patientId}
@@ -205,7 +275,7 @@ export function AppointmentPanel({
                   <SheetTitle asChild>
                     <button
                       type="button"
-                      onClick={() => appointment.patientId && setIsPatientSheetOpen(true)}
+                      onClick={openPatientDetail}
                       disabled={!appointment.patientId}
                       className={cn(
                         'truncate text-left text-lg font-semibold text-foreground',
@@ -301,7 +371,7 @@ export function AppointmentPanel({
                         {tPanel('openDoctor')}
                       </span>
                     ) : undefined}
-                    onClick={appointment.doctorId ? () => setIsDoctorSheetOpen(true) : undefined}
+                    onClick={appointment.doctorId ? openDoctorDetail : undefined}
                   />
                 </div>
 
@@ -312,18 +382,23 @@ export function AppointmentPanel({
                     value={
                       <span className="flex flex-col">
                         {appointment.services?.map((service) => (
-                          <span key={service.id} className="flex items-center gap-2 border-b border-dashed border-border/70 py-2 last:border-b-0">
+                          <button
+                            key={service.id}
+                            type="button"
+                            className="flex w-full items-center gap-2 border-b border-dashed border-border/70 py-2 text-left transition-colors hover:bg-muted/20 last:border-b-0"
+                            onClick={() => openServiceDetail(service)}
+                          >
                             <span
                               className="h-2.5 w-2.5 rounded-full"
                               style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
                             />
-                            <span className="min-w-0 flex-1 truncate">{service.name}</span>
+                            <span className="min-w-0 flex-1 truncate underline-offset-4 hover:underline">{service.name}</span>
                             {service.duration_minutes ? (
                               <span className="shrink-0 text-xs font-medium text-muted-foreground">
                                 {tPanel('durationMinutes', { minutes: service.duration_minutes })}
                               </span>
                             ) : null}
-                          </span>
+                          </button>
                         ))}
                       </span>
                     }
@@ -527,6 +602,82 @@ export function AppointmentPanel({
           patientName={appointment.patientName}
         />
       )}
+      <Dialog open={!!selectedService} onOpenChange={(nextOpen) => !nextOpen && setSelectedService(null)}>
+        <DialogContent maxWidth="md" className="w-[calc(100vw-1.5rem)] rounded-xl">
+          {selectedService && (
+            <>
+              <DialogHeader>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    className="h-9 w-9 shrink-0 rounded-full border border-white/60 shadow-sm"
+                    style={{ backgroundColor: selectedService.color || STATUS_ACCENT_COLOR.confirmed }}
+                  />
+                  <div className="min-w-0">
+                    <DialogTitle className="truncate">{selectedService.name}</DialogTitle>
+                    <DialogDescription className="truncate">
+                      {selectedService.category || selectedService.category_name || tServices('title')}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <DialogBody className="space-y-4 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServicesColumns('price')}
+                    </p>
+                    <p className="text-lg font-bold text-foreground">
+                      {formatServicePrice(selectedService.price || 0, selectedService.currency, tGeneral('free'))}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServicesColumns('duration')}
+                    </p>
+                    <p className="text-lg font-bold text-foreground">
+                      {tPanel('durationMinutes', { minutes: selectedService.duration_minutes || 0 })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2">
+                    <span className="text-xs text-muted-foreground">{tServicesColumns('category')}</span>
+                    <span className="truncate text-xs font-medium">
+                      {selectedService.category || selectedService.category_name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2">
+                    <span className="text-xs text-muted-foreground">{tServicesColumns('isActive')}</span>
+                    <Badge variant={selectedService.is_active ? 'success' : 'outline'}>
+                      {selectedService.is_active ? tServicesColumns('active') : tServicesColumns('inactive')}
+                    </Badge>
+                  </div>
+                </div>
+
+                {selectedService.description && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServices('createDialog.descriptionLabel')}
+                    </p>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{selectedService.description}</p>
+                  </div>
+                )}
+
+                {selectedService.indications && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServices('createDialog.indicationsLabel')}
+                    </p>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{selectedService.indications}</p>
+                  </div>
+                )}
+              </DialogBody>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

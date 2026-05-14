@@ -860,7 +860,10 @@ export default function ServicesPage() {
 
   useDeepLink<Service>({
     tabMap: { 'Detalles': 'details', 'Info': 'info' },
-    onFilter: () => {},
+    onFilter: (value) => {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+      setColumnFilters([{ id: 'name', value }]);
+    },
     items: services,
     allItems: services,
     isLoading: isRefreshing,
