@@ -1,0 +1,215 @@
+{
+  "name": "Reportes - Bloque Agenda",
+  "nodes": [
+    {
+      "id": "wh-ocupacion",
+      "name": "GET /reports/ocupacion-agenda",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/ocupacion-agenda",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-ocupacion",
+      "name": "Query Ocupacion Agenda",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.id,\n  a.start_datetime,\n  a.end_datetime,\n  ROUND(EXTRACT(EPOCH FROM (a.end_datetime - a.start_datetime)) / 60)::int AS duration_min,\n  a.status,\n  a.cancellation_reason,\n  (a.quote_id IS NOT NULL)           AS has_quote,\n  (EXISTS (SELECT 1 FROM sesiones_clinicas sc3 WHERE sc3.appointment_id = a.id)) AS has_session,\n  DATE_TRUNC($9::text, a.start_datetime)::date AS periodo,\n  COALESCE(pat.name, 'Sin paciente')   AS patient_name,\n  COALESCE(pat.phone_number, '')        AS patient_phone,\n  COALESCE(doc.name, 'Sin asignar')    AS doctor_name,\n  COALESCE(cs.name, 'Sin calendario')  AS calendar_name,\n  (\n    SELECT sc2.name\n    FROM appointment_service_catalog asc2\n    JOIN service_catalog sc2 ON sc2.id = asc2.service_id\n    WHERE asc2.appointment_id = a.id\n    ORDER BY sc2.name\n    LIMIT 1\n  ) AS service_name\nFROM appointments a\nLEFT JOIN users pat ON pat.id = a.patient_id\nLEFT JOIN users doc ON doc.id = a.assignee_id\nLEFT JOIN calendar_sources cs ON cs.id = a.calendar_source_id\nWHERE a.start_datetime::date BETWEEN $1::date AND $2::date\n  AND ($3::uuid IS NULL OR a.assignee_id = $3::uuid)\n  AND ($4::text IS NULL OR a.status = $4::text)\n  AND ($5::bigint IS NULL OR a.calendar_source_id = $5::bigint)\n  AND (\n    $6::integer IS NULL\n    OR EXISTS (\n      SELECT 1 FROM appointment_service_catalog asc3\n      WHERE asc3.appointment_id = a.id AND asc3.service_id = $6::integer\n    )\n  )\n  AND ($7::text IS NULL OR ($7 = 'true' AND a.quote_id IS NOT NULL) OR ($7 = 'false' AND a.quote_id IS NULL))\n  AND ($8::text IS NULL OR ($8 = 'true' AND EXISTS (SELECT 1 FROM sesiones_clinicas sc4 WHERE sc4.appointment_id = a.id)) OR ($8 = 'false' AND NOT EXISTS (SELECT 1 FROM sesiones_clinicas sc5 WHERE sc5.appointment_id = a.id)))\nORDER BY a.start_datetime DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.doctor_id || null,\n  ($input.first().json.query?.status && $input.first().json.query.status !== 'all') ? $input.first().json.query.status : null,\n  $input.first().json.query?.calendar_id ? Number($input.first().json.query.calendar_id) : null,\n  $input.first().json.query?.service_id ? Number($input.first().json.query.service_id) : null,\n  ($input.first().json.query?.has_quote && $input.first().json.query.has_quote !== 'all') ? $input.first().json.query.has_quote : null,\n  ($input.first().json.query?.has_session && $input.first().json.query.has_session !== 'all') ? $input.first().json.query.has_session : null,\n  $input.first().json.query?.group_by || 'day'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-ocupacion-build",
+      "name": "Build Ocupacion Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).map(r => ({\n  ...r,\n  duration_min: Number(r.duration_min || 0),\n  has_quote:   Boolean(r.has_quote),\n  has_session: Boolean(r.has_session),\n}));\n\nconst now = new Date();\nconst total        = rows.length;\nconst completadas  = rows.filter(r => r.status === 'completed').length;\nconst confirmadas  = rows.filter(r => r.status === 'confirmed').length;\nconst canceladas   = rows.filter(r => r.status === 'cancelled').length;\nconst no_shows     = rows.filter(r => r.status === 'no_show').length;\nconst con_presupuesto = rows.filter(r => r.has_quote).length;\nconst con_sesion      = rows.filter(r => r.has_session).length;\nconst sin_atender     = rows.filter(r => ['scheduled','confirmed'].includes(r.status) && new Date(r.start_datetime) < now).length;\nconst duracion_promedio_min = total ? Math.round(rows.reduce((s, r) => s + r.duration_min, 0) / total) : 0;\n\n// by_status\nconst statusMap = {};\nfor (const r of rows) statusMap[r.status] = (statusMap[r.status] || 0) + 1;\nconst by_status = Object.entries(statusMap)\n  .sort((a, b) => b[1] - a[1])\n  .map(([status, count]) => ({ status, count, pct: total ? Number((count / total * 100).toFixed(1)) : 0 }));\n\n// by_doctor\nconst ALL_STATUSES = ['completed','arrived','in_progress','confirmed','scheduled','no_show','cancelled'];\nconst docMap = {};\nfor (const r of rows) {\n  if (!docMap[r.doctor_name]) {\n    docMap[r.doctor_name] = { total: 0 };\n    for (const s of ALL_STATUSES) docMap[r.doctor_name][s] = 0;\n  }\n  docMap[r.doctor_name].total++;\n  if (ALL_STATUSES.includes(r.status)) docMap[r.doctor_name][r.status]++;\n}\nconst by_doctor = Object.entries(docMap)\n  .sort((a, b) => b[1].total - a[1].total)\n  .map(([doctor_name, d]) => ({ doctor_name, ...d, tasa_completadas: d.total ? Number((d.completed / d.total * 100).toFixed(1)) : 0 }));\n\n// by_period\nconst periodMap = {};\nfor (const r of rows) {\n  const p = (r.periodo || '').substring(0, 10);\n  if (!periodMap[p]) {\n    periodMap[p] = { total: 0 };\n    for (const s of ALL_STATUSES) periodMap[p][s] = 0;\n  }\n  periodMap[p].total++;\n  if (ALL_STATUSES.includes(r.status)) periodMap[p][r.status]++;\n}\nconst by_period = Object.entries(periodMap)\n  .sort((a, b) => a[0].localeCompare(b[0]))\n  .map(([periodo, d]) => ({ periodo, ...d }));\n\n// by_calendar\nconst calMap = {};\nfor (const r of rows) {\n  if (!calMap[r.calendar_name]) {\n    calMap[r.calendar_name] = { total: 0 };\n    for (const s of ALL_STATUSES) calMap[r.calendar_name][s] = 0;\n  }\n  calMap[r.calendar_name].total++;\n  if (ALL_STATUSES.includes(r.status)) calMap[r.calendar_name][r.status]++;\n}\nconst by_calendar = Object.entries(calMap)\n  .sort((a, b) => b[1].total - a[1].total)\n  .map(([calendar_name, d]) => ({ calendar_name, ...d, tasa: d.total ? Number((d.completed / d.total * 100).toFixed(1)) : 0 }));\n\nreturn [{ json: {\n  summary: {\n    total_citas: total, completadas, confirmadas, canceladas, no_shows,\n    con_presupuesto, con_sesion, sin_atender,\n    tasa_completadas:     total ? Number((completadas  / total * 100).toFixed(1)) : 0,\n    tasa_canceladas:      total ? Number((canceladas   / total * 100).toFixed(1)) : 0,\n    tasa_con_presupuesto: total ? Number((con_presupuesto / total * 100).toFixed(1)) : 0,\n    duracion_promedio_min\n  },\n  by_status, by_doctor, by_period, by_calendar, rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-ocupacion",
+      "name": "Respond Ocupacion",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-cancelaciones",
+      "name": "GET /reports/cancelaciones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/cancelaciones",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-cancelaciones",
+      "name": "Query Cancelaciones",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.id,\n  a.start_datetime,\n  COALESCE(u_pat.name, 'Sin paciente') AS patient_name,\n  COALESCE(u_pat.phone_number, '') AS phone_number,\n  COALESCE(doc.name, 'Sin asignar') AS doctor_name,\n  COALESCE(cs.name, 'Sin consultorio') AS calendar_name,\n  a.cancellation_reason,\n  (\n    SELECT sc2.name\n    FROM appointment_service_catalog asc2\n    JOIN service_catalog sc2 ON sc2.id = asc2.service_id\n    WHERE asc2.appointment_id = a.id\n    ORDER BY sc2.name\n    LIMIT 1\n  ) AS service_name\nFROM appointments a\nLEFT JOIN users u_pat ON u_pat.id = a.patient_id\nLEFT JOIN users doc ON doc.id = a.assignee_id\nLEFT JOIN calendar_sources cs ON cs.id = a.calendar_source_id\nWHERE a.start_datetime::date BETWEEN $1::date AND $2::date\n  AND a.status = 'cancelled'\n  AND ($3::uuid IS NULL OR a.assignee_id = $3::uuid)\n  AND ($4::bigint IS NULL OR a.calendar_source_id = $4::bigint)\n  AND ($5::text IS NULL OR a.cancellation_reason = $5::text)\nORDER BY a.start_datetime DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.doctor_id || null,\n  $input.first().json.query?.calendar_id ? Number($input.first().json.query.calendar_id) : null,\n  $input.first().json.query?.reason || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-cancel-build",
+      "name": "Build Cancelaciones Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const REASON_LABELS = { late: 'Llegó tarde', in_time: 'Canceló a tiempo', no_notice: 'Sin aviso', by_doctor: 'Por el doctor', by_clinic: 'Por la clínica', other: 'Otro motivo', reschedule: 'Reprogramó' };\nconst rows = $input.all().map(i => i.json);\nconst total = rows.length;\n\n// by_reason\nconst reasonMap = {};\nfor (const r of rows) {\n  const reason = r.cancellation_reason || 'other';\n  reasonMap[reason] = (reasonMap[reason] || 0) + 1;\n}\nconst by_reason = Object.entries(reasonMap)\n  .sort((a, b) => b[1] - a[1])\n  .map(([reason, count]) => ({ reason, label: REASON_LABELS[reason] || reason, count, pct: total ? Number((count / total * 100).toFixed(1)) : 0 }));\n\n// by_doctor\nconst docMap = {};\nfor (const r of rows) {\n  const name = r.doctor_name || 'Sin asignar';\n  docMap[name] = (docMap[name] || 0) + 1;\n}\nconst by_doctor = Object.entries(docMap)\n  .sort((a, b) => b[1] - a[1])\n  .map(([doctor_name, count]) => ({ doctor_name, count, pct: total ? Number((count / total * 100).toFixed(1)) : 0 }));\n\n// by_patient\nconst patMap = {};\nfor (const r of rows) {\n  const name = r.patient_name || 'Sin paciente';\n  if (!patMap[name]) patMap[name] = { count: 0, phone_number: r.phone_number || '' };\n  patMap[name].count++;\n}\nconst by_patient = Object.entries(patMap)\n  .sort((a, b) => b[1].count - a[1].count)\n  .map(([patient_name, d]) => ({ patient_name, ...d }));\n\n// by_service\nconst svcMap = {};\nfor (const r of rows) {\n  const svc = r.service_name || 'Sin servicio';\n  svcMap[svc] = (svcMap[svc] || 0) + 1;\n}\nconst by_service = Object.entries(svcMap)\n  .sort((a, b) => b[1] - a[1])\n  .map(([service_name, count]) => ({ service_name, count, pct: total ? Number((count / total * 100).toFixed(1)) : 0 }));\n\n// by_calendar\nconst calMap = {};\nfor (const r of rows) {\n  const cal = r.calendar_name || 'Sin consultorio';\n  calMap[cal] = (calMap[cal] || 0) + 1;\n}\nconst by_calendar = Object.entries(calMap)\n  .sort((a, b) => b[1] - a[1])\n  .map(([calendar_name, count]) => ({ calendar_name, count, pct: total ? Number((count / total * 100).toFixed(1)) : 0 }));\n\n// by_period\nconst periodMap = {};\nfor (const r of rows) {\n  const p = (r.start_datetime || '').substring(0, 10);\n  periodMap[p] = (periodMap[p] || 0) + 1;\n}\nconst by_period = Object.entries(periodMap)\n  .sort((a, b) => a[0].localeCompare(b[0]))\n  .map(([periodo, count]) => ({ periodo, count }));\n\nconst top_reason = by_reason[0]?.reason || '';\nconst top_reason_label = REASON_LABELS[top_reason] || top_reason;\nconst top_doctor = by_doctor[0]?.doctor_name || '';\nconst top_patient = by_patient[0]?.patient_name || '';\nconst top_service = by_service[0]?.service_name || '';\n\nreturn [{ json: {\n  summary: { total, top_reason, top_reason_label, top_doctor, top_patient, top_service },\n  by_reason, by_doctor, by_patient, by_service, by_calendar, by_period, rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-cancelaciones",
+      "name": "Respond Cancelaciones",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/ocupacion-agenda": {
+      "main": [
+        [
+          {
+            "node": "Query Ocupacion Agenda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ocupacion Agenda": {
+      "main": [
+        [
+          {
+            "node": "Build Ocupacion Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ocupacion Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Ocupacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/cancelaciones": {
+      "main": [
+        [
+          {
+            "node": "Query Cancelaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Cancelaciones": {
+      "main": [
+        [
+          {
+            "node": "Build Cancelaciones Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Cancelaciones Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Cancelaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

@@ -277,3 +277,102 @@ textarea::placeholder {
     display: none;
   }
 }
+
+@media print {
+  /* A4 page size with comfortable margins */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  /* Hide all fixed/sticky overlays: floating widgets, toasts, popovers */
+  [data-radix-popper-content-wrapper],
+  [data-sonner-toaster],
+  [role="dialog"],
+  [role="tooltip"] {
+    display: none !important;
+  }
+
+  /* Ensure page background is white and text is black */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Reset html/body height so content flows across pages */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
+  }
+
+  /* Release flex height constraints — the main layout uses flex-1/min-h-0
+     to fill the viewport. For print we need natural document flow. */
+  .flex-1 {
+    flex: none !important;
+    height: auto !important;
+  }
+  .min-h-0 {
+    min-height: initial !important;
+  }
+
+  /* Let all containers expand to their content */
+  .overflow-hidden,
+  .overflow-auto,
+  .overflow-scroll {
+    overflow: visible !important;
+  }
+
+  /* Remove max-height constraints that clip content */
+  [style*="max-height"],
+  [style*="height"] {
+    max-height: none !important;
+  }
+
+  /* Report filter bar and generate button are not needed in print */
+  [data-report-filters],
+  [data-report-actions] {
+    display: none !important;
+  }
+
+  /* Allow content to break across A4 pages naturally */
+  table { page-break-inside: auto; }
+  tr    { page-break-inside: avoid; page-break-after: auto; }
+  thead { display: table-header-group; }
+
+  /* Compact table text so columns fit within A4 width;
+     remove border-radius that clips the right border */
+  .rounded-md { border-radius: 0 !important; }
+
+  table {
+    font-size: 0.68rem !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+  }
+
+  /* Headers: never wrap — single line only */
+  th {
+    padding: 4px 6px !important;
+    border: 1px solid #d1d5db !important;
+    background-color: #f3f4f6 !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Cells: can wrap freely */
+  td {
+    padding: 3px 6px !important;
+    border: 1px solid #d1d5db !important;
+    white-space: normal !important;
+    word-break: break-word;
+  }
+
+  /* Prevent chart cards from splitting across pages */
+  .recharts-wrapper {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

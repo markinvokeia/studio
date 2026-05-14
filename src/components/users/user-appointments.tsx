@@ -27,13 +27,58 @@ const isWhite = (color: string | null | undefined) => {
   return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
 };
 
+function getAppointmentDateTime(appointment: Appointment): Date | null {
+  const startDateTime = appointment.start?.dateTime;
+  if (typeof startDateTime === 'string') {
+    const parsedStart = parseISO(startDateTime.replace(/Z$/, ''));
+    if (!Number.isNaN(parsedStart.getTime())) return parsedStart;
+  }
+
+  const fallbackDateTime = `${appointment.date}T${appointment.time || '00:00'}:00`;
+  const parsedFallback = parseISO(fallbackDateTime);
+  return Number.isNaN(parsedFallback.getTime()) ? null : parsedFallback;
+}
+
+function sortAppointmentsForPatientTimeline(appointments: Appointment[]): Appointment[] {
+  const now = new Date();
+  const todayKey = format(now, 'yyyy-MM-dd');
+
+  return [...appointments].sort((left, right) => {
+    const leftDateTime = getAppointmentDateTime(left);
+    const rightDateTime = getAppointmentDateTime(right);
+
+    if (!leftDateTime || !rightDateTime) return 0;
+
+    const leftDateKey = format(leftDateTime, 'yyyy-MM-dd');
+    const rightDateKey = format(rightDateTime, 'yyyy-MM-dd');
+    const leftIsToday = leftDateKey === todayKey;
+    const rightIsToday = rightDateKey === todayKey;
+
+    if (leftIsToday && !rightIsToday) return -1;
+    if (!leftIsToday && rightIsToday) return 1;
+
+    if (leftIsToday && rightIsToday) {
+      const leftDistance = Math.abs(leftDateTime.getTime() - now.getTime());
+      const rightDistance = Math.abs(rightDateTime.getTime() - now.getTime());
+      if (leftDistance !== rightDistance) return leftDistance - rightDistance;
+      return leftDateTime.getTime() - rightDateTime.getTime();
+    }
+
+    const leftIsFuture = leftDateTime.getTime() >= now.getTime();
+    const rightIsFuture = rightDateTime.getTime() >= now.getTime();
+
+    if (leftIsFuture && !rightIsFuture) return -1;
+    if (!leftIsFuture && rightIsFuture) return 1;
+
+    return leftIsFuture
+      ? leftDateTime.getTime() - rightDateTime.getTime()
+      : rightDateTime.getTime() - leftDateTime.getTime();
+  });
+}
+
 const getColumns = (
   t: (key: string) => string,
-  onStatusChange: (
-    appointment: Appointment,
-    newStatus: AppointmentStatus,
-    extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string },
-  ) => void,
+  onStatusChange: (appointment: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => void,
   onRequestCustomCancellation: (appointment: Appointment) => void,
 ): ColumnDef<Appointment>[] => [
   {
@@ -206,7 +251,7 @@ async function getAppointmentsForUser(
       return appointment;
     }).filter((apt): apt is Appointment => apt !== null);
 
-    return appointments;
+    return sortAppointmentsForPatientTimeline(appointments);
   } catch (error) {
     console.error("Failed to fetch appointments:", error);
     return [];

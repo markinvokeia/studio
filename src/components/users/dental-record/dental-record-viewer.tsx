@@ -7,6 +7,7 @@ import { ImageLightbox } from '@/components/ui/image-viewer';
 import { cn } from '@/lib/utils';
 import type {
   OdontogramCondition,
+  OdontogramMarcacion,
   OdontogramSnapshot,
   OdontogramState,
   OdontogramSurface,
@@ -14,6 +15,8 @@ import type {
   ToothPerioData,
 } from '@/lib/types';
 import { createOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
 import { CONDITION_MAP } from './condition-toolbar';
 import { ConditionToolbar } from './condition-toolbar';
@@ -64,6 +67,23 @@ function generateSessionLabel() {
 
 function cloneState(s: OdontogramState): OdontogramState {
   return JSON.parse(JSON.stringify(s));
+}
+
+function applyMarcaciones(base: OdontogramState, marcaciones: OdontogramMarcacion[]): OdontogramState {
+  const state = cloneState(base);
+  for (const m of marcaciones) {
+    const tooth: OdontogramToothState = state[m.diente]
+      ? JSON.parse(JSON.stringify(state[m.diente])) : {};
+    if (!m.superficie || m.superficie === 'whole') {
+      tooth.whole = m.condicion;
+    } else if (m.superficie === 'overlay') {
+      tooth.overlays = [...(tooth.overlays ?? []), m.condicion];
+    } else {
+      tooth[m.superficie as OdontogramSurface] = m.condicion;
+    }
+    state[m.diente] = tooth;
+  }
+  return state;
 }
 
 const SURF_ABBR: Record<OdontogramSurface, string> = {
@@ -140,9 +160,16 @@ type DesktopLayout = 'flat' | 'mouth';
 interface DentalRecordViewerProps {
   patientId: string;
   patientName?: string;
+  doctorId?: string;
+  doctorName?: string;
+  autoStartSession?: boolean;
+  autoStartDescription?: string;
+  autoStartNotes?: string;
+  autoStartMarcaciones?: OdontogramMarcacion[];
+  onSessionSaved?: () => void;
 }
 
-export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -198,6 +225,13 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
   }, [patientId]);
 
   useEffect(() => {
+    if (autoStartSession && !isLoading) {
+      handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStartSession, isLoading]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = localStorage.getItem(`dental_perio_${patientId}`);
     if (saved) {
@@ -229,19 +263,22 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
     try { return t(`conditions.${c}`); } catch { return CONDITION_MAP[c]?.icon ?? c; }
   }
 
-  function handleStartNewSession() {
+  function handleStartNewSession(description?: string, notes?: string, marcaciones?: OdontogramMarcacion[]) {
     const base = currentSnapshot?.state ?? {};
-    setEditingState(cloneState(base));
-    setNotes('');
-    setEditingDefaultDescription(generateSessionLabel());
+    const initialState = marcaciones?.length
+      ? applyMarcaciones(base, marcaciones)
+      : cloneState(base);
+    setEditingState(initialState);
+    setNotes(notes ?? '');
+    setEditingDefaultDescription(description || generateSessionLabel());
     setIsEditing(true);
     setSelectedToothId(null);
-    // Auto-expand to fullscreen on mobile for a better editing experience
     if (isMobile) setIsFullscreen(true);
   }
 
   function handleCancelEditing() {
     setIsEditing(false);
+    setIsFullscreen(false);
     setEditingState({});
     setNotes('');
     setEditingDefaultDescription('');
@@ -265,16 +302,30 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
       localStorage.setItem(`dental_perio_${patientId}`, JSON.stringify(perioData));
     }
 
+    if (values.shouldDischarge && values.dischargeDate) {
+      try {
+        await api.post(API_ROUTES.PATIENT_DISCHARGE, {
+          id: patientId,
+          appointment_date: values.dischargeDate,
+        });
+        toast({ title: t('session.discharge.toastSuccess') });
+      } catch {
+        // discharge failure is non-blocking — session already saved
+      }
+    }
+
     const updated = await fetchOdontograms(patientId);
     setHistory(updated);
     setHistoryIndex(updated.length - 1);
     setIsEditing(false);
+    setIsFullscreen(false);
     setEditingState({});
     setNotes('');
     setEditingDefaultDescription('');
     setSelectedToothId(null);
     toast({ title: t('session.saveSuccess'), description: values.description });
-  }, [editingState, patientId, perioData, t, toast]);
+    onSessionSaved?.();
+  }, [editingState, onSessionSaved, patientId, perioData, t, toast]);
 
   function handleApply(
     toothId: string,
@@ -560,7 +611,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             </button>
 
             {!isEditing && (
-              <Button size="sm" onClick={handleStartNewSession} className="h-7 w-7 p-0 shrink-0" title={t('newSession')}>
+              <Button size="sm" onClick={() => handleStartNewSession()} className="h-7 w-7 p-0 shrink-0" title={t('newSession')}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -656,7 +707,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
           </div>
 
           {!isEditing && (
-            <Button size="sm" onClick={handleStartNewSession} className="gap-1.5 text-xs shrink-0">
+            <Button size="sm" onClick={() => handleStartNewSession()} className="gap-1.5 text-xs shrink-0">
               <Plus className="h-3.5 w-3.5" />
               {t('newSession')}
             </Button>
@@ -713,7 +764,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             <p className="font-semibold text-foreground">{t('noSessions')}</p>
             <p className="text-sm text-muted-foreground mt-1">{t('noSessionsDesc')}</p>
           </div>
-          <Button onClick={handleStartNewSession} className="gap-2">
+          <Button onClick={() => handleStartNewSession()} className="gap-2">
             <Stethoscope className="h-4 w-4" />
             {t('newSession')}
           </Button>
@@ -1010,6 +1061,8 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
           onNotesChange={setNotes}
           onSave={handleSave}
           onCancel={handleCancelEditing}
+          lockDoctorId={doctorId}
+          lockDoctorName={doctorName}
         />
       )}
 

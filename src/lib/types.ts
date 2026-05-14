@@ -679,6 +679,115 @@ export type PatientSession = {
   appointment_id?: string;
 };
 
+export type DoctorPatientAllergy = {
+  alergeno: string;
+  reaccion_descrita?: string;
+};
+
+export type DoctorTreatmentPlanContext = {
+  service_name: string;
+  status: TreatmentSequenceStatus;
+  next_step?: string;
+  next_step_date?: string;
+};
+
+export type DoctorQuoteItemContext = {
+  service_name: string;
+  tooth_number?: number | null;
+};
+
+export type DoctorClinicalContext = {
+  patient_name: string;
+  appointment_date?: string;
+  appointment_time?: string;
+  service_name?: string;
+  appointment_notes?: string;
+  latest_session?: PatientSession | null;
+  recent_sessions: PatientSession[];
+  allergies: DoctorPatientAllergy[];
+  active_treatment_plans: DoctorTreatmentPlanContext[];
+  quote_items: DoctorQuoteItemContext[];
+};
+
+export type DoctorClinicalBrief = {
+  resumen_clinico: string;
+  ultimo_realizado: string;
+  que_toca_hoy: string[];
+  alertas: string[];
+  preguntas_sugeridas: string[];
+};
+
+export type DoctorClinicalQuestionAnswer = {
+  answer: string;
+};
+
+export type StructuredClinicalSession = {
+  diagnostico: string;
+  procedimiento_realizado: string;
+  notas_clinicas: string;
+  plan_proxima_cita: string;
+  tratamientos: TreatmentDetail[];
+  missing_information: string[];
+};
+
+export type DoctorAiIntent = 'clinical_summary' | 'clinical_question' | 'session_structuring' | 'unknown';
+
+export type DoctorAiSessionPatch = {
+  diagnostico: string;
+  procedimiento_realizado: string;
+  notas_clinicas: string;
+  plan_proxima_cita: string;
+  tratamientos: TreatmentDetail[];
+  missing_information?: string[];
+};
+
+export type DoctorAgentActionType =
+  | 'open_clinic_session'
+  | 'save_clinic_session'
+  | 'review_clinic_session'
+  | 'open_odontogram'
+  | 'open_patient_detail'
+  | 'open_clinical_history'
+  | 'open_patient_appointments'
+  | 'open_patient_messages'
+  | 'open_patient_notes'
+  | 'select_appointment';
+
+export type OdontogramMarcacion = {
+  diente: string;
+  condicion: OdontogramCondition;
+  superficie?: OdontogramSurface | 'whole' | 'overlay';
+};
+
+export type DoctorAgentActionPayload = {
+  appointment_id?: string;
+  clinical_history_view?: 'anamnesis' | 'timeline' | 'documents';
+  doctor_id?: string;
+  doctor_name?: string;
+  procedimiento_realizado?: string;
+  notas_clinicas?: string;
+  plan_proxima_cita?: string;
+  fecha_proxima_cita?: string;
+  tratamientos?: TreatmentDetail[];
+  marcaciones?: OdontogramMarcacion[];
+};
+
+export type DoctorAgentAction = {
+  type: DoctorAgentActionType;
+  payload?: DoctorAgentActionPayload | null;
+};
+
+export type DoctorAiQueryResponse = {
+  intent: DoctorAiIntent;
+  answer?: string;
+  output?: string;
+  speak_text?: string;
+  suggestions?: string[];
+  clinical_brief?: DoctorClinicalBrief | null;
+  session_patch?: DoctorAiSessionPatch | null;
+  action?: DoctorAgentAction | null;
+};
+
 export type TreatmentSequenceStepStatus = 'pending' | 'scheduled' | 'completed' | 'cancelled' | 'missed';
 
 export type TreatmentSequenceStep = {
@@ -1367,3 +1476,617 @@ export type StickyNote = {
   updated_at?: string;
   status: 'active' | 'deleted';
 };
+
+// ===== Reports =====
+
+export interface ReportFiltersBase {
+  date_from: string;
+  date_to: string;
+  currency?: 'UYU' | 'USD';
+}
+
+// R-01: Cierre de Caja
+export interface ReportCierreCajaSummary {
+  total_ingresos: number;
+  total_egresos: number;
+  resultado: number;
+  num_sesiones: number;
+}
+export interface ReportCierreCajaByMethod {
+  payment_method: string;
+  currency: string;
+  total_ingresos: number;
+  total_egresos: number;
+}
+export interface ReportCierreCajaRow {
+  session_id: number;
+  cashier_name: string;
+  cash_point_name: string;
+  opened_at: string;
+  closed_at: string | null;
+  status: string;
+  payment_method: string;
+  currency: string;
+  total_ingresos: number;
+  total_egresos: number;
+  num_movimientos: number;
+}
+export interface ReportCierreCajaResponse {
+  summary: ReportCierreCajaSummary;
+  by_method: ReportCierreCajaByMethod[];
+  rows: ReportCierreCajaRow[];
+}
+
+// R-02: Cobros del Día
+export interface ReportCobrosSummary {
+  total_cobrado: number;
+  num_cobros: number;
+  promedio: number;
+  mayor_cobro: number;
+}
+export interface ReportCobrosByMethod {
+  payment_method: string;
+  total: number;
+  count: number;
+}
+export interface ReportCobrosRow {
+  id: number;
+  doc_no: string;
+  created_at: string;
+  patient_name: string;
+  phone_number: string;
+  payment_method: string;
+  amount: number;
+  currency: string;
+  exchange_rate: number;
+  transaction_type: string;
+  status: string;
+  notes: string | null;
+}
+export interface ReportCobrosResponse {
+  summary: ReportCobrosSummary;
+  by_method: ReportCobrosByMethod[];
+  rows: ReportCobrosRow[];
+}
+
+// R-03: Cuentas Corrientes (Balance sheet)
+export interface ReportCuentasCorrientesSummary {
+  total_facturado: number;
+  total_cobrado: number;
+  saldo_neto: number;
+  num_pacientes: number;
+  num_con_deuda: number;
+}
+export interface ReportCuentasCorrientesRow {
+  id: string;
+  patient_name: string;
+  phone_number: string;
+  email: string;
+  total_invoiced: number;
+  total_paid: number;
+  saldo: number;
+}
+export interface ReportCuentasCorrientesResponse {
+  summary: ReportCuentasCorrientesSummary;
+  rows: ReportCuentasCorrientesRow[];
+}
+
+// R-16: Deudores (Aging)
+export interface ReportAgingSummary {
+  total_deuda: number;
+  num_deudores: number;
+  bucket_0_30: number;
+  bucket_31_60: number;
+  bucket_61_90: number;
+  bucket_90_plus: number;
+}
+export interface ReportAgingRow {
+  id: string;
+  patient_name: string;
+  phone_number: string;
+  email: string;
+  total_debt: number;
+  bucket_0_30: number;
+  bucket_31_60: number;
+  bucket_61_90: number;
+  bucket_90_plus: number;
+}
+export interface ReportAgingResponse {
+  summary: ReportAgingSummary;
+  rows: ReportAgingRow[];
+}
+
+// R-04: Presupuestos Pendientes
+export interface ReportPresupuestosSummary {
+  num_presupuestos: number;
+  total_potencial: number;
+  dias_promedio: number;
+  tasa_conversion: number;
+}
+export interface ReportPresupuestosRow {
+  id: number;
+  doc_no: string;
+  created_at: string;
+  patient_name: string;
+  phone_number: string;
+  total: number;
+  currency: string;
+  status: string;
+  billing_status: string;
+  days_pending: number;
+}
+export interface ReportPresupuestosResponse {
+  summary: ReportPresupuestosSummary;
+  rows: ReportPresupuestosRow[];
+}
+
+// R-05: Producción por Doctor
+export interface ReportProduccionSummary {
+  total_facturado: number;
+  total_cobrado: number;
+  num_doctores: number;
+  ticket_promedio: number;
+}
+export interface ReportProduccionRow {
+  doctor_id: string;
+  doctor_name: string;
+  currency: string;
+  num_pacientes: number;
+  num_facturas: number;
+  total_facturado: number;
+  total_cobrado: number;
+  ticket_promedio: number;
+}
+export interface ReportProduccionResponse {
+  summary: ReportProduccionSummary;
+  rows: ReportProduccionRow[];
+}
+
+// R-06: Tratamientos Realizados
+export interface ReportTratamientosSummary {
+  total_tratamientos: number;
+  total_facturado: number;
+  precio_promedio: number;
+  num_categorias: number;
+}
+export interface ReportTratamientosRow {
+  service_name: string;
+  category: string;
+  cantidad: number;
+  total_facturado: number;
+  precio_promedio: number;
+  pct_total?: number;
+}
+export interface ReportTratamientosResponse {
+  summary: ReportTratamientosSummary;
+  rows: ReportTratamientosRow[];
+}
+
+// R-07: Comparativo de Producción
+export interface ReportComparativoRow {
+  mes: string;
+  mes_num: number;
+  doctor_name: string;
+  currency: string;
+  total_facturado: number;
+  total_cobrado: number;
+  num_pacientes: number;
+}
+export interface ReportComparativoResponse {
+  rows: ReportComparativoRow[];
+}
+
+// R-08: Honorarios
+export interface ReportHonorariosSummary {
+  total_base: number;
+  total_honorarios: number;
+  num_doctores: number;
+  porcentaje_promedio: number;
+}
+export interface ReportHonorariosRow {
+  doctor_id: string;
+  doctor_name: string;
+  currency: string;
+  base_calculo: number;
+  porcentaje: number;
+  honorario_calculado: number;
+}
+export interface ReportHonorariosResponse {
+  summary: ReportHonorariosSummary;
+  rows: ReportHonorariosRow[];
+}
+
+// R-09: Nuevos Pacientes
+export interface ReportNuevosPxSummary {
+  num_nuevos: number;
+  con_cita: number;
+  sin_cita: number;
+  tasa_conversion: number;
+}
+export interface ReportNuevosPxRow {
+  id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  registration_date: string;
+  first_appointment: string | null;
+  total_appointments: number;
+}
+export interface ReportNuevosPxResponse {
+  summary: ReportNuevosPxSummary;
+  rows: ReportNuevosPxRow[];
+}
+
+// R-10: Pacientes Inactivos
+export interface ReportPacientesInactivosSummary {
+  total_inactivos: number;
+  alta_medica: number;
+  inactividad: number;
+  con_deuda: number;
+}
+export interface ReportPacientesInactivosRow {
+  id: string;
+  patient_name: string;
+  phone_number: string;
+  email: string;
+  alta_medica_date: string | null;
+  last_activity_date: string | null;
+  days_inactive: number | null;
+  inactivity_reason: 'alta_medica' | 'inactividad';
+  debt_uyu: number;
+  debt_usd: number;
+}
+export interface ReportPacientesInactivosResponse {
+  summary: ReportPacientesInactivosSummary;
+  rows: ReportPacientesInactivosRow[];
+}
+
+// R-11: Tratamientos en Curso
+export interface ReportTratamientosCursoSummary {
+  total: number;
+  en_curso: number;
+  completados: number;
+  tasa_completado: number;
+  steps_done: number;
+  steps_pending: number;
+  steps_waiting: number;
+  steps_alert: number;
+}
+export interface TratamientoStep {
+  step_position: number;
+  step_name: string;
+  milestone_status: string;
+}
+export interface ReportTratamientosCursoRow {
+  id: string;
+  patient_name: string;
+  phone_number: string;
+  service_name: string;
+  category: string;
+  doctor_name: string;
+  started_at: string | null;
+  status: string;
+  total_steps: number;
+  done_steps: number;
+  pending_steps: number;
+  waiting_steps: number;
+  alert_steps: number;
+  days_active: number | null;
+  days_since_last_step: number | null;
+  steps_detail: TratamientoStep[];
+}
+export interface ReportTratamientosCursoResponse {
+  summary: ReportTratamientosCursoSummary;
+  rows: ReportTratamientosCursoRow[];
+}
+
+// R-12: Análisis de Citas (Ocupación de Agenda)
+export interface ReportOcupacionSummary {
+  total_citas: number;
+  completadas: number;
+  confirmadas: number;
+  canceladas: number;
+  no_shows: number;
+  con_presupuesto: number;
+  con_sesion: number;
+  sin_atender: number;
+  tasa_completadas: number;
+  tasa_canceladas: number;
+  tasa_con_presupuesto: number;
+  duracion_promedio_min: number;
+}
+export interface ReportOcupacionByStatus {
+  status: string;
+  count: number;
+  pct: number;
+}
+export interface ReportOcupacionByDoctor {
+  doctor_name: string;
+  total: number;
+  completed: number;
+  arrived: number;
+  in_progress: number;
+  confirmed: number;
+  scheduled: number;
+  no_show: number;
+  cancelled: number;
+  tasa_completadas: number;
+}
+export interface ReportOcupacionByPeriod {
+  periodo: string;
+  total: number;
+  completed: number;
+  arrived: number;
+  in_progress: number;
+  confirmed: number;
+  scheduled: number;
+  no_show: number;
+  cancelled: number;
+}
+export interface ReportOcupacionByCalendar {
+  calendar_name: string;
+  total: number;
+  completed: number;
+  arrived: number;
+  in_progress: number;
+  confirmed: number;
+  scheduled: number;
+  no_show: number;
+  cancelled: number;
+  tasa: number;
+}
+export interface ReportOcupacionRow {
+  id: number;
+  start_datetime: string;
+  end_datetime: string;
+  duration_min: number;
+  patient_name: string;
+  patient_phone: string;
+  doctor_name: string;
+  calendar_name: string;
+  service_name: string | null;
+  status: string;
+  cancellation_reason: string | null;
+  has_quote: boolean;
+  has_session: boolean;
+  periodo: string;
+}
+export interface ReportOcupacionResponse {
+  summary: ReportOcupacionSummary;
+  by_status: ReportOcupacionByStatus[];
+  by_doctor: ReportOcupacionByDoctor[];
+  by_period: ReportOcupacionByPeriod[];
+  by_calendar: ReportOcupacionByCalendar[];
+  rows: ReportOcupacionRow[];
+}
+
+// R-13: Cancelaciones
+export interface ReportCancelacionesSummary {
+  total: number;
+  top_reason: string;
+  top_reason_label: string;
+  top_doctor: string;
+  top_patient: string;
+  top_service: string;
+}
+export interface ReportCancelacionesByReason {
+  reason: string;
+  label: string;
+  count: number;
+  pct: number;
+}
+export interface ReportCancelacionesByDoctor {
+  doctor_name: string;
+  count: number;
+  pct: number;
+}
+export interface ReportCancelacionesByPatient {
+  patient_name: string;
+  phone_number: string;
+  count: number;
+}
+export interface ReportCancelacionesByService {
+  service_name: string;
+  count: number;
+  pct: number;
+}
+export interface ReportCancelacionesByCalendar {
+  calendar_name: string;
+  count: number;
+  pct: number;
+}
+export interface ReportCancelacionesByPeriod {
+  periodo: string;
+  count: number;
+}
+export interface ReportCancelacionesRow {
+  id: number;
+  start_datetime: string;
+  patient_name: string;
+  phone_number: string;
+  doctor_name: string;
+  calendar_name: string;
+  service_name: string | null;
+  cancellation_reason: string | null;
+}
+export interface ReportCancelacionesResponse {
+  summary: ReportCancelacionesSummary;
+  by_reason: ReportCancelacionesByReason[];
+  by_doctor: ReportCancelacionesByDoctor[];
+  by_patient: ReportCancelacionesByPatient[];
+  by_service: ReportCancelacionesByService[];
+  by_calendar: ReportCancelacionesByCalendar[];
+  by_period: ReportCancelacionesByPeriod[];
+  rows: ReportCancelacionesRow[];
+}
+
+// R-14: Ingresos por Período
+export interface ReportIngresosSummary {
+  total_cobrado: number;
+  num_cobros: number;
+  num_transacciones: number;
+  promedio_periodo: number;
+  mejor_periodo: string;
+}
+export interface ReportIngresosRow {
+  periodo: string;
+  currency: string;
+  total_cobrado: number;
+  num_cobros: number;
+  promedio: number;
+}
+export interface ReportIngresosResponse {
+  summary: ReportIngresosSummary;
+  rows: ReportIngresosRow[];
+}
+
+// R-15: Facturación vs Cobranza
+export interface ReportFactCobranzaSummary {
+  total_facturado: number;
+  total_cobrado: number;
+  pendiente: number;
+  pct_cobrado: number;
+}
+export interface ReportFactCobranzaRow {
+  mes: string;
+  currency: string;
+  total_facturado: number;
+  total_cobrado: number;
+  pendiente: number;
+  pct_cobrado: number;
+}
+export interface ReportFactCobranzaResponse {
+  summary: ReportFactCobranzaSummary;
+  rows: ReportFactCobranzaRow[];
+}
+
+// R-17: Ingresos por Tratamiento
+export interface ReportServiciosSummary {
+  total_servicios: number;
+  total_facturado: number;
+  total_sesiones: number;
+  precio_promedio: number;
+  servicio_top: string;
+}
+export interface ReportServiciosRow {
+  id: string;
+  service_name: string;
+  category: string;
+  is_flow: boolean;
+  num_facturas: number;
+  total_facturado: number;
+  precio_promedio: number;
+  num_presupuestos: number;
+  num_sesiones: number;
+  num_tratamientos: number;
+  pct_total: number;
+}
+export interface ReportServiciosResponse {
+  summary: ReportServiciosSummary;
+  rows: ReportServiciosRow[];
+}
+
+// R-18: Gastos Operativos
+export interface ReportGastosSummary {
+  total_misc: number;
+  total_facturado: number;
+  total_pagado: number;
+  total_deuda: number;
+  num_misc: number;
+  num_invoices: number;
+  top_category: string;
+  top_supplier: string;
+  top_debtor: string;
+}
+export interface ReportGastosByCategory {
+  category: string;
+  amount: number;
+  pct: number;
+}
+export interface ReportGastosBySupplier {
+  supplier_id: string;
+  supplier_name: string;
+  rut: string | null;
+  total: number;
+  paid: number;
+  pending: number;
+  invoices: number;
+}
+export interface ReportGastosByPeriod {
+  periodo: string;
+  misc: number;
+  facturas: number;
+  total: number;
+}
+export interface ReportGastosByService {
+  service: string;
+  amount: number;
+}
+export interface ReportGastosByPaymentState {
+  state: string;
+  count: number;
+  total: number;
+}
+export interface ReportGastosMiscRow {
+  id: number;
+  doc_no: string;
+  date: string;
+  category_name: string;
+  category_id: number;
+  entity_name: string;
+  amount: number;
+  currency: string;
+  status: string;
+  payment_method: string;
+  notes: string | null;
+}
+export interface ReportGastosInvoiceRow {
+  id: number;
+  doc_no: string;
+  date: string;
+  supplier_id: string;
+  supplier_name: string;
+  supplier_rut: string | null;
+  total: number;
+  paid_amount: number;
+  pending_amount: number;
+  currency: string;
+  payment_state: string;
+  invoice_status: string;
+  due_date: string | null;
+  notes: string | null;
+  top_service: string | null;
+}
+export interface ReportGastosResponse {
+  summary: ReportGastosSummary;
+  by_category: ReportGastosByCategory[];
+  by_supplier: ReportGastosBySupplier[];
+  by_supplier_debt: ReportGastosBySupplier[];
+  by_period: ReportGastosByPeriod[];
+  by_service: ReportGastosByService[];
+  by_payment_state: ReportGastosByPaymentState[];
+  misc_rows: ReportGastosMiscRow[];
+  invoice_rows: ReportGastosInvoiceRow[];
+}
+
+// R-19: Estado de Resultados
+export interface ReportEstadoResultadoLinea {
+  concepto: string;
+  total: number;
+  pct_total: number;
+}
+export interface ReportEstadoResultadoResponse {
+  ingresos: { total: number; lineas: ReportEstadoResultadoLinea[] };
+  gastos: { total: number; lineas: ReportEstadoResultadoLinea[] };
+  resultado: { neto: number; margen: number };
+}
+
+// R-20: KPIs Clínica
+export interface ReportKPIsResponse {
+  total_cobrado: number;
+  nuevos_pacientes: number;
+  tasa_retencion: number;
+  tasa_ocupacion: number;
+  ticket_promedio: number;
+  total_gastos: number;
+}
