@@ -73,8 +73,8 @@ import { getAppointmentColumns } from './columns';
 import { SecretarySessionNotificationModal } from '@/components/appointments/SecretarySessionNotificationModal';
 import { useSecretarySessionNotifications, SecretarySessionNotification } from '@/hooks/use-secretary-session-notifications';
 import { useAuth } from '@/context/AuthContext';
-import { ReminderDueAlert } from '@/components/appointments/ReminderDueAlert';
-import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
+import { useReminderNotifications } from '@/context/reminder-notifications-context';
+import { normalizeReminder } from '@/lib/reminders';
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
@@ -267,30 +267,6 @@ async function getAppointments(
     }
 }
 
-function normalizeReminder(rawReminder: any): CalendarReminder | null {
-    const start = rawReminder.start_datetime || rawReminder.startDateTime || rawReminder.startdatetime;
-    if (!start) return null;
-
-    return {
-        id: String(rawReminder.id || ''),
-        title: String(rawReminder.title || ''),
-        description: rawReminder.description || null,
-        start_datetime: String(start),
-        end_datetime: rawReminder.end_datetime || rawReminder.endDateTime || rawReminder.enddatetime || null,
-        color: rawReminder.color || '#8b5cf6',
-        priority: rawReminder.priority === 'LOW' || rawReminder.priority === 'HIGH' ? rawReminder.priority : 'MEDIUM',
-        status: ['pending', 'done', 'dismissed', 'cancelled'].includes(rawReminder.status) ? rawReminder.status : 'pending',
-        visibility: 'clinic',
-        raise_alert: Boolean(rawReminder.raise_alert),
-        alert_instance_id: rawReminder.alert_instance_id ?? rawReminder.alertInstanceId ?? null,
-        created_by: rawReminder.created_by || rawReminder.createdBy || null,
-        created_at: rawReminder.created_at || rawReminder.createdAt || '',
-        updated_at: rawReminder.updated_at || rawReminder.updatedAt || null,
-        completed_at: rawReminder.completed_at || rawReminder.completedAt || null,
-        completed_by: rawReminder.completed_by || rawReminder.completedBy || null,
-    };
-}
-
 async function getReminders(startDate: Date, endDate: Date): Promise<CalendarReminder[]> {
     if (!isValid(startDate) || !isValid(endDate)) return [];
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
@@ -379,10 +355,8 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
 
-    const { roleNames, user } = useAuth();
-    const [alertStyle] = useDoctorAlertStyle(user?.id);
-    const alertStyleRef = React.useRef(alertStyle);
-    React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
+    const { roleNames } = useAuth();
+    const { refreshReminders } = useReminderNotifications();
     const isSecretary = roleNames.some((r) =>
         ['secretary', 'receptionist', 'recepcionista', 'secretaria', 'admin', 'administrador'].includes(r.toLowerCase())
     );
@@ -391,7 +365,6 @@ export default function AppointmentsPage() {
 
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
     const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
-    const [dueReminderQueue, setDueReminderQueue] = React.useState<CalendarReminder[]>([]);
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
@@ -723,6 +696,7 @@ export default function AppointmentsPage() {
                 setSelectedReminder((prev) => (prev && (prev.id === reminderId || prev.id === savedReminder.id) ? savedReminder : prev));
             }
             toast({ title: tReminders('saved') });
+            refreshReminders();
         } catch (error) {
             toast({
                 variant: 'destructive',
@@ -731,7 +705,7 @@ export default function AppointmentsPage() {
             });
             refreshCalendarDataRef.current();
         }
-    }, [editingReminder, tReminders, toast]);
+    }, [editingReminder, tReminders, toast, refreshReminders]);
 
     const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
         setEditingReminder(reminder);
@@ -1022,39 +996,6 @@ export default function AppointmentsPage() {
             loadAppointments();
         }
     }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
-
-    React.useEffect(() => {
-        const checkDueReminders = () => {
-            const now = new Date();
-            reminders.forEach((reminder) => {
-                if (reminder.status !== 'pending') return;
-                const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
-                if (!isValid(start) || start > now) return;
-
-                const storageKey = `reminder-notified:${reminder.id}`;
-                if (sessionStorage.getItem(storageKey)) return;
-
-                sessionStorage.setItem(storageKey, 'true');
-                if (alertStyleRef.current === 'toast') {
-                    toast({
-                        title: tReminders('dueTitle'),
-                        description: reminder.description
-                            ? `${reminder.title} · ${reminder.description}`
-                            : reminder.title,
-                    });
-                } else {
-                    setDueReminderQueue((prev) =>
-                        prev.some((r) => r.id === reminder.id) ? prev : [...prev, reminder],
-                    );
-                }
-            });
-        };
-
-        checkDueReminders();
-        const interval = window.setInterval(checkDueReminders, 60000);
-        return () => window.clearInterval(interval);
-    }, [reminders, tReminders, toast]);
-
 
     // Moved searches to AppointmentFormDialog
 
@@ -1865,10 +1806,6 @@ export default function AppointmentsPage() {
                 onInvoiceCreated={() => setIsInvoiceFormOpen(false)}
                 isSales={true}
                 initialUser={invoicePatient ?? undefined}
-            />
-            <ReminderDueAlert
-                reminder={dueReminderQueue[0] ?? null}
-                onDismiss={() => setDueReminderQueue((prev) => prev.slice(1))}
             />
         </Card>
     );

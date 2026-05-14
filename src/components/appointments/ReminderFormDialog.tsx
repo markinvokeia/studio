@@ -6,6 +6,7 @@ import { BellRing } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { MagicWandButton } from '@/components/ai/magic-wand-button';
+import { getPriorityColor } from '@/lib/reminders';
 import {
   Dialog,
   DialogBody,
@@ -47,7 +48,6 @@ interface ReminderFormDialogProps {
   onSave: (values: ReminderFormValues) => void;
 }
 
-const DEFAULT_COLOR = '#8b5cf6';
 const DEFAULT_DURATION_MINUTES = 15;
 
 function parseLocalDateTime(value?: string | null): Date | null {
@@ -73,7 +73,6 @@ export function ReminderFormDialog({
   const [time, setTime] = React.useState(format(new Date(), 'HH:mm'));
   const [duration, setDuration] = React.useState(String(DEFAULT_DURATION_MINUTES));
   const [priority, setPriority] = React.useState<CalendarReminderPriority>('MEDIUM');
-  const [color, setColor] = React.useState(DEFAULT_COLOR);
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -89,7 +88,6 @@ export function ReminderFormDialog({
     setTime(format(start, 'HH:mm'));
     setDuration(String(durationMinutes));
     setPriority(editingReminder?.priority ?? 'MEDIUM');
-    setColor(editingReminder?.color || DEFAULT_COLOR);
     setError(null);
   }, [editingReminder, initialDate, open]);
 
@@ -126,7 +124,7 @@ export function ReminderFormDialog({
       description: description.trim() || null,
       start_datetime: toLocalISOString(start),
       end_datetime: toLocalISOString(addMinutes(start, durationMinutes)),
-      color,
+      color: getPriorityColor(priority),
       priority,
     });
     onOpenChange(false);
@@ -193,24 +191,18 @@ export function ReminderFormDialog({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t('priorityLabel')}</Label>
-                <Select value={priority} onValueChange={(value) => setPriority(value as CalendarReminderPriority)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LOW">{t('priority.low')}</SelectItem>
-                    <SelectItem value="MEDIUM">{t('priority.medium')}</SelectItem>
-                    <SelectItem value="HIGH">{t('priority.high')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reminder-color">{t('colorLabel')}</Label>
-                <Input id="reminder-color" type="color" value={color} onChange={(event) => setColor(event.target.value)} />
-              </div>
+            <div className="space-y-2">
+              <Label>{t('priorityLabel')}</Label>
+              <Select value={priority} onValueChange={(value) => setPriority(value as CalendarReminderPriority)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="LOW">{t('priority.low')}</SelectItem>
+                  <SelectItem value="MEDIUM">{t('priority.medium')}</SelectItem>
+                  <SelectItem value="HIGH">{t('priority.high')}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </DialogBody>
 
