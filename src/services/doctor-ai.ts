@@ -10,6 +10,8 @@ export interface DoctorAiQueryPayload {
   channel?: 'voice' | 'text';
   transcript?: string;
   session_id?: string;
+  token?: string;
+  has_existing_session?: boolean;
 }
 
 export async function queryDoctorAi(payload: DoctorAiQueryPayload): Promise<DoctorAiQueryResponse> {

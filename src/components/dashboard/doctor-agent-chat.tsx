@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VoiceRecorderButton } from '@/components/ui/voice-recorder-button';
 import { VoiceChat, type ChatMessage } from '@/components/voice-chat';
-import type { DoctorAgentAction, DoctorAiQueryResponse, TreatmentDetail } from '@/lib/types';
+import type { DoctorAgentAction, DoctorAgentActionPayload, DoctorAiQueryResponse, TreatmentDetail } from '@/lib/types';
 import { queryDoctorAi } from '@/services/doctor-ai';
 import { cn, formatDate, sanitizeTextForSpeech } from '@/lib/utils';
 import { Bot, ChevronRight, MessageSquare, Volume2, VolumeX, X } from 'lucide-react';
@@ -22,6 +22,8 @@ interface DoctorAgentChatProps {
   userId?: string;
   onAction?: (action: DoctorAgentAction) => void | { success?: boolean; message?: string } | Promise<void | { success?: boolean; message?: string }>;
   presentation?: 'floating' | 'embedded';
+  hasExistingSession?: boolean;
+  onDirectSave?: (payload: DoctorAgentActionPayload) => Promise<void>;
 }
 
 const PREFERRED_VOICE_NAMES = [
@@ -197,6 +199,42 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
     };
   }
 
+  if (rawAction.type === 'guardar_sesion' || rawAction.type === 'save_clinic_session') {
+    const tratamientos: TreatmentDetail[] = Array.isArray(rawAction.tratamientos)
+      ? rawAction.tratamientos.map((item: any) => ({
+          numero_diente: item?.diente != null ? Number(item.diente) : null,
+          descripcion: item?.tratamiento || '',
+        }))
+      : [];
+
+    return {
+      type: 'save_clinic_session',
+      payload: {
+        procedimiento_realizado: rawAction.procedimiento_realizado || '',
+        plan_proxima_cita: rawAction.plan_proxima_cita || '',
+        tratamientos,
+      },
+    };
+  }
+
+  if (rawAction.type === 'revisar_sesion' || rawAction.type === 'review_clinic_session') {
+    const tratamientos: TreatmentDetail[] = Array.isArray(rawAction.tratamientos)
+      ? rawAction.tratamientos.map((item: any) => ({
+          numero_diente: item?.diente != null ? Number(item.diente) : null,
+          descripcion: item?.tratamiento || '',
+        }))
+      : [];
+
+    return {
+      type: 'review_clinic_session',
+      payload: {
+        procedimiento_realizado: rawAction.procedimiento_realizado || '',
+        plan_proxima_cita: rawAction.plan_proxima_cita || '',
+        tratamientos,
+      },
+    };
+  }
+
   if (rawAction.type === 'abrir_odontograma' || rawAction.type === 'open_odontogram') {
     return {
       type: 'open_odontogram',
@@ -233,7 +271,10 @@ function parseDoctorAgentPayload(rawValue: unknown): any {
 
 function normalizeDoctorResponse(result: unknown): DoctorAiQueryResponse {
   const firstLayer = Array.isArray(result) ? result[0] : result;
-  const nestedOutput = firstLayer && typeof firstLayer === 'object' && 'output' in (firstLayer as any)
+  // If the top-level object already has an `action` field, use it directly.
+  // Only descend into `.output` when the backend wraps the agent JSON as a nested string.
+  const hasTopLevelAction = firstLayer != null && typeof firstLayer === 'object' && 'action' in (firstLayer as any);
+  const nestedOutput = !hasTopLevelAction && firstLayer && typeof firstLayer === 'object' && 'output' in (firstLayer as any)
     ? (firstLayer as any).output
     : firstLayer;
   let outputObject: any = parseDoctorAgentPayload(nestedOutput);
@@ -273,6 +314,8 @@ export function DoctorAgentChat({
   userId,
   onAction,
   presentation = 'floating',
+  hasExistingSession = false,
+  onDirectSave,
 }: DoctorAgentChatProps) {
   const t = useTranslations('DoctorWorkspace.focus.ai');
   const [isClient, setIsClient] = React.useState(false);
@@ -282,6 +325,8 @@ export function DoctorAgentChat({
   const [ttsEnabled, setTtsEnabled] = React.useState(true);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [suggestions, setSuggestions] = React.useState<string[]>([]);
+  const [pendingSessionAction, setPendingSessionAction] = React.useState<DoctorAgentAction | null>(null);
+  const [isSavingDirect, setIsSavingDirect] = React.useState(false);
   const sessionId = React.useMemo(() => buildDoctorDailySessionId(userId, appointmentId), [userId, appointmentId]);
   const isFloating = presentation === 'floating';
 
@@ -379,12 +424,46 @@ export function DoctorAgentChat({
     }
 
     if (result.action) {
-      const actionResult = await onAction?.(result.action);
-      if (actionResult && typeof actionResult === 'object' && actionResult.success === false && actionResult.message) {
-        appendAssistantMessage(actionResult.message);
+      if (result.action.type === 'open_clinic_session') {
+        // Store as pending — agent will ask the doctor via text what to do next
+        setPendingSessionAction(result.action);
+      } else if (result.action.type === 'save_clinic_session') {
+        // Doctor confirmed via voice/text: save directly without opening dialog
+        const payload = (result.action.payload && Object.keys(result.action.payload).length > 0)
+          ? result.action.payload
+          : pendingSessionAction?.payload ?? {};
+        if (onDirectSave) {
+          setIsSavingDirect(true);
+          try {
+            await onDirectSave(payload);
+            setPendingSessionAction(null);
+          } catch {
+            appendAssistantMessage(t('chatError'));
+          } finally {
+            setIsSavingDirect(false);
+          }
+        }
+      } else if (result.action.type === 'review_clinic_session') {
+        // Doctor confirmed via voice/text: open dialog to review/edit
+        const reviewAction: DoctorAgentAction = {
+          type: 'open_clinic_session',
+          payload: (result.action.payload && Object.keys(result.action.payload).length > 0)
+            ? result.action.payload
+            : pendingSessionAction?.payload,
+        };
+        setPendingSessionAction(null);
+        const actionResult = await onAction?.(reviewAction);
+        if (actionResult && typeof actionResult === 'object' && actionResult.success === false && actionResult.message) {
+          appendAssistantMessage(actionResult.message);
+        }
+      } else {
+        const actionResult = await onAction?.(result.action);
+        if (actionResult && typeof actionResult === 'object' && actionResult.success === false && actionResult.message) {
+          appendAssistantMessage(actionResult.message);
+        }
       }
     }
-  }, [appendAssistantMessage, locale, onAction, ttsEnabled]);
+  }, [appendAssistantMessage, locale, onAction, onDirectSave, pendingSessionAction, t, ttsEnabled]);
 
   const askDoctorAgent = React.useCallback(async (prompt: string) => {
     if (!appointmentId) return;
@@ -401,6 +480,7 @@ export function DoctorAgentChat({
 
     setIsSending(true);
     try {
+      const jwtToken = typeof window !== 'undefined' ? (window.localStorage.getItem('token') ?? undefined) : undefined;
       const result = await queryDoctorAi({
         appointment_id: appointmentId,
         patient_id: patientId,
@@ -408,6 +488,8 @@ export function DoctorAgentChat({
         query: prompt,
         channel: 'text',
         session_id: sessionId,
+        token: jwtToken,
+        has_existing_session: hasExistingSession,
       });
       await applyDoctorResponse(result);
     } catch (error) {
@@ -501,7 +583,7 @@ export function DoctorAgentChat({
           <VoiceChat
             messages={messages}
             onSendText={(text) => void askDoctorAgent(text)}
-            isSending={isSending}
+            isSending={isSending || isSavingDirect}
             composerPlaceholder={t('questionPlaceholder')}
             trailingActions={(
               <VoiceRecorderButton
@@ -527,23 +609,23 @@ export function DoctorAgentChat({
           <Button
             type="button"
             onClick={() => setIsMinimized(false)}
-            className="h-12 rounded-full px-4 shadow-2xl"
+            size="icon"
+            className="h-14 w-14 rounded-full shadow-2xl"
             title={t('restoreChat')}
           >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            {t('floatingTitle')}
+            <MessageSquare className="h-5 w-5" />
           </Button>
         ) : !isOpen ? (
           <Button
             type="button"
             onClick={openChat}
+            size="icon"
             className={cn(
-              'h-14 rounded-full px-5 shadow-2xl',
+              'h-14 w-14 rounded-full shadow-2xl',
               'bg-slate-900 text-white hover:bg-slate-800',
             )}
           >
-            <Bot className="mr-2 h-4 w-4" />
-            {t('floatingTitle')}
+            <Bot className="h-5 w-5" />
           </Button>
         ) : null}
       </div>

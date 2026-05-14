@@ -822,7 +822,15 @@
         "actionAppointmentNotFound": "No encontré esa cita dentro de la agenda cargada del doctor.",
         "actionPatientContextMissing": "Necesito una cita válida del paciente para abrir esa vista.",
         "actionAppointmentContextMissing": "Necesito una cita válida para abrir la sesión clínica.",
-        "actionUnsupported": "No pude ejecutar esa acción desde el workspace actual."
+        "actionUnsupported": "No pude ejecutar esa acción desde el workspace actual.",
+        "sessionConfirmTitle": "Sesión preparada",
+        "sessionConfirmEdit": "Sesión lista para editar",
+        "sessionConfirmDescription": "El asistente preparó los datos. ¿Cómo deseas continuar?",
+        "sessionConfirmReview": "Revisar y editar",
+        "sessionConfirmSaveDirect": "Guardar directamente",
+        "sessionConfirmCancel": "Cancelar",
+        "sessionConfirmSaving": "Guardando...",
+        "sessionConfirmSavedOk": "Sesión guardada correctamente."
       }
     }
   },

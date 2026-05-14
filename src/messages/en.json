@@ -822,7 +822,15 @@
         "actionAppointmentNotFound": "I couldn't find that appointment in the doctor's loaded schedule.",
         "actionPatientContextMissing": "I need a valid patient appointment to open that view.",
         "actionAppointmentContextMissing": "I need a valid appointment to open the clinical session.",
-        "actionUnsupported": "I couldn't execute that action from the current workspace."
+        "actionUnsupported": "I couldn't execute that action from the current workspace.",
+        "sessionConfirmTitle": "Session ready",
+        "sessionConfirmEdit": "Session ready to edit",
+        "sessionConfirmDescription": "The assistant prepared the data. How would you like to proceed?",
+        "sessionConfirmReview": "Review and edit",
+        "sessionConfirmSaveDirect": "Save directly",
+        "sessionConfirmCancel": "Cancel",
+        "sessionConfirmSaving": "Saving...",
+        "sessionConfirmSavedOk": "Session saved successfully."
       }
     }
   },

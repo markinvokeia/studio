@@ -720,6 +720,8 @@ export type DoctorAiSessionPatch = {
 
 export type DoctorAgentActionType =
   | 'open_clinic_session'
+  | 'save_clinic_session'
+  | 'review_clinic_session'
   | 'open_odontogram'
   | 'open_patient_detail'
   | 'open_clinical_history'

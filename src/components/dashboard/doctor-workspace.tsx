@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, AppointmentStatus, DoctorAgentAction, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
+import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -791,7 +791,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
 
   return (
     <div className="relative space-y-3">
-      <div className="absolute bottom-0 left-[3.5rem] top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent" />
+      <div className="absolute bottom-0 left-3 top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent sm:left-[3.5rem]" />
       {sessions.map((session, index) => {
         const sessionId = String(session.sesion_id);
         const isOpen = openItems.includes(sessionId);
@@ -812,10 +812,10 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
 
         return (
           <Collapsible key={session.sesion_id} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
-            <div className="relative flex items-start gap-3 pl-[4.75rem]">
+            <div className="relative flex items-start gap-3 pl-9 sm:pl-[4.75rem]">
               {/* Date + dot in the left gutter */}
               <div className="absolute left-0 top-0 flex items-center gap-1.5">
-                <div className="w-10 text-right">
+                <div className="hidden w-10 text-right sm:block">
                   <p className="text-[11px] font-semibold leading-tight text-foreground/75 tabular-nums">{dateLabel}</p>
                   <p className="text-[9px] font-medium text-muted-foreground/60 tabular-nums">{yearLabel}</p>
                 </div>
@@ -833,6 +833,10 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                   : 'border border-border/50 bg-card shadow-sm',
               )}>
                 <CardHeader className="px-4 pt-3.5 pb-1">
+                  <div className="mb-1.5 flex items-center gap-1.5 sm:hidden">
+                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground/70">{dateLabel}</span>
+                    {yearLabel && <span className="text-[10px] tabular-nums text-muted-foreground/50">· {yearLabel}</span>}
+                  </div>
                   <div className="flex items-start justify-between gap-3">
                     <CardTitle className="line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground">
                       {session.procedimiento_realizado || tTimeline('noTitle')}
@@ -1395,6 +1399,28 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
     }
   }, [clearAgentSessionDraft]);
 
+  const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload) => {
+    if (!selectedAppointment?.patientId) return;
+
+    const fecha = selectedAppointment.start?.dateTime
+      ? format(parseISO(selectedAppointment.start.dateTime.replace(/Z$/, '')), 'yyyy-MM-dd')
+      : format(new Date(), 'yyyy-MM-dd');
+
+    const data: ClinicSessionFormData = {
+      doctor_id: payload.doctor_id || selectedAppointment.doctorId,
+      doctor_name: payload.doctor_name || selectedAppointment.doctorName || '',
+      fecha_sesion: fecha,
+      procedimiento_realizado: payload.procedimiento_realizado || '',
+      plan_proxima_cita: payload.plan_proxima_cita,
+      appointment_id: selectedAppointment.id,
+      tratamientos: Array.isArray(payload.tratamientos) && payload.tratamientos.length > 0
+        ? (payload.tratamientos as TreatmentDetail[])
+        : prefillTreatments,
+    };
+
+    await handleSaveClinicSession(data);
+  }, [handleSaveClinicSession, prefillTreatments, selectedAppointment]);
+
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)
   ), [executeDoctorAgentAction]);
@@ -1492,7 +1518,7 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions} className="shrink-0">
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions} className="hidden shrink-0 sm:inline-flex">
                   <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
@@ -1501,13 +1527,21 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
 
             {/* Content */}
             {activePanel === 'sessions' ? (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-6">
-                <DoctorPatientTimeline
-                  linkedAppointmentId={selectedAppointment.id}
-                  sessions={patientSessions}
-                  isLoading={isLoadingTimeline}
-                />
-              </div>
+              <>
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
+                  <DoctorPatientTimeline
+                    linkedAppointmentId={selectedAppointment.id}
+                    sessions={patientSessions}
+                    isLoading={isLoadingTimeline}
+                  />
+                </div>
+                <div className="mt-2 shrink-0 border-t pt-3 sm:hidden">
+                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions} className="w-full">
+                    <ClipboardCheck className="mr-2 h-4 w-4" />
+                    {nextActionLabel}
+                  </Button>
+                </div>
+              </>
             ) : (
               <div className="flex-1 min-h-0 overflow-y-auto pb-6">
                 <DentalRecordViewer
@@ -1582,6 +1616,8 @@ export function DoctorWorkspace({ locale }: DoctorWorkspaceProps) {
         patientName={selectedAppointment?.patientName}
         userId={user?.id ? String(user.id) : undefined}
         onAction={handleDoctorAgentAction}
+        hasExistingSession={Boolean(linkedSession)}
+        onDirectSave={canManageSessions ? handleAgentDirectSave : undefined}
         presentation="floating"
       />
 
