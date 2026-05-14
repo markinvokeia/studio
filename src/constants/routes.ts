@@ -115,6 +115,7 @@ export const API_ROUTES = {
     },
     AI: {
         DOCTOR_QUERY: '/ai/doctor/query',
+        ENHANCE_TEXT: '/ai/enhance-text',
     },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',

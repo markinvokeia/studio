@@ -1,11 +1,15 @@
 'use client';
 
-import { Loader2, Mic, MicOff, Pencil, Plus, Trash2, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { Calendar, FileText, Loader2, Mic, MicOff, Pencil, Plus, Receipt, ShoppingCart, Trash2, X } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
+import { MagicWandButton } from '@/components/ai/magic-wand-button';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocalAI } from '@/hooks/use-local-ai';
+import type { NoteActionKey, EnhanceResult } from '@/hooks/use-local-ai';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { StickyNote, StickyNoteColor } from '@/lib/types';
@@ -44,7 +48,34 @@ const STICKY_COLORS: Record<StickyNoteColor, { bg: string; border: string; dot: 
 
 const ALL_COLORS = Object.keys(STICKY_COLORS) as StickyNoteColor[];
 const STOP_WORDS = ['enviar', 'listo', 'done', 'send'];
+const AUTO_SAVE_WORDS = ['guardar'];
 const DEFAULT_COLOR: StickyNoteColor = 'yellow';
+
+// ── Action buttons (intent detection results) ─────────────────────────────────
+type NoteIntentType = 'appointment' | 'quote' | 'invoice' | 'purchase';
+
+interface NoteAction {
+    type: NoteIntentType;
+    href: string;
+}
+
+const ACTION_TO_INTENT: Record<NoteActionKey, NoteIntentType> = {
+    CALENDAR: 'appointment',
+    QUOTE: 'quote',
+    INVOICE: 'invoice',
+    PURCHASE: 'purchase',
+};
+
+function buildNoteActions(keys: NoteActionKey[], text: string, locale: string): NoteAction[] {
+    const encoded = encodeURIComponent(text.trim().slice(0, 300));
+    const hrefs: Record<NoteIntentType, string> = {
+        appointment: `/${locale}/appointments?from_note=${encoded}`,
+        quote: `/${locale}/users?t=Presupuestos&act=Crear`,
+        invoice: `/${locale}/users?t=Facturas&act=Crear`,
+        purchase: `/${locale}/purchases/providers`,
+    };
+    return keys.map((key) => ({ type: ACTION_TO_INTENT[key], href: hrefs[ACTION_TO_INTENT[key]] }));
+}
 
 // ── Color picker ──────────────────────────────────────────────────────────────
 function ColorPicker({
@@ -72,7 +103,7 @@ function ColorPicker({
     );
 }
 
-// ── New note card ─────────────────────────────────────────────────────────────
+// ── New note card (no magic wand — wand is only in edit mode) ─────────────────
 type NewNoteState = 'idle' | 'active-listening' | 'active-text';
 
 interface NewNoteCardProps {
@@ -129,7 +160,6 @@ function NewNoteCard({
         const SR = getSpeechRecognition();
         if (!SR) return false;
 
-        // Ask the voice assistant to release the mic before starting
         window.dispatchEvent(new CustomEvent('sticky-notes:mic-request'));
 
         const recognition = new SR();
@@ -145,14 +175,22 @@ function NewNoteCard({
             setText(transcript);
 
             const lower = transcript.toLowerCase();
-            if (STOP_WORDS.some((w) => lower.includes(w))) {
-                const cleaned = STOP_WORDS.reduce(
+            const hasSaveWord = AUTO_SAVE_WORDS.some((w) => lower.includes(w));
+            const hasStopWord = STOP_WORDS.some((w) => lower.includes(w));
+
+            if (hasSaveWord || hasStopWord) {
+                const allWords = [...STOP_WORDS, ...AUTO_SAVE_WORDS];
+                const cleaned = allWords.reduce(
                     (t, w) => t.replace(new RegExp(w, 'gi'), '').trim(),
                     transcript,
                 );
                 setText(cleaned);
                 stopRecognition();
-                setState('active-text');
+                if (hasSaveWord) {
+                    void handleSave(cleaned);
+                } else {
+                    setState('active-text');
+                }
             }
         };
 
@@ -199,8 +237,8 @@ function NewNoteCard({
         }
     }, [state, stopRecognition, startRecognition]);
 
-    const handleSave = React.useCallback(async () => {
-        const trimmed = text.trim();
+    const handleSave = React.useCallback(async (textOverride?: string) => {
+        const trimmed = (textOverride ?? text).trim();
         if (!trimmed) return;
         stopRecognition();
         setIsSaving(true);
@@ -226,7 +264,6 @@ function NewNoteCard({
     React.useEffect(() => {
         return () => {
             stopRecognition();
-            // Tell the voice assistant it can reclaim the mic
             window.dispatchEvent(new CustomEvent('sticky-notes:mic-release'));
         };
     }, [stopRecognition]);
@@ -331,7 +368,7 @@ function NewNoteCard({
                 <Button
                     size="sm"
                     className="h-7 px-3 text-xs"
-                    onClick={handleSave}
+                    onClick={() => void handleSave()}
                     disabled={!text.trim() || isSaving}
                 >
                     {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : tSave}
@@ -344,7 +381,7 @@ function NewNoteCard({
 // ── Existing note card ────────────────────────────────────────────────────────
 interface ExistingNoteCardProps {
     note: StickyNote;
-    onUpdate: (p: { id: string; text: string; color: string }) => Promise<void>;
+    onUpdate: (p: { id: string; text: string; color: string; actions?: string[]; redirects?: string[] }) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
     tEdit: string;
     tDelete: string;
@@ -352,6 +389,11 @@ interface ExistingNoteCardProps {
     tCancel: string;
     tDeleteError: string;
     tSaveError: string;
+    tEnhanceTooltip: string;
+    tActionAppointment: string;
+    tActionQuote: string;
+    tActionInvoice: string;
+    tActionPurchase: string;
 }
 
 function ExistingNoteCard({
@@ -364,15 +406,60 @@ function ExistingNoteCard({
     tCancel,
     tDeleteError,
     tSaveError,
+    tEnhanceTooltip,
+    tActionAppointment,
+    tActionQuote,
+    tActionInvoice,
+    tActionPurchase,
 }: ExistingNoteCardProps) {
     const { toast } = useToast();
+    const { enhanceText, isReady: aiReady } = useLocalAI();
+    const locale = useLocale();
+    const router = useRouter();
+
     const [isEditing, setIsEditing] = React.useState(false);
     const [editText, setEditText] = React.useState(note.text);
     const [editColor, setEditColor] = React.useState<StickyNoteColor>(note.color);
     const [isSaving, setIsSaving] = React.useState(false);
     const [isDeleting, setIsDeleting] = React.useState(false);
+    // AI-detected actions set by the wand; null means not yet processed by AI
+    const [aiActions, setAiActions] = React.useState<NoteAction[] | null>(null);
 
     const colors = STICKY_COLORS[isEditing ? editColor : note.color];
+
+    // Restore persisted AI actions on load / when note data changes
+    React.useEffect(() => {
+        const keys = (note.actions ?? []) as NoteActionKey[];
+        const storedRedirects = note.redirects ?? [];
+        const valid: NoteActionKey[] = ['CALENDAR', 'QUOTE', 'INVOICE', 'PURCHASE'];
+        const restored: NoteAction[] = keys
+            .filter((k) => valid.includes(k))
+            .map((key, i) => ({
+                type: ACTION_TO_INTENT[key],
+                href: storedRedirects[i]
+                    ? `/${locale}${storedRedirects[i]}`
+                    : buildNoteActions([key], note.text, locale)[0]?.href ?? '',
+            }))
+            .filter((a) => a.href);
+        setAiActions(restored.length > 0 ? restored : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [note.id, note.actions, note.redirects]);
+
+    const visibleActions = aiActions ?? [];
+
+    const actionLabels: Record<NoteIntentType, string> = {
+        appointment: tActionAppointment,
+        quote: tActionQuote,
+        invoice: tActionInvoice,
+        purchase: tActionPurchase,
+    };
+
+    const actionIcons: Record<NoteIntentType, React.ReactNode> = {
+        appointment: <Calendar className="h-2.5 w-2.5" />,
+        quote: <FileText className="h-2.5 w-2.5" />,
+        invoice: <Receipt className="h-2.5 w-2.5" />,
+        purchase: <ShoppingCart className="h-2.5 w-2.5" />,
+    };
 
     const formattedDate = React.useMemo(() => {
         try {
@@ -391,6 +478,7 @@ function ExistingNoteCard({
         setIsSaving(true);
         try {
             await onUpdate({ id: note.id, text: trimmed, color: editColor });
+            setAiActions(null); // manual save clears AI actions
             setIsEditing(false);
         } catch {
             toast({ title: tSaveError, variant: 'destructive', duration: 3000 });
@@ -412,6 +500,7 @@ function ExistingNoteCard({
     const handleEditStart = () => {
         setEditText(note.text);
         setEditColor(note.color);
+        setAiActions(null); // re-entering edit clears stale AI actions
         setIsEditing(true);
     };
 
@@ -470,7 +559,7 @@ function ExistingNoteCard({
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                                 e.preventDefault();
-                                handleSave();
+                                void handleSave();
                             }
                             if (e.key === 'Escape') {
                                 e.preventDefault();
@@ -480,6 +569,33 @@ function ExistingNoteCard({
                     />
                     <div className="flex items-center justify-between gap-1">
                         <ColorPicker value={editColor} onChange={setEditColor} />
+                        {aiReady && (
+                            <MagicWandButton
+                                onEnhance={async () => {
+                                    const result = await enhanceText(editText, 'sticky-notes-clinical');
+                                    const trimmed = result.text.trim();
+                                    if (!trimmed) return;
+                                    const baseActions = buildNoteActions(result.actions, trimmed, locale);
+                                    const resolved = baseActions.map((action, i) => ({
+                                        ...action,
+                                        href: result.redirects[i] ? `/${locale}${result.redirects[i]}` : action.href,
+                                    }));
+                                    setAiActions(resolved.length > 0 ? resolved : null);
+                                    setIsSaving(true);
+                                    try {
+                                        await onUpdate({ id: note.id, text: trimmed, color: editColor, actions: result.actions, redirects: result.redirects });
+                                        setIsEditing(false);
+                                    } catch {
+                                        toast({ title: tSaveError, variant: 'destructive', duration: 3000 });
+                                        setEditText(result.text);
+                                    } finally {
+                                        setIsSaving(false);
+                                    }
+                                }}
+                                disabled={!editText.trim() || isSaving}
+                                tooltipText={tEnhanceTooltip}
+                            />
+                        )}
                     </div>
                     <div className="flex gap-1.5 justify-end">
                         <Button
@@ -494,7 +610,7 @@ function ExistingNoteCard({
                         <Button
                             size="sm"
                             className="h-7 px-3 text-xs"
-                            onClick={handleSave}
+                            onClick={() => void handleSave()}
                             disabled={!editText.trim() || isSaving}
                         >
                             {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : tSave}
@@ -506,6 +622,23 @@ function ExistingNoteCard({
                     <p className="flex-1 text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words pr-12">
                         {note.text}
                     </p>
+
+                    {visibleActions.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {visibleActions.map((action) => (
+                                <button
+                                    key={action.type}
+                                    type="button"
+                                    className="inline-flex items-center gap-1 text-[10px] h-5 px-2 rounded-full bg-background/70 hover:bg-primary/10 text-muted-foreground hover:text-primary border border-border/50 transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); router.push(action.href); }}
+                                >
+                                    {actionIcons[action.type]}
+                                    {actionLabels[action.type]}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between mt-auto pt-1">
                         <span className="text-[11px] text-muted-foreground">{formattedDate}</span>
                         <div className={cn('h-3 w-3 rounded-full', STICKY_COLORS[note.color].dot)} />
@@ -542,7 +675,7 @@ interface StickyNotesOverlayProps {
     notes: StickyNote[];
     isLoading: boolean;
     createNote: (p: { text: string; color: string; created_by: string }) => Promise<StickyNote | null>;
-    updateNote: (p: { id: string; text: string; color: string }) => Promise<void>;
+    updateNote: (p: { id: string; text: string; color: string; actions?: string[]; redirects?: string[] }) => Promise<void>;
     deleteNote: (id: string) => Promise<void>;
 }
 
@@ -557,6 +690,29 @@ export function StickyNotesOverlay({
     deleteNote,
 }: StickyNotesOverlayProps) {
     const t = useTranslations('StickyNotes');
+    const { enhanceText } = useLocalAI();
+
+    const createAndEnhance = React.useCallback(
+        async (payload: { text: string; color: string; created_by: string }) => {
+            const note = await createNote(payload);
+            if (!note) return null;
+            void (async () => {
+                try {
+                    const result: EnhanceResult = await enhanceText(payload.text, 'sticky-notes-clinical');
+                    if (result.text === payload.text && !result.actions.length) return;
+                    await updateNote({
+                        id: note.id,
+                        text: result.text,
+                        color: payload.color,
+                        actions: result.actions,
+                        redirects: result.redirects,
+                    });
+                } catch { /* silent — creation succeeded, enhancement is best-effort */ }
+            })();
+            return note;
+        },
+        [createNote, updateNote, enhanceText],
+    );
 
     React.useEffect(() => {
         if (!isOpen) return;
@@ -581,6 +737,11 @@ export function StickyNotesOverlay({
         micError: t('micError'),
         saveError: t('saveError'),
         deleteError: t('deleteError'),
+        enhanceTooltip: t('enhanceTooltip'),
+        actionNewAppointment: t('actionNewAppointment'),
+        actionNewQuote: t('actionNewQuote'),
+        actionNewInvoice: t('actionNewInvoice'),
+        actionNewPurchase: t('actionNewPurchase'),
     };
 
     return (
@@ -594,7 +755,6 @@ export function StickyNotesOverlay({
             {/* Content */}
             <div className="fixed inset-0 z-[9981] overflow-y-auto pointer-events-none">
                 <div className="min-h-full flex items-start justify-center p-4 pt-20 pointer-events-auto">
-                    {/* Header row with close */}
                     <div className="w-full max-w-6xl">
                         <div className="flex items-center justify-between mb-4">
                             <h2 className="text-sm font-semibold text-black drop-shadow-sm">
@@ -612,7 +772,7 @@ export function StickyNotesOverlay({
                         <div className="flex flex-wrap gap-4">
                             <NewNoteCard
                                 userId={userId}
-                                onCreate={createNote}
+                                onCreate={createAndEnhance}
                                 tNewNote={tStrings.newNote}
                                 tSave={tStrings.save}
                                 tCancel={tStrings.cancel}
@@ -643,6 +803,11 @@ export function StickyNotesOverlay({
                                     tCancel={tStrings.cancel}
                                     tDeleteError={tStrings.deleteError}
                                     tSaveError={tStrings.saveError}
+                                    tEnhanceTooltip={tStrings.enhanceTooltip}
+                                    tActionAppointment={tStrings.actionNewAppointment}
+                                    tActionQuote={tStrings.actionNewQuote}
+                                    tActionInvoice={tStrings.actionNewInvoice}
+                                    tActionPurchase={tStrings.actionNewPurchase}
                                 />
                             ))}
                         </div>

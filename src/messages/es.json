@@ -4317,6 +4317,13 @@
     "delete": "Eliminar",
     "markDone": "Marcar como hecho",
     "detailsTitle": "Información",
+    "dismiss": "Cerrar",
+    "enhanceTooltip": "Mejorar con IA — mejora el texto y detecta acciones",
+    "enhancedLabel": "IA",
+    "actionNewAppointment": "Nueva cita",
+    "actionNewQuote": "Nuevo presupuesto",
+    "actionNewInvoice": "Nueva factura",
+    "actionNewPurchase": "Nueva compra",
     "dueTitle": "Recordatorio vencido",
     "saved": "Recordatorio guardado",
     "done": "Recordatorio finalizado",
@@ -5788,7 +5795,12 @@
     "saveError": "Error al guardar la nota. Intenta de nuevo.",
     "deleteError": "Error al eliminar la nota. Intenta de nuevo.",
     "loadError": "Error al cargar las notas.",
-    "empty": "Sin notas aún"
+    "empty": "Sin notas aún",
+    "enhanceTooltip": "Mejorar ortografía, gramática y puntuación con IA",
+    "actionNewAppointment": "Nueva cita",
+    "actionNewQuote": "Nuevo presupuesto",
+    "actionNewInvoice": "Nueva factura",
+    "actionNewPurchase": "Nueva compra"
   },
   "DateRangePresets": {
     "today": "Hoy",

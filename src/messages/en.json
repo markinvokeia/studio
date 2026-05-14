@@ -4349,6 +4349,12 @@
     "delete": "Delete",
     "markDone": "Mark as done",
     "detailsTitle": "Information",
+    "enhanceTooltip": "Enhance with AI — improve text and detect actions",
+    "enhancedLabel": "AI",
+    "actionNewAppointment": "New appointment",
+    "actionNewQuote": "New quote",
+    "actionNewInvoice": "New invoice",
+    "actionNewPurchase": "New purchase",
     "dueTitle": "Reminder due",
     "saved": "Reminder saved",
     "done": "Reminder completed",
@@ -5820,7 +5826,12 @@
     "saveError": "Error saving note. Please try again.",
     "deleteError": "Error deleting note. Please try again.",
     "loadError": "Error loading notes.",
-    "empty": "No notes yet"
+    "empty": "No notes yet",
+    "enhanceTooltip": "Fix spelling, grammar and punctuation with AI",
+    "actionNewAppointment": "New appointment",
+    "actionNewQuote": "New quote",
+    "actionNewInvoice": "New invoice",
+    "actionNewPurchase": "New purchase"
   },
   "DateRangePresets": {
     "today": "Today",

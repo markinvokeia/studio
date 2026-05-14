@@ -1,0 +1,75 @@
+{
+  "name": "Sticky Notes — List",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sticky Notes — List\n\n**GET** `/webhook/sticky-notes`\n\nDevuelve todas las notas activas del sistema.\n\n**Response 200:** array de `StickyNote`\n\nCada nota incluye los campos `actions` y `redirects` generados por IA.",
+        "height": 200,
+        "width": 340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-100, 20],
+      "typeVersion": 1,
+      "id": "sn-list-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "sticky-notes",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [300, 300],
+      "id": "sn-list-wh",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, text, color, created_by, created_at, updated_at, status, COALESCE(actions, '[]'::jsonb) AS actions, COALESCE(redirects, '[]'::jsonb) AS redirects FROM sticky_notes WHERE status = 'active' ORDER BY created_at DESC",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "id": "sn-list-query",
+      "name": "Query Notes"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nreturn [{ json: rows }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 300],
+      "id": "sn-list-format",
+      "name": "Format Array"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 300],
+      "id": "sn-list-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook":      { "main": [[{ "node": "Query Notes",   "type": "main", "index": 0 }]] },
+    "Query Notes":  { "main": [[{ "node": "Format Array",  "type": "main", "index": 0 }]] },
+    "Format Array": { "main": [[{ "node": "Respond 200",   "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": ["sticky-notes", "clinic"]
+}

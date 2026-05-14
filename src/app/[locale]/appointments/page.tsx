@@ -73,6 +73,8 @@ import { getAppointmentColumns } from './columns';
 import { SecretarySessionNotificationModal } from '@/components/appointments/SecretarySessionNotificationModal';
 import { useSecretarySessionNotifications, SecretarySessionNotification } from '@/hooks/use-secretary-session-notifications';
 import { useAuth } from '@/context/AuthContext';
+import { ReminderDueAlert } from '@/components/appointments/ReminderDueAlert';
+import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
@@ -377,7 +379,10 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
 
-    const { roleNames } = useAuth();
+    const { roleNames, user } = useAuth();
+    const [alertStyle] = useDoctorAlertStyle(user?.id);
+    const alertStyleRef = React.useRef(alertStyle);
+    React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
     const isSecretary = roleNames.some((r) =>
         ['secretary', 'receptionist', 'recepcionista', 'secretaria', 'admin', 'administrador'].includes(r.toLowerCase())
     );
@@ -386,6 +391,7 @@ export default function AppointmentsPage() {
 
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
     const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
+    const [dueReminderQueue, setDueReminderQueue] = React.useState<CalendarReminder[]>([]);
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
@@ -1029,12 +1035,18 @@ export default function AppointmentsPage() {
                 if (sessionStorage.getItem(storageKey)) return;
 
                 sessionStorage.setItem(storageKey, 'true');
-                toast({
-                    title: tReminders('dueTitle'),
-                    description: reminder.description
-                        ? `${reminder.title} · ${reminder.description}`
-                        : reminder.title,
-                });
+                if (alertStyleRef.current === 'toast') {
+                    toast({
+                        title: tReminders('dueTitle'),
+                        description: reminder.description
+                            ? `${reminder.title} · ${reminder.description}`
+                            : reminder.title,
+                    });
+                } else {
+                    setDueReminderQueue((prev) =>
+                        prev.some((r) => r.id === reminder.id) ? prev : [...prev, reminder],
+                    );
+                }
             });
         };
 
@@ -1853,6 +1865,10 @@ export default function AppointmentsPage() {
                 onInvoiceCreated={() => setIsInvoiceFormOpen(false)}
                 isSales={true}
                 initialUser={invoicePatient ?? undefined}
+            />
+            <ReminderDueAlert
+                reminder={dueReminderQueue[0] ?? null}
+                onDismiss={() => setDueReminderQueue((prev) => prev.slice(1))}
             />
         </Card>
     );

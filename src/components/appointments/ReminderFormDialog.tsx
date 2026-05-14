@@ -5,6 +5,7 @@ import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { BellRing } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import { MagicWandButton } from '@/components/ai/magic-wand-button';
 import {
   Dialog,
   DialogBody,
@@ -25,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useLocalAI } from '@/hooks/use-local-ai';
 import { toLocalISOString } from '@/lib/utils';
 import type { CalendarReminder, CalendarReminderPriority } from '@/lib/types';
 
@@ -63,6 +65,7 @@ export function ReminderFormDialog({
 }: ReminderFormDialogProps) {
   const t = useTranslations('Reminders');
   const tGeneral = useTranslations('General');
+  const { enhanceText, isReady: aiReady } = useLocalAI();
 
   const [title, setTitle] = React.useState('');
   const [description, setDescription] = React.useState('');
@@ -89,6 +92,15 @@ export function ReminderFormDialog({
     setColor(editingReminder?.color || DEFAULT_COLOR);
     setError(null);
   }, [editingReminder, initialDate, open]);
+
+  const handleEnhance = React.useCallback(async () => {
+    const [titleResult, descResult] = await Promise.all([
+      enhanceText(title, 'reminder-title'),
+      description.trim() ? enhanceText(description, 'reminder-description') : Promise.resolve(null),
+    ]);
+    if (titleResult.text) setTitle(titleResult.text);
+    if (descResult?.text) setDescription(descResult.text);
+  }, [title, description, enhanceText]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -202,11 +214,22 @@ export function ReminderFormDialog({
             </div>
           </DialogBody>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {tGeneral('cancel')}
-            </Button>
-            <Button type="submit">{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>
+          <DialogFooter className="justify-between">
+            {aiReady ? (
+              <MagicWandButton
+                onEnhance={handleEnhance}
+                tooltipText={t('enhanceTooltip')}
+                disabled={!title.trim()}
+              />
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                {tGeneral('cancel')}
+              </Button>
+              <Button type="submit">{editingReminder ? t('saveEdit') : t('saveCreate')}</Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

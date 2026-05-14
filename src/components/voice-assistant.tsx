@@ -51,9 +51,14 @@ interface VoiceAssistantProps {
     onAudioReady: (blob: Blob) => void;
     /** True while parent is processing/sending the audio */
     isProcessing: boolean;
+    /**
+     * When provided and a transcript is captured during recording (> 10 chars),
+     * this is called instead of onAudioReady. The blob is included as fallback.
+     */
+    onTranscriptReady?: (text: string, blob: Blob) => void;
 }
 
-export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantProps) {
+export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }: VoiceAssistantProps) {
     const t = useTranslations('VoiceAssistant');
     const { toast } = useToast();
 
@@ -65,6 +70,8 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
     const startWakeWordListeningRef = React.useRef<() => void>(() => {});
     const wakeRecognitionRef = React.useRef<ISpeechRecognition | null>(null);
     const stopRecognitionRef = React.useRef<ISpeechRecognition | null>(null);
+    const transcriptRecognitionRef = React.useRef<ISpeechRecognition | null>(null);
+    const rollingTranscriptRef = React.useRef<string>('');
     const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
     const audioChunksRef = React.useRef<Blob[]>([]);
     const audioContextRef = React.useRef<AudioContext | null>(null);
@@ -111,10 +118,16 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
         stopRecognitionRef.current = null;
     }, []);
 
+    const stopTranscriptRecognition = React.useCallback(() => {
+        try { transcriptRecognitionRef.current?.stop(); } catch { /* ignore */ }
+        transcriptRecognitionRef.current = null;
+    }, []);
+
     // ── Stop recording → emit blob ────────────────────────────────────────────
 
     const stopRecording = React.useCallback(async () => {
         stopStopWordRecognition();
+        stopTranscriptRecognition();
         stopAnimFrame();
         setAudioLevel([2, 2, 2, 2, 2]);
 
@@ -123,7 +136,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
             recorder.stop(); // onstop fires → onAudioReady
         }
         await releaseStream();
-    }, [stopAnimFrame, releaseStream, stopStopWordRecognition]);
+    }, [stopAnimFrame, releaseStream, stopStopWordRecognition, stopTranscriptRecognition]);
 
     // ── "enviar" stop-word recognition (runs while recording) ────────────────
 
@@ -160,6 +173,44 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
         try { recognition.start(); } catch { /* ignore */ }
     }, [stopRecording]);
 
+    // ── Full-transcript recognition (accumulates spoken text during recording) ─
+
+    const startTranscriptRecognition = React.useCallback(() => {
+        const SR = getSpeechRecognitionCtor();
+        if (!SR) return;
+
+        const recognition = new SR();
+        transcriptRecognitionRef.current = recognition;
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'es-ES';
+
+        recognition.onresult = (event: ISpeechRecognitionEvent) => {
+            if (voiceStateRef.current !== 'recording') return;
+            let transcript = '';
+            for (let i = 0; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    transcript += event.results[i][0].transcript;
+                }
+            }
+            if (transcript) rollingTranscriptRef.current = transcript.trim();
+        };
+
+        recognition.onend = () => {
+            if (voiceStateRef.current === 'recording') {
+                setTimeout(() => {
+                    if (voiceStateRef.current === 'recording') startTranscriptRecognition();
+                }, 150);
+            }
+        };
+
+        recognition.onerror = () => {
+            transcriptRecognitionRef.current = null;
+        };
+
+        try { recognition.start(); } catch { /* ignore */ }
+    }, []);
+
     // ── Start recording + VAD ─────────────────────────────────────────────────
 
     const startRecording = React.useCallback(async () => {
@@ -192,11 +243,16 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
 
             recorder.onstop = async () => {
                 const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const transcript = rollingTranscriptRef.current;
                 await releaseStream();
 
                 if (blob.size > 1000) {
                     setState('processing');
-                    onAudioReady(blob);
+                    if (onTranscriptReady && transcript.length > 10) {
+                        onTranscriptReady(transcript, blob);
+                    } else {
+                        onAudioReady(blob);
+                    }
                 } else {
                     setState('listening');
                     startWakeWordListeningRef.current();
@@ -205,8 +261,10 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
 
             recorder.start(100);
 
-            // Start stop-word recognition in parallel
+            // Start stop-word + transcript recognition in parallel
+            rollingTranscriptRef.current = '';
             startStopWordRecognition();
+            startTranscriptRecognition();
 
             // VAD loop
             const BAR_COUNT = 5;
@@ -249,7 +307,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
             setState('listening');
             startWakeWordListeningRef.current();
         }
-    }, [onAudioReady, releaseStream, startStopWordRecognition, stopRecording, t, toast]);
+    }, [onAudioReady, onTranscriptReady, releaseStream, startStopWordRecognition, startTranscriptRecognition, stopRecording, t, toast]);
 
     // ── Wake word detection ───────────────────────────────────────────────────
 
@@ -404,6 +462,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing }: VoiceAssistantPro
             }
             try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
             try { stopRecognitionRef.current?.abort(); } catch { /* ignore */ }
+            try { transcriptRecognitionRef.current?.abort(); } catch { /* ignore */ }
             stopAnimFrame();
             streamRef.current?.getTracks().forEach((t) => t.stop());
             if (audioContextRef.current?.state !== 'closed') {

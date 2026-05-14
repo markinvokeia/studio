@@ -1475,6 +1475,8 @@ export type StickyNote = {
   created_at: string;
   updated_at?: string;
   status: 'active' | 'deleted';
+  actions?: string[];
+  redirects?: string[];
 };
 
 // ===== Reports =====

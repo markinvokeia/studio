@@ -11,7 +11,7 @@ export interface UseStickyNotesReturn {
     error: string | null;
     fetchNotes: () => Promise<void>;
     createNote: (payload: { text: string; color: string; created_by: string }) => Promise<StickyNote | null>;
-    updateNote: (payload: { id: string; text: string; color: string }) => Promise<void>;
+    updateNote: (payload: { id: string; text: string; color: string; actions?: string[]; redirects?: string[] }) => Promise<void>;
     deleteNote: (id: string) => Promise<void>;
     prependNote: (note: StickyNote) => void;
 }
@@ -46,12 +46,18 @@ export function useStickyNotes(): UseStickyNotesReturn {
     );
 
     const updateNote = useCallback(
-        async (payload: { id: string; text: string; color: string }) => {
+        async (payload: { id: string; text: string; color: string; actions?: string[]; redirects?: string[] }) => {
             const prev = notes.slice();
             setNotes((cur) =>
                 cur.map((n) =>
                     n.id === payload.id
-                        ? { ...n, text: payload.text, color: payload.color as StickyNote['color'] }
+                        ? {
+                            ...n,
+                            text: payload.text,
+                            color: payload.color as StickyNote['color'],
+                            ...(payload.actions !== undefined && { actions: payload.actions }),
+                            ...(payload.redirects !== undefined && { redirects: payload.redirects }),
+                          }
                         : n,
                 ),
             );
