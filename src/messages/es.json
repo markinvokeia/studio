@@ -1109,6 +1109,7 @@
       "preferences": "Preferencias",
       "logs": "Registros",
       "clinicalHistory": "Historia Clínica",
+      "documents": "Documentos",
       "orders": "Órdenes",
       "invoices": "Facturas",
       "payments": "Pagos",
@@ -3892,6 +3893,9 @@
       "edit": "Editar",
       "delete": "Eliminar",
       "odontogramTooltip": "Tipo de sesión: Odontograma",
+      "sessionTypeOdontogram": "Odontograma",
+      "sessionTypeClinical": "Sesión Clínica",
+      "sessionTypeAppointment": "Cita",
       "quote": "Presupuesto",
       "addFirstSession": "Agregar primera sesión",
       "toast": {
@@ -3904,6 +3908,16 @@
       "nextSessionDate": "Fecha",
       "addSession": "Agregar sesión",
       "noSessions": "No hay sesiones registradas",
+      "appointmentStatus": {
+        "pending": "Pendiente",
+        "scheduled": "Agendada",
+        "confirmed": "Confirmada",
+        "arrived": "Llegó",
+        "completed": "Completada",
+        "cancelled": "Cancelada",
+        "no_show": "No asistió",
+        "rescheduled": "Reagendada"
+      },
       "noTitle": "Sin título",
       "conditions": {
         "healthy": "Sano",

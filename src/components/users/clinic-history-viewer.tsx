@@ -1,6 +1,7 @@
 'use client';
 
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
+import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -25,6 +26,8 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
@@ -39,16 +42,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
-import { PatientSession, Quote, SessionPrefillData } from '@/lib/types';
+import { Appointment, PatientSession, Quote, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
-import { format, isBefore, isValid, parseISO } from 'date-fns';
+import { addMonths, format, isBefore, isValid, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import {
     AlertTriangle,
     Calendar as CalendarIcon,
+    CalendarCheck,
     Check,
     ChevronDown,
     ChevronUp,
@@ -68,6 +74,7 @@ import {
     Pill,
     Plus,
     RotateCcw,
+    SlidersHorizontal,
     Smile,
     Stethoscope,
     Trash2,
@@ -87,76 +94,18 @@ interface ClinicHistoryViewerProps {
     userId: string;
     userName?: string;
     createSessionTrigger?: number;
-    createDocumentTrigger?: number;
     sessionPrefill?: SessionPrefillData | null;
     onSessionCreated?: (sesionId: number, stepId?: string) => void;
     editSessionId?: number | null;
     onClinicalDataChange?: () => void;
-    /** Deep-link: navigate to this view on mount (one-shot) */
     deepLinkView?: string;
 }
 
-type ActiveView = 'anamnesis' | 'timeline' | 'documents';
-
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createDocumentTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, deepLinkView }: ClinicHistoryViewerProps) {
-    const t = useTranslations('ClinicHistoryPage');
-    const locale = useLocale();
-    const [activeView, setActiveView] = React.useState<ActiveView>('anamnesis');
-
-    // Apply deep-link view once on mount
-    const deepLinkApplied = React.useRef(false);
-    React.useEffect(() => {
-        if (deepLinkApplied.current || !deepLinkView) return;
-        const valid: ActiveView[] = ['anamnesis', 'timeline', 'documents'];
-        if (valid.includes(deepLinkView as ActiveView)) {
-            deepLinkApplied.current = true;
-            setActiveView(deepLinkView as ActiveView);
-        }
-    }, [deepLinkView]);
-
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange }: ClinicHistoryViewerProps) {
     const {
-        personalHistory,
-        isLoadingPersonalHistory,
-        familyHistory,
-        isLoadingFamilyHistory,
-        allergies,
-        isLoadingAllergies,
-        medications,
-        isLoadingMedications,
         patientSessions,
         isLoadingPatientSessions,
-        patientHabits,
-        isLoadingPatientHabits,
-        documents,
-        isLoadingDocuments,
         refreshAll,
-        uploadDocument,
-        deleteDocument,
-        getDocumentContent,
-        ailmentsCatalog,
-        medicationsCatalog,
-        isLoadingAilmentsCatalog,
-        isLoadingMedicationsCatalog,
-        createPersonalHistory,
-        updatePersonalHistory,
-        deletePersonalHistory,
-        createFamilyHistory,
-        updateFamilyHistory,
-        deleteFamilyHistory,
-        createAllergy,
-        updateAllergy,
-        deleteAllergy,
-        createMedication,
-        updateMedication,
-        deleteMedication,
-        updatePatientHabits,
-        fetchAilmentsCatalog,
-        fetchMedicationsCatalog,
-        isSubmittingPersonal,
-        isSubmittingFamily,
-        isSubmittingAllergy,
-        isSubmittingMedication,
-        isSubmittingHabits,
         createSession,
         updateSession,
         deleteSession,
@@ -167,133 +116,183 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         getSessionAttachment,
     } = useClinicHistory();
 
+    const [patientAppointments, setPatientAppointments] = React.useState<Appointment[]>([]);
+    const [isLoadingPatientAppointments, setIsLoadingPatientAppointments] = React.useState(false);
+
+    const fetchPatientAppointments = React.useCallback(async (currentUserId: string) => {
+        if (!currentUserId) return;
+        setIsLoadingPatientAppointments(true);
+        try {
+            const now = new Date();
+            const formatDate = (d: Date) => format(d, 'yyyy-MM-dd HH:mm:ss');
+            const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
+                startingDateAndTime: formatDate(addMonths(now, -12)),
+                endingDateAndTime: formatDate(addMonths(now, 6)),
+                user_id: currentUserId,
+            });
+            let raw: any[] = [];
+            if (Array.isArray(data) && data.length > 0 && 'json' in data[0]) {
+                raw = data.map((item: any) => item.json);
+            } else if (Array.isArray(data)) {
+                raw = data;
+            }
+            const appointments: Appointment[] = raw.map((apiAppt: any) => {
+                const startNode = apiAppt.start_time || apiAppt.start;
+                const dtStr = typeof startNode === 'string' ? startNode : startNode?.dateTime;
+                if (!dtStr) return null;
+                const dt = parseISO(dtStr.replace(/Z$/, ''));
+                if (isNaN(dt.getTime())) return null;
+                return {
+                    id: String(apiAppt.appointment_id || apiAppt.id),
+                    patientId: currentUserId,
+                    patientName: '',
+                    doctorId: String(apiAppt.doctor_id || ''),
+                    doctorName: apiAppt.doctor_name || apiAppt.doctorName || '',
+                    summary: apiAppt.summary || 'Cita',
+                    date: format(dt, 'yyyy-MM-dd'),
+                    time: format(dt, 'HH:mm'),
+                    status: normalizeAppointmentStatus(apiAppt.status),
+                    start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
+                } as Appointment;
+            }).filter(Boolean) as Appointment[];
+            setPatientAppointments(appointments);
+        } catch {
+            setPatientAppointments([]);
+        } finally {
+            setIsLoadingPatientAppointments(false);
+        }
+    }, []);
+
     React.useEffect(() => {
         if (userId) {
             refreshAll(userId);
+            fetchPatientAppointments(userId);
         }
-    }, [userId, refreshAll]);
+    }, [userId, refreshAll, fetchPatientAppointments]);
 
     const [localSessionTrigger, setLocalSessionTrigger] = React.useState(0);
 
     React.useEffect(() => {
         if (createSessionTrigger > 0) {
-            setActiveView('timeline');
             setLocalSessionTrigger(t => t + 1);
         }
     }, [createSessionTrigger]);
 
-    React.useEffect(() => {
-        if (createDocumentTrigger > 0) {
-            setActiveView('documents');
-        }
-    }, [createDocumentTrigger]);
-
-    const navItems = [
-        { id: 'anamnesis' as const, label: t('tabs.anamnesis'), icon: FileText },
-        { id: 'timeline' as const, label: t('tabs.timeline'), icon: Clock },
-        { id: 'documents' as const, label: t('tabs.documents'), icon: FolderArchive },
-    ];
-
     return (
         <div className="flex flex-col h-full min-h-0">
-            <div className="flex space-x-0.5 bg-muted/50 rounded-lg p-1 mb-2 shrink-0">
-                {navItems.map(({ id, label, icon: Icon }) => (
-                    <button
-                        key={id}
-                        onClick={() => setActiveView(id)}
-                        className={cn(
-                            "flex flex-1 items-center justify-center gap-1.5 text-xs px-3 py-1.5 rounded-md font-medium transition-all",
-                            activeView === id
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:text-foreground hover:bg-background/60"
-                        )}
-                    >
-                        <Icon className="w-3.5 h-3.5 shrink-0" />
-                        <span className="hidden sm:inline">{label}</span>
-                    </button>
-                ))}
-            </div>
-
             <div className="flex-1 min-h-0 overflow-hidden">
                 <ScrollArea className="h-full w-full">
-                    <div className="pr-4 pt-2">
-                        {activeView === 'anamnesis' && (
-                            <AnamnesisSection
-                                userId={userId}
-                                personalHistory={personalHistory}
-                                isLoadingPersonalHistory={isLoadingPersonalHistory}
-                                familyHistory={familyHistory}
-                                isLoadingFamilyHistory={isLoadingFamilyHistory}
-                                allergies={allergies}
-                                isLoadingAllergies={isLoadingAllergies}
-                                medications={medications}
-                                isLoadingMedications={isLoadingMedications}
-                                patientHabits={patientHabits}
-                                isLoadingPatientHabits={isLoadingPatientHabits}
-                                ailmentsCatalog={ailmentsCatalog}
-                                medicationsCatalog={medicationsCatalog}
-                                isLoadingAilmentsCatalog={isLoadingAilmentsCatalog}
-                                isLoadingMedicationsCatalog={isLoadingMedicationsCatalog}
-                                isSubmittingPersonal={isSubmittingPersonal}
-                                isSubmittingFamily={isSubmittingFamily}
-                                isSubmittingAllergy={isSubmittingAllergy}
-                                isSubmittingMedication={isSubmittingMedication}
-                                isSubmittingHabits={isSubmittingHabits}
-                                onCreatePersonalHistory={createPersonalHistory}
-                                onUpdatePersonalHistory={updatePersonalHistory}
-                                onDeletePersonalHistory={deletePersonalHistory}
-                                onCreateFamilyHistory={createFamilyHistory}
-                                onUpdateFamilyHistory={updateFamilyHistory}
-                                onDeleteFamilyHistory={deleteFamilyHistory}
-                                onCreateAllergy={createAllergy}
-                                onUpdateAllergy={updateAllergy}
-                                onDeleteAllergy={deleteAllergy}
-                                onCreateMedication={createMedication}
-                                onUpdateMedication={updateMedication}
-                                onDeleteMedication={deleteMedication}
-                                onUpdatePatientHabits={updatePatientHabits}
-                                onFetchAilmentsCatalog={fetchAilmentsCatalog}
-                                onFetchMedicationsCatalog={fetchMedicationsCatalog}
-                                onClinicalDataChange={onClinicalDataChange}
-                            />
-                        )}
-                        {activeView === 'timeline' && (
-                            <TreatmentTimeline
-                                sessions={patientSessions}
-                                isLoading={isLoadingPatientSessions}
-                                userId={userId}
-                                userName={userName}
-                                doctors={doctors}
-                                isLoadingDoctors={isLoadingDoctors}
-                                isSubmittingSession={isSubmittingSession}
-                                onCreateSession={createSession}
-                                onUpdateSession={updateSession}
-                                onDeleteSession={deleteSession}
-                                onFetchDoctors={fetchDoctors}
-                                onRefreshAll={refreshAll}
-                                onLoadSessionAttachment={getSessionAttachment}
-                                createTrigger={localSessionTrigger}
-                                onTriggerConsumed={() => setLocalSessionTrigger(0)}
-                                sessionPrefill={sessionPrefill}
-                                onSessionCreated={onSessionCreated}
-                                editSessionId={editSessionId}
-                            />
-                        )}
-                        {activeView === 'documents' && (
-                            <EnhancedDocumentsGallery
-                                documents={documents}
-                                isLoading={isLoadingDocuments}
-                                userId={userId}
-                                uploadDocument={uploadDocument}
-                                deleteDocument={deleteDocument}
-                                getDocumentContent={getDocumentContent}
-                                createTrigger={createDocumentTrigger}
-                            />
-                        )}
+                    <div className="pt-1">
+                        <TreatmentTimeline
+                            sessions={patientSessions}
+                            appointments={patientAppointments}
+                            isLoading={isLoadingPatientSessions}
+                            isLoadingAppointments={isLoadingPatientAppointments}
+                            userId={userId}
+                            userName={userName}
+                            doctors={doctors}
+                            isLoadingDoctors={isLoadingDoctors}
+                            isSubmittingSession={isSubmittingSession}
+                            onCreateSession={createSession}
+                            onUpdateSession={updateSession}
+                            onDeleteSession={deleteSession}
+                            onFetchDoctors={fetchDoctors}
+                            onRefreshAll={refreshAll}
+                            onLoadSessionAttachment={getSessionAttachment}
+                            createTrigger={localSessionTrigger}
+                            onTriggerConsumed={() => setLocalSessionTrigger(0)}
+                            sessionPrefill={sessionPrefill}
+                            onSessionCreated={onSessionCreated}
+                            editSessionId={editSessionId}
+                        />
                     </div>
                 </ScrollArea>
             </div>
         </div>
+    );
+}
+
+export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: string; onClinicalDataChange?: () => void }) {
+    const {
+        personalHistory, isLoadingPersonalHistory,
+        familyHistory, isLoadingFamilyHistory,
+        allergies, isLoadingAllergies,
+        medications, isLoadingMedications,
+        patientHabits, isLoadingPatientHabits,
+        ailmentsCatalog, medicationsCatalog,
+        isLoadingAilmentsCatalog, isLoadingMedicationsCatalog,
+        isSubmittingPersonal, isSubmittingFamily, isSubmittingAllergy, isSubmittingMedication, isSubmittingHabits,
+        createPersonalHistory, updatePersonalHistory, deletePersonalHistory,
+        createFamilyHistory, updateFamilyHistory, deleteFamilyHistory,
+        createAllergy, updateAllergy, deleteAllergy,
+        createMedication, updateMedication, deleteMedication,
+        updatePatientHabits, fetchAilmentsCatalog, fetchMedicationsCatalog,
+        refreshAll,
+    } = useClinicHistory();
+
+    React.useEffect(() => {
+        if (userId) refreshAll(userId);
+    }, [userId, refreshAll]);
+
+    return (
+        <AnamnesisSection
+            userId={userId}
+            personalHistory={personalHistory}
+            isLoadingPersonalHistory={isLoadingPersonalHistory}
+            familyHistory={familyHistory}
+            isLoadingFamilyHistory={isLoadingFamilyHistory}
+            allergies={allergies}
+            isLoadingAllergies={isLoadingAllergies}
+            medications={medications}
+            isLoadingMedications={isLoadingMedications}
+            patientHabits={patientHabits}
+            isLoadingPatientHabits={isLoadingPatientHabits}
+            ailmentsCatalog={ailmentsCatalog}
+            medicationsCatalog={medicationsCatalog}
+            isLoadingAilmentsCatalog={isLoadingAilmentsCatalog}
+            isLoadingMedicationsCatalog={isLoadingMedicationsCatalog}
+            isSubmittingPersonal={isSubmittingPersonal}
+            isSubmittingFamily={isSubmittingFamily}
+            isSubmittingAllergy={isSubmittingAllergy}
+            isSubmittingMedication={isSubmittingMedication}
+            isSubmittingHabits={isSubmittingHabits}
+            onCreatePersonalHistory={createPersonalHistory}
+            onUpdatePersonalHistory={updatePersonalHistory}
+            onDeletePersonalHistory={deletePersonalHistory}
+            onCreateFamilyHistory={createFamilyHistory}
+            onUpdateFamilyHistory={updateFamilyHistory}
+            onDeleteFamilyHistory={deleteFamilyHistory}
+            onCreateAllergy={createAllergy}
+            onUpdateAllergy={updateAllergy}
+            onDeleteAllergy={deleteAllergy}
+            onCreateMedication={createMedication}
+            onUpdateMedication={updateMedication}
+            onDeleteMedication={deleteMedication}
+            onUpdatePatientHabits={updatePatientHabits}
+            onFetchAilmentsCatalog={fetchAilmentsCatalog}
+            onFetchMedicationsCatalog={fetchMedicationsCatalog}
+            onClinicalDataChange={onClinicalDataChange}
+        />
+    );
+}
+
+export function DocumentsViewer({ userId, createTrigger = 0 }: { userId: string; createTrigger?: number }) {
+    const { documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent, refreshAll } = useClinicHistory();
+
+    React.useEffect(() => {
+        if (userId) refreshAll(userId);
+    }, [userId, refreshAll]);
+
+    return (
+        <EnhancedDocumentsGallery
+            documents={documents}
+            isLoading={isLoadingDocuments}
+            userId={userId}
+            uploadDocument={uploadDocument}
+            deleteDocument={deleteDocument}
+            getDocumentContent={getDocumentContent}
+            createTrigger={createTrigger}
+        />
     );
 }
 
@@ -1509,10 +1508,25 @@ function ImageViewerWithControls({ src, alt }: ImageViewerWithControlsProps) {
     );
 }
 
+function parsePlanProximaCita(value: string | null | undefined): string {
+    if (!value) return '';
+    const trimmed = value.trim();
+    try {
+        const parsed = JSON.parse(trimmed);
+        if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) return '';
+        if (typeof parsed === 'string') return parsed.trim();
+        return '';
+    } catch {
+        return trimmed;
+    }
+}
+
 // Treatment Timeline Component with CRUD
 interface TreatmentTimelineProps {
     sessions: PatientSession[];
+    appointments?: Appointment[];
     isLoading: boolean;
+    isLoadingAppointments?: boolean;
     userId: string;
     userName?: string;
     doctors: { id: string; name: string }[];
@@ -1531,7 +1545,7 @@ interface TreatmentTimelineProps {
     sessionPrefill?: SessionPrefillData | null;
 }
 
-function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1539,8 +1553,13 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
     const [openItems, setOpenItems] = React.useState<string[]>([]);
 
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
+    const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
+
+    type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
+    const [typeFilter, setTypeFilter] = React.useState<TimelineFilter>('all');
+    const [doctorFilter, setDoctorFilter] = React.useState<string>('all');
 
     // Open edit dialog when editSessionId is provided from outside (e.g. treatment plan step)
     React.useEffect(() => {
@@ -1574,6 +1593,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                     quote_id: '',
                     appointment_id: sessionPrefill.appointment_id ?? '',
                     step_id: sessionPrefill.step_id ?? '',
+                    tipo_sesion: 'clinica',
                 });
             }
             onFetchDoctors();
@@ -1593,6 +1613,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
         quote_id: '',
         appointment_id: '',
         step_id: '',
+        tipo_sesion: 'clinica' as 'clinica' | 'odontograma',
     });
     const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
 
@@ -1675,19 +1696,20 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
         }
     }, [sessions]);
 
-    const handleAddSession = () => {
+    const handleAddSession = (tipo: 'clinica' | 'odontograma' = 'clinica') => {
         const lastSession = sessions.length > 0 ? sessions[0] : null;
         setEditingSession(null);
         setSessionForm({
             doctor_id: '',
             doctor_name: '',
             fecha_sesion: new Date().toISOString().split('T')[0],
-            procedimiento_realizado: lastSession?.plan_proxima_cita || '',
+            procedimiento_realizado: parsePlanProximaCita(lastSession?.plan_proxima_cita) || '',
             plan_proxima_cita: '',
             fecha_proxima_cita: '',
             quote_id: '',
             appointment_id: '',
             step_id: '',
+            tipo_sesion: tipo,
         });
         setSessionTreatments([]);
         setAttachedFiles([]);
@@ -1710,6 +1732,7 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
             quote_id: (session as any).quote_id || '',
             appointment_id: (session as any).appointment_id || '',
             step_id: '',
+            tipo_sesion: session.tipo_sesion ?? 'clinica',
         });
         setSessionTreatments((session.tratamientos || []).map(t => ({
             numero_diente: t.numero_diente ? String(t.numero_diente) : '',
@@ -1872,7 +1895,61 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
         }
     };
 
-    if (isLoading) {
+    type TimelineItem =
+        | { kind: 'session'; date: Date; data: PatientSession }
+        | { kind: 'appointment'; date: Date; data: Appointment };
+
+    const allItems = React.useMemo((): TimelineItem[] => {
+        const sessionItems: TimelineItem[] = sessions.map(s => ({
+            kind: 'session' as const,
+            date: s.fecha_sesion ? parseISO(s.fecha_sesion) : new Date(0),
+            data: s,
+        }));
+        const appointmentItems: TimelineItem[] = appointments.map(a => {
+            const startNode = a.start as any;
+            const dtStr = startNode?.dateTime || `${a.date}T${a.time || '00:00'}:00`;
+            const dt = parseISO(dtStr.replace(/Z$/, ''));
+            return { kind: 'appointment' as const, date: isNaN(dt.getTime()) ? new Date(0) : dt, data: a };
+        });
+        return [...sessionItems, ...appointmentItems].sort(
+            (a, b) => b.date.getTime() - a.date.getTime()
+        );
+    }, [sessions, appointments]);
+
+    const doctorOptions = React.useMemo(() => {
+        const map = new Map<string, string>();
+        for (const item of allItems) {
+            if (item.kind === 'session') {
+                const name = item.data.nombre_doctor || item.data.doctor_name;
+                if (name) map.set(name, name);
+            } else {
+                if (item.data.doctorName) map.set(item.data.doctorName, item.data.doctorName);
+            }
+        }
+        return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+    }, [allItems]);
+
+    const filteredItems = React.useMemo(() => {
+        return allItems.filter(item => {
+            if (typeFilter !== 'all') {
+                if (item.kind === 'appointment' && typeFilter !== 'appointment') return false;
+                if (item.kind === 'session' && typeFilter === 'appointment') return false;
+                if (item.kind === 'session' && typeFilter === 'clinica' && item.data.tipo_sesion === 'odontograma') return false;
+                if (item.kind === 'session' && typeFilter === 'odontograma' && item.data.tipo_sesion !== 'odontograma') return false;
+            }
+            if (doctorFilter !== 'all') {
+                if (item.kind === 'session') {
+                    const name = item.data.nombre_doctor || item.data.doctor_name;
+                    if (name !== doctorFilter) return false;
+                } else {
+                    if (item.data.doctorName !== doctorFilter) return false;
+                }
+            }
+            return true;
+        });
+    }, [allItems, typeFilter, doctorFilter]);
+
+    if (isLoading || isLoadingAppointments) {
         return (
             <div className="space-y-4">
                 <Skeleton className="h-20 w-full" />
@@ -1884,104 +1961,305 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
 
     return (
         <div className="space-y-4">
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm px-2 py-4 sm:p-6 border-0">
-                <div className="flex items-center justify-between mb-4 sm:mb-6 px-1 sm:px-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm px-2 py-3 sm:px-3 sm:py-4 border-0">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 px-1 sm:px-0">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Clock className="h-5 w-5 text-primary" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">{t('title')}</h3>
-                            <p className="text-sm text-muted-foreground">{sessions.length} {sessions.length === 1 ? 'sesión' : 'sesiones'} registradas</p>
+                            <p className="text-sm text-muted-foreground">
+                                {filteredItems.length} de {allItems.length} eventos
+                            </p>
                         </div>
                     </div>
-                    <Button onClick={handleAddSession} size="icon" className="sm:hidden shrink-0" aria-label={t('addSession')}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
-                    <Button onClick={handleAddSession} className="hidden sm:inline-flex">
-                        <Plus className="h-4 w-4 mr-2" />
-                        {t('addSession')}
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* Filter button */}
+                        {allItems.length > 0 && (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-9 w-9 relative"
+                                        aria-label="Filtros"
+                                    >
+                                        <SlidersHorizontal className="h-4 w-4" />
+                                        {(typeFilter !== 'all' || doctorFilter !== 'all') && (
+                                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                                        )}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel className="text-xs">Tipo de evento</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {([
+                                        { value: 'all', label: 'Todos' },
+                                        { value: 'clinica', label: t('sessionTypeClinical') },
+                                        { value: 'odontograma', label: t('sessionTypeOdontogram') },
+                                        { value: 'appointment', label: t('sessionTypeAppointment') },
+                                    ] as { value: TimelineFilter; label: string }[]).map(opt => (
+                                        <DropdownMenuItem
+                                            key={opt.value}
+                                            className="flex items-center justify-between text-sm py-1.5"
+                                            onSelect={(e) => { e.preventDefault(); setTypeFilter(opt.value); }}
+                                        >
+                                            <span className={cn(typeFilter === opt.value && 'font-medium')}>{opt.label}</span>
+                                            {typeFilter === opt.value && <Check className="h-4 w-4" />}
+                                        </DropdownMenuItem>
+                                    ))}
+                                    {doctorOptions.length > 1 && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuLabel className="text-xs">Doctor</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                className="flex items-center justify-between text-sm py-1.5"
+                                                onSelect={(e) => { e.preventDefault(); setDoctorFilter('all'); }}
+                                            >
+                                                <span className={cn(doctorFilter === 'all' && 'font-medium')}>Todos los doctores</span>
+                                                {doctorFilter === 'all' && <Check className="h-4 w-4" />}
+                                            </DropdownMenuItem>
+                                            {doctorOptions.map(opt => (
+                                                <DropdownMenuItem
+                                                    key={opt.value}
+                                                    className="flex items-center justify-between text-sm py-1.5"
+                                                    onSelect={(e) => { e.preventDefault(); setDoctorFilter(opt.value); }}
+                                                >
+                                                    <span className={cn(doctorFilter === opt.value && 'font-medium')}>{opt.label}</span>
+                                                    {doctorFilter === opt.value && <Check className="h-4 w-4" />}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </>
+                                    )}
+                                    {(typeFilter !== 'all' || doctorFilter !== 'all') && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem
+                                                onSelect={() => { setTypeFilter('all'); setDoctorFilter('all'); }}
+                                                className="justify-center text-center text-destructive focus:text-destructive text-sm"
+                                            >
+                                                Limpiar filtros
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
+                        {/* Add session — mobile icon only */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="icon" className="sm:hidden h-9 w-9 shrink-0" aria-label={t('addSession')}>
+                                    <Plus className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleAddSession('clinica')}>
+                                    <Stethoscope className="h-4 w-4 mr-2" />
+                                    {t('sessionTypeClinical')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setIsOdontogramDialogOpen(true)}>
+                                    <Smile className="h-4 w-4 mr-2" />
+                                    {t('sessionTypeOdontogram')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                        {/* Add session — desktop with label */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button className="hidden sm:inline-flex">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    {t('addSession')}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleAddSession('clinica')}>
+                                    <Stethoscope className="h-4 w-4 mr-2" />
+                                    {t('sessionTypeClinical')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setIsOdontogramDialogOpen(true)}>
+                                    <Smile className="h-4 w-4 mr-2" />
+                                    {t('sessionTypeOdontogram')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
 
-                {sessions.length === 0 ? (
+                {/* Active filter chips */}
+                {(typeFilter !== 'all' || doctorFilter !== 'all') && (
+                    <div className="flex flex-wrap items-center gap-1.5 mb-3 px-1 sm:px-0">
+                        {typeFilter !== 'all' && (
+                            <Badge
+                                variant="secondary"
+                                className="gap-1 text-xs cursor-pointer hover:bg-muted-foreground/20 transition-colors"
+                                onClick={() => setTypeFilter('all')}
+                            >
+                                {typeFilter === 'clinica' ? t('sessionTypeClinical') : typeFilter === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeAppointment')}
+                                <X className="h-3 w-3 ml-0.5" />
+                            </Badge>
+                        )}
+                        {doctorFilter !== 'all' && (
+                            <Badge
+                                variant="secondary"
+                                className="gap-1 text-xs cursor-pointer hover:bg-muted-foreground/20 transition-colors"
+                                onClick={() => setDoctorFilter('all')}
+                            >
+                                {doctorFilter}
+                                <X className="h-3 w-3 ml-0.5" />
+                            </Badge>
+                        )}
+                    </div>
+                )}
+
+                {allItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-xl gap-3">
                         <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
                             <Clock className="w-7 h-7" />
                         </div>
                         <p className="text-sm">{t('noSessions')}</p>
-                        <Button size="sm" variant="outline" onClick={handleAddSession}>
-                            <Plus className="w-3 h-3 mr-1" />
-                            {t('addFirstSession')}
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    {t('addFirstSession')}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center">
+                                <DropdownMenuItem onClick={() => handleAddSession('clinica')}>
+                                    <Stethoscope className="h-4 w-4 mr-2" />
+                                    {t('sessionTypeClinical')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setIsOdontogramDialogOpen(true)}>
+                                    <Smile className="h-4 w-4 mr-2" />
+                                    {t('sessionTypeOdontogram')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                ) : filteredItems.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2">
+                        <p className="text-sm">No hay eventos que coincidan con los filtros.</p>
+                        <button
+                            onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }}
+                            className="text-xs text-primary hover:underline"
+                        >
+                            Limpiar filtros
+                        </button>
                     </div>
                 ) : (
                     <div className="relative">
                         <div className="absolute left-[9px] sm:left-[11px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
-                        {sessions.map((session, index) => {
+                        {filteredItems.map((item, index) => {
+                            if (item.kind === 'appointment') {
+                                const appt = item.data;
+                                return (
+                                    <div key={`appt-${appt.id}-${index}`} className="relative flex items-start mb-3 last:mb-0 pl-7 sm:pl-9">
+                                        <div className="absolute left-0 top-0 z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-background shadow-md bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+                                            <CalendarCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-500" />
+                                        </div>
+                                        <Card className="flex-1 min-w-0 border-blue-100 dark:border-blue-900 hover:shadow-md transition-shadow duration-200">
+                                            <CardHeader className="p-2.5 sm:p-3 pb-2">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <CardTitle className="text-sm font-semibold break-words whitespace-normal leading-tight">
+                                                            {appt.summary}
+                                                        </CardTitle>
+                                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+                                                            <Badge variant="secondary" className="text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
+                                                                {t('sessionTypeAppointment')}
+                                                            </Badge>
+                                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                <CalendarIcon className="h-3 w-3 shrink-0" />
+                                                                {format(item.date, 'dd/MM/yyyy')}{appt.time && ` · ${appt.time}`}
+                                                            </p>
+                                                            {appt.doctorName && (
+                                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                    <User className="h-3 w-3 shrink-0" />
+                                                                    <span className="truncate max-w-[140px]">{appt.doctorName}</span>
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <Badge variant="outline" className="text-xs shrink-0 mt-0.5">
+                                                        {t(`appointmentStatus.${appt.status}`) || appt.status}
+                                                    </Badge>
+                                                </div>
+                                            </CardHeader>
+                                        </Card>
+                                    </div>
+                                );
+                            }
+
+                            const session = item.data as PatientSession;
                             const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
                             const isOpen = openItems.includes(String(session.sesion_id));
+                            const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
 
                             return (
-                                <div key={index} className="relative flex items-start mb-4 sm:mb-6 last:mb-0 pl-7 sm:pl-10">
+                                <div key={index} className="relative flex items-start mb-3 last:mb-0 pl-7 sm:pl-9">
                                     <div className="absolute left-0 top-0 z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
                                         <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
                                     </div>
                                     <Card className="flex-1 min-w-0 hover:shadow-md transition-shadow duration-200 border-muted/60">
-                                        <CardHeader className="p-3 sm:p-4 pb-2">
-                                            <div className="flex items-start gap-2">
+                                        <CardHeader className="p-2.5 sm:p-3 pb-2">
+                                            <div className="flex items-start justify-between gap-2">
                                                 <div className="flex-1 min-w-0">
-                                                    <CardTitle className="text-sm sm:text-base font-semibold break-words whitespace-normal leading-tight">
+                                                    <CardTitle className="text-sm font-semibold break-words whitespace-normal leading-tight">
                                                         {session.procedimiento_realizado || t('noTitle')}
                                                     </CardTitle>
-                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
-                                                        <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                                                            <CalendarIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
+                                                        <Badge variant="secondary" className={cn(
+                                                            "text-xs font-medium",
+                                                            session.tipo_sesion === 'odontograma'
+                                                                ? "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400"
+                                                                : "bg-primary/10 text-primary hover:bg-primary/10"
+                                                        )}>
+                                                            {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
+                                                        </Badge>
+                                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                            <CalendarIcon className="h-3 w-3 shrink-0" />
                                                             {formatDate(session.fecha_sesion)}
                                                         </p>
                                                         {(session.nombre_doctor || session.doctor_name) && (
-                                                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                                                                <User className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-                                                                <span className="truncate">{session.nombre_doctor || session.doctor_name}</span>
+                                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                <User className="h-3 w-3 shrink-0" />
+                                                                <span className="truncate max-w-[140px]">{session.nombre_doctor || session.doctor_name}</span>
                                                             </p>
                                                         )}
                                                         {session.quote_id && (
-                                                            <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1">
-                                                                <Link2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                                <Link2 className="h-3 w-3 shrink-0" />
                                                                 {t('quote')}: {session.quote_doc_no || session.quote_id}
                                                             </p>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1 shrink-0">
-                                                    <span className="hidden sm:inline text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-md font-medium">
-                                                        {session.tipo_sesion === 'odontograma' ? t('odontogramTooltip') : session.tipo_sesion}
-                                                    </span>
-                                                    {session.tipo_sesion !== 'odontograma' && (
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
-                                                                    <MoreHorizontal className="h-4 w-4" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent>
-                                                                <DropdownMenuItem onClick={() => handleEditSession(session)}>{tPage('common.edit')}</DropdownMenuItem>
-                                                                <DropdownMenuItem onClick={() => handleDeleteSession(session)} className="text-destructive">{tPage('common.delete')}</DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    )}
-                                                </div>
+                                                {session.tipo_sesion !== 'odontograma' && (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 mt-0.5">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent>
+                                                            <DropdownMenuItem onClick={() => handleEditSession(session)}>{tPage('common.edit')}</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleDeleteSession(session)} className="text-destructive">{tPage('common.delete')}</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                )}
                                             </div>
                                         </CardHeader>
                                         <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
                                             <CollapsibleTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="w-full justify-start px-3 sm:px-4 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+                                                <Button variant="ghost" size="sm" className="w-full justify-start px-2.5 sm:px-3 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
                                                     {isOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
                                                     {isOpen ? t('hideDetails') || 'Ocultar detalles' : t('showDetails') || 'Ver detalles'}
                                                 </Button>
                                             </CollapsibleTrigger>
                                             <CollapsibleContent>
-                                                <CardContent className="pt-0 pb-3 px-3 sm:px-6 space-y-3">
+                                                <CardContent className="pt-0 pb-2.5 px-3 sm:px-4 space-y-2.5">
                                                     {session.procedimiento_realizado && session.tipo_sesion !== 'odontograma' && (
                                                         <div className="border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-md">
                                                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
@@ -2000,8 +2278,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
                                                         </div>
                                                     )}
-                                                    {(session.plan_proxima_cita || session.fecha_proxima_cita) && (
-                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/60/50 dark:bg-blue-950/20 rounded-r-md">
+                                                    {(planProximaCita || session.fecha_proxima_cita) && (
+                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
                                                             <div className="flex items-center justify-between gap-4 flex-wrap">
                                                                 <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
                                                                 {session.fecha_proxima_cita && (
@@ -2012,8 +2290,8 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                                                                     </span>
                                                                 )}
                                                             </div>
-                                                            {session.plan_proxima_cita && (
-                                                                <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{session.plan_proxima_cita}</p>
+                                                            {planProximaCita && (
+                                                                <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{planProximaCita}</p>
                                                             )}
                                                         </div>
                                                     )}
@@ -2463,6 +2741,32 @@ function TreatmentTimeline({ sessions, isLoading, userId, userName, doctors, isL
                             {tPage('common.delete')}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Odontogram Create Dialog */}
+            <Dialog open={isOdontogramDialogOpen} onOpenChange={setIsOdontogramDialogOpen}>
+                <DialogContent maxWidth="5xl" className="h-[90vh] max-h-[90vh] max-w-[95vw] p-0 flex flex-col overflow-hidden">
+                    <DialogHeader className="border-b px-6 py-4 shrink-0">
+                        <DialogTitle className="flex items-center gap-2">
+                            <Smile className="h-4 w-4 text-purple-600" />
+                            Nueva sesión — Odontograma
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-1 min-h-0 overflow-auto p-4">
+                        {isOdontogramDialogOpen && (
+                            <DentalRecordViewer
+                                patientId={userId}
+                                patientName={userName}
+                                createMode
+                                onSessionSaved={() => {
+                                    setIsOdontogramDialogOpen(false);
+                                    onRefreshAll?.(userId);
+                                }}
+                                onCancelCreate={() => setIsOdontogramDialogOpen(false)}
+                            />
+                        )}
+                    </div>
                 </DialogContent>
             </Dialog>
 

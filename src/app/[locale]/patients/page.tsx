@@ -37,6 +37,7 @@ import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
@@ -47,7 +48,7 @@ import { getCalendarSettings } from '@/components/calendar/calendar-settings-uti
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
-import { ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
+import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserAppointments } from '@/components/users/user-appointments';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
@@ -73,7 +74,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -748,7 +749,7 @@ const UserInfoTab = ({
   };
 
   return (
-    <div className="overflow-y-auto flex-1 min-h-0 pr-1">
+    <div className="pr-1">
       <Form {...infoForm}>
         <form onSubmit={infoForm.handleSubmit(handleSave)} className="space-y-4 p-2">
           {saveError && (
@@ -1010,6 +1011,7 @@ export default function UsersPage() {
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('clinical-history');
+  const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<'personal' | 'anamnesis'>('personal');
   const [deepLinkView, setDeepLinkView] = React.useState<string | undefined>(undefined);
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
@@ -1540,6 +1542,7 @@ export default function UsersPage() {
   const handleRowSelectionChange = (selectedRows: User[]) => {
     const user = selectedRows.length > 0 ? selectedRows[0] : null;
     setSelectedUser(user);
+    setActiveInfoSubTab('personal');
   };
 
   React.useEffect(() => {
@@ -1710,7 +1713,6 @@ export default function UsersPage() {
       'Ordenes': 'orders',
       'Facturas': 'invoices',
       'Pagos': 'payments',
-      'Citas': 'appointments',
       'Mensajes': 'messages',
       'Historial': 'logs',
       'Notas': 'notes',
@@ -1917,7 +1919,7 @@ export default function UsersPage() {
                             <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateSessionTrigger(t => t + 1); }}>
                               <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateDocumentTrigger(t => t + 1); }}>
+                            <DropdownMenuItem onClick={() => { setActiveTab('documents'); setCreateDocumentTrigger(t => t + 1); }}>
                               <Upload className="h-4 w-4 mr-2 text-primary" />Documento
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -2142,16 +2144,15 @@ export default function UsersPage() {
                             { id: 'info', icon: Users, label: 'Información' },
                             ...(canViewHistory ? [{ id: 'clinical-history', icon: Stethoscope, label: t('UsersPage.tabs.clinicalHistory') }] : []),
                             { id: 'treatment-plans', icon: ClipboardList, label: t('UsersPage.tabs.treatmentPlans') },
-                            { id: 'medical-record', icon: ToothIcon, label: t('UsersPage.tabs.medicalRecord') },
                             ...(isMedico ? [{ id: 'services', icon: Wrench, label: t('UsersPage.tabs.services') }] : []),
                             { id: 'quotes', icon: FileText, label: t('UsersPage.tabs.quotes') },
                             // hidden: orders tab { id: 'orders', icon: ShoppingCart, label: t('UsersPage.tabs.orders') },
                             { id: 'invoices', icon: Receipt, label: t('UsersPage.tabs.invoices') },
                             { id: 'payments', icon: CreditCard, label: t('UsersPage.tabs.payments') },
-                            { id: 'appointments', icon: CalendarIcon, label: t('UsersPage.tabs.appointments') },
                             { id: 'messages', icon: MessageSquare, label: t('UsersPage.tabs.messages') },
                             { id: 'logs', icon: History, label: t('UsersPage.tabs.logs') },
                             { id: 'notes', icon: StickyNote, label: t('UsersPage.tabs.notes') },
+                            ...(canViewHistory ? [{ id: 'documents', icon: FolderArchive, label: t('UsersPage.tabs.documents') }] : []),
                           ];
                           return (
                             <VerticalTabStrip
@@ -2164,24 +2165,61 @@ export default function UsersPage() {
                         {/* Tab content */}
                         <div className="flex-1 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                           {activeTab === 'info' && (
-                            <UserInfoTab
-                              user={selectedUser}
-                              mutualSocieties={mutualSocieties}
-                              onSaved={(updated) => {
-                                setSelectedUser(updated);
-                                loadUsers();
-                              }}
-                            />
+                            <>
+                              <div className="mb-4">
+                                <div className="flex rounded-md border overflow-hidden text-xs">
+                                  <button
+                                    onClick={() => setActiveInfoSubTab('personal')}
+                                    className={cn(
+                                      'flex-1 py-1.5 px-3 font-medium transition-colors whitespace-nowrap text-center',
+                                      activeInfoSubTab === 'personal'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-background text-muted-foreground hover:bg-muted'
+                                    )}
+                                  >
+                                    Información Personal
+                                  </button>
+                                  <button
+                                    onClick={() => setActiveInfoSubTab('anamnesis')}
+                                    className={cn(
+                                      'flex-1 py-1.5 px-3 font-medium transition-colors whitespace-nowrap text-center',
+                                      activeInfoSubTab === 'anamnesis'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-background text-muted-foreground hover:bg-muted'
+                                    )}
+                                  >
+                                    Anamnesis
+                                  </button>
+                                </div>
+                              </div>
+                              {activeInfoSubTab === 'personal' && (
+                                <UserInfoTab
+                                  user={selectedUser}
+                                  mutualSocieties={mutualSocieties}
+                                  onSaved={(updated) => {
+                                    setSelectedUser(updated);
+                                    loadUsers();
+                                  }}
+                                />
+                              )}
+                              {activeInfoSubTab === 'anamnesis' && (
+                                <AnamnesisViewer
+                                  userId={selectedUser.id}
+                                  onClinicalDataChange={() => {
+                                    fetchPatientAllergies(selectedUser.id);
+                                    fetchPatientConditions(selectedUser.id);
+                                  }}
+                                />
+                              )}
+                            </>
                           )}
                           {activeTab === 'clinical-history' && (
                             <ClinicHistoryViewer
                               userId={selectedUser.id}
                               userName={selectedUser.name}
                               createSessionTrigger={createSessionTrigger}
-                              createDocumentTrigger={createDocumentTrigger}
                               sessionPrefill={sessionPrefill}
                               editSessionId={editSessionId}
-                              deepLinkView={deepLinkView}
                               onSessionCreated={async (sesionId, stepId) => {
                                 if (stepId) {
                                   try {
@@ -2197,6 +2235,12 @@ export default function UsersPage() {
                                 fetchPatientConditions(selectedUser.id);
                                 setSessionPrefill(null);
                               }}
+                            />
+                          )}
+                          {activeTab === 'documents' && (
+                            <DocumentsViewer
+                              userId={selectedUser.id}
+                              createTrigger={createDocumentTrigger}
                             />
                           )}
                           {activeTab === 'services' && selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active) && (
@@ -2243,12 +2287,7 @@ export default function UsersPage() {
                               refreshTrigger={refreshPaymentsTrigger}
                             />
                           )}
-                          {activeTab === 'appointments' && (
-                            <UserAppointments
-                              user={selectedUser}
-                              refreshTrigger={refreshAppointmentsTrigger}
-                            />
-                          )}
+
                           {activeTab === 'treatment-plans' && (
                             <UserTreatmentPlans
                               userId={selectedUser.id}
@@ -2261,12 +2300,7 @@ export default function UsersPage() {
                               }}
                             />
                           )}
-                          {activeTab === 'medical-record' && (
-                            <DentalRecordViewer
-                              patientId={selectedUser.id}
-                              patientName={selectedUser.name}
-                            />
-                          )}
+
                           {activeTab === 'messages' && <UserMessages userId={selectedUser.id} />}
                           {activeTab === 'logs' && <UserLogs userId={selectedUser.id} />}
                           {activeTab === 'notes' && <NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />}

@@ -167,9 +167,12 @@ interface DentalRecordViewerProps {
   autoStartNotes?: string;
   autoStartMarcaciones?: OdontogramMarcacion[];
   onSessionSaved?: () => void;
+  /** When true: hides session history nav and auto-starts a new session on load */
+  createMode?: boolean;
+  onCancelCreate?: () => void;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -225,11 +228,11 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   }, [patientId]);
 
   useEffect(() => {
-    if (autoStartSession && !isLoading) {
+    if ((autoStartSession || createMode) && !isLoading) {
       handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStartSession, isLoading]);
+  }, [autoStartSession, createMode, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -283,6 +286,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     setNotes('');
     setEditingDefaultDescription('');
     setSelectedToothId(null);
+    if (createMode) onCancelCreate?.();
   }
 
   const handleSave = useCallback(async (values: SessionFormValues) => {
@@ -555,7 +559,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       )}
     >
       {/* ── Nav ── */}
-      {isMobile ? (
+      {!createMode && (isMobile ? (
         /* Mobile: two rows */
         <div className="flex flex-col gap-2">
           {/* Row 1 — mode toggle (full width) */}
@@ -735,7 +739,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
         </div>
-      )}
+      ))}
 
       {/* ── Editing action buttons ── */}
       {isEditing && (
