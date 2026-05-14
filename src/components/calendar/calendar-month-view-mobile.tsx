@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { BellRing, CheckCircle2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
 import type { Locale } from 'date-fns';
@@ -8,10 +10,11 @@ import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } fro
 
 import { STATUS_ICONS } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
-import type { AppointmentStatus } from '@/lib/types';
+import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
+import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
 
 interface CalendarMonthViewMobileProps {
   currentDate: Date;
@@ -28,6 +31,7 @@ export function CalendarMonthViewMobile({
   onEventClick,
   onSlotClick,
 }: CalendarMonthViewMobileProps) {
+  const t = useTranslations('Calendar');
   // Initialize stable for SSR; set real "today" after mount.
   const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date(2000, 0, 1));
   React.useEffect(() => { setSelectedDay(new Date()); }, []);
@@ -163,41 +167,64 @@ export function CalendarMonthViewMobile({
               className="text-xs font-medium text-primary px-2 py-1 rounded-md hover:bg-primary/10"
               onClick={() => onSlotClick(selectedDay)}
             >
-              + New
+              + {t('create')}
             </button>
           )}
         </div>
 
         {selectedDayEvents.length === 0 ? (
           <div className="text-sm text-muted-foreground text-center py-8">
-            No appointments
+            {t('noAppointments')}
           </div>
         ) : (
           <div className="space-y-2">
             {selectedDayEvents.map((event) => {
               const startTime = formatEventTime(event.start, dateLocale);
               const rawStatus = event.data?.status as string | undefined;
+              const isReminder = event.data?.kind === 'reminder';
+              const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
+              const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
+              const reminderIsDone = isReminderDone(reminderStatus);
+              const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const StatusIcon = status ? STATUS_ICONS[status] : null;
               const statusColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
+              const reminderColor = getReminderPriorityColor(reminderPriority);
+              const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
               return (
                 <div
                   key={event.id}
                   data-testid="calendar-month-agenda-event"
-                  className="flex items-start gap-3 p-3 rounded-lg border border-border/50 cursor-pointer active:bg-muted/50 transition-colors"
+                  className={cn(
+                    'flex items-start gap-3 rounded-lg border p-3 cursor-pointer active:bg-muted/50 transition-colors',
+                    isReminder ? 'border-[var(--reminder-border)] bg-[var(--reminder-bg)]' : 'border-border/50',
+                    reminderIsDone && 'border-slate-200 bg-slate-50/80 opacity-80',
+                  )}
+                  style={reminderCardStyle}
                   onClick={() => onEventClick(event.data)}
                 >
                   {/* Color bar */}
                   <div
-                    className="w-1 self-stretch rounded-full shrink-0"
-                    style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                    className={cn('w-1 self-stretch rounded-full shrink-0', isReminder && 'border border-white/50')}
+                    style={{ backgroundColor: isReminder ? reminderColor : event.color || 'hsl(var(--primary))' }}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-sm truncate">{event.title}</span>
+                      <span className={cn('font-semibold text-sm truncate', reminderIsDone && 'text-muted-foreground line-through')}>
+                        {event.title}
+                      </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs text-muted-foreground whitespace-nowrap">{startTime}</span>
-                        {StatusIcon && statusColor && (
+                        {isReminder ? (
+                          <span
+                            aria-hidden
+                            title={event.title}
+                            className="inline-flex items-center justify-center rounded-full p-1 text-white"
+                            style={{ backgroundColor: reminderColor }}
+                          >
+                            <ReminderIcon className="h-3 w-3" strokeWidth={2} />
+                          </span>
+                        ) : StatusIcon && statusColor && (
                           <span
                             aria-hidden
                             title={status}

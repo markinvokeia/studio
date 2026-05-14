@@ -2,14 +2,16 @@
 
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
-import { Clock, Stethoscope, FileText } from 'lucide-react';
+import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
 
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
-import type { AppointmentStatus, CancellationReason } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
 import { formatEventTime } from './calendar-utils';
+import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
 
 function StatusBadge({
   status,
@@ -80,14 +82,25 @@ export function CalendarScheduleView({
           <div className="space-y-2">
             {groupedEvents[date].map((event) => {
               const rawStatus = event.data?.status as string | undefined;
+              const isReminder = event.data?.kind === 'reminder';
+              const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
+              const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
+              const reminderIsDone = isReminderDone(reminderStatus);
+              const reminderColor = getReminderPriorityColor(reminderPriority);
+              const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
+              const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
               return (
               <div
                 key={event.id}
                 data-testid="calendar-schedule-event"
-                className="p-2 rounded-md cursor-pointer"
-                style={{ backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
+                className={cn(
+                  'p-2 rounded-md cursor-pointer',
+                  isReminder && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
+                  reminderIsDone && 'border-solid border-slate-200 opacity-80',
+                )}
+                style={isReminder ? reminderCardStyle : { backgroundColor: event.color ? `${event.color}20` : 'var(--muted)' }}
                 onClick={(e) => {
                   if (e.button !== 0) return;
                   onEventClick(event.data);
@@ -98,13 +111,23 @@ export function CalendarScheduleView({
                   <div className="flex items-start gap-2.5">
                     <div
                       className="w-1 self-stretch rounded-full shrink-0 mt-0.5"
-                      style={{ backgroundColor: event.color || 'hsl(var(--primary))' }}
+                      style={{ backgroundColor: isReminder ? reminderColor : event.color || 'hsl(var(--primary))' }}
                     />
                     <div className="flex-1 min-w-0 space-y-0.5">
                       <div className="flex items-center gap-1.5 text-sm font-semibold">
                         <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate flex-1">{event.title}</span>
-                        {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                        <span className={cn('truncate flex-1', reminderIsDone && 'text-muted-foreground line-through')}>
+                          {event.title}
+                        </span>
+                        {isReminder ? (
+                          <span
+                            aria-hidden
+                            className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
+                            style={{ backgroundColor: reminderColor }}
+                          >
+                            <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+                          </span>
+                        ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
                         <Clock className="h-3 w-3 shrink-0" />
@@ -121,7 +144,15 @@ export function CalendarScheduleView({
                 ) : (
                   /* Desktop/Tablet: horizontal 3-column layout — status badge first */
                   <div className="flex items-center gap-4">
-                    {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                    {isReminder ? (
+                      <span
+                        aria-hidden
+                        className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
+                        style={{ backgroundColor: reminderColor }}
+                      >
+                        <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+                      </span>
+                    ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
                     <div className="flex items-center gap-2 w-28 text-sm font-semibold">
                       <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                       <div
@@ -132,7 +163,9 @@ export function CalendarScheduleView({
                     </div>
                     <div className="flex items-center gap-1.5 flex-1 text-sm min-w-0">
                       <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="truncate">{event.title}</span>
+                      <span className={cn('truncate', reminderIsDone && 'text-muted-foreground line-through')}>
+                        {event.title}
+                      </span>
                     </div>
                     {event.data?.doctorName && (
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

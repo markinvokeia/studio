@@ -2,10 +2,13 @@
 'use client';
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { CalendarCreateTypeDialog } from '@/components/appointments/CalendarCreateTypeDialog';
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView } from '@/components/calendar/Calendar';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
+import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
+import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
 import {
     AlertDialog,
@@ -31,6 +34,12 @@ import {
     DialogTitle
 } from '@/components/ui/dialog';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
     ContextMenuItem,
     ContextMenuSeparator,
     ContextMenuSub,
@@ -43,13 +52,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarSettings, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
+import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
-import { Calendar as CalendarIcon, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
+import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
@@ -249,6 +259,52 @@ async function getAppointments(
     }
 }
 
+function normalizeReminder(rawReminder: any): CalendarReminder | null {
+    const start = rawReminder.start_datetime || rawReminder.startDateTime || rawReminder.startdatetime;
+    if (!start) return null;
+
+    return {
+        id: String(rawReminder.id || ''),
+        title: String(rawReminder.title || ''),
+        description: rawReminder.description || null,
+        start_datetime: String(start),
+        end_datetime: rawReminder.end_datetime || rawReminder.endDateTime || rawReminder.enddatetime || null,
+        color: rawReminder.color || '#8b5cf6',
+        priority: rawReminder.priority === 'LOW' || rawReminder.priority === 'HIGH' ? rawReminder.priority : 'MEDIUM',
+        status: ['pending', 'done', 'dismissed', 'cancelled'].includes(rawReminder.status) ? rawReminder.status : 'pending',
+        visibility: 'clinic',
+        raise_alert: Boolean(rawReminder.raise_alert),
+        alert_instance_id: rawReminder.alert_instance_id ?? rawReminder.alertInstanceId ?? null,
+        created_by: rawReminder.created_by || rawReminder.createdBy || null,
+        created_at: rawReminder.created_at || rawReminder.createdAt || '',
+        updated_at: rawReminder.updated_at || rawReminder.updatedAt || null,
+        completed_at: rawReminder.completed_at || rawReminder.completedAt || null,
+        completed_by: rawReminder.completed_by || rawReminder.completedBy || null,
+    };
+}
+
+async function getReminders(startDate: Date, endDate: Date): Promise<CalendarReminder[]> {
+    if (!isValid(startDate) || !isValid(endDate)) return [];
+    const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
+
+    try {
+        const response = await api.get(API_ROUTES.REMINDERS, {
+            from: formatDateForAPI(startDate),
+            to: formatDateForAPI(endDate),
+        });
+        const remindersData = Array.isArray(response)
+            ? response
+            : (response?.reminders || response?.data || response?.result || []);
+
+        return remindersData
+            .map(normalizeReminder)
+            .filter((reminder: CalendarReminder | null): reminder is CalendarReminder => reminder !== null);
+    } catch (error) {
+        console.error("Failed to fetch reminders:", error);
+        return [];
+    }
+}
+
 async function getCalendars(): Promise<CalendarType[]> {
     try {
         const data = await api.get(API_ROUTES.CALENDARS);
@@ -313,10 +369,12 @@ export default function AppointmentsPage() {
     const tUserRoles = useTranslations('UserRoles');
     const tToasts = useTranslations('AppointmentsPage.toasts');
     const tOrderStatus = useTranslations('OrderStatus');
+    const tReminders = useTranslations('Reminders');
 
     const { toast } = useToast();
 
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
+    const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
     const [calendars, setCalendars] = React.useState<CalendarType[]>([]);
     const [services, setServices] = React.useState<Service[]>([]);
     const [doctors, setDoctors] = React.useState<UserType[]>([]);
@@ -336,6 +394,13 @@ export default function AppointmentsPage() {
 
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
+    const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
+    const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
+    const [isReminderFormOpen, setIsReminderFormOpen] = React.useState(false);
+    const [editingReminder, setEditingReminder] = React.useState<CalendarReminder | null>(null);
+    const [reminderInitialDate, setReminderInitialDate] = React.useState<Date | null>(null);
+    const [isCreateTypeOpen, setIsCreateTypeOpen] = React.useState(false);
+    const [pendingSlotDate, setPendingSlotDate] = React.useState<Date | null>(null);
 
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
@@ -365,6 +430,7 @@ export default function AppointmentsPage() {
     const [isLoadingQuoteInfo, setIsLoadingQuoteInfo] = React.useState(false);
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const eventClickAbortRef = React.useRef<AbortController | null>(null);
+    const refreshCalendarDataRef = React.useRef<() => void>(() => undefined);
 
 
 
@@ -376,13 +442,22 @@ export default function AppointmentsPage() {
         if (!open) {
             setEditingAppointment(null);
             setIsReschedulingMode(false);
+            setSlotInitialData(null);
         }
     };
 
     const handleNewAppointmentClick = () => {
         setEditingAppointment(null);
         setIsReschedulingMode(false);
+        setSlotInitialData(null);
         setCreateOpen(true);
+    };
+
+    const handleNewReminderClick = () => {
+        setEditingReminder(null);
+        setReminderInitialDate(new Date());
+        setPendingSlotDate(null);
+        setIsReminderFormOpen(true);
     };
 
     const [slotInitialData, setSlotInitialData] = React.useState<{
@@ -412,8 +487,23 @@ export default function AppointmentsPage() {
             if (calendar) base.calendar = calendar;
         }
         setSlotInitialData(base);
-        setCreateOpen(true);
+        setPendingSlotDate(date);
+        setIsCreateTypeOpen(true);
     }, [doctors, calendars]);
+
+    const handleCreateAppointmentFromSlot = React.useCallback(() => {
+        setEditingAppointment(null);
+        setIsReschedulingMode(false);
+        setIsCreateTypeOpen(false);
+        setCreateOpen(true);
+    }, []);
+
+    const handleCreateReminderFromSlot = React.useCallback(() => {
+        setEditingReminder(null);
+        setReminderInitialDate(pendingSlotDate ?? new Date());
+        setIsCreateTypeOpen(false);
+        setIsReminderFormOpen(true);
+    }, [pendingSlotDate]);
 
 
     React.useEffect(() => {
@@ -522,7 +612,14 @@ export default function AppointmentsPage() {
         }
     }, []);
 
-    const handleEventClick = (appointment: Appointment) => {
+    const handleEventClick = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
+        if (eventData.kind === 'reminder') {
+            setSelectedReminder(eventData);
+            setIsReminderPanelOpen(true);
+            return;
+        }
+
+        const appointment = eventData as Appointment;
         eventClickAbortRef.current?.abort();
         const controller = new AbortController();
         eventClickAbortRef.current = controller;
@@ -538,6 +635,134 @@ export default function AppointmentsPage() {
         if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
     };
+
+    const handleSaveReminder = React.useCallback(async (values: ReminderFormValues) => {
+        const now = toLocalISOString(new Date());
+        const reminderId = editingReminder?.id ?? (
+            typeof crypto !== 'undefined' && 'randomUUID' in crypto
+                ? crypto.randomUUID()
+                : `local-${Date.now()}`
+        );
+        const optimisticReminder: CalendarReminder = {
+            id: reminderId,
+            title: values.title,
+            description: values.description,
+            start_datetime: values.start_datetime,
+            end_datetime: values.end_datetime,
+            color: values.color,
+            priority: values.priority,
+            status: editingReminder?.status ?? 'pending',
+            visibility: 'clinic',
+            created_by: editingReminder?.created_by ?? null,
+            created_at: editingReminder?.created_at ?? now,
+            updated_at: editingReminder ? now : null,
+        };
+
+        setReminders((prev) => {
+            if (editingReminder) {
+                return prev.map((item) => (item.id === editingReminder.id ? optimisticReminder : item));
+            }
+            return [...prev, optimisticReminder];
+        });
+        setSelectedReminder((prev) => (prev && prev.id === optimisticReminder.id ? optimisticReminder : prev));
+        setEditingReminder(null);
+        setReminderInitialDate(null);
+
+        try {
+            const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
+                id: editingReminder?.id || undefined,
+                title: values.title,
+                description: values.description,
+                start_datetime: values.start_datetime,
+                end_datetime: values.end_datetime,
+                color: values.color,
+                priority: values.priority,
+                status: editingReminder?.status ?? 'pending',
+                visibility: 'clinic',
+                raise_alert: editingReminder?.raise_alert ?? true,
+                created_by: editingReminder?.created_by ?? undefined,
+            });
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) {
+                throw new Error(result?.message || tReminders('errorDesc'));
+            }
+
+            const savedReminder = normalizeReminder(result?.reminder || result);
+            if (savedReminder) {
+                setReminders((prev) => {
+                    const filtered = prev.filter((item) => item.id !== reminderId && item.id !== savedReminder.id);
+                    return [...filtered, savedReminder];
+                });
+                setSelectedReminder((prev) => (prev && (prev.id === reminderId || prev.id === savedReminder.id) ? savedReminder : prev));
+            }
+            toast({ title: tReminders('saved') });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tReminders('error'),
+                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+            });
+            refreshCalendarDataRef.current();
+        }
+    }, [editingReminder, tReminders, toast]);
+
+    const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
+        setEditingReminder(reminder);
+        setReminderInitialDate(null);
+        setIsReminderFormOpen(true);
+    }, []);
+
+    const handleMarkReminderDone = React.useCallback(async (reminder: CalendarReminder) => {
+        const now = toLocalISOString(new Date());
+        const updated: CalendarReminder = { ...reminder, status: 'done', updated_at: now, completed_at: now };
+        setReminders((prev) => prev.map((item) => (item.id === reminder.id ? updated : item)));
+        setSelectedReminder(updated);
+        try {
+            const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
+                ...reminder,
+                status: 'done',
+                raise_alert: reminder.raise_alert ?? true,
+            });
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) {
+                throw new Error(result?.message || tReminders('errorDesc'));
+            }
+            const savedReminder = normalizeReminder(result?.reminder || result);
+            if (savedReminder) {
+                setReminders((prev) => prev.map((item) => (item.id === reminder.id ? savedReminder : item)));
+                setSelectedReminder(savedReminder);
+            }
+            toast({ title: tReminders('done') });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tReminders('error'),
+                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+            });
+            refreshCalendarDataRef.current();
+        }
+    }, [tReminders, toast]);
+
+    const handleDeleteReminder = React.useCallback(async (reminder: CalendarReminder) => {
+        setReminders((prev) => prev.filter((item) => item.id !== reminder.id));
+        setSelectedReminder(null);
+        setIsReminderPanelOpen(false);
+        try {
+            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id });
+            const result = Array.isArray(response) ? response[0] : response;
+            if (result?.error || (result?.code && result.code >= 400)) {
+                throw new Error(result?.message || tReminders('errorDesc'));
+            }
+            toast({ title: tReminders('deleted') });
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: tReminders('error'),
+                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+            });
+            refreshCalendarDataRef.current();
+        }
+    }, [tReminders, toast]);
 
     const handleEdit = (appointment: Appointment) => {
         setEditingAppointment(appointment);
@@ -685,8 +910,12 @@ export default function AppointmentsPage() {
         }
 
         setIsRefreshing(true);
-        const fetchedAppointments = await getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t);
+        const [fetchedAppointments, fetchedReminders] = await Promise.all([
+            getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
+            getReminders(fetchRange.start, fetchRange.end),
+        ]);
         setAppointments(fetchedAppointments);
+        setReminders(fetchedReminders);
 
         setIsRefreshing(false);
     }, [selectedCalendarIds, fetchRange, calendars, services, doctors, t]);
@@ -694,6 +923,8 @@ export default function AppointmentsPage() {
     const forceRefresh = React.useCallback(() => {
         loadAppointments();
     }, [loadAppointments]);
+
+    refreshCalendarDataRef.current = forceRefresh;
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
@@ -732,6 +963,32 @@ export default function AppointmentsPage() {
         }
     }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
 
+    React.useEffect(() => {
+        const checkDueReminders = () => {
+            const now = new Date();
+            reminders.forEach((reminder) => {
+                if (reminder.status !== 'pending') return;
+                const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
+                if (!isValid(start) || start > now) return;
+
+                const storageKey = `reminder-notified:${reminder.id}`;
+                if (sessionStorage.getItem(storageKey)) return;
+
+                sessionStorage.setItem(storageKey, 'true');
+                toast({
+                    title: tReminders('dueTitle'),
+                    description: reminder.description
+                        ? `${reminder.title} · ${reminder.description}`
+                        : reminder.title,
+                });
+            });
+        };
+
+        checkDueReminders();
+        const interval = window.setInterval(checkDueReminders, 60000);
+        return () => window.clearInterval(interval);
+    }, [reminders, tReminders, toast]);
+
 
     // Moved searches to AppointmentFormDialog
 
@@ -744,11 +1001,45 @@ export default function AppointmentsPage() {
         forceRefresh();
         setCreateOpen(false);
         setEditingAppointment(null);
+        setSlotInitialData(null);
     };
 
 
-    const handleEventColorChange = async (appointment: Appointment, colorId: string) => {
+    const handleEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
         const colorHex = colorMap.get(colorId);
+        if (eventData.kind === 'reminder') {
+            const color = colorHex || eventData.color || '#8b5cf6';
+            setReminders((prev) => prev.map((item) => (
+                item.id === eventData.id ? { ...item, color, updated_at: toLocalISOString(new Date()) } : item
+            )));
+            setSelectedReminder((prev) => (prev && prev.id === eventData.id ? { ...prev, color } : prev));
+            try {
+                const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
+                    ...eventData,
+                    color,
+                    raise_alert: eventData.raise_alert ?? true,
+                });
+                const result = Array.isArray(response) ? response[0] : response;
+                if (result?.error || (result?.code && result.code >= 400)) {
+                    throw new Error(result?.message || tReminders('errorDesc'));
+                }
+                const savedReminder = normalizeReminder(result?.reminder || result);
+                if (savedReminder) {
+                    setReminders((prev) => prev.map((item) => (item.id === eventData.id ? savedReminder : item)));
+                    setSelectedReminder((prev) => (prev && prev.id === eventData.id ? savedReminder : prev));
+                }
+            } catch (error) {
+                toast({
+                    variant: 'destructive',
+                    title: tReminders('error'),
+                    description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                });
+                forceRefresh();
+            }
+            return;
+        }
+
+        const appointment = eventData as Appointment;
 
         // Optimistically update UI
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
@@ -842,7 +1133,7 @@ export default function AppointmentsPage() {
                     end,
                     doctorGroupId: appt.doctorId || undefined,
                     calendarGroupId: calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id))?.id || appt.calendar_source_id || undefined,
-                    data: appt,
+                    data: { ...appt, kind: 'appointment' as const },
                     color: appt.color,
                     colorId: appt.colorId,
                 };
@@ -852,8 +1143,26 @@ export default function AppointmentsPage() {
             }
         }).filter((event): event is NonNullable<typeof event> => event !== null);
 
-        return events;
-    }, [appointments, calendars]);
+        const reminderEvents = reminders
+            .filter((reminder) => reminder.status !== 'cancelled')
+            .map((reminder) => {
+                const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
+                const end = reminder.end_datetime ? parseISO(reminder.end_datetime.replace(/Z$/, '')) : start;
+                if (!isValid(start) || !isValid(end)) return null;
+
+                return {
+                    id: `reminder-${reminder.id}`,
+                    title: reminder.title,
+                    start,
+                    end,
+                    data: { ...reminder, kind: 'reminder' as const },
+                    color: reminder.color || '#8b5cf6',
+                };
+            })
+            .filter((event): event is NonNullable<typeof event> => event !== null);
+
+        return [...events, ...reminderEvents];
+    }, [appointments, calendars, reminders]);
 
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
@@ -914,8 +1223,51 @@ export default function AppointmentsPage() {
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
-    const renderEventContextMenu = (appointment: Appointment) => (
-        <>
+    const renderEventContextMenu = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
+        if (eventData.kind === 'reminder') {
+            const reminder = eventData as CalendarReminder;
+            return (
+                <>
+                    <ContextMenuSeparator />
+                    {reminder.status !== 'done' && (
+                        <ContextMenuItem
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkReminderDone(reminder);
+                            }}
+                            className="flex items-center gap-2 cursor-pointer"
+                        >
+                            <Check className="h-4 w-4" />
+                            {tReminders('markDone')}
+                        </ContextMenuItem>
+                    )}
+                    <ContextMenuItem
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditReminder(reminder);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer"
+                    >
+                        <Edit className="h-4 w-4" />
+                        {tReminders('edit')}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteReminder(reminder);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer text-destructive"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        {tReminders('delete')}
+                    </ContextMenuItem>
+                </>
+            );
+        }
+
+        const appointment = eventData as Appointment;
+        return (
+            <>
             <ContextMenuSeparator />
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="flex items-center gap-2 cursor-pointer">
@@ -959,8 +1311,9 @@ export default function AppointmentsPage() {
                 <Stethoscope className="h-4 w-4" />
                 {t('contextMenu.createSession')}
             </ContextMenuItem>
-        </>
-    );
+            </>
+        );
+    };
 
     // Unused form logic removed
 
@@ -1074,22 +1427,60 @@ export default function AppointmentsPage() {
                     }
                     extraActions={
                         <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant={isMobile ? "ghost" : "default"}
-                                        size={isMobile ? "icon" : "sm"}
-                                        className={isMobile ? "h-8 w-8" : "h-9"}
-                                        onClick={handleNewAppointmentClick}
+                            <DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button
+                                                variant={isMobile ? "ghost" : "default"}
+                                                size={isMobile ? "icon" : "sm"}
+                                                className={isMobile ? "h-8 w-8" : "h-9 gap-1.5"}
+                                            >
+                                                <PlusCircle className="h-4 w-4" />
+                                                {!isMobile && (
+                                                    <>
+                                                        {tGeneral('create')}
+                                                        <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        {tGeneral('create')}
+                                    </TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent align="end" className="w-64 p-1.5">
+                                    <DropdownMenuItem
+                                        className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                        onSelect={handleNewAppointmentClick}
                                     >
-                                        <PlusCircle className="h-4 w-4" />
-                                        {!isMobile && tGeneral('create')}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('newAppointment')}
-                                </TooltipContent>
-                            </Tooltip>
+                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                                            <CalendarPlus className="h-4 w-4" />
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="block font-medium">{tReminders('createType.appointment')}</span>
+                                            <span className="block text-xs leading-snug text-muted-foreground">
+                                                {tReminders('createType.appointmentDescription')}
+                                            </span>
+                                        </span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                        onSelect={handleNewReminderClick}
+                                    >
+                                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
+                                            <BellRing className="h-4 w-4" />
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="block font-medium">{tReminders('createType.reminder')}</span>
+                                            <span className="block text-xs leading-snug text-muted-foreground">
+                                                {tReminders('createType.reminderDescription')}
+                                            </span>
+                                        </span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </TooltipProvider>
                     }
                     extraActionsAfterToday={
@@ -1234,6 +1625,13 @@ export default function AppointmentsPage() {
 
                 </Calendar>
             </CardContent>
+            <CalendarCreateTypeDialog
+                open={isCreateTypeOpen}
+                onOpenChange={setIsCreateTypeOpen}
+                date={pendingSlotDate}
+                onCreateAppointment={handleCreateAppointmentFromSlot}
+                onCreateReminder={handleCreateReminderFromSlot}
+            />
             <AppointmentFormDialog
                 open={isCreateOpen}
                 onOpenChange={handleOpenChange}
@@ -1246,6 +1644,19 @@ export default function AppointmentsPage() {
                 doctorServiceMap={doctorServiceMap}
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
+            />
+            <ReminderFormDialog
+                open={isReminderFormOpen}
+                onOpenChange={(open) => {
+                    setIsReminderFormOpen(open);
+                    if (!open) {
+                        setEditingReminder(null);
+                        setReminderInitialDate(null);
+                    }
+                }}
+                initialDate={reminderInitialDate}
+                editingReminder={editingReminder}
+                onSave={handleSaveReminder}
             />
 
             {clinicSessionAppointment && (
@@ -1304,6 +1715,14 @@ export default function AppointmentsPage() {
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
+            />
+            <ReminderPanel
+                open={isReminderPanelOpen}
+                onOpenChange={setIsReminderPanelOpen}
+                reminder={selectedReminder}
+                onEdit={handleEditReminder}
+                onMarkDone={handleMarkReminderDone}
+                onDelete={handleDeleteReminder}
             />
             <CancellationNoteDialog
                 open={!!pendingCancellation}

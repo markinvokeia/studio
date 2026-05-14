@@ -519,6 +519,29 @@ export type Appointment = {
   cancellation_note?: string | null;
 };
 
+export type CalendarReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
+
+export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancelled';
+
+export type CalendarReminder = {
+  id: string;
+  title: string;
+  description?: string | null;
+  start_datetime: string;
+  end_datetime?: string | null;
+  color?: string | null;
+  priority: CalendarReminderPriority;
+  status: CalendarReminderStatus;
+  visibility: 'clinic';
+  raise_alert?: boolean;
+  alert_instance_id?: number | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  completed_at?: string | null;
+  completed_by?: string | null;
+};
+
 export type UserLog = {
   id: string;
   timestamp: string;

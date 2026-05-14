@@ -4073,6 +4073,7 @@
   "Calendar": {
     "all": "Todos",
     "title": "Calendario",
+    "create": "Crear",
     "today": "Hoy",
     "timeZone": "GMT-03",
     "views": {
@@ -4087,6 +4088,56 @@
     "weekShort": "Sem",
     "filterTitle": "Filtrar Agenda",
     "noAppointments": "Sin citas"
+  },
+  "Reminders": {
+    "recordatorio": "Recordatorio",
+    "createTitle": "Crear recordatorio",
+    "editTitle": "Editar recordatorio",
+    "dialogDescription": "Agrega una tarea interna visible en el calendario de la clínica.",
+    "titleLabel": "Título",
+    "titlePlaceholder": "Ej: Llamar a laboratorio",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "Detalles opcionales del recordatorio",
+    "dateLabel": "Fecha",
+    "timeLabel": "Hora",
+    "durationLabel": "Duración (min)",
+    "priorityLabel": "Prioridad",
+    "colorLabel": "Color",
+    "saveCreate": "Guardar",
+    "saveEdit": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "markDone": "Marcar como hecho",
+    "detailsTitle": "Información",
+    "dueTitle": "Recordatorio vencido",
+    "saved": "Recordatorio guardado",
+    "done": "Recordatorio finalizado",
+    "deleted": "Recordatorio eliminado",
+    "error": "Error en recordatorio",
+    "errorDesc": "No se pudo completar la acción del recordatorio.",
+    "titleRequired": "El título es obligatorio.",
+    "dateTimeRequired": "La fecha y la hora son obligatorias.",
+    "durationInvalid": "La duración debe ser de al menos 5 minutos.",
+    "priority": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "done": "Hecho",
+      "dismissed": "Descartado",
+      "cancelled": "Cancelado"
+    },
+    "createType": {
+      "title": "¿Qué quieres crear?",
+      "description": "Elige el tipo de elemento para agregar al calendario.",
+      "descriptionWithDate": "Elige el tipo de elemento para {date}.",
+      "appointment": "Crear cita",
+      "appointmentDescription": "Agenda una cita con paciente, doctor y servicio.",
+      "reminder": "Crear recordatorio",
+      "reminderDescription": "Agrega una tarea interna para la clínica."
+    }
   },
   "AlertCategoriesPage": {
     "title": "Categorías de Alerta",
@@ -4210,6 +4261,7 @@
       "followup": "Seguimiento",
       "default": "Predeterminado",
       "patients": "Pacientes",
+      "reminders": "Recordatorios",
       "dates": "Fechas"
     },
     "status": {

@@ -227,7 +227,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
       {/* Mobile: FAB for creating appointments */}
       {isMobile && onSlotClick && (
-        <CalendarFab onClick={() => onSlotClick(new Date())} />
+        <CalendarFab label={t('create')} onClick={() => onSlotClick(new Date())} />
       )}
 
       {/* Mobile: filter bottom sheet */}

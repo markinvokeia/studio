@@ -110,6 +110,31 @@
   text-decoration-color: rgba(255, 255, 255, 0.7);
 }
 
+.event-reminder,
+.event-in-day-view.event-reminder {
+  background-color: var(--reminder-bg, rgb(245 243 255)) !important;
+  color: rgb(76 29 149) !important;
+  border: 1px dashed var(--reminder-border, rgb(196 181 253));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55);
+}
+
+.event-reminder-done,
+.event-in-day-view.event-reminder-done {
+  background-color: rgb(249 250 251) !important;
+  color: rgb(107 114 128) !important;
+  border-color: var(--reminder-border, rgb(229 231 235));
+  border-style: solid;
+  opacity: 0.82;
+}
+
+.event-reminder-done .event-title,
+.event-reminder-done .event-time,
+.event-in-day-view.event-reminder-done .event-day-title,
+.event-in-day-view.event-reminder-done .event-day-time {
+  text-decoration: line-through;
+  text-decoration-color: rgb(156 163 175);
+}
+
 /* Status icon — solid colored badge with white icon, matching the agenda view.
    The background color is set inline per-event via STATUS_ACCENT_COLOR. */
 .event-in-day-view .event-status-corner {

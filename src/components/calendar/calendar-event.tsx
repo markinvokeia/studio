@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { BellRing, CheckCircle2 } from 'lucide-react';
 
 import {
   ContextMenu,
@@ -12,12 +13,13 @@ import type { Locale } from 'date-fns';
 
 import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
-import type { AppointmentStatus, CancellationReason } from '@/lib/types';
+import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 
 import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
 import type { CalendarEvent } from './calendar-types';
 import { formatEventTime, getReadableTextColor } from './calendar-utils';
+import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
 
 interface CalendarEventChipProps {
   event: CalendarEvent;
@@ -35,21 +37,34 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
   onEventContextMenu,
 }: CalendarEventChipProps) {
   const rawStatus = event.data?.status as string | undefined;
+  const isReminder = event.data?.kind === 'reminder';
+  const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
+  const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
+  const reminderIsDone = isReminderDone(reminderStatus);
+  const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
   const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
-  const accentColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
+  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
 
   const bg = event.color || 'hsl(var(--primary))';
-  const textColor = isCancelled ? undefined : getReadableTextColor(event.color);
+  const textColor = isReminder ? undefined : isCancelled ? undefined : getReadableTextColor(event.color);
+  const eventStyle = isReminder
+    ? getReminderCardStyle(event.color, reminderIsDone)
+    : { backgroundColor: isCancelled ? undefined : bg, color: textColor };
 
   return (
     <ContextMenu>
       <ContextMenuTrigger>
         <div
           data-testid="calendar-event"
-          className={cn('event', isCancelled && 'event-cancelled')}
-          style={{ backgroundColor: isCancelled ? undefined : bg, color: textColor }}
+          className={cn(
+            'event',
+            isCancelled && 'event-cancelled',
+            isReminder && 'event-reminder',
+            reminderIsDone && 'event-reminder-done',
+          )}
+          style={eventStyle}
           onClick={(e) => {
             if (e.button !== 0) return;
             e.stopPropagation();
@@ -58,7 +73,17 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
         >
           <span className="event-time">{formatEventTime(event.start, dateLocale)}</span>
           <span className="event-title">{event.title}</span>
-          {status && accentColor && (() => {
+          {isReminder && (
+            <span
+              aria-hidden
+              className="event-status-corner"
+              title={event.title}
+              style={{ backgroundColor: accentColor }}
+            >
+              <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+            </span>
+          )}
+          {!isReminder && status && accentColor && (() => {
             const StatusIcon = getStatusIcon(status, cancellationReason);
             if (!StatusIcon) return null;
             return (

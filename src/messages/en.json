@@ -4105,6 +4105,7 @@
   "Calendar": {
     "all": "All",
     "title": "Calendar",
+    "create": "Create",
     "today": "Today",
     "timeZone": "GMT-03",
     "views": {
@@ -4119,6 +4120,56 @@
     "weekShort": "Wk",
     "filterTitle": "Filter Schedule",
     "noAppointments": "No appointments"
+  },
+  "Reminders": {
+    "recordatorio": "Reminder",
+    "createTitle": "Create reminder",
+    "editTitle": "Edit reminder",
+    "dialogDescription": "Add an internal task visible in the clinic calendar.",
+    "titleLabel": "Title",
+    "titlePlaceholder": "E.g. Call the lab",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Optional reminder details",
+    "dateLabel": "Date",
+    "timeLabel": "Time",
+    "durationLabel": "Duration (min)",
+    "priorityLabel": "Priority",
+    "colorLabel": "Color",
+    "saveCreate": "Save",
+    "saveEdit": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "markDone": "Mark as done",
+    "detailsTitle": "Information",
+    "dueTitle": "Reminder due",
+    "saved": "Reminder saved",
+    "done": "Reminder completed",
+    "deleted": "Reminder deleted",
+    "error": "Reminder error",
+    "errorDesc": "The reminder action could not be completed.",
+    "titleRequired": "Title is required.",
+    "dateTimeRequired": "Date and time are required.",
+    "durationInvalid": "Duration must be at least 5 minutes.",
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "status": {
+      "pending": "Pending",
+      "done": "Done",
+      "dismissed": "Dismissed",
+      "cancelled": "Cancelled"
+    },
+    "createType": {
+      "title": "What do you want to create?",
+      "description": "Choose the type of item to add to the calendar.",
+      "descriptionWithDate": "Choose the type of item for {date}.",
+      "appointment": "Create appointment",
+      "appointmentDescription": "Schedule an appointment with patient, doctor and service.",
+      "reminder": "Create reminder",
+      "reminderDescription": "Add an internal task for the clinic."
+    }
   },
   "AlertCategoriesPage": {
     "title": "Alert Categories",
@@ -4242,6 +4293,7 @@
       "followup": "Follow-up",
       "default": "Default",
       "patients": "Patients",
+      "reminders": "Reminders",
       "dates": "Dates"
     },
     "status": {

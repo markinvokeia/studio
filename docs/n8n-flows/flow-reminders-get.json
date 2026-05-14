@@ -1,0 +1,137 @@
+{
+  "name": "Reminders - Get",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Reminders – Get\n\n**GET** `/webhook/reminders`\n\nReturns internal calendar reminders.\n\n**Query params:**\n- `from`: optional ISO/local datetime lower bound for `start_datetime`\n- `to`: optional ISO/local datetime upper bound for `start_datetime`\n- `status`: optional status filter (`pending`, `done`, `dismissed`, `cancelled`)\n- `include_cancelled`: optional boolean; default false\n\n**Response 200:** array of reminders using the frontend contract:\n`id`, `title`, `description`, `start_datetime`, `end_datetime`, `color`, `priority`, `status`, `visibility`, `raise_alert`, `alert_instance_id`, `created_by`, `created_at`, `updated_at`.",
+        "height": 420,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -120,
+        40
+      ],
+      "typeVersion": 1,
+      "id": "reminders-get-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reminders",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        460,
+        260
+      ],
+      "id": "reminders-get-wh",
+      "name": "Webhook",
+      "webhookId": "reminders-get"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\n\nconst esc = (value) => String(value).replace(/'/g, \"''\");\nconst nullableTimestamp = (value) => {\n  if (!value) return 'NULL';\n  const date = new Date(value);\n  if (Number.isNaN(date.getTime())) throw new Error(`Invalid datetime: ${value}`);\n  return `'${esc(String(value).replace(/Z$/, ''))}'`;\n};\n\nconst VALID_STATUS = ['pending', 'done', 'dismissed', 'cancelled'];\nconst status = query.status ? String(query.status).toLowerCase().trim() : null;\nif (status && !VALID_STATUS.includes(status)) throw new Error(`Invalid status: ${query.status}`);\n\nconst includeCancelled = ['true', '1', 'yes'].includes(String(query.include_cancelled ?? '').toLowerCase());\n\nreturn [{ json: {\n  from_sql: nullableTimestamp(query.from),\n  to_sql: nullableTimestamp(query.to),\n  status_sql: status ? `'${esc(status)}'` : 'NULL',\n  include_cancelled: includeCancelled,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        260
+      ],
+      "id": "reminders-get-parse",
+      "name": "Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM reminders\nWHERE ({{ $json.from_sql }}::timestamp IS NULL OR start_datetime >= {{ $json.from_sql }}::timestamp)\n  AND ({{ $json.to_sql }}::timestamp IS NULL OR start_datetime <= {{ $json.to_sql }}::timestamp)\n  AND ({{ $json.status_sql }}::text IS NULL OR status = {{ $json.status_sql }}::text)\n  AND ({{ $json.include_cancelled }}::boolean OR status <> 'cancelled')\nORDER BY start_datetime ASC, created_at ASC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        900,
+        260
+      ],
+      "id": "reminders-get-pg",
+      "name": "Load Reminders",
+      "credentials": {
+        "postgres": {
+          "id": "clinic-postgres",
+          "name": "Clinic Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(item => item.json)) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        260
+      ],
+      "id": "reminders-get-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Query": {
+      "main": [
+        [
+          {
+            "node": "Load Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Reminders": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    "reminders",
+    "clinic"
+  ]
+}

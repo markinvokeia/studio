@@ -1,0 +1,194 @@
+{
+  "name": "Reminders - Upsert",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Reminders – Upsert\n\n**POST** `/webhook/reminders/upsert`\n\nCreates or updates an internal calendar reminder. The API uses the same datetime field names as appointments. The UI may ask for duration, but it sends the calculated `end_datetime`.\n\n**Request body:**\n```json\n{\n  \"id\": \"optional-uuid\",\n  \"title\": \"Llamar a laboratorio\",\n  \"description\": \"Detalles opcionales\",\n  \"start_datetime\": \"2026-05-13T13:45:00\",\n  \"end_datetime\": \"2026-05-13T14:00:00\",\n  \"color\": \"#8b5cf6\",\n  \"priority\": \"MEDIUM\",\n  \"status\": \"pending\",\n  \"visibility\": \"clinic\",\n  \"raise_alert\": true,\n  \"created_by\": \"user-uuid\"\n}\n```\n\nThis workflow only writes the `reminders` row. Alert generation is intentionally left to the alert workflows/rules, so this endpoint does not insert or update `alert_instances`.\n\n**Response 200:** reminder row using the frontend contract.",
+        "height": 560,
+        "width": 560,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -140,
+        20
+      ],
+      "typeVersion": 1,
+      "id": "reminders-upsert-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reminders/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "reminders-upsert-wh",
+      "name": "Webhook",
+      "webhookId": "reminders-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst esc = (value) => String(value).replace(/'/g, \"''\");\nconst sqlText = (value) => value == null || value === '' ? 'NULL' : `'${esc(value)}'`;\nconst sqlTimestamp = (value, field) => {\n  if (!value) {\n    if (field === 'end_datetime') return 'NULL';\n    throw new Error(`${field} is required`);\n  }\n  const date = new Date(value);\n  if (Number.isNaN(date.getTime())) throw new Error(`Invalid ${field}: ${value}`);\n  return `'${esc(String(value).replace(/Z$/, ''))}'`;\n};\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => {\n  if (!value) return 'NULL';\n  return `'${esc(assertUuid(value, field))}'`;\n};\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = Math.random() * 16 | 0;\n    const value = char === 'x' ? rand : (rand & 0x3 | 0x8);\n    return value.toString(16);\n  });\n};\n\nconst title = String(body.title ?? '').trim();\nif (!title) throw new Error('title is required');\n\nconst priority = String(body.priority ?? 'MEDIUM').toUpperCase().trim();\nconst status = String(body.status ?? 'pending').toLowerCase().trim();\nconst visibility = String(body.visibility ?? 'clinic').toLowerCase().trim();\n\nconst VALID_PRIORITY = ['LOW', 'MEDIUM', 'HIGH'];\nconst VALID_STATUS = ['pending', 'done', 'dismissed', 'cancelled'];\nif (!VALID_PRIORITY.includes(priority)) throw new Error(`Invalid priority: ${body.priority}`);\nif (!VALID_STATUS.includes(status)) throw new Error(`Invalid status: ${body.status}`);\nif (visibility !== 'clinic') throw new Error(`Invalid visibility: ${body.visibility}`);\n\nconst id = body.id ? assertUuid(body.id, 'id') : makeUuid();\nconst startSql = sqlTimestamp(body.start_datetime, 'start_datetime');\nconst endSql = sqlTimestamp(body.end_datetime, 'end_datetime');\nconst createdBySql = sqlUuid(body.created_by, 'created_by');\nconst completedBySql = sqlUuid(body.completed_by ?? body.changed_by, 'completed_by');\n\nreturn [{ json: {\n  id,\n  id_sql: `'${esc(id)}'::uuid`,\n  title_sql: sqlText(title),\n  description_sql: sqlText(body.description),\n  start_datetime_sql: startSql,\n  end_datetime_sql: endSql,\n  color_sql: sqlText(body.color || '#8b5cf6'),\n  priority_sql: `'${priority}'`,\n  status_sql: `'${status}'`,\n  visibility_sql: `'${visibility}'`,\n  raise_alert_sql: body.raise_alert === true ? 'TRUE' : 'FALSE',\n  created_by_sql: createdBySql,\n  completed_by_sql: completedBySql,\n} }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "id": "reminders-upsert-parse",
+      "name": "Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO reminders (\n  id,\n  title,\n  description,\n  start_datetime,\n  end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  created_by,\n  completed_at,\n  completed_by,\n  created_at,\n  updated_at\n) VALUES (\n  {{ $json.id_sql }},\n  {{ $json.title_sql }},\n  {{ $json.description_sql }},\n  {{ $json.start_datetime_sql }}::timestamp,\n  {{ $json.end_datetime_sql }}::timestamp,\n  {{ $json.color_sql }},\n  {{ $json.priority_sql }},\n  {{ $json.status_sql }},\n  {{ $json.visibility_sql }},\n  {{ $json.raise_alert_sql }},\n  {{ $json.created_by_sql }}::uuid,\n  CASE WHEN {{ $json.status_sql }} = 'done' THEN NOW() ELSE NULL END,\n  CASE WHEN {{ $json.status_sql }} = 'done' THEN {{ $json.completed_by_sql }}::uuid ELSE NULL END,\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET title          = EXCLUDED.title,\n    description    = EXCLUDED.description,\n    start_datetime = EXCLUDED.start_datetime,\n    end_datetime   = EXCLUDED.end_datetime,\n    color          = EXCLUDED.color,\n    priority       = EXCLUDED.priority,\n    status         = EXCLUDED.status,\n    visibility     = EXCLUDED.visibility,\n    raise_alert    = EXCLUDED.raise_alert,\n    completed_at   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(reminders.completed_at, NOW())\n                       ELSE NULL\n                     END,\n    completed_by   = CASE\n                       WHEN EXCLUDED.status = 'done' THEN COALESCE(EXCLUDED.completed_by, reminders.completed_by)\n                       ELSE NULL\n                     END,\n    updated_at     = NOW();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        900,
+        300
+      ],
+      "id": "reminders-upsert-pg",
+      "name": "Upsert Reminder",
+      "credentials": {
+        "postgres": {
+          "id": "clinic-postgres",
+          "name": "Clinic Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM reminders\nWHERE id = '{{ $node[\"Parse Input\"].json[\"id\"] }}'::uuid\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "reminders-upsert-fetch",
+      "name": "Fetch Reminder",
+      "credentials": {
+        "postgres": {
+          "id": "clinic-postgres",
+          "name": "Clinic Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nif (rows.length === 0) throw new Error('Reminder upsert failed — no reminder row found after save');\nreturn [{ json: { success: true, code: 200, reminder: rows[0] } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1340,
+        300
+      ],
+      "id": "reminders-upsert-response",
+      "name": "Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1560,
+        300
+      ],
+      "id": "reminders-upsert-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input": {
+      "main": [
+        [
+          {
+            "node": "Upsert Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Reminder": {
+      "main": [
+        [
+          {
+            "node": "Fetch Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Reminder": {
+      "main": [
+        [
+          {
+            "node": "Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    "reminders",
+    "clinic"
+  ]
+}
