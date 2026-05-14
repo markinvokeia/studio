@@ -5674,6 +5674,23 @@
       }
     }
   },
+  "SecretarySessionNotification": {
+    "title": "Sesión clínica registrada",
+    "description": "El Dr./Dra. {doctorName} completó una sesión para {patientName}.",
+    "unknownDoctor": "Doctor",
+    "unknownPatient": "Paciente",
+    "procedure": "Procedimiento realizado",
+    "nextPlan": "Plan próxima cita",
+    "treatments": "Tratamientos",
+    "treatmentCount": "{count, plural, one {# tratamiento registrado} other {# tratamientos registrados}}",
+    "quickActions": "Acciones rápidas",
+    "actionCreateQuote": "Crear presupuesto",
+    "actionScheduleNext": "Agendar próxima cita",
+    "actionGenerateInvoice": "Generar factura",
+    "dismiss": "Cerrar",
+    "dismissAndNext": "Siguiente notificación",
+    "moreNotifications": "{count, plural, one {+# notificación pendiente} other {+# notificaciones pendientes}}"
+  },
   "StickyNotes": {
     "openNotes": "Notas rápidas",
     "newNote": "Nueva nota",

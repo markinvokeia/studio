@@ -5706,6 +5706,23 @@
       }
     }
   },
+  "SecretarySessionNotification": {
+    "title": "Clinical session recorded",
+    "description": "Dr. {doctorName} completed a session for {patientName}.",
+    "unknownDoctor": "Doctor",
+    "unknownPatient": "Patient",
+    "procedure": "Procedure performed",
+    "nextPlan": "Next appointment plan",
+    "treatments": "Treatments",
+    "treatmentCount": "{count, plural, one {# treatment recorded} other {# treatments recorded}}",
+    "quickActions": "Quick actions",
+    "actionCreateQuote": "Create quote",
+    "actionScheduleNext": "Schedule next appointment",
+    "actionGenerateInvoice": "Generate invoice",
+    "dismiss": "Close",
+    "dismissAndNext": "Next notification",
+    "moreNotifications": "{count, plural, one {+# notification pending} other {+# notifications pending}}"
+  },
   "StickyNotes": {
     "openNotes": "Sticky Notes",
     "newNote": "New note",
