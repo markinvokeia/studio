@@ -279,7 +279,7 @@ function NewNoteCard({
                 type="button"
                 onClick={handleActivate}
                 className={cn(
-                    'w-56 min-h-40 rounded-xl border border-dashed border-border bg-muted/40 flex flex-col items-center justify-center gap-2',
+                    'w-72 min-h-40 md:w-56 rounded-xl border border-dashed border-border bg-muted/40 flex flex-col items-center justify-center gap-2',
                     'hover:bg-muted/70 hover:border-border/80 transition-colors group',
                 )}
             >
@@ -298,7 +298,7 @@ function NewNoteCard({
     return (
         <div
             className={cn(
-                'w-56 min-h-40 rounded-xl border shadow-sm flex flex-col p-3 gap-2',
+                'w-72 min-h-40 md:w-56 rounded-xl border shadow-sm flex flex-col p-3 gap-2',
                 colors.bg,
                 colors.border,
             )}
@@ -513,7 +513,7 @@ function ExistingNoteCard({
     return (
         <div
             className={cn(
-                'w-56 min-h-40 rounded-xl border shadow-sm flex flex-col p-3 gap-2 relative group transition-shadow hover:shadow-md',
+                'w-72 min-h-40 md:w-56 rounded-xl border shadow-sm flex flex-col p-3 gap-2 relative group transition-shadow hover:shadow-md',
                 colors.bg,
                 colors.border,
                 isDeleting && 'opacity-50 pointer-events-none',
@@ -654,7 +654,7 @@ function SkeletonCards() {
     return (
         <>
             {[1, 2, 3].map((i) => (
-                <div key={i} className="w-56 min-h-40 rounded-xl border border-border bg-muted/30 p-3 flex flex-col gap-3">
+                <div key={i} className="w-72 min-h-40 md:w-56 rounded-xl border border-border bg-muted/30 p-3 flex flex-col gap-3">
                     <Skeleton className="h-3 w-full" />
                     <Skeleton className="h-3 w-4/5" />
                     <Skeleton className="h-3 w-3/5" />
@@ -752,65 +752,59 @@ export function StickyNotesOverlay({
                 onClick={onClose}
             />
 
-            {/* Content */}
-            <div className="fixed inset-0 z-[9981] overflow-y-auto pointer-events-none">
-                <div className="min-h-full flex items-start justify-center p-4 pt-20 pointer-events-auto">
-                    <div className="w-full max-w-6xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-semibold text-black drop-shadow-sm">
-                                {t('openNotes')}
-                            </h2>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="h-9 w-9 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-red-50 hover:text-red-600 text-foreground transition-colors"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
+            {/* Close button — fixed, never scrolls */}
+            <button
+                type="button"
+                onClick={onClose}
+                className="fixed top-4 right-6 z-[9982] h-9 w-9 flex items-center justify-center rounded-full bg-white shadow-md hover:bg-red-50 hover:text-red-600 text-foreground transition-colors"
+            >
+                <X className="h-5 w-5" />
+            </button>
 
-                        <div className="flex flex-wrap gap-4">
-                            <NewNoteCard
-                                userId={userId}
-                                onCreate={createAndEnhance}
-                                tNewNote={tStrings.newNote}
+            {/* Scrollable notes content */}
+            <div className="fixed inset-0 z-[9981] overflow-y-auto pointer-events-none">
+                <div className="min-h-full p-4 pt-16 md:px-10 lg:px-16 pointer-events-auto">
+                    <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                        <NewNoteCard
+                            userId={userId}
+                            onCreate={createAndEnhance}
+                            tNewNote={tStrings.newNote}
+                            tSave={tStrings.save}
+                            tCancel={tStrings.cancel}
+                            tListening={tStrings.listening}
+                            tStartListening={tStrings.startListening}
+                            tStopListening={tStrings.stopListening}
+                            tMicError={tStrings.micError}
+                            tSaveError={tStrings.saveError}
+                        />
+
+                        {isLoading && notes.length === 0 && <SkeletonCards />}
+
+                        {!isLoading && notes.length === 0 && (
+                            <div className="w-72 min-h-40 md:w-56 rounded-xl border border-dashed border-white/30 flex items-center justify-center">
+                                <p className="text-sm text-white/60">{t('empty')}</p>
+                            </div>
+                        )}
+
+                        {notes.map((note) => (
+                            <ExistingNoteCard
+                                key={note.id}
+                                note={note}
+                                onUpdate={updateNote}
+                                onDelete={deleteNote}
+                                tEdit={tStrings.edit}
+                                tDelete={tStrings.deleteNote}
                                 tSave={tStrings.save}
                                 tCancel={tStrings.cancel}
-                                tListening={tStrings.listening}
-                                tStartListening={tStrings.startListening}
-                                tStopListening={tStrings.stopListening}
-                                tMicError={tStrings.micError}
+                                tDeleteError={tStrings.deleteError}
                                 tSaveError={tStrings.saveError}
+                                tEnhanceTooltip={tStrings.enhanceTooltip}
+                                tActionAppointment={tStrings.actionNewAppointment}
+                                tActionQuote={tStrings.actionNewQuote}
+                                tActionInvoice={tStrings.actionNewInvoice}
+                                tActionPurchase={tStrings.actionNewPurchase}
                             />
-
-                            {isLoading && notes.length === 0 && <SkeletonCards />}
-
-                            {!isLoading && notes.length === 0 && (
-                                <div className="w-56 min-h-40 rounded-xl border border-dashed border-white/30 flex items-center justify-center">
-                                    <p className="text-sm text-white/60">{t('empty')}</p>
-                                </div>
-                            )}
-
-                            {notes.map((note) => (
-                                <ExistingNoteCard
-                                    key={note.id}
-                                    note={note}
-                                    onUpdate={updateNote}
-                                    onDelete={deleteNote}
-                                    tEdit={tStrings.edit}
-                                    tDelete={tStrings.deleteNote}
-                                    tSave={tStrings.save}
-                                    tCancel={tStrings.cancel}
-                                    tDeleteError={tStrings.deleteError}
-                                    tSaveError={tStrings.saveError}
-                                    tEnhanceTooltip={tStrings.enhanceTooltip}
-                                    tActionAppointment={tStrings.actionNewAppointment}
-                                    tActionQuote={tStrings.actionNewQuote}
-                                    tActionInvoice={tStrings.actionNewInvoice}
-                                    tActionPurchase={tStrings.actionNewPurchase}
-                                />
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </div>
             </div>
