@@ -7,7 +7,6 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
 import { MagicWandButton } from '@/components/ai/magic-wand-button';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
 import { useLocalAI } from '@/hooks/use-local-ai';
@@ -198,9 +197,14 @@ export function ReminderPanel({
               </SheetTitle>
               <SheetDescription className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span>{t('recordatorio')}</span>
-                <Badge variant={isDone ? 'success' : 'info'} className="rounded-full">
+                <span
+                  className={cn(
+                    'inline-flex items-center rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold text-white',
+                    isDone ? 'bg-green-500' : 'bg-blue-500',
+                  )}
+                >
                   {t(`status.${reminder.status}`)}
-                </Badge>
+                </span>
               </SheetDescription>
             </div>
           </div>

@@ -298,6 +298,8 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         state: editingState,
         notes: values.notes,
         doctorId: values.doctorId || undefined,
+        planProximaCita: values.nextSessionPlan || undefined,
+        fechaProximaCita: values.nextSessionDate || undefined,
       },
       values.files,
     );

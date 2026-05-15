@@ -5830,6 +5830,10 @@
       "doctor": "Doctor",
       "doctorPlaceholder": "Select a doctor",
       "doctorRequired": "Please select a doctor",
+      "nextSessionPlan": "Next session plan",
+      "nextSessionPlanPlaceholder": "Enter the plan for the next appointment...",
+      "nextSessionDate": "Next appointment date",
+      "nextSessionDatePlaceholder": "Select a date",
       "delete": "Delete session",
       "deleteConfirm": "This session will be permanently deleted. Continue?",
       "discharge": {

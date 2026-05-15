@@ -1169,7 +1169,12 @@ export default function AppointmentsPage() {
     }, []);
 
     const calendarEvents = React.useMemo(() => {
-        const events = appointments.map(appt => {
+        const selectedDoctorIdSet = new Set(selectedDoctorIds.map(String));
+        const selectedCalendarIdSet = new Set(selectedCalendarIds.map(String));
+        const events = appointments
+            .filter((appt) => selectedDoctorIdSet.has(String(appt.doctorId || '')))
+            .filter((appt) => selectedCalendarIdSet.has(String(appt.calendar_source_id || appt.calendar_id || '')))
+            .map(appt => {
             if (!appt.start?.dateTime || !appt.end?.dateTime) {
                 console.warn("Appointment missing start or end dateTime:", appt);
                 return null;
@@ -1219,7 +1224,7 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds]);
 
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
@@ -1578,17 +1583,20 @@ export default function AppointmentsPage() {
                                                     <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
                                                     <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
                                                     <hr className="my-2" />
-                                                    {calendars.map((calendar) => (
-                                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !selectedCalendarIds.includes(calendar.id))}>
+                                                    {calendars.map((calendar) => {
+                                                        const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                        return (
+                                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
                                                             <div className="flex items-center justify-between w-full">
                                                                 <div className='flex items-center'>
-                                                                    <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                                    <Checkbox checked={isSelected} className="pointer-events-none" />
                                                                     <span className="ml-2">{calendar.name}</span>
                                                                 </div>
                                                                 <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
                                                             </div>
                                                         </CommandItem>
-                                                    ))}
+                                                    );
+                                                    })}
                                                 </CommandGroup>
                                             </CommandList>
                                         </Command>
@@ -1611,14 +1619,17 @@ export default function AppointmentsPage() {
                                                             <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
                                                             <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
                                                             <hr className="my-2" />
-                                                            {doctors.map((doctor) => (
-                                                                <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !selectedDoctorIds.includes(doctor.id))}>
+                                                            {doctors.map((doctor) => {
+                                                                const isSelected = selectedDoctorIds.includes(doctor.id);
+                                                                return (
+                                                                <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !isSelected)}>
                                                                     <div className="flex items-center">
-                                                                        <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
+                                                                        <Checkbox checked={isSelected} className="pointer-events-none" />
                                                                         <span className="ml-2">{doctor.name}</span>
                                                                     </div>
                                                                 </CommandItem>
-                                                            ))}
+                                                            );
+                                                            })}
                                                         </CommandGroup>
                                                     </CommandList>
                                                 </Command>

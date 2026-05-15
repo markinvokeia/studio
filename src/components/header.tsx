@@ -161,6 +161,10 @@ export function Header() {
     }, []);
 
     React.useEffect(() => {
+        fetchNotes();
+    }, [fetchNotes]);
+
+    React.useEffect(() => {
         if (isStickyNotesOpen) fetchNotes();
     }, [isStickyNotesOpen, fetchNotes]);
 
@@ -456,10 +460,18 @@ export function Header() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setIsStickyNotesOpen(true)}
-                                className="rounded-xl h-9 w-9"
+                                className={cn(
+                                    'relative rounded-xl h-9 w-9',
+                                    notes.length > 0 && 'bg-yellow-400/20 text-yellow-500',
+                                )}
                                 title={tStickyNotes('openNotes')}
                             >
-                                <StickyNoteIcon className="h-5 w-5 text-muted-foreground" />
+                                <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
+                                {notes.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
+                                        {notes.length > 99 ? '99+' : notes.length}
+                                    </span>
+                                )}
                             </Button>
                         )}
 
@@ -540,10 +552,18 @@ export function Header() {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setIsStickyNotesOpen(true)}
-                                    className="rounded-full h-9 w-9"
+                                    className={cn(
+                                        'relative rounded-full h-9 w-9',
+                                        notes.length > 0 && 'bg-yellow-400/20 text-yellow-500',
+                                    )}
                                     title={tStickyNotes('openNotes')}
                                 >
-                                    <StickyNoteIcon className="h-5 w-5 text-muted-foreground" />
+                                    <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
+                                    {notes.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
+                                            {notes.length > 99 ? '99+' : notes.length}
+                                        </span>
+                                    )}
                                 </Button>
                             )}
 
