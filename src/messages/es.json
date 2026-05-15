@@ -5761,6 +5761,10 @@
       "doctor": "Doctor",
       "doctorPlaceholder": "Seleccionar doctor",
       "doctorRequired": "Por favor selecciona un doctor",
+      "nextSessionPlan": "Plan para la próxima sesión",
+      "nextSessionPlanPlaceholder": "Ingresa el plan para la siguiente cita...",
+      "nextSessionDate": "Fecha próxima cita",
+      "nextSessionDatePlaceholder": "Selecciona una fecha",
       "delete": "Eliminar sesión",
       "deleteConfirm": "Esta sesión será eliminada permanentemente. ¿Continuar?",
       "discharge": {

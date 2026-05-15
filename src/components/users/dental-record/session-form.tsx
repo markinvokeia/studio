@@ -23,6 +23,8 @@ export interface SessionFormValues {
   doctorId: string;
   shouldDischarge?: boolean;
   dischargeDate?: string;
+  nextSessionPlan?: string;
+  nextSessionDate?: string;
 }
 
 interface SessionFormProps {
@@ -67,6 +69,8 @@ export function SessionForm({
   const [error, setError] = useState<string | null>(null);
   const [shouldDischarge, setShouldDischarge] = useState(false);
   const [dischargeDate, setDischargeDate] = useState('');
+  const [nextSessionPlan, setNextSessionPlan] = useState('');
+  const [nextSessionDate, setNextSessionDate] = useState('');
 
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
@@ -88,7 +92,7 @@ export function SessionForm({
     setError(null);
     setIsSaving(true);
     try {
-      await onSave({ date, description, notes, files, doctorId, shouldDischarge, dischargeDate });
+      await onSave({ date, description, notes, files, doctorId, shouldDischarge, dischargeDate, nextSessionPlan, nextSessionDate });
     } catch {
       setError(t('session.saveError'));
     } finally {
@@ -193,6 +197,45 @@ export function SessionForm({
             ))}
           </div>
         )}
+      </div>
+
+      {/* Next Session Plan */}
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs">{t('session.nextSessionPlan')}</Label>
+        <Textarea
+          value={nextSessionPlan}
+          onChange={(e) => setNextSessionPlan(e.target.value)}
+          placeholder={t('session.nextSessionPlanPlaceholder')}
+          className="min-h-[60px] text-xs resize-y"
+          rows={3}
+        />
+      </div>
+
+      {/* Next Session Date */}
+      <div className="flex flex-col gap-1">
+        <Label className="text-xs">{t('session.nextSessionDate')}</Label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className={cn('w-full justify-start text-left font-normal h-8 text-xs border-input', !nextSessionDate && 'text-muted-foreground')}
+            >
+              <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+              {nextSessionDate
+                ? format(new Date(nextSessionDate + 'T00:00:00'), 'dd/MM/yyyy')
+                : t('session.nextSessionDatePlaceholder')}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={nextSessionDate ? new Date(nextSessionDate + 'T00:00:00') : undefined}
+              onSelect={(d) => setNextSessionDate(d ? format(d, 'yyyy-MM-dd') : '')}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Discharge */}
