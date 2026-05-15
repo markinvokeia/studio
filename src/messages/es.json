@@ -82,6 +82,7 @@
     "BI": "Inteligencia de Negocios",
     "Dashboards": "Tableros",
     "Analytics": "Analítica",
+    "DoctorWorkspace": "Mi Consultorio",
     "TVDisplay": "Pantalla TV",
     "ReportCierreCaja": "Cierre de Caja",
     "ReportCobrosDia": "Cobros del Día",
@@ -225,6 +226,33 @@
         "errorDescription": "Error al registrar el pre-pago"
       }
     }
+  },
+  "Notifications": {
+    "panelTitle": "Notificaciones",
+    "openPanel": "Abrir notificaciones",
+    "close": "Cerrar",
+    "clearAll": "Limpiar todo",
+    "emptyTitle": "Sin notificaciones pendientes",
+    "emptyDescription": "Aquí aparecerán los cambios de citas y recordatorios vencidos.",
+    "unknownPatient": "Paciente desconocido",
+    "unknownDoctor": "Doctor desconocido",
+    "unknownService": "Consulta clínica",
+    "sessionCompletedBy": "Sesión completada por {doctor}",
+    "procedure": "Procedimiento",
+    "nextPlan": "Plan próxima cita",
+    "treatmentCount": "{count} tratamiento(s) aplicado(s)",
+    "actionCreateQuote": "Crear presupuesto",
+    "actionScheduleNext": "Agendar próxima cita",
+    "actionGenerateInvoice": "Generar factura",
+    "priority_low": "Baja",
+    "priority_medium": "Media",
+    "priority_high": "Alta",
+    "actionMarkDone": "Marcar como hecho",
+    "reminderDone": "Marcado como hecho",
+    "newAppointmentTime": "Hora: {time}",
+    "actionViewWorkspace": "Ver en workspace",
+    "discharged": "Dado de Alta",
+    "dischargedUntil": "Hasta el {date}"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -387,7 +415,12 @@
     "groupBy": "Agrupar por",
     "groupDay": "Día",
     "groupWeek": "Semana",
-    "groupMonth": "Mes"
+    "groupMonth": "Mes",
+    "pickDate": "Seleccionar fecha",
+    "filterBy": "Filtrar por",
+    "byService": "Servicio",
+    "byUser": "Usuario",
+    "byStatus": "Estado"
   },
   "Stats": {
     "totalRevenue": "Ingresos Totales",
@@ -701,6 +734,9 @@
     "error": "No se pudo reagendar",
     "errorDesc": "Ocurrió un error al reagendar la cita."
   },
+  "DoctorWorkspacePage": {
+    "noAccess": "No tienes permisos para acceder al consultorio del doctor."
+  },
   "DoctorWorkspace": {
     "badge": "Vista Doctor",
     "title": "Tu jornada clínica empieza aquí",
@@ -721,7 +757,9 @@
       "multipleTitle": "{count} citas cambiaron de estado",
       "modalSingleDescription": "El estado de una de tus citas de hoy fue actualizado externamente.",
       "modalMultipleDescription": "{count} citas en tu agenda de hoy cambiaron de estado.",
-      "dismiss": "Cerrar aviso"
+      "toastDescription": "{patient} · {status}",
+      "dismiss": "Cerrar aviso",
+      "openFirst": "Ver primera cita"
     },
     "todayLabel": "Hoy: {date}",
     "lastUpdated": "Última actualización: {time}",

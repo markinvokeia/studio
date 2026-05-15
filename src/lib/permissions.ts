@@ -47,6 +47,12 @@ export function filterNavByPermissions(
       return false;
     }
 
+    if (item.requiredAnyRole) {
+      const lowerRoles = userRoles.map((r) => r.toLowerCase());
+      const hasAnyRole = item.requiredAnyRole.some((r) => lowerRoles.includes(r.toLowerCase()));
+      if (!hasAnyRole) return false;
+    }
+
     if (item.items && item.items.length > 0) {
       const filteredItems = filterNavByPermissions(item.items, userPermissions, userRoles);
       if (filteredItems.length === 0) return false;

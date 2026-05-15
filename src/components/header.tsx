@@ -2,6 +2,8 @@
 
 import { OpenCashSessionWidget } from '@/components/cash-session-widget';
 import { TVDisplayWidget } from '@/components/tv-display-widget';
+import { NotificationsBell } from '@/components/notifications/notifications-bell';
+import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -425,6 +427,8 @@ export function Header() {
                             </Link>
                         )}
 
+                        <NotificationsBell variant="square" />
+
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -497,6 +501,8 @@ export function Header() {
                                     </Button>
                                 </Link>
                             )}
+
+                            <NotificationsBell variant="round" />
 
                             {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
                                 <ExchangeRate activeCashSession={activeCashSession} />
@@ -657,6 +663,9 @@ export function Header() {
                 />,
                 document.body,
             )}
+
+            {/* ── Notifications panel ─────────────────────────────────────── */}
+            {isClient && <NotificationsPanel />}
         </>
     );
 }

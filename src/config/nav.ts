@@ -77,6 +77,7 @@ export interface NavItem {
   requiredPermissions?: string[];
   requiredAnyPermission?: string[];
   requiredRole?: string;
+  requiredAnyRole?: string[];
 }
 
 export const navItems: NavItem[] = [
@@ -85,6 +86,12 @@ export const navItems: NavItem[] = [
     href: '/',
     icon: Home,
     requiredPermission: DASHBOARD_PERMISSIONS.VIEW_MENU,
+  },
+  {
+    title: 'DoctorWorkspace',
+    href: '/workspace',
+    icon: Stethoscope,
+    requiredAnyRole: ['medico', 'médico', 'doctor', 'admin', 'administrador'],
   },
   {
     title: 'AlertsCenter',

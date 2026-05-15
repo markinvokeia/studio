@@ -82,6 +82,7 @@
     "BI": "Business Intelligence",
     "Dashboards": "Dashboards",
     "Analytics": "Analytics",
+    "DoctorWorkspace": "My Workspace",
     "TVDisplay": "TV Display",
     "ReportCierreCaja": "Cash Closing",
     "ReportCobrosDia": "Daily Collections",
@@ -225,6 +226,33 @@
         "errorDescription": "Error registering pre-payment"
       }
     }
+  },
+  "Notifications": {
+    "panelTitle": "Notifications",
+    "openPanel": "Open notifications",
+    "close": "Close",
+    "clearAll": "Clear all",
+    "emptyTitle": "No pending notifications",
+    "emptyDescription": "When appointments change or reminders are due they will appear here.",
+    "unknownPatient": "Unknown patient",
+    "unknownDoctor": "Unknown doctor",
+    "unknownService": "Clinical consultation",
+    "sessionCompletedBy": "Session completed by {doctor}",
+    "procedure": "Procedure",
+    "nextPlan": "Next plan",
+    "treatmentCount": "{count} treatment(s) applied",
+    "actionCreateQuote": "Create quote",
+    "actionScheduleNext": "Schedule next appointment",
+    "actionGenerateInvoice": "Generate invoice",
+    "priority_low": "Low",
+    "priority_medium": "Medium",
+    "priority_high": "High",
+    "actionMarkDone": "Mark as done",
+    "reminderDone": "Marked as done",
+    "newAppointmentTime": "Time: {time}",
+    "actionViewWorkspace": "View in workspace",
+    "discharged": "Discharged",
+    "dischargedUntil": "Until {date}"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -387,7 +415,12 @@
     "groupBy": "Group by",
     "groupDay": "Day",
     "groupWeek": "Week",
-    "groupMonth": "Month"
+    "groupMonth": "Month",
+    "pickDate": "Pick a date",
+    "filterBy": "Filter by",
+    "byService": "Service",
+    "byUser": "User",
+    "byStatus": "Status"
   },
   "Stats": {
     "totalRevenue": "Total Revenue",
@@ -701,6 +734,9 @@
     "error": "Could not reschedule",
     "errorDesc": "An error occurred while rescheduling the appointment."
   },
+  "DoctorWorkspacePage": {
+    "noAccess": "You don't have permission to access the doctor workspace."
+  },
   "DoctorWorkspace": {
     "badge": "Doctor View",
     "title": "Your clinical day starts here",
@@ -721,7 +757,9 @@
       "multipleTitle": "{count} appointments changed status",
       "modalSingleDescription": "The status of one of your appointments today was updated externally.",
       "modalMultipleDescription": "{count} appointments on your schedule today changed status.",
-      "dismiss": "Dismiss"
+      "toastDescription": "{patient} · {status}",
+      "dismiss": "Dismiss",
+      "openFirst": "View first appointment"
     },
     "todayLabel": "Today: {date}",
     "lastUpdated": "Last updated: {time}",

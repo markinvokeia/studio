@@ -62,6 +62,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { format, isValid, parseISO } from 'date-fns';
 import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
@@ -70,14 +71,63 @@ import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
-import { SecretarySessionNotificationModal } from '@/components/appointments/SecretarySessionNotificationModal';
-import { useSecretarySessionNotifications, SecretarySessionNotification } from '@/hooks/use-secretary-session-notifications';
-import { useAuth } from '@/context/AuthContext';
-import { useReminderNotifications } from '@/context/reminder-notifications-context';
+import { useNotifications } from '@/context/notifications-context';
 import { normalizeReminder } from '@/lib/reminders';
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
+
+// ── Notification action deep-link ────────────────────────────────────────────
+// Reads ?act=quote|schedule|invoice&patientId=...&patientName=...&date=...
+// Triggers the corresponding dialog when the page loads from a notification card
+
+interface NotifActCallbacks {
+  onQuote: (patientId: string, patientName: string) => void;
+  onSchedule: (patientId: string, patientName: string, date?: string, doctorId?: string, doctorName?: string) => void;
+  onInvoice: (patientId: string, patientName: string) => void;
+}
+
+function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
+  const searchParams = useSearchParams();
+  // Tracks the last processed params string to avoid re-firing for the same URL,
+  // while still reacting when the user clicks a new notification from the same page.
+  const lastHandledRef = React.useRef<string>('');
+  // Keep callbacks in a ref so they don't need to be listed as deps.
+  const cbRef = React.useRef({ onQuote, onSchedule, onInvoice });
+  React.useEffect(() => { cbRef.current = { onQuote, onSchedule, onInvoice }; });
+
+  React.useEffect(() => {
+    const act = searchParams.get('act');
+    const patientId = searchParams.get('patientId');
+    if (!act || !patientId) return;
+
+    // Deduplicate: same URL clicked twice → don't reopen dialog
+    const key = searchParams.toString();
+    if (lastHandledRef.current === key) return;
+    lastHandledRef.current = key;
+
+    const patientName = searchParams.get('patientName') ?? '';
+    const { onQuote, onSchedule, onInvoice } = cbRef.current;
+
+    if (act === 'quote') {
+      onQuote(patientId, patientName);
+    } else if (act === 'schedule') {
+      onSchedule(
+        patientId,
+        patientName,
+        searchParams.get('date') ?? undefined,
+        searchParams.get('doctorId') ?? undefined,
+        searchParams.get('doctorName') ?? undefined,
+      );
+    } else if (act === 'invoice') {
+      onInvoice(patientId, patientName);
+    }
+  }, [searchParams]);
+
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const CALENDAR_COLORS = [
     'hsl(210, 80%, 55%)',
@@ -355,11 +405,7 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
 
-    const { roleNames } = useAuth();
-    const { refreshReminders } = useReminderNotifications();
-    const isSecretary = roleNames.some((r) =>
-        ['secretary', 'receptionist', 'recepcionista', 'secretaria', 'admin', 'administrador'].includes(r.toLowerCase())
-    );
+    const { refreshNotifications: refreshReminders } = useNotifications();
 
     const { toast } = useToast();
 
@@ -943,22 +989,27 @@ export default function AppointmentsPage() {
         loadAppointments();
     }, [loadAppointments]);
 
-    const { notifications: sessionNotifications, dismissNotification: dismissSessionNotification } =
-        useSecretarySessionNotifications(appointments, isSecretary);
-    const currentNotification = sessionNotifications[0] ?? null;
-
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
     const [isInvoiceFormOpen, setIsInvoiceFormOpen] = React.useState(false);
     const [invoicePatient, setInvoicePatient] = React.useState<UserType | null>(null);
 
-    React.useEffect(() => {
-        if (!isSecretary) return;
-        const interval = window.setInterval(() => {
-            forceRefresh();
-        }, 60_000);
-        return () => window.clearInterval(interval);
-    }, [forceRefresh, isSecretary]);
+    // ── Notification deep-link handlers ───────────────────────────────────────
+    const handleNotifQuote = React.useCallback((patientId: string, patientName: string) => {
+        setQuickQuotePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
+        setIsQuickQuoteOpen(true);
+    }, []);
+
+    const handleNotifSchedule = React.useCallback((patientId: string, patientName: string, date?: string, doctorId?: string, doctorName?: string) => {
+        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName });
+        setCreateOpen(true);
+    }, []);
+
+    const handleNotifInvoice = React.useCallback((patientId: string, patientName: string) => {
+        setInvoicePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
+        setIsInvoiceFormOpen(true);
+    }, []);
+    // ─────────────────────────────────────────────────────────────────────────
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
@@ -1010,46 +1061,6 @@ export default function AppointmentsPage() {
         setEditingAppointment(null);
         setSlotInitialData(null);
     };
-
-    const handleNotificationCreateQuote = React.useCallback((notification: SecretarySessionNotification) => {
-        dismissSessionNotification(notification.id);
-        setQuickQuotePatient({
-            id: notification.appointment.patientId,
-            name: notification.appointment.patientName,
-            email: '',
-            phone_number: '',
-            is_active: true,
-            avatar: '',
-        } as UserType);
-        setIsQuickQuoteOpen(true);
-    }, [dismissSessionNotification]);
-
-    const handleNotificationScheduleNext = React.useCallback((notification: SecretarySessionNotification) => {
-        dismissSessionNotification(notification.id);
-        const session = notification.session;
-        setScheduleNextData({
-            patientId: notification.appointment.patientId,
-            patientName: notification.appointment.patientName,
-            date: session.fecha_proxima_cita ?? undefined,
-            doctorId: notification.appointment.doctorId,
-            doctorName: notification.appointment.doctorName ?? undefined,
-        });
-        setCreateOpen(true);
-    }, [dismissSessionNotification]);
-
-    const handleNotificationGenerateInvoice = React.useCallback((notification: SecretarySessionNotification) => {
-        dismissSessionNotification(notification.id);
-        setInvoicePatient({
-            id: notification.appointment.patientId,
-            name: notification.appointment.patientName,
-            email: '',
-            phone_number: '',
-            is_active: true,
-            avatar: '',
-        } as UserType);
-        setIsInvoiceFormOpen(true);
-    }, [dismissSessionNotification]);
-
 
     const handleEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
         const colorHex = colorMap.get(colorId);
@@ -1780,14 +1791,6 @@ export default function AppointmentsPage() {
                 onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
                 onConfirm={handleConfirmCustomCancellation}
             />
-            <SecretarySessionNotificationModal
-                notification={currentNotification}
-                queueCount={sessionNotifications.length}
-                onDismiss={() => currentNotification && dismissSessionNotification(currentNotification.id)}
-                onCreateQuote={handleNotificationCreateQuote}
-                onScheduleNext={handleNotificationScheduleNext}
-                onGenerateInvoice={handleNotificationGenerateInvoice}
-            />
             <QuickQuoteDialog
                 open={isQuickQuoteOpen}
                 onOpenChange={(open) => {
@@ -1807,6 +1810,15 @@ export default function AppointmentsPage() {
                 isSales={true}
                 initialUser={invoicePatient ?? undefined}
             />
+
+            {/* Notification panel action deep-link */}
+            <React.Suspense fallback={null}>
+                <NotificationActDeepLink
+                    onQuote={handleNotifQuote}
+                    onSchedule={handleNotifSchedule}
+                    onInvoice={handleNotifInvoice}
+                />
+            </React.Suspense>
         </Card>
     );
 }

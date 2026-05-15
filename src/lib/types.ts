@@ -542,6 +542,47 @@ export type CalendarReminder = {
   completed_by?: string | null;
 };
 
+// ── Unified notification panel ────────────────────────────────────────────────
+
+export type AppointmentStatusChangeNotification = {
+  id: string;
+  type: 'appointment_status_change';
+  createdAt: string;
+  appointment: Appointment;
+  previousStatus: AppointmentStatus;
+};
+
+export type SessionCompletedNotification = {
+  id: string;
+  type: 'session_completed';
+  createdAt: string;
+  appointment: Appointment;
+  session: PatientSession;
+  discharge?: PatientDischarge | null;
+};
+
+export type ReminderPanelNotification = {
+  id: string;
+  type: 'reminder';
+  createdAt: string;
+  reminder: CalendarReminder;
+};
+
+export type NewAppointmentNotification = {
+  id: string;
+  type: 'new_appointment';
+  createdAt: string;
+  appointment: Appointment;
+};
+
+export type UnifiedNotification =
+  | AppointmentStatusChangeNotification
+  | SessionCompletedNotification
+  | ReminderPanelNotification
+  | NewAppointmentNotification;
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export type UserLog = {
   id: string;
   timestamp: string;
