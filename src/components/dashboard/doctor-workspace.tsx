@@ -366,6 +366,16 @@ function DoctorAgendaTimeline({
     setShowPastAppointments(false);
   }, [appointments]);
 
+  React.useEffect(() => {
+    if (!selectedAppointmentId || showPastAppointments) return;
+    const focusIndex = timeline.layouts.findIndex((l) => l.appointment.id === focusAppointmentId);
+    if (focusIndex <= 0) return;
+    const isHidden = timeline.layouts.slice(0, focusIndex).some(
+      (l) => l.appointment.id === selectedAppointmentId,
+    );
+    if (isHidden) setShowPastAppointments(true);
+  }, [selectedAppointmentId, focusAppointmentId, timeline.layouts, showPastAppointments]);
+
   const pastSeparatorTop = (() => {
     if (!showPastAppointments || visibleTimeline.hiddenCount === 0) return null;
     const focusIdx = visibleTimeline.layouts.findIndex(
@@ -874,7 +884,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                     if (entries.length === 0) return null;
                     return (
                       <div className="border-l-[3px] border-violet-400/60 bg-violet-50/60 px-3 py-2.5">
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-violet-600/90">
+                        <p className="mb-2 text-xs font-semibold text-violet-600/90">
                           {tTimeline('odontogramUpdate')}
                         </p>
                         <div className="space-y-1.5">
@@ -906,7 +916,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                   })()}
                   {session.diagnostico && (
                     <div className="border-l-[3px] border-red-400/60 bg-red-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-red-500">
+                      <p className="mb-1 text-xs font-semibold text-red-500">
                         {tTimeline('diagnosis')}
                       </p>
                       <p className="text-sm leading-relaxed text-foreground">{session.diagnostico}</p>
@@ -914,7 +924,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                   )}
                   {session.notas_clinicas && (
                     <div className="border-l-[3px] border-cyan-400/60 bg-cyan-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-cyan-600/90">
+                      <p className="mb-1 text-xs font-semibold text-cyan-600/90">
                         {tTimeline('notes')}
                       </p>
                       <p className="text-sm leading-relaxed text-foreground">{session.notas_clinicas}</p>
@@ -922,7 +932,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                   )}
                   {session.plan_proxima_cita && session.plan_proxima_cita.trim() !== '{}' && (
                     <div className="border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-blue-600/90">
+                      <p className="mb-1 text-xs font-semibold text-blue-600/90">
                         {tTimeline('nextPlan')}
                       </p>
                       <p className="text-sm leading-relaxed text-foreground">{session.plan_proxima_cita}</p>
@@ -930,7 +940,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                   )}
                   {hasTreatments && (
                     <div className="border-l-[3px] border-green-500/60 bg-green-50/60 px-3 py-2.5">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-green-600/90">
+                      <p className="mb-2 text-xs font-semibold text-green-600/90">
                         {tTimeline('treatments')}
                       </p>
                       <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
@@ -954,7 +964,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
                   )}
                   {hasAttachments && (
                     <div className="border-l-[3px] border-amber-500/60 bg-amber-50/60 px-3 py-2.5">
-                      <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-amber-600/90">
+                      <p className="mb-2 text-xs font-semibold text-amber-600/90">
                         {tTimeline('attachments')}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
@@ -1017,6 +1027,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   // Tracks the last appointment context loaded (id:patientId). Used to distinguish a genuine
   // appointment navigation from a background-poll array refresh (same appointment, new reference).
   const lastLoadedContextKeyRef = React.useRef<string | null>(null);
+  const initialAppointmentOpenedRef = React.useRef(false);
 
   const selectedAppointment = React.useMemo(
     () => appointments.find((appointment) => appointment.id === selectedAppointmentId) ?? appointments[0] ?? null,
@@ -1034,6 +1045,18 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     setOdontogramAutoStart(false);
     setOdontogramPrefill(null);
   }, [selectedAppointmentId]);
+
+  React.useEffect(() => {
+    if (
+      !initialAppointmentOpenedRef.current
+      && initialAppointmentId
+      && selectedAppointmentId === initialAppointmentId
+      && isMobile
+    ) {
+      initialAppointmentOpenedRef.current = true;
+      setMobileDetailsOpen(true);
+    }
+  }, [initialAppointmentId, selectedAppointmentId, isMobile]);
 
   const loadAppointments = React.useCallback(async (background = false) => {
     if (!user?.id) {

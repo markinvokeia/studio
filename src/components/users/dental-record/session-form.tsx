@@ -69,6 +69,7 @@ export function SessionForm({
   const [error, setError] = useState<string | null>(null);
   const [shouldDischarge, setShouldDischarge] = useState(false);
   const [dischargeDate, setDischargeDate] = useState('');
+  const [selectedDischargePreset, setSelectedDischargePreset] = useState<number | null>(null);
   const [nextSessionPlan, setNextSessionPlan] = useState('');
   const [nextSessionDate, setNextSessionDate] = useState('');
 
@@ -264,24 +265,24 @@ export function SessionForm({
         {shouldDischarge && (
           <div className="space-y-3 rounded-xl border border-border/70 bg-card p-4">
             <div className="space-y-3">
-              <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              <Label className="text-sm font-medium text-muted-foreground">
                 {t('session.discharge.optionsLabel')}
               </Label>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" variant="secondary" size="sm" className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}>
+                <Button type="button" variant={selectedDischargePreset === 1 ? 'default' : 'secondary'} size="sm" className="rounded-full"
+                  onClick={() => { setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd')); setSelectedDischargePreset(1); }}>
                   {t('session.discharge.option1Month')}
                 </Button>
-                <Button type="button" variant="secondary" size="sm" className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}>
+                <Button type="button" variant={selectedDischargePreset === 3 ? 'default' : 'secondary'} size="sm" className="rounded-full"
+                  onClick={() => { setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd')); setSelectedDischargePreset(3); }}>
                   {t('session.discharge.option3Months')}
                 </Button>
-                <Button type="button" variant="secondary" size="sm" className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}>
+                <Button type="button" variant={selectedDischargePreset === 6 ? 'default' : 'secondary'} size="sm" className="rounded-full"
+                  onClick={() => { setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd')); setSelectedDischargePreset(6); }}>
                   {t('session.discharge.option6Months')}
                 </Button>
-                <Button type="button" variant="secondary" size="sm" className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}>
+                <Button type="button" variant={selectedDischargePreset === 12 ? 'default' : 'secondary'} size="sm" className="rounded-full"
+                  onClick={() => { setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd')); setSelectedDischargePreset(12); }}>
                   {t('session.discharge.option1Year')}
                 </Button>
               </div>
@@ -306,7 +307,7 @@ export function SessionForm({
                   <Calendar
                     mode="single"
                     selected={dischargeDate ? new Date(dischargeDate + 'T00:00:00') : undefined}
-                    onSelect={(date) => setDischargeDate(date ? format(date, 'yyyy-MM-dd') : '')}
+                    onSelect={(date) => { setDischargeDate(date ? format(date, 'yyyy-MM-dd') : ''); setSelectedDischargePreset(null); }}
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
                   />

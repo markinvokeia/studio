@@ -863,6 +863,7 @@
         "floatingTitle": "Agente clínico",
         "chatPatientSubtitle": "Caso activo: {patient}",
         "chatError": "No pude responder en este momento. Inténtalo de nuevo.",
+        "openAgentChat": "Consulta al agente",
         "restoreChat": "Restaurar chat",
         "minimizeChat": "Minimizar chat",
         "closeChat": "Cerrar chat",

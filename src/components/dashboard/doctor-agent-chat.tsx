@@ -604,8 +604,8 @@ export function DoctorAgentChat({
 
   return (
     <>
-      <div className="fixed bottom-5 right-5 z-[80]">
-        {isOpen && isMinimized ? (
+      {isOpen && isMinimized ? (
+        <div className="fixed bottom-5 right-5 z-[80]">
           <Button
             type="button"
             onClick={() => setIsMinimized(false)}
@@ -615,20 +615,25 @@ export function DoctorAgentChat({
           >
             <MessageSquare className="h-5 w-5" />
           </Button>
-        ) : !isOpen ? (
-          <Button
-            type="button"
-            onClick={openChat}
-            size="icon"
-            className={cn(
-              'h-14 w-14 rounded-full shadow-2xl',
-              'bg-slate-900 text-white hover:bg-slate-800',
-            )}
-          >
-            <Bot className="h-5 w-5" />
-          </Button>
-        ) : null}
-      </div>
+        </div>
+      ) : !isOpen ? (
+        <div className="fixed bottom-24 left-1/2 z-[80] -translate-x-1/2 flex flex-col items-center gap-2.5 sm:bottom-10">
+          <span className="rounded-full border border-border/50 bg-background/90 px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
+            {t('openAgentChat')}
+          </span>
+          <div className="relative">
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
+            <Button
+              type="button"
+              onClick={openChat}
+              size="icon"
+              className="relative h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Bot className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {isClient && isOpen && createPortal(
         <div className="pointer-events-none fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-4 sm:w-auto">
