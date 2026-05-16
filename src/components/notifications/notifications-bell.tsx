@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Bell } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export function NotificationsBell({ className, variant = 'round' }: Notification
       aria-label={t('openPanel')}
     >
       <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
-        <Bell className="h-5 w-5" />
+        <Inbox className="h-5 w-5" />
       </div>
       {pendingCount > 0 && (
         <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-primary ring-2 ring-background">

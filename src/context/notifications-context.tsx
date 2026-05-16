@@ -2,8 +2,12 @@
 
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
+import { GlobalNotificationAlerts, type AlertBatch } from '@/components/notifications/GlobalNotificationAlerts';
 import { useAuth } from '@/context/AuthContext';
+import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
+import { useToast } from '@/hooks/use-toast';
 import { normalizeReminder } from '@/lib/reminders';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { DASHBOARD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
@@ -261,6 +265,13 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const { user, roleNames } = useAuth();
   const { hasPermission } = usePermissions();
   const userId = user?.id ? String(user.id) : null;
+  const { toast } = useToast();
+  const [alertStyle] = useDoctorAlertStyle(user?.id);
+  const alertStyleRef = React.useRef(alertStyle);
+  React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
+  const tDW = useTranslations('DoctorWorkspace');
+  const tStatus = useTranslations('AppointmentStatus');
+  const tN = useTranslations('Notifications');
 
   // Doctor = has access to the doctor workspace
   const isDoctor = hasPermission(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS);
@@ -525,6 +536,66 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     };
   }, [userId, poll]);
 
+  // ── Global alert queue (modal / toast) ───────────────────────────────────
+
+  const [alertQueue, setAlertQueue] = React.useState<AlertBatch[]>([]);
+  // Seeded synchronously from localStorage so stale persisted notifications
+  // never fire as alerts when the component mounts or the user changes.
+  const alertedNotifIdsRef = React.useRef<Set<string>>(
+    new Set(userId ? loadNotifications(userId).map((n) => n.id) : []),
+  );
+
+  // Re-seed when the logged-in user changes (login / logout / switch).
+  React.useEffect(() => {
+    alertedNotifIdsRef.current = new Set(
+      userId ? loadNotifications(userId).map((n) => n.id) : [],
+    );
+  }, [userId]);
+
+  React.useEffect(() => {
+    const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id));
+    if (novel.length === 0) return;
+    novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
+
+    const newAppts = novel.filter((n): n is NewAppointmentNotification => n.type === 'new_appointment');
+    const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');
+    const sessionsDone = novel.filter((n): n is SessionCompletedNotification => n.type === 'session_completed');
+
+    if (alertStyleRef.current === 'toast') {
+      newAppts.forEach((n) => {
+        toast({
+          title: tDW('appointmentAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
+        });
+      });
+      statusChanges.forEach((n) => {
+        toast({
+          title: tDW('statusChangeAlerts.singleTitle'),
+          description: tDW('statusChangeAlerts.toastDescription', {
+            patient: n.appointment.patientName || tN('unknownPatient'),
+            status: tStatus(normalizeAppointmentStatus(n.appointment.status)),
+          }),
+        });
+      });
+      sessionsDone.forEach((n) => {
+        toast({
+          title: tN('sessionCompletedAlertTitle'),
+          description: n.appointment.patientName || tN('unknownPatient'),
+        });
+      });
+    } else {
+      const batches: AlertBatch[] = [];
+      if (newAppts.length > 0) batches.push({ type: 'new_appointment', items: newAppts });
+      if (statusChanges.length > 0) batches.push({ type: 'appointment_status_change', items: statusChanges });
+      if (sessionsDone.length > 0) batches.push({ type: 'session_completed', items: sessionsDone });
+      if (batches.length > 0) setAlertQueue((prev) => [...prev, ...batches]);
+    }
+  }, [notifications, tDW, tStatus, tN, toast]);
+
+  const dismissAlert = React.useCallback(() => {
+    setAlertQueue((prev) => prev.slice(1));
+  }, []);
+
   // ── Actions ───────────────────────────────────────────────────────────────
 
   const dismissNotification = React.useCallback((id: string) => {
@@ -549,6 +620,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   return (
     <NotificationsContext.Provider value={value}>
       {children}
+      <GlobalNotificationAlerts queue={alertQueue} onDismiss={dismissAlert} />
     </NotificationsContext.Provider>
   );
 }

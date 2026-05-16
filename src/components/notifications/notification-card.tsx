@@ -105,7 +105,6 @@ function AppointmentStatusCard({ notification }: { notification: AppointmentStat
       : appointment.service_name || appointment.summary || t('unknownService');
 
   const handleView = () => {
-    dismissNotification(notification.id);
     closePanel();
     router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
   };
@@ -160,7 +159,6 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
   const hasQuote = !!appointment.quote_id;
 
   const goToAppointments = (action: string) => {
-    dismissNotification(notification.id);
     closePanel();
     const params = new URLSearchParams({ act: action, patientId: appointment.patientId, patientName: appointment.patientName || '' });
     if (action === 'schedule') {
@@ -301,7 +299,6 @@ function NewAppointmentCard({ notification }: { notification: NewAppointmentNoti
       : appointment.service_name || appointment.summary || t('unknownService');
 
   const handleView = () => {
-    dismissNotification(notification.id);
     closePanel();
     router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
   };

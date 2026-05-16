@@ -431,8 +431,6 @@ export function Header() {
                             </Link>
                         )}
 
-                        <NotificationsBell variant="square" />
-
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -454,6 +452,8 @@ export function Header() {
                         )}
 
                         <HelpMenu />
+
+                        <NotificationsBell variant="square" />
 
                         {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                             <Button
@@ -514,8 +514,6 @@ export function Header() {
                                 </Link>
                             )}
 
-                            <NotificationsBell variant="round" />
-
                             {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
                                 <ExchangeRate activeCashSession={activeCashSession} />
                             )}
@@ -546,6 +544,8 @@ export function Header() {
                             )}
 
                             <HelpMenu />
+
+                            <NotificationsBell variant="round" />
 
                             {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                                 <Button

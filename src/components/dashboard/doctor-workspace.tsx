@@ -10,18 +10,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { useNotifications } from '@/context/notifications-context';
-import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
-import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, AppointmentStatus, AppointmentStatusChangeNotification, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
+import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -32,7 +28,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Bell,
   CalendarDays,
   ChevronDown,
   ChevronUp,
@@ -992,11 +987,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const { user } = useAuth();
   const { permissions } = usePermissions();
   const { createSession, updateSession } = useClinicHistory();
-  const { toast } = useToast();
-  const { notifications } = useNotifications();
-  const [alertStyle] = useDoctorAlertStyle(user?.id);
-  const alertStyleRef = React.useRef(alertStyle);
-  React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions), [permissions]);
   const isMobile = useViewportNarrow(1024);
 
@@ -1023,48 +1013,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [odontogramAutoStart, setOdontogramAutoStart] = React.useState(false);
   const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ description: string; notes: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
-  const [newAppointmentsAlertOpen, setNewAppointmentsAlertOpen] = React.useState(false);
-  const [newAppointmentsAlertItems, setNewAppointmentsAlertItems] = React.useState<Appointment[]>([]);
-  const [statusChangeAlertOpen, setStatusChangeAlertOpen] = React.useState(false);
-  const [statusChangeAlertItems, setStatusChangeAlertItems] = React.useState<AppointmentStatusChangeNotification[]>([]);
   const contextRequestRef = React.useRef(0);
   // Tracks the last appointment context loaded (id:patientId). Used to distinguish a genuine
   // appointment navigation from a background-poll array refresh (same appointment, new reference).
   const lastLoadedContextKeyRef = React.useRef<string | null>(null);
-  // Tracks notification IDs already alerted (toast/modal) to avoid firing on mount or re-renders
-  const alertedNotifIdsRef = React.useRef<Set<string>>(new Set());
-  const mountedForStatusAlertsRef = React.useRef(false);
-
-  // Fire toast/modal when new appointment_status_change notifications arrive from the context.
-  // On first run we only record existing IDs so we don't re-alert stale panel notifications.
-  React.useEffect(() => {
-    if (!mountedForStatusAlertsRef.current) {
-      notifications.forEach((n) => alertedNotifIdsRef.current.add(n.id));
-      mountedForStatusAlertsRef.current = true;
-      return;
-    }
-    const novel = notifications.filter(
-      (n) => n.type === 'appointment_status_change' && !alertedNotifIdsRef.current.has(n.id),
-    ) as AppointmentStatusChangeNotification[];
-    if (novel.length === 0) return;
-    novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
-    if (alertStyleRef.current === 'toast') {
-      novel.forEach((n) => {
-        toast({
-          title: novel.length === 1
-            ? t('statusChangeAlerts.singleTitle')
-            : t('statusChangeAlerts.multipleTitle', { count: novel.length }),
-          description: t('statusChangeAlerts.toastDescription', {
-            patient: n.appointment.patientName || t('agenda.unknownPatient'),
-            status: tStatus(normalizeAppointmentStatus(n.appointment.status)),
-          }),
-        });
-      });
-    } else {
-      setStatusChangeAlertItems(novel);
-      setStatusChangeAlertOpen(true);
-    }
-  }, [notifications, t, tStatus, toast]);
 
   const selectedAppointment = React.useMemo(
     () => appointments.find((appointment) => appointment.id === selectedAppointmentId) ?? appointments[0] ?? null,
@@ -1114,23 +1066,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         });
         setLastUpdatedAt(new Date());
       });
-
-      if (newAppointments.length > 0) {
-        if (alertStyleRef.current === 'toast') {
-          const first = newAppointments[0];
-          toast({
-            title: newAppointments.length === 1
-              ? t('appointmentAlerts.singleTitle')
-              : t('appointmentAlerts.multipleTitle', { count: newAppointments.length }),
-            description: newAppointments.length === 1
-              ? `${first.patientName} · ${getTimeRangeLabel(first)}`
-              : t('appointmentAlerts.multipleDescription', { count: newAppointments.length }),
-          });
-        } else {
-          setNewAppointmentsAlertItems(newAppointments);
-          setNewAppointmentsAlertOpen(true);
-        }
-      }
 
     } catch (error) {
       console.error('Failed to load doctor workspace appointments:', error);
@@ -1327,11 +1262,22 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     [quoteItems],
   );
 
+  const clinicSessionPrefillData = React.useMemo(() => ({
+    doctor_id: selectedAppointment?.doctorId,
+    doctor_name: selectedAppointment?.doctorName,
+    procedimiento_realizado: agentSessionPrefill?.procedimiento_realizado,
+    plan_proxima_cita: agentSessionPrefill?.plan_proxima_cita,
+    fecha_proxima_cita: agentSessionPrefill?.fecha_proxima_cita,
+  }), [selectedAppointment?.doctorId, selectedAppointment?.doctorName, agentSessionPrefill]);
+
+  const clinicSessionPrefillTreatments = React.useMemo(
+    () => agentSessionTreatments.length > 0 ? agentSessionTreatments : prefillTreatments,
+    [agentSessionTreatments, prefillTreatments],
+  );
+
   const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
   const visibleAlertTags = patientAlertTags.slice(0, isMobile ? 2 : 4);
   const hiddenAlertCount = Math.max(patientAlertTags.length - visibleAlertTags.length, 0);
-  const firstNewAppointmentAlertItem = newAppointmentsAlertItems[0] ?? null;
-
   const clearAgentSessionDraft = React.useCallback(() => {
     setAgentSessionPrefill(null);
     setAgentSessionTreatments([]);
@@ -1379,13 +1325,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
     return { success: false, message: t('focus.ai.actionUnsupported') };
   }, [isMobile, selectedAppointment, t]);
-
-  const handleOpenNewAppointment = React.useCallback(() => {
-    if (!firstNewAppointmentAlertItem) return;
-
-    selectAppointment(firstNewAppointmentAlertItem.id, true);
-    setNewAppointmentsAlertOpen(false);
-  }, [firstNewAppointmentAlertItem, selectAppointment]);
 
   const handleOdontogramSessionSaved = React.useCallback(async () => {
     if (!selectedAppointment) return;
@@ -1629,138 +1568,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         presentation="floating"
       />
 
-      <Dialog open={newAppointmentsAlertOpen} onOpenChange={setNewAppointmentsAlertOpen}>
-        <DialogContent maxWidth="md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary shrink-0" />
-              {newAppointmentsAlertItems.length === 1
-                ? t('appointmentAlerts.singleTitle')
-                : t('appointmentAlerts.multipleTitle', { count: newAppointmentsAlertItems.length })}
-            </DialogTitle>
-            <DialogDescription>
-              {newAppointmentsAlertItems.length === 1
-                ? t('appointmentAlerts.modalSingleDescription')
-                : t('appointmentAlerts.modalMultipleDescription', { count: newAppointmentsAlertItems.length })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 px-6 py-5">
-            {newAppointmentsAlertItems.map((appointment) => {
-              const normalizedStatus = normalizeAppointmentStatus(appointment.status);
-              const serviceLabel = appointment.services?.length
-                ? appointment.services.map((service) => service.name).join(', ')
-                : appointment.service_name || appointment.summary || t('appointmentAlerts.unknownService');
 
-              return (
-                <button
-                  key={appointment.id}
-                  type="button"
-                  onClick={() => {
-                    selectAppointment(appointment.id, true);
-                    setNewAppointmentsAlertOpen(false);
-                  }}
-                  className="flex w-full items-start justify-between gap-4 rounded-xl bg-muted/30 px-4 py-4 text-left transition-colors hover:bg-muted/50"
-                >
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-foreground">
-                      {appointment.patientName || t('agenda.unknownPatient')}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {serviceLabel}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-sm font-semibold text-sky-700">{getTimeRangeLabel(appointment)}</p>
-                    <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="mt-2 capitalize">
-                      {tStatus(normalizedStatus)}
-                    </Badge>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewAppointmentsAlertOpen(false)}>
-              {t('appointmentAlerts.dismiss')}
-            </Button>
-            <Button onClick={handleOpenNewAppointment} disabled={!firstNewAppointmentAlertItem}>
-              {t('appointmentAlerts.openFirst')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={statusChangeAlertOpen} onOpenChange={setStatusChangeAlertOpen}>
-        <DialogContent maxWidth="md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary shrink-0" />
-              {statusChangeAlertItems.length === 1
-                ? t('statusChangeAlerts.singleTitle')
-                : t('statusChangeAlerts.multipleTitle', { count: statusChangeAlertItems.length })}
-            </DialogTitle>
-            <DialogDescription>
-              {statusChangeAlertItems.length === 1
-                ? t('statusChangeAlerts.modalSingleDescription')
-                : t('statusChangeAlerts.modalMultipleDescription', { count: statusChangeAlertItems.length })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 px-6 py-5">
-            {statusChangeAlertItems.map((notif) => {
-              const normalizedStatus = normalizeAppointmentStatus(notif.appointment.status);
-              const normalizedPrev = normalizeAppointmentStatus(notif.previousStatus);
-              const serviceLabel = notif.appointment.services?.length
-                ? notif.appointment.services.map((s) => s.name).join(', ')
-                : notif.appointment.service_name || notif.appointment.summary || t('appointmentAlerts.unknownService');
-              return (
-                <button
-                  key={notif.id}
-                  type="button"
-                  onClick={() => {
-                    selectAppointment(notif.appointment.id, true);
-                    setStatusChangeAlertOpen(false);
-                  }}
-                  className="flex w-full items-start justify-between gap-4 rounded-xl bg-muted/30 px-4 py-4 text-left transition-colors hover:bg-muted/50"
-                >
-                  <div className="min-w-0">
-                    <p className="text-base font-semibold text-foreground">
-                      {notif.appointment.patientName || t('agenda.unknownPatient')}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{serviceLabel}</p>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Badge variant={getAppointmentStatusVariant(normalizedPrev)} className="capitalize">
-                        {tStatus(normalizedPrev)}
-                      </Badge>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="capitalize">
-                        {tStatus(normalizedStatus)}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-sm font-semibold text-sky-700">{getTimeRangeLabel(notif.appointment)}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusChangeAlertOpen(false)}>
-              {t('statusChangeAlerts.dismiss')}
-            </Button>
-            <Button
-              disabled={statusChangeAlertItems.length === 0}
-              onClick={() => {
-                const first = statusChangeAlertItems[0];
-                if (first) selectAppointment(first.appointment.id, true);
-                setStatusChangeAlertOpen(false);
-              }}
-            >
-              {t('statusChangeAlerts.openFirst')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {selectedAppointment && canManageSessions && (
         <ClinicSessionDialog
@@ -1778,14 +1586,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
             : parseISO(`${formatDate(selectedAppointment.date)}T${selectedAppointment.time || '00:00'}:00`)}
           showTreatments={true}
           showAttachments={true}
-          prefillData={{
-            doctor_id: selectedAppointment.doctorId,
-            doctor_name: selectedAppointment.doctorName,
-            procedimiento_realizado: agentSessionPrefill?.procedimiento_realizado,
-            plan_proxima_cita: agentSessionPrefill?.plan_proxima_cita,
-            fecha_proxima_cita: agentSessionPrefill?.fecha_proxima_cita,
-          }}
-          prefillTreatments={agentSessionTreatments.length > 0 ? agentSessionTreatments : prefillTreatments}
+          prefillData={clinicSessionPrefillData}
+          prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
           hideNextAppointmentDate
           lockDoctor

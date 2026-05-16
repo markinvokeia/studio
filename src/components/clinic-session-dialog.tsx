@@ -159,52 +159,67 @@ export function ClinicSessionDialog({
         }
     }, [open]);
 
-    // Reset form only when the dialog transitions from closed to open
+    // Reset form when dialog opens; apply partial updates from agent while already open
     const prevOpenRef = React.useRef(false);
     React.useEffect(() => {
         const justOpened = open && !prevOpenRef.current;
         prevOpenRef.current = open;
-        if (!justOpened) return;
 
-        setForm({
-            doctor_id: existingSession?.doctor_id || prefillData?.doctor_id || '',
-            doctor_name: existingSession?.doctor_name || prefillData?.doctor_name || '',
-            fecha_sesion: existingSession?.fecha_sesion
-                ? formatDate(existingSession.fecha_sesion)
-                : (defaultDate ? formatDate(defaultDate) : formatDate(new Date())),
-            procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
-            plan_proxima_cita: existingSession?.plan_proxima_cita || prefillData?.plan_proxima_cita || '',
-            fecha_proxima_cita: existingSession?.fecha_proxima_cita
-                ? formatDate(existingSession.fecha_proxima_cita)
-                : (prefillData?.fecha_proxima_cita ? formatDate(prefillData.fecha_proxima_cita) : ''),
-            quote_id: existingSession?.quote_id || quoteId,
-            appointment_id: existingSession?.appointment_id || appointmentId,
-            sesion_id: existingSession?.sesion_id,
-        });
+        if (!open) return;
 
-        if (existingSession?.tratamientos && existingSession.tratamientos.length > 0) {
-            setTreatments(existingSession.tratamientos.map(t => ({
-                numero_diente: t.numero_diente,
-                descripcion: t.descripcion || '',
-            })));
-        } else if (prefillTreatments && prefillTreatments.length > 0) {
+        if (justOpened) {
+            setForm({
+                doctor_id: existingSession?.doctor_id || prefillData?.doctor_id || '',
+                doctor_name: existingSession?.doctor_name || prefillData?.doctor_name || '',
+                fecha_sesion: existingSession?.fecha_sesion
+                    ? formatDate(existingSession.fecha_sesion)
+                    : (defaultDate ? formatDate(defaultDate) : formatDate(new Date())),
+                procedimiento_realizado: existingSession?.procedimiento_realizado || prefillData?.procedimiento_realizado || serviceName || '',
+                plan_proxima_cita: existingSession?.plan_proxima_cita || prefillData?.plan_proxima_cita || '',
+                fecha_proxima_cita: existingSession?.fecha_proxima_cita
+                    ? formatDate(existingSession.fecha_proxima_cita)
+                    : (prefillData?.fecha_proxima_cita ? formatDate(prefillData.fecha_proxima_cita) : ''),
+                quote_id: existingSession?.quote_id || quoteId,
+                appointment_id: existingSession?.appointment_id || appointmentId,
+                sesion_id: existingSession?.sesion_id,
+            });
+
+            if (existingSession?.tratamientos && existingSession.tratamientos.length > 0) {
+                setTreatments(existingSession.tratamientos.map(t => ({
+                    numero_diente: t.numero_diente,
+                    descripcion: t.descripcion || '',
+                })));
+            } else if (prefillTreatments && prefillTreatments.length > 0) {
+                setTreatments(prefillTreatments.map(t => ({ ...t })));
+            } else {
+                setTreatments([]);
+            }
+
+            if (existingSession?.archivos_adjuntos && existingSession.archivos_adjuntos.length > 0) {
+                setExistingAttachments(existingSession.archivos_adjuntos);
+            } else {
+                setExistingAttachments([]);
+            }
+            setAttachedFiles([]);
+            setDeletedAttachmentIds([]);
+            setDoctorError(false);
+            setShouldDischargePatient(false);
+            setDischargeDate('');
+            return;
+        }
+
+        // Dialog already open — agent pushed live updates to prefillData/prefillTreatments
+        setForm(prev => ({
+            ...prev,
+            ...(prefillData?.procedimiento_realizado != null && { procedimiento_realizado: prefillData.procedimiento_realizado }),
+            ...(prefillData?.plan_proxima_cita != null && { plan_proxima_cita: prefillData.plan_proxima_cita }),
+            ...(prefillData?.fecha_proxima_cita != null && { fecha_proxima_cita: prefillData.fecha_proxima_cita }),
+        }));
+        if (prefillTreatments && prefillTreatments.length > 0) {
             setTreatments(prefillTreatments.map(t => ({ ...t })));
-        } else {
-            setTreatments([]);
         }
-
-        if (existingSession?.archivos_adjuntos && existingSession.archivos_adjuntos.length > 0) {
-            setExistingAttachments(existingSession.archivos_adjuntos);
-        } else {
-            setExistingAttachments([]);
-        }
-        setAttachedFiles([]);
-        setDeletedAttachmentIds([]);
-        setDoctorError(false);
-        setShouldDischargePatient(false);
-        setDischargeDate('');
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open]);
+    }, [open, prefillData, prefillTreatments]);
 
     const fetchDoctors = async () => {
         setIsLoadingDoctors(true);
