@@ -1,5 +1,7 @@
 'use client';
 
+import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { Button } from '@/components/ui/button';
@@ -37,16 +39,18 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, PatientSession, Quote, SessionPrefillData } from '@/lib/types';
+import { Appointment, AppointmentStatus, CancellationReason, PatientSession, Quote, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { addMonths, format, isBefore, isValid, parseISO } from 'date-fns';
@@ -55,8 +59,10 @@ import {
     AlertTriangle,
     Calendar as CalendarIcon,
     CalendarCheck,
+    CalendarSync,
     Check,
     ChevronDown,
+    ChevronLeft,
     ChevronUp,
     ChevronsUpDown,
     Clock,
@@ -94,6 +100,7 @@ interface ClinicHistoryViewerProps {
     userId: string;
     userName?: string;
     createSessionTrigger?: number;
+    createOdontogramTrigger?: number;
     sessionPrefill?: SessionPrefillData | null;
     onSessionCreated?: (sesionId: number, stepId?: string) => void;
     editSessionId?: number | null;
@@ -101,7 +108,7 @@ interface ClinicHistoryViewerProps {
     deepLinkView?: string;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -171,12 +178,19 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
     }, [userId, refreshAll, fetchPatientAppointments]);
 
     const [localSessionTrigger, setLocalSessionTrigger] = React.useState(0);
+    const [localOdontogramTrigger, setLocalOdontogramTrigger] = React.useState(0);
 
     React.useEffect(() => {
         if (createSessionTrigger > 0) {
             setLocalSessionTrigger(t => t + 1);
         }
     }, [createSessionTrigger]);
+
+    React.useEffect(() => {
+        if (createOdontogramTrigger > 0) {
+            setLocalOdontogramTrigger(t => t + 1);
+        }
+    }, [createOdontogramTrigger]);
 
     return (
         <div className="flex flex-col h-full min-h-0">
@@ -201,6 +215,8 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onLoadSessionAttachment={getSessionAttachment}
                             createTrigger={localSessionTrigger}
                             onTriggerConsumed={() => setLocalSessionTrigger(0)}
+                            createOdontogramTrigger={localOdontogramTrigger}
+                            onOdontogramTriggerConsumed={() => setLocalOdontogramTrigger(0)}
                             sessionPrefill={sessionPrefill}
                             onSessionCreated={onSessionCreated}
                             editSessionId={editSessionId}
@@ -1542,20 +1558,82 @@ interface TreatmentTimelineProps {
     onLoadSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
     createTrigger?: number;
     onTriggerConsumed?: () => void;
+    createOdontogramTrigger?: number;
+    onOdontogramTriggerConsumed?: () => void;
     sessionPrefill?: SessionPrefillData | null;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [openItems, setOpenItems] = React.useState<string[]>([]);
+    const [selectedItemKey, setSelectedItemKey] = React.useState<string | null>(null);
 
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
+    const [isOdontogramViewerOpen, setIsOdontogramViewerOpen] = React.useState(false);
+    const [isSessionDetailSheetOpen, setIsSessionDetailSheetOpen] = React.useState(false);
+    const [sessionDetailData, setSessionDetailData] = React.useState<PatientSession | null>(null);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
+
+    // Appointment panel state
+    const [isApptPanelOpen, setIsApptPanelOpen] = React.useState(false);
+    const [apptPanelAppointment, setApptPanelAppointment] = React.useState<Appointment | null>(null);
+    const [apptPanelLinkedSessions, setApptPanelLinkedSessions] = React.useState<PatientSession[]>([]);
+    const [isLoadingApptLinkedSessions, setIsLoadingApptLinkedSessions] = React.useState(false);
+    const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
+
+    const { updateStatus } = useAppointmentStatus({
+        onSuccess: () => { onRefreshAll?.(userId); },
+    });
+
+    const handleApptStatusChange = React.useCallback(
+        (appt: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => {
+            updateStatus({ appointment: appt, newStatus, ...extra });
+        },
+        [updateStatus],
+    );
+
+    const openApptPanel = React.useCallback(async (appt: Appointment) => {
+        setApptPanelAppointment(appt);
+        setIsApptPanelOpen(true);
+        if (appt.quote_id) {
+            setIsLoadingApptLinkedSessions(true);
+            try {
+                const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: userId });
+                const raw: any[] = Array.isArray(data) ? data : (data.patient_sessions || data.data || []);
+                const filtered = raw.filter((s: any) => s.quote_id != null && String(s.quote_id) === String(appt.quote_id));
+                setApptPanelLinkedSessions(filtered.map((s: any): PatientSession => ({
+                    sesion_id: Number(s.sesion_id || s.id),
+                    tipo_sesion: s.tipo_sesion,
+                    fecha_sesion: s.fecha_sesion || '',
+                    diagnostico: s.diagnostico || null,
+                    procedimiento_realizado: s.procedimiento_realizado || '',
+                    notas_clinicas: s.notas_clinicas || '',
+                    plan_proxima_cita: s.plan_proxima_cita || undefined,
+                    fecha_proxima_cita: s.fecha_proxima_cita || undefined,
+                    doctor_id: s.doctor_id || null,
+                    doctor_name: s.doctor_name || s.nombre_doctor || undefined,
+                    nombre_doctor: s.nombre_doctor || s.doctor_name || undefined,
+                    estado_odontograma: s.estado_odontograma,
+                    tratamientos: s.tratamientos || [],
+                    archivos_adjuntos: s.archivos_adjuntos || [],
+                    quote_id: s.quote_id?.toString(),
+                    quote_doc_no: s.quote_doc_no,
+                    appointment_id: s.appointment_id?.toString(),
+                })));
+            } catch {
+                setApptPanelLinkedSessions([]);
+            } finally {
+                setIsLoadingApptLinkedSessions(false);
+            }
+        } else {
+            setApptPanelLinkedSessions([]);
+        }
+    }, [userId]);
 
     type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
     const [typeFilter, setTypeFilter] = React.useState<TimelineFilter>('all');
@@ -1601,6 +1679,13 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             onTriggerConsumed?.();
         }
     }, [createTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    React.useEffect(() => {
+        if (createOdontogramTrigger > 0) {
+            setIsOdontogramDialogOpen(true);
+            onOdontogramTriggerConsumed?.();
+        }
+    }, [createOdontogramTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Form states for session dialog
     const [sessionForm, setSessionForm] = React.useState({
@@ -1949,6 +2034,14 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         });
     }, [allItems, typeFilter, doctorFilter]);
 
+    const getItemKey = (item: { kind: string; data: any }, index: number) =>
+        item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : `session-${item.data.sesion_id}`;
+
+    const selectedItem = React.useMemo(() => {
+        if (!selectedItemKey) return null;
+        return filteredItems.find((item, i) => getItemKey(item, i) === selectedItemKey) ?? null;
+    }, [filteredItems, selectedItemKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
     if (isLoading || isLoadingAppointments) {
         return (
             <div className="space-y-4">
@@ -1961,8 +2054,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
 
     return (
         <div className="space-y-4">
-            <div className="bg-card text-card-foreground rounded-xl shadow-sm px-2 py-3 sm:px-3 sm:py-4 border-0">
-                <div className="flex items-center justify-between mb-3 sm:mb-4 px-1 sm:px-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col" style={{ minHeight: '400px' }}>
+                <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Clock className="h-5 w-5 text-primary" />
@@ -2047,30 +2140,12 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
-                        {/* Add session — mobile icon only */}
+                        {/* Add session */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button size="icon" className="sm:hidden h-9 w-9 shrink-0" aria-label={t('addSession')}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleAddSession('clinica')}>
-                                    <Stethoscope className="h-4 w-4 mr-2" />
-                                    {t('sessionTypeClinical')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setIsOdontogramDialogOpen(true)}>
-                                    <Smile className="h-4 w-4 mr-2" />
-                                    {t('sessionTypeOdontogram')}
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        {/* Add session — desktop with label */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button className="hidden sm:inline-flex">
-                                    <Plus className="h-4 w-4 mr-2" />
-                                    {t('addSession')}
+                                <Button size="sm" className="h-8 gap-1.5">
+                                    <Plus className="h-3.5 w-3.5" />
+                                    <span className="hidden sm:inline">{t('addSession')}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -2089,7 +2164,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
 
                 {/* Active filter chips */}
                 {(typeFilter !== 'all' || doctorFilter !== 'all') && (
-                    <div className="flex flex-wrap items-center gap-1.5 mb-3 px-1 sm:px-0">
+                    <div className="flex flex-wrap items-center gap-1.5 px-3 py-2 border-b shrink-0">
                         {typeFilter !== 'all' && (
                             <Badge
                                 variant="secondary"
@@ -2113,267 +2188,88 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                     </div>
                 )}
 
-                {allItems.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-xl gap-3">
-                        <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center">
-                            <Clock className="w-7 h-7" />
-                        </div>
-                        <p className="text-sm">{t('noSessions')}</p>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline">
-                                    <Plus className="w-3 h-3 mr-1" />
-                                    {t('addFirstSession')}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="center">
-                                <DropdownMenuItem onClick={() => handleAddSession('clinica')}>
-                                    <Stethoscope className="h-4 w-4 mr-2" />
-                                    {t('sessionTypeClinical')}
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setIsOdontogramDialogOpen(true)}>
-                                    <Smile className="h-4 w-4 mr-2" />
-                                    {t('sessionTypeOdontogram')}
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
-                ) : filteredItems.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2">
-                        <p className="text-sm">No hay eventos que coincidan con los filtros.</p>
-                        <button
-                            onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }}
-                            className="text-xs text-primary hover:underline"
-                        >
-                            Limpiar filtros
-                        </button>
-                    </div>
-                ) : (
-                    <div className="relative">
-                        <div className="absolute left-[9px] sm:left-[11px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-muted to-muted"></div>
-                        {filteredItems.map((item, index) => {
-                            if (item.kind === 'appointment') {
-                                const appt = item.data;
-                                return (
-                                    <div key={`appt-${appt.id}-${index}`} className="relative flex items-start mb-3 last:mb-0 pl-7 sm:pl-9">
-                                        <div className="absolute left-0 top-0 z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-background shadow-md bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
-                                            <CalendarCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-500" />
-                                        </div>
-                                        <Card className="flex-1 min-w-0 border-blue-100 dark:border-blue-900 hover:shadow-md transition-shadow duration-200">
-                                            <CardHeader className="p-2.5 sm:p-3 pb-2">
-                                                <div className="flex items-start justify-between gap-2">
+                <div className="flex flex-1 min-h-0 overflow-hidden">
+                    <div className="flex flex-col w-full overflow-hidden">
+                        <ScrollArea className="flex-1">
+                            {allItems.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground gap-2 p-4">
+                                    <Clock className="w-6 h-6 opacity-40" />
+                                    <p className="text-xs text-center">{t('noSessions')}</p>
+                                </div>
+                            ) : filteredItems.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-24 text-muted-foreground gap-1 p-4">
+                                    <p className="text-xs">Sin resultados</p>
+                                    <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary hover:underline">Limpiar filtros</button>
+                                </div>
+                            ) : (
+                                <div>
+                                    {filteredItems.map((item, index) => {
+                                        const key = getItemKey(item, index);
+                                        const isSelected = selectedItemKey === key;
+                                        if (item.kind === 'appointment') {
+                                            const appt = item.data;
+                                            return (
+                                                <div key={key}
+                                                    className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
+                                                    onClick={() => { setSelectedItemKey(isSelected ? null : key); openApptPanel(appt); }}
+                                                >
+                                                    <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0 mt-0.5">
+                                                        <CalendarCheck className="h-3 w-3 text-blue-500" />
+                                                    </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <CardTitle className="text-sm font-semibold break-words whitespace-normal leading-tight">
-                                                            {appt.summary}
-                                                        </CardTitle>
-                                                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-                                                            <Badge variant="secondary" className="text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
+                                                        <div className="flex items-center gap-1 flex-wrap">
+                                                            <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 px-1.5 py-0 leading-relaxed">
                                                                 {t('sessionTypeAppointment')}
                                                             </Badge>
-                                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                                <CalendarIcon className="h-3 w-3 shrink-0" />
-                                                                {format(item.date, 'dd/MM/yyyy')}{appt.time && ` · ${appt.time}`}
-                                                            </p>
-                                                            {appt.doctorName && (
-                                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                                    <User className="h-3 w-3 shrink-0" />
-                                                                    <span className="truncate max-w-[140px]">{appt.doctorName}</span>
-                                                                </p>
-                                                            )}
+                                                            <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
                                                         </div>
+                                                        <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
+                                                        {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
                                                     </div>
-                                                    <Badge variant="outline" className="text-xs shrink-0 mt-0.5">
-                                                        {t(`appointmentStatus.${appt.status}`) || appt.status}
-                                                    </Badge>
                                                 </div>
-                                            </CardHeader>
-                                        </Card>
-                                    </div>
-                                );
-                            }
-
-                            const session = item.data as PatientSession;
-                            const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
-                            const isOpen = openItems.includes(String(session.sesion_id));
-                            const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
-
-                            return (
-                                <div key={index} className="relative flex items-start mb-3 last:mb-0 pl-7 sm:pl-9">
-                                    <div className="absolute left-0 top-0 z-10 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 border-background shadow-md bg-card flex items-center justify-center">
-                                        <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
-                                    </div>
-                                    <Card className="flex-1 min-w-0 hover:shadow-md transition-shadow duration-200 border-muted/60">
-                                        <CardHeader className="p-2.5 sm:p-3 pb-2">
-                                            <div className="flex items-start justify-between gap-2">
+                                            );
+                                        }
+                                        const session = item.data as PatientSession;
+                                        const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
+                                        return (
+                                            <div key={key}
+                                                className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
+                                                onClick={() => {
+                                                    setSelectedItemKey(isSelected ? null : key);
+                                                    if (session.tipo_sesion === 'odontograma') {
+                                                        setIsOdontogramViewerOpen(true);
+                                                    } else {
+                                                        setSessionDetailData(session);
+                                                        setIsSessionDetailSheetOpen(true);
+                                                    }
+                                                }}
+                                            >
+                                                <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
+                                                    <Icon className={cn('h-3 w-3', session.tipo_sesion === 'odontograma' ? 'text-purple-500' : 'text-primary')} />
+                                                </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <CardTitle className="text-sm font-semibold break-words whitespace-normal leading-tight">
-                                                        {session.procedimiento_realizado || t('noTitle')}
-                                                    </CardTitle>
-                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5">
-                                                        <Badge variant="secondary" className={cn(
-                                                            "text-xs font-medium",
-                                                            session.tipo_sesion === 'odontograma'
-                                                                ? "bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400"
-                                                                : "bg-primary/10 text-primary hover:bg-primary/10"
-                                                        )}>
+                                                    <div className="flex items-center gap-1 flex-wrap">
+                                                        <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
                                                             {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
                                                         </Badge>
-                                                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                            <CalendarIcon className="h-3 w-3 shrink-0" />
-                                                            {formatDate(session.fecha_sesion)}
-                                                        </p>
-                                                        {(session.nombre_doctor || session.doctor_name) && (
-                                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                                <User className="h-3 w-3 shrink-0" />
-                                                                <span className="truncate max-w-[140px]">{session.nombre_doctor || session.doctor_name}</span>
-                                                            </p>
-                                                        )}
-                                                        {session.quote_id && (
-                                                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                                                <Link2 className="h-3 w-3 shrink-0" />
-                                                                {t('quote')}: {session.quote_doc_no || session.quote_id}
-                                                            </p>
-                                                        )}
+                                                        <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
                                                     </div>
+                                                    <p className="text-xs font-medium truncate mt-0.5">{session.procedimiento_realizado || t('noTitle')}</p>
+                                                    {(session.nombre_doctor || session.doctor_name) && (
+                                                        <p className="text-xs text-muted-foreground truncate">{session.nombre_doctor || session.doctor_name}</p>
+                                                    )}
                                                 </div>
-                                                {session.tipo_sesion !== 'odontograma' && (
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0 mt-0.5">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent>
-                                                            <DropdownMenuItem onClick={() => handleEditSession(session)}>{tPage('common.edit')}</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleDeleteSession(session)} className="text-destructive">{tPage('common.delete')}</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                )}
                                             </div>
-                                        </CardHeader>
-                                        <Collapsible open={isOpen} onOpenChange={() => toggleItem(String(session.sesion_id))}>
-                                            <CollapsibleTrigger asChild>
-                                                <Button variant="ghost" size="sm" className="w-full justify-start px-2.5 sm:px-3 py-1 h-7 text-xs text-muted-foreground hover:text-foreground">
-                                                    {isOpen ? <ChevronUp className="h-3 w-3 mr-1" /> : <ChevronDown className="h-3 w-3 mr-1" />}
-                                                    {isOpen ? t('hideDetails') || 'Ocultar detalles' : t('showDetails') || 'Ver detalles'}
-                                                </Button>
-                                            </CollapsibleTrigger>
-                                            <CollapsibleContent>
-                                                <CardContent className="pt-0 pb-2.5 px-3 sm:px-4 space-y-2.5">
-                                                    {session.procedimiento_realizado && session.tipo_sesion !== 'odontograma' && (
-                                                        <div className="border-l-2 border-primary/50 pl-3 py-1 bg-muted/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
-                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
-                                                        </div>
-                                                    )}
-                                                    {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                                        <div className="border-l-2 border-red-400/50 pl-3 py-1 bg-red-50/60/50 dark:bg-red-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
-                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
-                                                        </div>
-                                                    )}
-                                                    {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
-                                                        <div className="border-l-2 border-cyan-400/50 pl-3 py-1 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide mb-1">{t('notes')}</p>
-                                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
-                                                        </div>
-                                                    )}
-                                                    {(planProximaCita || session.fecha_proxima_cita) && (
-                                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
-                                                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
-                                                                {session.fecha_proxima_cita && (
-                                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                                                                        <CalendarIcon className="h-3 w-3" />
-                                                                        <span className="font-semibold">{t('nextSessionDate') || 'Fecha'}:</span>
-                                                                        {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            {planProximaCita && (
-                                                                <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{planProximaCita}</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                    {session.tratamientos && session.tratamientos.length > 0 && (
-                                                        <div className="border-l-2 border-green-500/50 pl-3 py-1 bg-green-50/60/50 dark:bg-green-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                                                {session.tratamientos.map((tr: any, i: number) => (
-                                                                    <div key={i} className="flex items-baseline gap-2 min-w-0">
-                                                                        {tr.numero_diente && (
-                                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
-                                                                        )}
-                                                                        <p className="text-sm leading-relaxed text-muted-foreground break-words sm:truncate" title={tr.descripcion}>{tr.descripcion}</p>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1 bg-purple-50/60/50 dark:bg-purple-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
-                                                                    const surfaces = Object.keys(data).filter(k => k !== 'condition' && k !== 'notes' && k !== 'lastModified');
-                                                                    const surfaceText = surfaces.length > 0
-                                                                        ? surfaces.map(s => t(`surfaces.${s}`) || s).join(', ')
-                                                                        : '';
-                                                                    const extractCondition = (d: any): string => {
-                                                                        if (typeof d === 'string') return d;
-                                                                        if (Array.isArray(d)) return d[0] || '';
-                                                                        for (const key of Object.keys(d)) {
-                                                                            const val = d[key];
-                                                                            if (typeof val === 'string') return val;
-                                                                            if (Array.isArray(val) && val.length > 0) return val[0];
-                                                                        }
-                                                                        return '';
-                                                                    };
-                                                                    const condition = data.condition || extractCondition(data);
-                                                                    const conditionLabel = condition ? t(`conditions.${condition}`) || condition : '';
-
-                                                                    return (
-                                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
-                                                                            <span className="font-mono">#{tooth}</span>
-                                                                            <span className="text-primary/70">-</span>
-                                                                            <span>{conditionLabel}</span>
-                                                                            {surfaceText && (
-                                                                                <span className="text-primary/60">({surfaceText})</span>
-                                                                            )}
-                                                                        </span>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {(session as any).archivos_adjuntos && (session as any).archivos_adjuntos.length > 0 && (
-                                                        <div className="border-l-2 border-amber-500/50 pl-3 py-1 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
-                                                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
-                                                            <div className="flex flex-wrap gap-1">
-                                                                {(session as any).archivos_adjuntos.map((att: any, i: number) => (
-                                                                    <button
-                                                                        key={i}
-                                                                        type="button"
-                                                                        className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded hover:bg-muted/50 transition-colors cursor-pointer"
-                                                                        onClick={() => handleViewTimelineAttachment(att, session.sesion_id)}
-                                                                    >
-                                                                        <FileText className="h-3 w-3 text-amber-500" />
-                                                                        <span className="truncate max-w-[120px]">{att.file_name || att.nombre || att.name || 'File'}</span>
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </CollapsibleContent>
-                                        </Collapsible>
-                                    </Card>
+                                        );
+                                    })}
                                 </div>
-                            );
-                        })}
+                            )}
+                        </ScrollArea>
                     </div>
-                )}
+
+                </div>
             </div>
+
 
             {/* Session Dialog */}
             <Dialog open={isSessionDialogOpen} onOpenChange={setIsSessionDialogOpen}>
@@ -2744,16 +2640,22 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 </DialogContent>
             </Dialog>
 
-            {/* Odontogram Create Dialog */}
-            <Dialog open={isOdontogramDialogOpen} onOpenChange={setIsOdontogramDialogOpen}>
-                <DialogContent maxWidth="5xl" className="h-[90vh] max-h-[90vh] max-w-[95vw] p-0 flex flex-col overflow-hidden">
-                    <DialogHeader className="border-b px-6 py-4 shrink-0">
-                        <DialogTitle className="flex items-center gap-2">
-                            <Smile className="h-4 w-4 text-purple-600" />
+            {/* Odontogram Create Sheet */}
+            <ResizableSheet
+                open={isOdontogramDialogOpen}
+                onOpenChange={setIsOdontogramDialogOpen}
+                defaultWidth={1000}
+                minWidth={600}
+                storageKey="odontogram-create-sheet-width"
+            >
+                <div className="flex flex-col h-full">
+                    <div className="px-6 py-4 border-b shrink-0">
+                        <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                            <Smile className="h-4 w-4 text-purple-600 shrink-0" />
                             Nueva sesión — Odontograma
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="flex-1 min-h-0 overflow-auto p-4">
+                        </SheetTitle>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-auto">
                         {isOdontogramDialogOpen && (
                             <DentalRecordViewer
                                 patientId={userId}
@@ -2767,8 +2669,204 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             />
                         )}
                     </div>
-                </DialogContent>
-            </Dialog>
+                </div>
+            </ResizableSheet>
+
+            {/* Appointment Panel */}
+            <AppointmentPanel
+                open={isApptPanelOpen}
+                onOpenChange={(open) => { setIsApptPanelOpen(open); if (!open) setApptPanelAppointment(null); }}
+                appointment={apptPanelAppointment}
+                linkedSession={apptPanelLinkedSessions[0] ?? null}
+                isLoadingLinkedSession={isLoadingApptLinkedSessions}
+                quoteOrder={null}
+                quoteInvoices={[]}
+                isLoadingQuoteInfo={false}
+                onStatusChange={handleApptStatusChange}
+                onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
+            />
+            <CancellationNoteDialog
+                open={!!pendingCancellation}
+                onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
+                onConfirm={(note) => {
+                    if (!pendingCancellation) return;
+                    handleApptStatusChange(pendingCancellation, 'cancelled', { cancellation_reason: 'other', cancellation_note: note });
+                    setPendingCancellation(null);
+                }}
+            />
+
+            {/* Clinical Session Detail Sheet */}
+            <ResizableSheet
+                open={isSessionDetailSheetOpen}
+                onOpenChange={(open) => { setIsSessionDetailSheetOpen(open); if (!open) setSessionDetailData(null); }}
+                defaultWidth={600}
+                minWidth={380}
+                storageKey="session-detail-sheet-width"
+            >
+                {sessionDetailData && (() => {
+                    const session = sessionDetailData;
+                    const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
+                    return (
+                        <div className="flex flex-col h-full">
+                            <div className="px-6 py-4 border-b shrink-0">
+                                <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                                    <Stethoscope className="h-4 w-4 text-primary shrink-0" />
+                                    {session.procedimiento_realizado || t('noTitle')}
+                                </SheetTitle>
+                                <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1"><CalendarIcon className="h-3 w-3" />{formatDate(session.fecha_sesion)}</span>
+                                    {(session.nombre_doctor || session.doctor_name) && (
+                                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{session.nombre_doctor || session.doctor_name}</span>
+                                    )}
+                                    {session.quote_id && (
+                                        <span className="flex items-center gap-1"><Link2 className="h-3 w-3" />{t('quote')}: {(session as any).quote_doc_no || session.quote_id}</span>
+                                    )}
+                                </SheetDescription>
+                            </div>
+                            <ScrollArea className="flex-1">
+                                <div className="p-6 space-y-3">
+                                    {session.procedimiento_realizado && (
+                                        <div className="border-l-2 border-primary/50 pl-3 py-1.5 bg-muted/30 rounded-r-md">
+                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
+                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
+                                        </div>
+                                    )}
+                                    {session.diagnostico && session.diagnostico.trim() !== '' && (
+                                        <div className="border-l-2 border-red-400/50 pl-3 py-1.5 bg-red-50/60 dark:bg-red-950/20 rounded-r-md">
+                                            <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
+                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
+                                        </div>
+                                    )}
+                                    {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
+                                        <div className="border-l-2 border-cyan-400/50 pl-3 py-1.5 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
+                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide mb-1">{t('notes')}</p>
+                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
+                                        </div>
+                                    )}
+                                    {(planProximaCita || session.fecha_proxima_cita) && (
+                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
+                                            <div className="flex items-center justify-between gap-4 flex-wrap">
+                                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
+                                                {session.fecha_proxima_cita && (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                                                        <CalendarIcon className="h-3 w-3" />
+                                                        <span className="font-semibold">{t('nextSessionDate') || 'Fecha'}:</span>
+                                                        {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {planProximaCita && <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{planProximaCita}</p>}
+                                        </div>
+                                    )}
+                                    {session.tratamientos && session.tratamientos.length > 0 && (
+                                        <div className="border-l-2 border-green-500/50 pl-3 py-1.5 bg-green-50/60 dark:bg-green-950/20 rounded-r-md">
+                                            <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                                {session.tratamientos.map((tr: any, i: number) => (
+                                                    <div key={i} className="flex items-baseline gap-2 min-w-0">
+                                                        {tr.numero_diente && (
+                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
+                                                        )}
+                                                        <p className="text-sm leading-relaxed text-muted-foreground break-words">{tr.descripcion}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
+                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1.5 bg-purple-50/60 dark:bg-purple-950/20 rounded-r-md">
+                                            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
+                                                    const surfaces = Object.keys(data).filter(k => k !== 'condition' && k !== 'notes' && k !== 'lastModified');
+                                                    const surfaceText = surfaces.length > 0 ? surfaces.map(s => t(`surfaces.${s}`) || s).join(', ') : '';
+                                                    const extractCondition = (d: any): string => {
+                                                        if (typeof d === 'string') return d;
+                                                        if (Array.isArray(d)) return d[0] || '';
+                                                        for (const key of Object.keys(d)) {
+                                                            const val = d[key];
+                                                            if (typeof val === 'string') return val;
+                                                            if (Array.isArray(val) && val.length > 0) return val[0];
+                                                        }
+                                                        return '';
+                                                    };
+                                                    const condition = data.condition || extractCondition(data);
+                                                    const conditionLabel = condition ? t(`conditions.${condition}`) || condition : '';
+                                                    return (
+                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
+                                                            <span className="font-mono">#{tooth}</span>
+                                                            <span className="text-primary/70">-</span>
+                                                            <span>{conditionLabel}</span>
+                                                            {surfaceText && <span className="text-primary/60">({surfaceText})</span>}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {(session as any).archivos_adjuntos && (session as any).archivos_adjuntos.length > 0 && (
+                                        <div className="border-l-2 border-amber-500/50 pl-3 py-1.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
+                                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
+                                            <div className="flex flex-wrap gap-1">
+                                                {(session as any).archivos_adjuntos.map((att: any, i: number) => (
+                                                    <button key={i} type="button"
+                                                        className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded hover:bg-muted/50 transition-colors cursor-pointer"
+                                                        onClick={() => handleViewTimelineAttachment(att, session.sesion_id)}>
+                                                        <FileText className="h-3 w-3 text-amber-500" />
+                                                        <span className="truncate max-w-[160px]">{att.file_name || att.nombre || att.name || 'File'}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                            <div className="flex items-center gap-2 justify-end px-6 py-4 border-t shrink-0 bg-background">
+                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
+                                    onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    {tPage('common.delete')}
+                                </Button>
+                                <Button size="sm" className="gap-1.5"
+                                    onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
+                                    <Edit3 className="h-3.5 w-3.5" />
+                                    {tPage('common.edit')}
+                                </Button>
+                            </div>
+                        </div>
+                    );
+                })()}
+            </ResizableSheet>
+
+            {/* Odontogram View Sheet */}
+            <ResizableSheet
+                open={isOdontogramViewerOpen}
+                onOpenChange={setIsOdontogramViewerOpen}
+                defaultWidth={1000}
+                minWidth={600}
+                storageKey="odontogram-view-sheet-width"
+            >
+                <div className="flex flex-col h-full">
+                    <div className="px-6 py-4 border-b shrink-0">
+                        <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                            <Smile className="h-4 w-4 text-purple-600 shrink-0" />
+                            Odontograma
+                        </SheetTitle>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-auto">
+                        {isOdontogramViewerOpen && (
+                            <DentalRecordViewer
+                                patientId={userId}
+                                patientName={userName}
+                                onSessionSaved={() => {
+                                    setIsOdontogramViewerOpen(false);
+                                    onRefreshAll?.(userId);
+                                }}
+                            />
+                        )}
+                    </div>
+                </div>
+            </ResizableSheet>
 
             {/* Attachment Viewer Modal */}
             <Dialog open={!!viewingAttachment} onOpenChange={(open) => !open && setViewingAttachment(null)}>

@@ -108,45 +108,47 @@ export function SessionForm({
       {/* Hidden title — still sent to the API but not shown to the user */}
       <input type="hidden" value={description} readOnly />
 
-      <div className="flex flex-col gap-1">
-        <Label className="text-xs">{t('session.date')}</Label>
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="h-8 text-xs"
-          required
-        />
-      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">{t('session.date')}</Label>
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="h-8 text-xs"
+            required
+          />
+        </div>
 
-      {/* Doctor */}
-      {lockDoctorId ? (
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">{t('session.doctor')}</Label>
-          <div className="h-8 flex items-center rounded-md border border-input bg-muted/50 px-3 text-xs text-foreground">
-            {lockDoctorName ?? lockDoctorId}
+        {/* Doctor */}
+        {lockDoctorId ? (
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs">{t('session.doctor')}</Label>
+            <div className="h-8 flex items-center rounded-md border border-input bg-muted/50 px-3 text-xs text-foreground">
+              {lockDoctorName ?? lockDoctorId}
+            </div>
           </div>
-        </div>
-      ) : doctors.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">
-            {t('session.doctor')}
-            <span className="text-destructive ml-0.5">*</span>
-          </Label>
-          <Select value={doctorId} onValueChange={setDoctorId}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder={t('session.doctorPlaceholder')} />
-            </SelectTrigger>
-            <SelectContent>
-              {doctors.map((d) => (
-                <SelectItem key={d.id} value={d.id} className="text-xs">
-                  {d.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+        ) : doctors.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            <Label className="text-xs">
+              {t('session.doctor')}
+              <span className="text-destructive ml-0.5">*</span>
+            </Label>
+            <Select value={doctorId} onValueChange={setDoctorId}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder={t('session.doctorPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors.map((d) => (
+                  <SelectItem key={d.id} value={d.id} className="text-xs">
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+      </div>
 
       {/* Notes */}
       <div className="flex flex-col gap-1">

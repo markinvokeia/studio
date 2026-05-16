@@ -74,7 +74,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -1017,6 +1017,7 @@ export default function UsersPage() {
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
+  const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
@@ -1561,6 +1562,7 @@ export default function UsersPage() {
       setPatientConditions([]);
       setIsPreferencesOpen(false);
       setCreateSessionTrigger(0);
+      setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
     }
   }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
@@ -1919,6 +1921,9 @@ export default function UsersPage() {
                             <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateSessionTrigger(t => t + 1); }}>
                               <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setActiveTab('clinical-history'); setCreateOdontogramTrigger(t => t + 1); }}>
+                              <Smile className="h-4 w-4 mr-2 text-purple-600" />Sesión de odontograma
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setActiveTab('documents'); setCreateDocumentTrigger(t => t + 1); }}>
                               <Upload className="h-4 w-4 mr-2 text-primary" />Documento
                             </DropdownMenuItem>
@@ -2218,6 +2223,7 @@ export default function UsersPage() {
                               userId={selectedUser.id}
                               userName={selectedUser.name}
                               createSessionTrigger={createSessionTrigger}
+                              createOdontogramTrigger={createOdontogramTrigger}
                               sessionPrefill={sessionPrefill}
                               editSessionId={editSessionId}
                               onSessionCreated={async (sesionId, stepId) => {
