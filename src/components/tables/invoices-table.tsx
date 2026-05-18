@@ -1044,6 +1044,23 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     </FormItem>
                   )}
                 />
+                <div className="hidden md:block" />
+                <FormField
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tRoot('columns.dueDate')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <FormField control={form.control} name="notes" render={({ field }) => (
@@ -1220,27 +1237,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="flex justify-end">
-                <div className="w-full md:w-72">
-                  <FormField
-                    control={form.control}
-                    name="due_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{tRoot('columns.dueDate')}</FormLabel>
-                        <FormControl>
-                          <DatePickerInput
-                            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                            onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
 
             </DialogBody>
 

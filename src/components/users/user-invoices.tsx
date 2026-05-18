@@ -59,6 +59,7 @@ type ItemFormValues = z.infer<typeof itemSchema>;
 const invoiceEditSchema = z.object({
   type: z.enum(['invoice', 'credit_note']),
   currency: z.enum(['USD', 'UYU']),
+  created_at: z.date({ required_error: 'La fecha de factura es obligatoria' }),
   due_date: z.date().optional(),
   is_historical: z.boolean().optional(),
   notes: z.string().optional(),
@@ -498,6 +499,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     invoiceEditForm.reset({
       type: (selectedInvoice.type as 'invoice' | 'credit_note') ?? 'invoice',
       currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'USD',
+      created_at: selectedInvoice.createdAt ? parseISO(formatDate(selectedInvoice.createdAt)) : new Date(),
       due_date: selectedInvoice.due_date ? parseISO(formatDate(selectedInvoice.due_date)) : undefined,
       is_historical: selectedInvoice.is_historical ?? false,
       notes: selectedInvoice.notes ?? '',
@@ -540,6 +542,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         total: calculatedTotal,
         order_id: selectedInvoice.order_id !== 'N/A' ? selectedInvoice.order_id : undefined,
         quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
+        created_at: values.created_at ? toLocalISOString(values.created_at) : undefined,
         due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
         notes: values.notes || '',
         is_historical: values.is_historical ?? false,
@@ -898,6 +901,34 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   )} />
                 </div>
 
+                {/* Invoice date + Due date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={invoiceEditForm.control} name="created_at" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha de Factura</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={invoiceEditForm.control} name="due_date" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('InvoicesPage.columns.dueDate')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
                 {/* Notes */}
                 <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
                   <FormItem>
@@ -1056,22 +1087,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-end">
-                  <div className="w-full md:w-72">
-                    <FormField control={invoiceEditForm.control} name="due_date" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('InvoicesPage.columns.dueDate')}</FormLabel>
-                        <FormControl>
-                          <DatePickerInput
-                            value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
-                            onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                  </div>
-                </div>
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>

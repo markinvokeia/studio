@@ -2048,7 +2048,8 @@
       "addItem": "Add Item",
       "total": "Total",
       "currency": "Currency",
-      "createdAt": "Date",
+      "createdAt": "Invoice Date",
+      "dueDate": "Due Date",
       "cancel": "Cancel",
       "create": "Create",
       "success": {
