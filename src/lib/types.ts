@@ -548,6 +548,7 @@ export type AppointmentStatusChangeNotification = {
   id: string;
   type: 'appointment_status_change';
   createdAt: string;
+  seen?: boolean;
   appointment: Appointment;
   previousStatus: AppointmentStatus;
 };
@@ -556,6 +557,7 @@ export type SessionCompletedNotification = {
   id: string;
   type: 'session_completed';
   createdAt: string;
+  seen?: boolean;
   appointment: Appointment;
   session?: PatientSession | null;
   discharge?: PatientDischarge | null;
@@ -565,6 +567,7 @@ export type ReminderPanelNotification = {
   id: string;
   type: 'reminder';
   createdAt: string;
+  seen?: boolean;
   reminder: CalendarReminder;
 };
 
@@ -572,6 +575,7 @@ export type NewAppointmentNotification = {
   id: string;
   type: 'new_appointment';
   createdAt: string;
+  seen?: boolean;
   appointment: Appointment;
 };
 

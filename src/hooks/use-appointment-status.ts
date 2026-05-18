@@ -10,7 +10,27 @@ import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/t
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 
 const LOCALLY_UPDATED_PREFIX = 'doctor-workspace:locally-updated';
+const LOCALLY_CREATED_PREFIX = 'doctor-workspace:locally-created';
 const LOCALLY_UPDATED_TTL_MS = 120_000;
+
+export function markLocallyCreated(userId: string, appointmentId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = `${LOCALLY_CREATED_PREFIX}:${userId}`;
+    const raw = window.localStorage.getItem(key);
+    let ids: string[] = [];
+    let expiresAt = Date.now() + LOCALLY_UPDATED_TTL_MS;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.ids) && typeof parsed.expiresAt === 'number' && Date.now() <= parsed.expiresAt) {
+        ids = parsed.ids;
+        expiresAt = parsed.expiresAt;
+      }
+    }
+    if (!ids.includes(appointmentId)) ids.push(appointmentId);
+    window.localStorage.setItem(key, JSON.stringify({ ids, expiresAt }));
+  } catch {}
+}
 
 function markLocallyUpdated(userId: string, appointmentId: string) {
   if (typeof window === 'undefined') return;

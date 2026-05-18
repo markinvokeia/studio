@@ -29,7 +29,9 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
+import { markLocallyCreated } from '@/hooks/use-appointment-status';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
@@ -106,6 +108,7 @@ export function AppointmentFormDialog({
     const tToasts = useTranslations('AppointmentsPage.toasts');
     const tQuotes = useTranslations('QuotesPage');
     const tReschedule = useTranslations('AppointmentReschedule');
+    const { user: currentUser } = useAuth();
     const { toast } = useToast();
     const { reschedule } = useAppointmentReschedule();
     const isReschedule = mode === 'reschedule';
@@ -733,6 +736,10 @@ export function AppointmentFormDialog({
 
             if (isSuccess) {
                 toast({ title: isEditing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
+                if (!isEditing && currentUser?.id) {
+                    const newId = result.data?.id ?? result.data?.appointment_id ?? result.id ?? result.appointment_id ?? result.appointmentId;
+                    if (newId) markLocallyCreated(String(currentUser.id), String(newId));
+                }
                 // For new appointments with a workflow service: open review dialog before closing
                 if (!isEditing) {
                     const workflowService = appointment.services.find(s => s.service_type === 'workflow');
@@ -861,6 +868,10 @@ export function AppointmentFormDialog({
                     (appointmentResult?.appointment_id != null ? String(appointmentResult.appointment_id) : undefined) ||
                     undefined;
                 console.log('[handleSaveSession] Extracted appointmentId:', appointmentId);
+
+                if (appointmentId && currentUser?.id) {
+                    markLocallyCreated(String(currentUser.id), appointmentId);
+                }
 
                 if (!appointmentId) {
                     console.error('[handleSaveSession] Could not extract appointment ID. Response keys:', Object.keys(appointmentResult || {}), 'Data keys:', Object.keys(responseData || {}));

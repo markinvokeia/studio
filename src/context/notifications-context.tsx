@@ -37,6 +37,7 @@ const APPT_STATUSES_PREFIX = 'notifications:appt-statuses';
 const SECRETARY_NOTIFIED_PREFIX = 'notifications:secretary-sessions';
 const REMINDER_SEEN_KEY = 'notifications:reminder-seen';
 const LOCALLY_UPDATED_PREFIX = 'doctor-workspace:locally-updated';
+const LOCALLY_CREATED_PREFIX = 'doctor-workspace:locally-created';
 const LOCALLY_UPDATED_TTL_MS = 120_000;
 
 // ── Storage helpers ───────────────────────────────────────────────────────────
@@ -110,6 +111,23 @@ function readLocallyUpdatedIds(doctorId: string): Set<string> {
     if (!parsed || !Array.isArray(parsed.ids)) return new Set();
     if (typeof parsed.expiresAt === 'number' && Date.now() > parsed.expiresAt) {
       window.localStorage.removeItem(`${LOCALLY_UPDATED_PREFIX}:${doctorId}`);
+      return new Set();
+    }
+    return new Set<string>(parsed.ids.map(String));
+  } catch {
+    return new Set();
+  }
+}
+
+function readLocallyCreatedIds(doctorId: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(`${LOCALLY_CREATED_PREFIX}:${doctorId}`);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.ids)) return new Set();
+    if (typeof parsed.expiresAt === 'number' && Date.now() > parsed.expiresAt) {
+      window.localStorage.removeItem(`${LOCALLY_CREATED_PREFIX}:${doctorId}`);
       return new Set();
     }
     return new Set<string>(parsed.ids.map(String));
@@ -375,6 +393,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const dateKey = formatDate(new Date());
       const previousStatuses = readApptStatuses(userId, dateKey);
       const locallyUpdated = readLocallyUpdatedIds(userId);
+      const locallyCreated = readLocallyCreatedIds(userId);
 
       const newStatuses: Record<string, string> = {};
       const changed: AppointmentStatusChangeNotification[] = [];
@@ -389,7 +408,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
         if (prev === undefined) {
           // Brand-new appointment — notify only when we had a prior baseline
-          if (hasPreviousSnapshot) {
+          // and the current user did not create it themselves
+          if (hasPreviousSnapshot && !locallyCreated.has(appt.id)) {
             newAppts.push({
               id: `new-appt:${appt.id}:${dateKey}`,
               type: 'new_appointment',
@@ -578,7 +598,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     new Set(
       uid
         ? loadNotifications(uid)
-            .filter((n) => n.type !== 'reminder')
+            .filter((n) => n.type !== 'reminder' || n.seen)
             .map((n) => n.id)
         : [],
     );
@@ -590,7 +610,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, [userId]);
 
   React.useEffect(() => {
-    const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id));
+    const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id) && !n.seen);
     if (novel.length === 0) return;
     novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
     if (userId) saveAlertedIds(userId, alertedNotifIdsRef.current);
@@ -641,7 +661,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, [notifications, tDW, tStatus, tN, tReminders, toast]);
 
   const dismissAlert = React.useCallback(() => {
-    setAlertQueue((prev) => prev.slice(1));
+    setAlertQueue((prev) => {
+      const [current, ...rest] = prev;
+      if (current) {
+        const ids = new Set(current.items.map((n) => n.id));
+        setNotifications((ns) => ns.map((n) => ids.has(n.id) ? { ...n, seen: true } : n));
+      }
+      return rest;
+    });
   }, []);
 
   // ── Actions ───────────────────────────────────────────────────────────────
