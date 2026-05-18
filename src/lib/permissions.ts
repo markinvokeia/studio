@@ -1,5 +1,5 @@
 import { NavItem } from '@/config/nav';
-import { DASHBOARD_PERMISSIONS, PATIENTS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { DASHBOARD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { DOCTOR_WORKSPACE_ROLES } from '@/constants/roles';
 
 function cleanSeparators(items: NavItem[]): NavItem[] {
@@ -66,27 +66,13 @@ export function filterNavByPermissions(
   return cleanSeparators(filtered);
 }
 
-const DOCTOR_WORKSPACE_SUPPORTING_ANY = [
-  PATIENTS_PERMISSIONS.VIEW_DETAIL,
-  PATIENTS_PERMISSIONS.VIEW_DETAIL_HISTORY,
-  PATIENTS_PERMISSIONS.VIEW_DETAIL_APPOINTMENTS,
-  PATIENTS_PERMISSIONS.VIEW_LIST,
-];
-
 export function hasDoctorWorkspaceAccess(userPermissions: string[]): boolean {
-  const hasPatientAccess = DOCTOR_WORKSPACE_SUPPORTING_ANY.some(permission => userPermissions.includes(permission));
-  const hasWorkspaceAccess = userPermissions.includes(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS);
-
-  return hasWorkspaceAccess && hasPatientAccess;
+  return userPermissions.includes(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS);
 }
 
-const DOCTOR_WORKSPACE_SESSION_WRITE_ANY = [
-  TIMELINE_PERMISSIONS.CREATE,
-  TIMELINE_PERMISSIONS.UPDATE,
-];
-
 export function canManageDoctorWorkspaceSessions(userPermissions: string[], userRoles: string[] = []): boolean {
-  const hasWritePermission = DOCTOR_WORKSPACE_SESSION_WRITE_ANY.some(permission => userPermissions.includes(permission));
+  if (userPermissions.includes(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS)) return true;
+  const hasWritePermission = [TIMELINE_PERMISSIONS.CREATE, TIMELINE_PERMISSIONS.UPDATE].some(p => userPermissions.includes(p));
   const lowerUserRoles = userRoles.map(r => r.toLowerCase());
   const hasDoctorRole = DOCTOR_WORKSPACE_ROLES.some(role => lowerUserRoles.includes(role.toLowerCase()));
   return hasWritePermission || hasDoctorRole;

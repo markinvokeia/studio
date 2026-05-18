@@ -117,6 +117,7 @@ export const navItems: NavItem[] = [
     title: 'Appointments',
     href: '/appointments',
     icon: Calendar,
+    requiredPermission: BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_VIEW,
   },
   {
     title: 'TVDisplay',
