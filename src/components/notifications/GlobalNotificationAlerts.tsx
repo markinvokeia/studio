@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, BellRing, CheckCircle2, Clock } from 'lucide-react';
+import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import type {
   AppointmentStatus,
   AppointmentStatusChangeNotification,
   NewAppointmentNotification,
+  ReminderPanelNotification,
   SessionCompletedNotification,
 } from '@/lib/types';
 
@@ -20,7 +22,8 @@ import type {
 export type AlertBatch =
   | { type: 'new_appointment'; items: NewAppointmentNotification[] }
   | { type: 'appointment_status_change'; items: AppointmentStatusChangeNotification[] }
-  | { type: 'session_completed'; items: SessionCompletedNotification[] };
+  | { type: 'session_completed'; items: SessionCompletedNotification[] }
+  | { type: 'reminder'; items: ReminderPanelNotification[] };
 
 interface GlobalNotificationAlertsProps {
   queue: AlertBatch[];
@@ -211,6 +214,68 @@ function SessionCompletedBody({
   );
 }
 
+function formatLocalTime(value?: string | null): string {
+  if (!value) return '';
+  const parsed = parseISO(value.replace(/Z$/, ''));
+  return isValid(parsed) ? format(parsed, 'HH:mm') : '';
+}
+
+function ReminderBody({
+  items,
+  onDismiss,
+}: {
+  items: ReminderPanelNotification[];
+  onDismiss: () => void;
+}) {
+  const t = useTranslations('Reminders');
+  const first = items[0];
+  const reminder = first?.reminder;
+  const time = formatLocalTime(reminder?.start_datetime);
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-20 w-20 place-items-center rounded-full text-white shadow-lg"
+        style={{
+          backgroundColor: reminder?.color || '#8b5cf6',
+          animation: 'global-alert-sway 1.4s ease-in-out infinite',
+        }}
+      >
+        <BellRing className="h-9 w-9" />
+      </div>
+
+      <div className="space-y-1.5 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('dueTitle')}
+        </p>
+        {reminder && (
+          <>
+            <h2 className="text-xl font-bold leading-tight text-foreground">
+              {reminder.title}
+            </h2>
+            {reminder.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {reminder.description}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      {time && (
+        <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/50 px-3 py-1 text-sm text-muted-foreground">
+          <Clock className="h-3.5 w-3.5 shrink-0" />
+          {time}
+        </div>
+      )}
+
+      <Button className="mt-1 w-full" onClick={onDismiss}>
+        {t('dismiss')}
+      </Button>
+    </div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function GlobalNotificationAlerts({ queue, onDismiss }: GlobalNotificationAlertsProps) {
@@ -218,10 +283,13 @@ export function GlobalNotificationAlerts({ queue, onDismiss }: GlobalNotificatio
   const tDW = useTranslations('DoctorWorkspace');
   const tN = useTranslations('Notifications');
 
+  const tReminders = useTranslations('Reminders');
+
   function accessibleTitle() {
     if (!current) return '';
     if (current.type === 'new_appointment') return tDW('appointmentAlerts.singleTitle');
     if (current.type === 'appointment_status_change') return tDW('statusChangeAlerts.singleTitle');
+    if (current.type === 'reminder') return tReminders('dueTitle');
     return tN('sessionCompletedAlertTitle');
   }
 
@@ -248,6 +316,9 @@ export function GlobalNotificationAlerts({ queue, onDismiss }: GlobalNotificatio
           )}
           {current?.type === 'session_completed' && (
             <SessionCompletedBody items={current.items} onDismiss={onDismiss} />
+          )}
+          {current?.type === 'reminder' && (
+            <ReminderBody items={current.items} onDismiss={onDismiss} />
           )}
         </DialogContent>
       </Dialog>

@@ -27,10 +27,11 @@ export function useReminderNotifications(): ReminderNotificationsContextValue {
   return React.useContext(ReminderNotificationsContext);
 }
 
-async function fetchPendingReminders(): Promise<CalendarReminder[]> {
+async function fetchPendingReminders(userId?: string | null): Promise<CalendarReminder[]> {
   if (typeof window === 'undefined') return [];
   const token = localStorage.getItem('token');
   if (!token) return [];
+  if (!userId) return [];
 
   const now = new Date();
   const from = startOfDay(now);
@@ -40,6 +41,7 @@ async function fetchPendingReminders(): Promise<CalendarReminder[]> {
     const response = await api.get(API_ROUTES.REMINDERS, {
       from: format(from, 'yyyy-MM-dd HH:mm:ss'),
       to: format(to, 'yyyy-MM-dd HH:mm:ss'),
+      created_by: userId,
     });
     const raw: unknown[] = Array.isArray(response)
       ? response
@@ -128,13 +130,19 @@ export function ReminderNotificationsProvider({ children }: ReminderNotification
   const mountedRef = React.useRef(false);
 
   const load = React.useCallback(async () => {
-    const reminders = await fetchPendingReminders();
+    const reminders = await fetchPendingReminders(user?.id);
     if (mountedRef.current) scheduleTimers(reminders);
-  }, [scheduleTimers]);
+  }, [scheduleTimers, user?.id]);
 
   // Load reminders and reschedule on mount and every REFRESH_MS
   React.useEffect(() => {
     mountedRef.current = true;
+
+    if (!user?.id) {
+      return () => {
+        mountedRef.current = false;
+      };
+    }
 
     void load();
     const intervalId = setInterval(() => { void load(); }, REFRESH_MS);
@@ -145,7 +153,7 @@ export function ReminderNotificationsProvider({ children }: ReminderNotification
       timerIdsRef.current.forEach(clearTimeout);
       timerIdsRef.current = [];
     };
-  }, [load]);
+  }, [load, user?.id]);
 
   const refreshReminders = React.useCallback(() => { void load(); }, [load]);
 
