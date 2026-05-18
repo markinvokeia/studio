@@ -557,7 +557,7 @@ export type SessionCompletedNotification = {
   type: 'session_completed';
   createdAt: string;
   appointment: Appointment;
-  session: PatientSession;
+  session?: PatientSession | null;
   discharge?: PatientDischarge | null;
 };
 
@@ -1313,6 +1313,15 @@ export type GlobalNotificationSetting = {
   channel_slug: string;
   category_slug: string;
   is_enabled: boolean;
+};
+
+export type UserPreferences = {
+  alert_style?: 'modal' | 'toast';
+};
+
+export type UserPreferencesResponse = {
+  user_id: string;
+  preferences: UserPreferences;
 };
 
 export type Cotizacion = {

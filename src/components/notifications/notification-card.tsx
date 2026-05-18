@@ -153,8 +153,8 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
   const router = useRouter();
   const { appointment, session, createdAt } = notification;
 
-  const hasNextPlan = Boolean(session.plan_proxima_cita?.trim());
-  const hasTreatments = Array.isArray(session.tratamientos) && session.tratamientos.length > 0;
+  const hasNextPlan = Boolean(session?.plan_proxima_cita?.trim());
+  const hasTreatments = Array.isArray(session?.tratamientos) && session.tratamientos.length > 0;
   const hasNoQuote = !appointment.quote_id;
   const hasQuote = !!appointment.quote_id;
 
@@ -162,7 +162,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     closePanel();
     const params = new URLSearchParams({ act: action, patientId: appointment.patientId, patientName: appointment.patientName || '' });
     if (action === 'schedule') {
-      if (session.fecha_proxima_cita) params.set('date', session.fecha_proxima_cita);
+      if (session?.fecha_proxima_cita) params.set('date', session.fecha_proxima_cita);
       if (appointment.doctorId) params.set('doctorId', appointment.doctorId);
       if (appointment.doctorName) params.set('doctorName', appointment.doctorName);
     }
@@ -191,7 +191,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
 
         {/* Session info */}
         <div className="mt-3 space-y-1.5">
-          {session.procedimiento_realizado && (
+          {session?.procedimiento_realizado && (
             <div className="rounded-lg bg-muted/40 px-3 py-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 {t('procedure')}
@@ -208,7 +208,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 {t('nextPlan')}
               </p>
               <p className="mt-0.5 text-[11px] text-foreground line-clamp-2">
-                {session.plan_proxima_cita}
+                {session?.plan_proxima_cita}
               </p>
             </div>
           )}
@@ -234,7 +234,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
 
           {hasTreatments && (
             <p className="text-[11px] text-muted-foreground">
-              {t('treatmentCount', { count: session.tratamientos.length })}
+              {t('treatmentCount', { count: session!.tratamientos.length })}
             </p>
           )}
         </div>

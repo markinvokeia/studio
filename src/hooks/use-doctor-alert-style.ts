@@ -2,27 +2,36 @@
 
 import * as React from 'react';
 
-const ALERT_STYLE_STORAGE_PREFIX = 'doctor-workspace:alert-style';
+import { API_ROUTES } from '@/constants/routes';
+import { api } from '@/services/api';
+import type { UserPreferences, UserPreferencesResponse } from '@/lib/types';
 
 export type DoctorAlertStyle = 'modal' | 'toast';
 
 export function useDoctorAlertStyle(doctorId?: string | number): [DoctorAlertStyle, (style: DoctorAlertStyle) => void] {
-  const key = doctorId ? `${ALERT_STYLE_STORAGE_PREFIX}:${String(doctorId)}` : null;
+  const [alertStyle, setAlertStyleState] = React.useState<DoctorAlertStyle>('modal');
 
-  const [alertStyle, setAlertStyleState] = React.useState<DoctorAlertStyle>(() => {
-    if (!key || typeof window === 'undefined') return 'modal';
-    const stored = window.localStorage.getItem(key);
-    return stored === 'toast' ? 'toast' : 'modal';
-  });
+  React.useEffect(() => {
+    if (!doctorId) return;
+    api.get(API_ROUTES.USER_PREFERENCES)
+      .then((res: unknown) => {
+        const prefs = (res as UserPreferencesResponse | null)?.preferences;
+        if (prefs?.alert_style === 'modal' || prefs?.alert_style === 'toast') {
+          setAlertStyleState(prefs.alert_style);
+        }
+        // empty preferences {} → keep default 'modal'
+      })
+      .catch(() => {});
+  }, [doctorId]);
 
   const setAlertStyle = React.useCallback(
     (style: DoctorAlertStyle) => {
-      if (key) {
-        window.localStorage.setItem(key, style);
-      }
       setAlertStyleState(style);
+      if (doctorId) {
+        api.post(API_ROUTES.USER_PREFERENCES, { alert_style: style } satisfies UserPreferences).catch(() => {});
+      }
     },
-    [key],
+    [doctorId],
   );
 
   return [alertStyle, setAlertStyle];

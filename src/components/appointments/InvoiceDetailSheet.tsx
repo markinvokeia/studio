@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { Can } from '@/components/auth/Can';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { Invoice, InvoiceItem, Payment, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
@@ -455,13 +456,13 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
         {/* Footer with Actions */}
         <SheetFooter className="flex-col gap-2 sm:flex-row border-t border-border px-6 py-4">
           <div className="flex gap-2 flex-wrap">
-            <Can permission="SALES_INVOICES_PRINT">
+            <Can permission={SALES_PERMISSIONS.INVOICES_PRINT}>
               <Button variant="outline" size="sm" onClick={handlePrint} disabled={isPrinting}>
                 {isPrinting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}
                 {t('actions.print') || 'Imprimir'}
               </Button>
             </Can>
-            <Can permission="SALES_INVOICES_SEND_EMAIL">
+            <Can permission={SALES_PERMISSIONS.INVOICES_SEND_EMAIL}>
               <Button
                 variant="outline"
                 size="sm"
@@ -475,7 +476,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
           </div>
 
           {canShowConfirmAction && (
-            <Can permission="SALES_INVOICES_CONFIRM">
+            <Can permission={SALES_PERMISSIONS.INVOICES_CONFIRM}>
               <Button
                 size="sm"
                 onClick={handleConfirm}
@@ -488,7 +489,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
           )}
 
           {canShowPaymentAction && (
-            <Can permission="SALES_PAYMENTS_CREATE">
+            <Can permission={SALES_PERMISSIONS.PAYMENTS_CREATE}>
               <Button size="sm" onClick={handleOpenPaymentDialog}>
                 <CreditCard className="mr-2 h-4 w-4" />
                 {t('actions.registerPayment') || 'Registrar Pago'}

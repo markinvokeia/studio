@@ -3,10 +3,33 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { canTransition } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
+
+const LOCALLY_UPDATED_PREFIX = 'doctor-workspace:locally-updated';
+const LOCALLY_UPDATED_TTL_MS = 120_000;
+
+function markLocallyUpdated(userId: string, appointmentId: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const key = `${LOCALLY_UPDATED_PREFIX}:${userId}`;
+    const raw = window.localStorage.getItem(key);
+    let ids: string[] = [];
+    let expiresAt = Date.now() + LOCALLY_UPDATED_TTL_MS;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.ids) && typeof parsed.expiresAt === 'number' && Date.now() <= parsed.expiresAt) {
+        ids = parsed.ids;
+        expiresAt = parsed.expiresAt;
+      }
+    }
+    if (!ids.includes(appointmentId)) ids.push(appointmentId);
+    window.localStorage.setItem(key, JSON.stringify({ ids, expiresAt }));
+  } catch {}
+}
 
 interface UseAppointmentStatusOptions {
   onSuccess?: (
@@ -28,6 +51,7 @@ interface UpdateStatusArgs {
 }
 
 export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) {
+  const { user } = useAuth();
   const { toast } = useToast();
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
@@ -52,6 +76,7 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
           note,
         });
 
+        if (user?.id) markLocallyUpdated(String(user.id), appointment.id);
         toast({
           title: tMenu('updated'),
           description: tMenu('updatedDesc', { status: tStatus(newStatus) }),

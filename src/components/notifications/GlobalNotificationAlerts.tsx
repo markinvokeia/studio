@@ -12,6 +12,7 @@ import type {
   AppointmentStatus,
   AppointmentStatusChangeNotification,
   NewAppointmentNotification,
+  ReminderPanelNotification,
   SessionCompletedNotification,
 } from '@/lib/types';
 
@@ -20,7 +21,8 @@ import type {
 export type AlertBatch =
   | { type: 'new_appointment'; items: NewAppointmentNotification[] }
   | { type: 'appointment_status_change'; items: AppointmentStatusChangeNotification[] }
-  | { type: 'session_completed'; items: SessionCompletedNotification[] };
+  | { type: 'session_completed'; items: SessionCompletedNotification[] }
+  | { type: 'reminder'; items: ReminderPanelNotification[] };
 
 interface GlobalNotificationAlertsProps {
   queue: AlertBatch[];
@@ -190,7 +192,7 @@ function SessionCompletedBody({
                 {t('sessionCompletedBy', { doctor: first.appointment.doctorName })}
               </p>
             )}
-            {first.session.procedimiento_realizado && (
+            {first.session?.procedimiento_realizado && (
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {first.session.procedimiento_realizado}
               </p>
@@ -201,6 +203,54 @@ function SessionCompletedBody({
           <p className="text-sm text-muted-foreground">
             {t('sessionCompletedAlertDescriptionMultiple', { count: items.length })}
           </p>
+        )}
+      </div>
+
+      <Button className="mt-1 w-full" onClick={onDismiss}>
+        {t('sessionCompletedAlertDismiss')}
+      </Button>
+    </div>
+  );
+}
+
+function ReminderBody({
+  items,
+  onDismiss,
+}: {
+  items: ReminderPanelNotification[];
+  onDismiss: () => void;
+}) {
+  const t = useTranslations('Notifications');
+  const first = items[0];
+  const reminder = first?.reminder;
+
+  const accentColor =
+    reminder?.priority === 'HIGH'
+      ? '#ef4444'
+      : reminder?.priority === 'MEDIUM'
+        ? '#f59e0b'
+        : '#6b7280';
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-20 w-20 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: accentColor, animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <BellRing className="h-9 w-9" />
+      </div>
+
+      <div className="space-y-1.5 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('reminderAlertTitle')}
+        </p>
+        {reminder && (
+          <>
+            <p className="text-xl font-bold leading-tight text-foreground">{reminder.title}</p>
+            {reminder.description && (
+              <p className="text-sm text-muted-foreground leading-relaxed">{reminder.description}</p>
+            )}
+          </>
         )}
       </div>
 
@@ -222,6 +272,7 @@ export function GlobalNotificationAlerts({ queue, onDismiss }: GlobalNotificatio
     if (!current) return '';
     if (current.type === 'new_appointment') return tDW('appointmentAlerts.singleTitle');
     if (current.type === 'appointment_status_change') return tDW('statusChangeAlerts.singleTitle');
+    if (current.type === 'reminder') return tN('reminderAlertTitle');
     return tN('sessionCompletedAlertTitle');
   }
 
@@ -248,6 +299,9 @@ export function GlobalNotificationAlerts({ queue, onDismiss }: GlobalNotificatio
           )}
           {current?.type === 'session_completed' && (
             <SessionCompletedBody items={current.items} onDismiss={onDismiss} />
+          )}
+          {current?.type === 'reminder' && (
+            <ReminderBody items={current.items} onDismiss={onDismiss} />
           )}
         </DialogContent>
       </Dialog>

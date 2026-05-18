@@ -256,7 +256,8 @@
     "sessionCompletedAlertTitle": "Session completed",
     "sessionCompletedAlertTitleMultiple": "{count} sessions completed",
     "sessionCompletedAlertDescriptionMultiple": "{count} sessions were completed today.",
-    "sessionCompletedAlertDismiss": "Dismiss"
+    "sessionCompletedAlertDismiss": "Dismiss",
+    "reminderAlertTitle": "Reminder"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -2845,7 +2846,8 @@
       "availableBalance": "Advance Payments",
       "printFinancialSummary": "Financial Summary",
       "showStats": "SHOW $",
-      "hideStats": "HIDE $"
+      "hideStats": "HIDE $",
+      "print": "Print"
     },
     "description": "A list of providers",
     "filterPlaceholder": "Filter by role...",

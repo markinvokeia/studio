@@ -32,6 +32,7 @@ import { formatDate } from '@/lib/utils';
 
 const POLL_MS = 10_000;
 const STORAGE_PREFIX = 'app-notifications';
+const ALERTED_IDS_PREFIX = 'notifications:alerted';
 const APPT_STATUSES_PREFIX = 'notifications:appt-statuses';
 const SECRETARY_NOTIFIED_PREFIX = 'notifications:secretary-sessions';
 const REMINDER_SEEN_KEY = 'notifications:reminder-seen';
@@ -60,6 +61,24 @@ function saveNotifications(userId: string, notifications: UnifiedNotification[])
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(storageKey(userId), JSON.stringify(notifications));
+  } catch {}
+}
+
+function loadAlertedIds(userId: string): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(`${ALERTED_IDS_PREFIX}:${userId}`);
+    const arr = JSON.parse(raw ?? '[]');
+    return new Set(Array.isArray(arr) ? arr.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveAlertedIds(userId: string, ids: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`${ALERTED_IDS_PREFIX}:${userId}`, JSON.stringify([...ids]));
   } catch {}
 }
 
@@ -431,36 +450,40 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       writeSecretaryCompletionStatuses(dateKey, newStatuses);
 
       for (const appt of newlyCompleted) {
-        if (!appt.patientId) continue;
         secretaryProcessingRef.current.add(appt.id);
-        Promise.all([
-          api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: appt.patientId }),
-          api.get(API_ROUTES.PATIENT_DISCHARGE, { id: appt.patientId }).catch(() => null),
-        ])
-          .then(([rawSessions, rawDischarge]: [unknown, unknown]) => {
-            const arr: any[] = Array.isArray(rawSessions)
-              ? rawSessions
-              : ((rawSessions as any)?.patient_sessions ?? (rawSessions as any)?.data ?? []);
-            const sessions: PatientSession[] = arr
-              .map((s: any) => ({ ...s, sesion_id: Number(s.sesion_id) }))
-              .sort((a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''));
-            const session =
-              sessions.find((s) => String(s.appointment_id ?? '') === appt.id) ?? sessions[0];
-            if (!session) return;
-            const key = `session:${appt.id}:${session.sesion_id}`;
+
+        const sessionPromise: Promise<PatientSession | null> = appt.patientId
+          ? api
+              .get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: appt.patientId })
+              .then((rawSessions: unknown) => {
+                const arr: any[] = Array.isArray(rawSessions)
+                  ? rawSessions
+                  : ((rawSessions as any)?.patient_sessions ?? (rawSessions as any)?.data ?? []);
+                const sessions: PatientSession[] = arr
+                  .map((s: any) => ({ ...s, sesion_id: Number(s.sesion_id) }))
+                  .sort((a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''));
+                return sessions.find((s) => String(s.appointment_id ?? '') === appt.id) ?? sessions[0] ?? null;
+              })
+              .catch(() => null)
+          : Promise.resolve(null);
+
+        const dischargePromise: Promise<PatientDischarge | null> = appt.patientId
+          ? api
+              .get(API_ROUTES.PATIENT_DISCHARGE, { id: appt.patientId })
+              .then((d: any) =>
+                d?.appointment_date
+                  ? { id: String(d.id || ''), user_id: String(d.user_id || ''), appointment_date: String(d.appointment_date), created_at: d.created_at }
+                  : null,
+              )
+              .catch(() => null)
+          : Promise.resolve(null);
+
+        Promise.all([sessionPromise, dischargePromise])
+          .then(([session, discharge]) => {
+            const key = `session:${appt.id}:${session?.sesion_id ?? 'unknown'}`;
             if (notifiedSessions.has(key)) return;
             notifiedSessions.add(key);
             writeSecretaryNotified(dateKey, notifiedSessions);
-            const d = rawDischarge as any;
-            const discharge: PatientDischarge | null =
-              d?.appointment_date
-                ? {
-                    id: String(d.id || ''),
-                    user_id: String(d.user_id || ''),
-                    appointment_date: String(d.appointment_date),
-                    created_at: d.created_at,
-                  }
-                : null;
             const notif: SessionCompletedNotification = {
               id: key,
               type: 'session_completed',
@@ -471,7 +494,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             };
             if (mountedRef.current) addNotifications([notif]);
           })
-          .catch(() => {})
           .finally(() => { secretaryProcessingRef.current.delete(appt.id); });
       }
     } catch {}
@@ -539,27 +561,28 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
   const [alertQueue, setAlertQueue] = React.useState<AlertBatch[]>([]);
-  // Seeded synchronously from localStorage so stale persisted notifications
-  // never fire as alerts when the component mounts or the user changes.
+  // Persisted set of notification IDs that have already fired as alerts (modal or toast).
+  // Loaded from a dedicated localStorage key so it survives page reloads independently
+  // of which notifications are still visible in the panel.
   const alertedNotifIdsRef = React.useRef<Set<string>>(
-    new Set(userId ? loadNotifications(userId).map((n) => n.id) : []),
+    new Set(userId ? loadAlertedIds(userId) : []),
   );
 
-  // Re-seed when the logged-in user changes (login / logout / switch).
+  // Re-seed from the persisted alerted-IDs store when the user changes.
   React.useEffect(() => {
-    alertedNotifIdsRef.current = new Set(
-      userId ? loadNotifications(userId).map((n) => n.id) : [],
-    );
+    alertedNotifIdsRef.current = new Set(userId ? loadAlertedIds(userId) : []);
   }, [userId]);
 
   React.useEffect(() => {
     const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id));
     if (novel.length === 0) return;
     novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
+    if (userId) saveAlertedIds(userId, alertedNotifIdsRef.current);
 
     const newAppts = novel.filter((n): n is NewAppointmentNotification => n.type === 'new_appointment');
     const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');
     const sessionsDone = novel.filter((n): n is SessionCompletedNotification => n.type === 'session_completed');
+    const reminders = novel.filter((n): n is ReminderPanelNotification => n.type === 'reminder');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -583,11 +606,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           description: n.appointment.patientName || tN('unknownPatient'),
         });
       });
+      reminders.forEach((n) => {
+        toast({
+          title: n.reminder.title,
+          description: n.reminder.description ?? undefined,
+        });
+      });
     } else {
       const batches: AlertBatch[] = [];
       if (newAppts.length > 0) batches.push({ type: 'new_appointment', items: newAppts });
       if (statusChanges.length > 0) batches.push({ type: 'appointment_status_change', items: statusChanges });
       if (sessionsDone.length > 0) batches.push({ type: 'session_completed', items: sessionsDone });
+      if (reminders.length > 0) batches.push({ type: 'reminder', items: reminders });
       if (batches.length > 0) setAlertQueue((prev) => [...prev, ...batches]);
     }
   }, [notifications, tDW, tStatus, tN, toast]);

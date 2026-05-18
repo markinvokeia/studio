@@ -256,7 +256,8 @@
     "sessionCompletedAlertTitle": "Sesión completada",
     "sessionCompletedAlertTitleMultiple": "{count} sesiones completadas",
     "sessionCompletedAlertDescriptionMultiple": "{count} sesiones se completaron hoy.",
-    "sessionCompletedAlertDismiss": "Cerrar"
+    "sessionCompletedAlertDismiss": "Cerrar",
+    "reminderAlertTitle": "Recordatorio"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -2814,6 +2815,17 @@
   },
   "ProvidersPage": {
     "title": "Proveedores",
+    "stats": {
+      "title": "Resumen Financiero",
+      "totalInvoiced": "Total Facturado",
+      "totalPaid": "Total Pagado",
+      "currentDebt": "Por Pagar",
+      "availableBalance": "Pagos Adelantados",
+      "printFinancialSummary": "Resumen Financiero",
+      "showStats": "VER $",
+      "hideStats": "OCULTAR $",
+      "print": "Imprimir"
+    },
     "description": "Una lista de proveedores",
     "filterPlaceholder": "Filtrar por rol...",
     "createDialog": {

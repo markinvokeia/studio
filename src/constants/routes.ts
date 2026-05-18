@@ -27,6 +27,7 @@ export const API_ROUTES = {
     USER_SERVICES_ASSIGN: '/services/assign',
     USERS: '/users',
     USERS_DOCTORS: '/users/doctors',
+    USER_PREFERENCES: '/users/preferences',
     APPOINTMENTS_AVAILABILITY: '/appointments_availability',
     APPOINTMENTS_UPSERT: '/appointments/upsert',
     APPOINTMENTS_UPDATE_COLOR: '/appointments/update_color',
