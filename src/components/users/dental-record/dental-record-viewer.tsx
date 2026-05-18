@@ -170,9 +170,12 @@ interface DentalRecordViewerProps {
   /** When true: hides session history nav and auto-starts a new session on load */
   createMode?: boolean;
   onCancelCreate?: () => void;
+  /** When true, prevents creating new sessions (one already exists today for this patient) */
+  blockNewSession?: boolean;
+  blockNewSessionMessage?: string;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -228,11 +231,11 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   }, [patientId]);
 
   useEffect(() => {
-    if ((autoStartSession || createMode) && !isLoading) {
+    if ((autoStartSession || createMode) && !isLoading && !blockNewSession) {
       handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStartSession, createMode, isLoading]);
+  }, [autoStartSession, blockNewSession, createMode, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -617,7 +620,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             </button>
 
             {!isEditing && (
-              <Button size="sm" onClick={() => handleStartNewSession()} className="h-7 w-7 p-0 shrink-0" title={t('newSession')}>
+              <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="h-7 w-7 p-0 shrink-0" title={blockNewSession ? blockNewSessionMessage : t('newSession')}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -713,7 +716,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
           </div>
 
           {!isEditing && (
-            <Button size="sm" onClick={() => handleStartNewSession()} className="gap-1.5 text-xs shrink-0">
+            <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="gap-1.5 text-xs shrink-0" title={blockNewSession ? blockNewSessionMessage : undefined}>
               <Plus className="h-3.5 w-3.5" />
               {t('newSession')}
             </Button>
@@ -770,7 +773,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             <p className="font-semibold text-foreground">{t('noSessions')}</p>
             <p className="text-sm text-muted-foreground mt-1">{t('noSessionsDesc')}</p>
           </div>
-          <Button onClick={() => handleStartNewSession()} className="gap-2">
+          <Button onClick={() => handleStartNewSession()} disabled={blockNewSession} className="gap-2" title={blockNewSession ? blockNewSessionMessage : undefined}>
             <Stethoscope className="h-4 w-4" />
             {t('newSession')}
           </Button>

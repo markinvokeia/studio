@@ -995,9 +995,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const { user } = useAuth();
-  const { permissions } = usePermissions();
+  const { permissions, roles } = usePermissions();
   const { createSession, updateSession } = useClinicHistory();
-  const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions), [permissions]);
+  const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -1298,6 +1298,14 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     [agentSessionTreatments, prefillTreatments],
   );
 
+  const hasActiveSessionToday = React.useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return patientSessions.some(s => s.fecha_sesion?.startsWith(todayStr));
+  }, [patientSessions]);
+
+  // Block creating a NEW session when one already exists today; editing an existing linked session is always allowed.
+  const isNewSessionBlocked = !linkedSession && hasActiveSessionToday;
+
   const nextActionLabel = linkedSession ? t('focus.editSession') : t('focus.completeSession');
   const visibleAlertTags = patientAlertTags.slice(0, isMobile ? 2 : 4);
   const hiddenAlertCount = Math.max(patientAlertTags.length - visibleAlertTags.length, 0);
@@ -1332,6 +1340,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     if (action.type === 'open_clinic_session') {
+      if (!linkedSession && hasActiveSessionToday) {
+        return { success: false, message: t('focus.sessionExistsToday') };
+      }
       const payload = action.payload || {};
       if (isMobile) setMobileDetailsOpen(true);
       setAgentSessionPrefill({
@@ -1347,7 +1358,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     return { success: false, message: t('focus.ai.actionUnsupported') };
-  }, [isMobile, selectedAppointment, t]);
+  }, [hasActiveSessionToday, isMobile, linkedSession, selectedAppointment, t]);
 
   const handleOdontogramSessionSaved = React.useCallback(async () => {
     if (!selectedAppointment) return;
@@ -1371,6 +1382,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
   const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload) => {
     if (!selectedAppointment?.patientId) return;
+    if (!linkedSession && hasActiveSessionToday) return;
 
     const fecha = selectedAppointment.start?.dateTime
       ? format(parseISO(selectedAppointment.start.dateTime.replace(/Z$/, '')), 'yyyy-MM-dd')
@@ -1389,7 +1401,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
 
     await handleSaveClinicSession(data);
-  }, [handleSaveClinicSession, prefillTreatments, selectedAppointment]);
+  }, [handleSaveClinicSession, hasActiveSessionToday, linkedSession, prefillTreatments, selectedAppointment]);
 
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)
@@ -1488,7 +1500,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions} className="hidden shrink-0 sm:inline-flex">
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked} className="hidden shrink-0 sm:inline-flex" title={isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                   <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
@@ -1506,7 +1518,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   />
                 </div>
                 <div className="mt-2 shrink-0 border-t pt-3 sm:hidden">
-                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions} className="w-full">
+                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked} className="w-full" title={isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     {nextActionLabel}
                   </Button>
@@ -1524,6 +1536,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   autoStartNotes={odontogramPrefill?.notes}
                   autoStartMarcaciones={odontogramPrefill?.marcaciones}
                   onSessionSaved={handleOdontogramSessionSaved}
+                  blockNewSession={hasActiveSessionToday}
+                  blockNewSessionMessage={t('focus.sessionExistsToday')}
                 />
               </div>
             )}

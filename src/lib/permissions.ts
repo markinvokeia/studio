@@ -1,5 +1,6 @@
 import { NavItem } from '@/config/nav';
 import { DASHBOARD_PERMISSIONS, PATIENTS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { DOCTOR_WORKSPACE_ROLES } from '@/constants/roles';
 
 function cleanSeparators(items: NavItem[]): NavItem[] {
   const result: NavItem[] = [];
@@ -84,6 +85,9 @@ const DOCTOR_WORKSPACE_SESSION_WRITE_ANY = [
   TIMELINE_PERMISSIONS.UPDATE,
 ];
 
-export function canManageDoctorWorkspaceSessions(userPermissions: string[]): boolean {
-  return DOCTOR_WORKSPACE_SESSION_WRITE_ANY.some(permission => userPermissions.includes(permission));
+export function canManageDoctorWorkspaceSessions(userPermissions: string[], userRoles: string[] = []): boolean {
+  const hasWritePermission = DOCTOR_WORKSPACE_SESSION_WRITE_ANY.some(permission => userPermissions.includes(permission));
+  const lowerUserRoles = userRoles.map(r => r.toLowerCase());
+  const hasDoctorRole = DOCTOR_WORKSPACE_ROLES.some(role => lowerUserRoles.includes(role.toLowerCase()));
+  return hasWritePermission || hasDoctorRole;
 }

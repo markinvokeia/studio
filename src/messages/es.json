@@ -822,6 +822,7 @@
       "currentAppointmentBadge": "Cita actual",
       "noClinicalSignals": "Sin alergias ni complicaciones registradas.",
       "moreAlertTags": "+{count} más",
+      "sessionExistsToday": "Ya existe una sesión clínica registrada para hoy. Solo se permite una sesión por paciente por día.",
       "workspaceLabel": "Workspace clínico",
       "sessionStatusTitle": "Estado de la sesión",
       "sessionReady": "Sesión clínica vinculada",
