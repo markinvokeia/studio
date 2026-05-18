@@ -72,6 +72,7 @@ import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason 
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
 import { useNotifications } from '@/context/notifications-context';
+import { useAuth } from '@/context/AuthContext';
 import { normalizeReminder } from '@/lib/reminders';
 import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
@@ -317,14 +318,16 @@ async function getAppointments(
     }
 }
 
-async function getReminders(startDate: Date, endDate: Date): Promise<CalendarReminder[]> {
+async function getReminders(startDate: Date, endDate: Date, userId?: string | null): Promise<CalendarReminder[]> {
     if (!isValid(startDate) || !isValid(endDate)) return [];
+    if (!userId) return [];
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
     try {
         const response = await api.get(API_ROUTES.REMINDERS, {
             from: formatDateForAPI(startDate),
             to: formatDateForAPI(endDate),
+            created_by: userId,
         });
         const remindersData = Array.isArray(response)
             ? response
@@ -406,6 +409,7 @@ export default function AppointmentsPage() {
     const tReminders = useTranslations('Reminders');
 
     const { refreshNotifications: refreshReminders } = useNotifications();
+    const { user } = useAuth();
 
     const { toast } = useToast();
 
@@ -726,7 +730,7 @@ export default function AppointmentsPage() {
                 status: editingReminder?.status ?? 'pending',
                 visibility: 'clinic',
                 raise_alert: editingReminder?.raise_alert ?? true,
-                created_by: editingReminder?.created_by ?? undefined,
+                created_by: editingReminder?.created_by ?? user?.id ?? undefined,
             });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
@@ -977,13 +981,13 @@ export default function AppointmentsPage() {
         setIsRefreshing(true);
         const [fetchedAppointments, fetchedReminders] = await Promise.all([
             getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
-            getReminders(fetchRange.start, fetchRange.end),
+            getReminders(fetchRange.start, fetchRange.end, user?.id),
         ]);
         setAppointments(fetchedAppointments);
         setReminders(fetchedReminders);
 
         setIsRefreshing(false);
-    }, [selectedCalendarIds, fetchRange, calendars, services, doctors, t]);
+    }, [selectedCalendarIds, fetchRange, calendars, services, doctors, t, user?.id]);
 
     const forceRefresh = React.useCallback(() => {
         loadAppointments();

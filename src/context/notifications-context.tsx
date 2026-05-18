@@ -291,6 +291,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const tDW = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const tN = useTranslations('Notifications');
+  const tReminders = useTranslations('Reminders');
 
   // Doctor = has access to the doctor workspace
   const isDoctor = hasPermission(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS);
@@ -510,10 +511,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       const response = await api.get(API_ROUTES.REMINDERS, {
         from: formatForAPI(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)),
         to: formatForAPI(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59)),
+        created_by: userId,
       });
       const raw: unknown[] = Array.isArray(response)
         ? response
         : ((response as any)?.reminders ?? (response as any)?.data ?? []);
+      // Ownership filtering is delegated to the backend via the `created_by`
+      // query param above. We keep no client-side ownership check because the
+      // backend may serialize `created_by` in a different shape than the local
+      // `user.id` (e.g., internal id vs auth id), which would otherwise hide
+      // valid reminders.
       const reminders: CalendarReminder[] = raw
         .map((r) => normalizeReminder(r as Record<string, unknown>))
         .filter((r): r is CalendarReminder => r !== null && r.status === 'pending');
@@ -561,16 +568,25 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
   const [alertQueue, setAlertQueue] = React.useState<AlertBatch[]>([]);
-  // Persisted set of notification IDs that have already fired as alerts (modal or toast).
-  // Loaded from a dedicated localStorage key so it survives page reloads independently
-  // of which notifications are still visible in the panel.
-  const alertedNotifIdsRef = React.useRef<Set<string>>(
-    new Set(userId ? loadAlertedIds(userId) : []),
-  );
+  // Seeded synchronously from localStorage so stale persisted notifications
+  // never fire as alerts when the component mounts or the user changes.
+  // Reminders are intentionally excluded from the seed: a reminder must always
+  // fire its modal/toast on the first dispatcher pass that sees it, even when
+  // it was already persisted in a previous session (its trigger is time-based,
+  // not arrival-based).
+  const seedAlertedIds = (uid: string | null | undefined) =>
+    new Set(
+      uid
+        ? loadNotifications(uid)
+            .filter((n) => n.type !== 'reminder')
+            .map((n) => n.id)
+        : [],
+    );
+  const alertedNotifIdsRef = React.useRef<Set<string>>(seedAlertedIds(userId));
 
   // Re-seed from the persisted alerted-IDs store when the user changes.
   React.useEffect(() => {
-    alertedNotifIdsRef.current = new Set(userId ? loadAlertedIds(userId) : []);
+    alertedNotifIdsRef.current = seedAlertedIds(userId);
   }, [userId]);
 
   React.useEffect(() => {
@@ -608,8 +624,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       });
       reminders.forEach((n) => {
         toast({
-          title: n.reminder.title,
-          description: n.reminder.description ?? undefined,
+          title: tReminders('dueTitle'),
+          description: n.reminder.description
+            ? `${n.reminder.title} · ${n.reminder.description}`
+            : n.reminder.title,
         });
       });
     } else {
@@ -620,7 +638,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       if (reminders.length > 0) batches.push({ type: 'reminder', items: reminders });
       if (batches.length > 0) setAlertQueue((prev) => [...prev, ...batches]);
     }
-  }, [notifications, tDW, tStatus, tN, toast]);
+  }, [notifications, tDW, tStatus, tN, tReminders, toast]);
 
   const dismissAlert = React.useCallback(() => {
     setAlertQueue((prev) => prev.slice(1));
