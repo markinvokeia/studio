@@ -5753,6 +5753,7 @@
       "periodontogramSoon": "Coming soon"
     },
     "newSession": "New Session",
+    "editSession": "Edit Session",
     "noSessions": "No sessions recorded",
     "noSessionsDesc": "Start a new session to begin charting.",
     "readOnly": "Read-only",
@@ -5829,7 +5830,9 @@
     },
     "session": {
       "newTitle": "Register Session",
+      "editTitle": "Edit Session",
       "date": "Date",
+      "datePlaceholder": "Select a date",
       "description": "Title",
       "descriptionPlaceholder": "e.g. Root canal tooth 16",
       "descriptionRequired": "Please enter a session title",

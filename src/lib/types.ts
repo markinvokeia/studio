@@ -1512,12 +1512,16 @@ export type OdontogramAttachment = {
 };
 
 export type OdontogramSnapshot = {
+  id?: string;
+  appointmentId?: string;
   date: string;          // ISO date string (YYYY-MM-DD) for storage
   description: string;   // Session title
   state: OdontogramState;
   notes?: string;
   doctorId?: string;
   doctorName?: string;
+  planProximaCita?: string;
+  fechaProximaCita?: string;
   archivosAdjuntos?: OdontogramAttachment[];
 };
 

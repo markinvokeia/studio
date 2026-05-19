@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +29,8 @@ export interface SessionFormValues {
 interface SessionFormProps {
   defaultDate?: string;
   defaultDescription?: string;
+  defaultNextSessionPlan?: string;
+  defaultNextSessionDate?: string;
   doctors?: DoctorOption[];
   /** Controlled notes value — when provided, parent owns the notes state */
   notes?: string;
@@ -38,11 +39,14 @@ interface SessionFormProps {
   onCancel: () => void;
   lockDoctorId?: string;
   lockDoctorName?: string;
+  isEdit?: boolean;
 }
 
 export function SessionForm({
   defaultDate,
   defaultDescription,
+  defaultNextSessionPlan,
+  defaultNextSessionDate,
   doctors = [],
   notes: controlledNotes,
   onNotesChange,
@@ -50,6 +54,7 @@ export function SessionForm({
   onCancel,
   lockDoctorId,
   lockDoctorName,
+  isEdit = false,
 }: SessionFormProps) {
   const t = useTranslations('DentalRecord');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,8 +75,8 @@ export function SessionForm({
   const [shouldDischarge, setShouldDischarge] = useState(false);
   const [dischargeDate, setDischargeDate] = useState('');
   const [selectedDischargePreset, setSelectedDischargePreset] = useState<number | null>(null);
-  const [nextSessionPlan, setNextSessionPlan] = useState('');
-  const [nextSessionDate, setNextSessionDate] = useState('');
+  const [nextSessionPlan, setNextSessionPlan] = useState(defaultNextSessionPlan ?? '');
+  const [nextSessionDate, setNextSessionDate] = useState(defaultNextSessionDate ?? '');
 
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
@@ -103,7 +108,7 @@ export function SessionForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-xl border bg-background p-4">
-      <h3 className="text-sm font-semibold text-foreground">{t('session.newTitle')}</h3>
+      <h3 className="text-sm font-semibold text-foreground">{isEdit ? t('session.editTitle') : t('session.newTitle')}</h3>
 
       {/* Hidden title — still sent to the API but not shown to the user */}
       <input type="hidden" value={description} readOnly />
@@ -111,13 +116,28 @@ export function SessionForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
           <Label className="text-xs">{t('session.date')}</Label>
-          <Input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="h-8 text-xs"
-            required
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className={cn('w-full justify-start text-left font-normal h-8 text-xs border-input', !date && 'text-muted-foreground')}
+              >
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {date
+                  ? format(new Date(date.substring(0, 10) + 'T00:00:00'), 'dd/MM/yyyy')
+                  : t('session.datePlaceholder')}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date ? new Date(date.substring(0, 10) + 'T00:00:00') : undefined}
+                onSelect={(d) => setDate(d ? format(d, 'yyyy-MM-dd') : '')}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Doctor */}

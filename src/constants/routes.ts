@@ -113,6 +113,7 @@ export const API_ROUTES = {
     ODONTOGRAM: {
         PATIENT_ODONTOGRAMS: '/patient_odontograms',
         CREATE_ODONTOGRAMS: '/create_odontograms',
+        UPSERT_ODONTOGRAM: '/upsert_odontogram',
     },
     AI: {
         DOCTOR_QUERY: '/ai/doctor/query',

@@ -80,12 +80,16 @@ function mapApiItemToSnapshot(item: any): OdontogramSnapshot {
     : [];
 
   return {
-    date: item.fecha_sesion ?? new Date().toISOString().split('T')[0],
+    id: item.id != null ? String(item.id) : undefined,
+    appointmentId: item.appointment_id != null ? String(item.appointment_id) : undefined,
+    date: (item.fecha_sesion ?? new Date().toISOString()).substring(0, 10),
     description: item.descripcion ?? '',
     state,
     notes: item.notas ?? '',
     doctorId: item.doctor_id != null ? String(item.doctor_id) : (item.medico_id != null ? String(item.medico_id) : undefined),
     doctorName: item.doctor_name ?? item.medico_nombre ?? item.nombre_medico ?? undefined,
+    planProximaCita: item.proximo_control_desc ?? undefined,
+    fechaProximaCita: item.fecha_proximo_control != null ? String(item.fecha_proximo_control).substring(0, 10) : undefined,
     archivosAdjuntos: archivos,
   };
 }
@@ -100,12 +104,14 @@ export async function fetchOdontograms(patientId: string): Promise<OdontogramSna
   }
 }
 
-export async function createOdontogram(
+export async function upsertOdontogram(
   patientId: string,
   snapshot: { date: string; description: string; state: OdontogramState; notes: string; doctorId?: string; planProximaCita?: string; fechaProximaCita?: string; appointmentId?: string },
   files: File[],
+  sessionId?: string,
 ): Promise<void> {
   const formData = new FormData();
+  if (sessionId) formData.append('id', sessionId);
   formData.append('paciente_id', patientId);
   formData.append('fecha_sesion', snapshot.date);
   formData.append('descripcion', snapshot.description);
@@ -116,5 +122,12 @@ export async function createOdontogram(
   if (snapshot.fechaProximaCita) formData.append('fecha_proxima_cita', snapshot.fechaProximaCita);
   if (snapshot.appointmentId) formData.append('appointment_id', snapshot.appointmentId);
   files.forEach((f) => formData.append('images', f));
-  await api.post(API_ROUTES.ODONTOGRAM.CREATE_ODONTOGRAMS, formData);
+  await api.post(API_ROUTES.ODONTOGRAM.UPSERT_ODONTOGRAM, formData);
 }
+
+/** @deprecated Use upsertOdontogram instead */
+export const createOdontogram = (
+  patientId: string,
+  snapshot: { date: string; description: string; state: OdontogramState; notes: string; doctorId?: string; planProximaCita?: string; fechaProximaCita?: string; appointmentId?: string },
+  files: File[],
+) => upsertOdontogram(patientId, snapshot, files);

@@ -1525,13 +1525,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   patientName={selectedAppointment.patientName}
                   doctorId={selectedAppointment.doctorId}
                   doctorName={selectedAppointment.doctorName}
-                  autoStartSession={odontogramAutoStart}
+                  autoStartSession={odontogramAutoStart && !isOdontogramSession}
                   autoStartDescription={odontogramPrefill?.description}
                   autoStartNotes={odontogramPrefill?.notes}
                   autoStartMarcaciones={odontogramPrefill?.marcaciones}
                   onSessionSaved={handleOdontogramSessionSaved}
-                  blockNewSession={Boolean(linkedSession)}
-                  blockNewSessionMessage={t('focus.sessionExistsToday')}
+                  autoNavigateToAppointmentSession={isOdontogramSession}
+                  blockNewSession={isOdontogramSession}
                   appointmentId={selectedAppointment.id}
                 />
               </div>

@@ -5732,6 +5732,7 @@
       "periodontogramSoon": "Próximamente"
     },
     "newSession": "Nueva Sesión",
+    "editSession": "Editar Sesión",
     "noSessions": "Sin sesiones registradas",
     "noSessionsDesc": "Inicia una nueva sesión para comenzar el odontograma.",
     "readOnly": "Solo lectura",
@@ -5808,7 +5809,9 @@
     },
     "session": {
       "newTitle": "Registrar Sesión",
+      "editTitle": "Editar Sesión",
       "date": "Fecha",
+      "datePlaceholder": "Selecciona una fecha",
       "description": "Título",
       "descriptionPlaceholder": "Ej. Endodoncia pieza 16",
       "descriptionRequired": "Por favor ingresa un título para la sesión",
