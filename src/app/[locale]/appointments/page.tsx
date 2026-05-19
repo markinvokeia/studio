@@ -74,7 +74,7 @@ import { getAppointmentColumns } from './columns';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { normalizeReminder } from '@/lib/reminders';
-import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
+import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
 
@@ -1806,14 +1806,14 @@ export default function AppointmentsPage() {
                 onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
                 onConfirm={handleConfirmCustomCancellation}
             />
-            <QuickQuoteDialog
+            <QuoteFormDialog
                 open={isQuickQuoteOpen}
                 onOpenChange={(open) => {
                     setIsQuickQuoteOpen(open);
                     if (!open) setQuickQuotePatient(null);
                 }}
-                user={quickQuotePatient}
-                onQuoteCreated={() => setIsQuickQuoteOpen(false)}
+                initialData={{ user: quickQuotePatient }}
+                onSaveSuccess={() => setIsQuickQuoteOpen(false)}
             />
             <InvoiceFormDialog
                 isOpen={isInvoiceFormOpen}

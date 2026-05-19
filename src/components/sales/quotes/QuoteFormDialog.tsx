@@ -27,7 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clinic, User } from '@/lib/types';
+import { Clinic, Quote, User } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -95,12 +95,13 @@ async function getClinic(): Promise<Clinic | null> {
 export interface QuoteFormDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    initialData?: { user?: User };
+    initialData?: { user?: User | null };
     onSaveSuccess?: () => void;
+    onQuoteCreated?: (quote: Quote) => void;
     isSales?: boolean;
 }
 
-export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, isSales = true }: QuoteFormDialogProps) {
+export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true }: QuoteFormDialogProps) {
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession } = useAuth();
@@ -215,10 +216,28 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit,
             };
-            await upsertQuote(payload as any, isSales, t);
+            const response = await upsertQuote(payload as any, isSales, t);
             toast({ title: t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             onOpenChange(false);
             onSaveSuccess?.();
+            if (onQuoteCreated) {
+                const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
+                if (quoteData) {
+                    onQuoteCreated({
+                        id: String(quoteData.id),
+                        doc_no: quoteData.doc_no || 'N/A',
+                        user_id: quoteData.user_id,
+                        total: parseFloat(quoteData.total) || 0,
+                        status: quoteData.status || 'draft',
+                        payment_status: quoteData.payment_status || 'unpaid',
+                        billing_status: quoteData.billing_status || 'not invoiced',
+                        currency: quoteData.currency || 'USD',
+                        exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
+                        notes: quoteData.notes || '',
+                        createdAt: quoteData.created_at || new Date().toISOString(),
+                    });
+                }
+            }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.quoteError'));
         } finally {

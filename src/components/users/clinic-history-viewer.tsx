@@ -2,7 +2,7 @@
 
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
-import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
+import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -2608,10 +2608,10 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 </DialogContent>
 
                 {/* Quick Quote Dialog */}
-                <QuickQuoteDialog
+                <QuoteFormDialog
                     open={isQuickQuoteOpen}
                     onOpenChange={setIsQuickQuoteOpen}
-                    user={{ id: userId, name: userName || '', email: '', phone_number: '', is_active: true, avatar: '' }}
+                    initialData={{ user: { id: userId, name: userName || '', email: '', phone_number: '', is_active: true, avatar: '' } }}
                     onQuoteCreated={(newQuote) => {
                         setUserQuotes(prev => [newQuote, ...prev]);
                         setSelectedQuote(newQuote);

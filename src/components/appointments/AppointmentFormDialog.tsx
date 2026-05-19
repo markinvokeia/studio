@@ -1,7 +1,7 @@
 
 'use client';
 
-import { QuickQuoteDialog } from '@/components/appointments/QuickQuoteDialog';
+import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -1490,10 +1490,10 @@ export function AppointmentFormDialog({
                 />
 
                 {/* Quick Quote Dialog */}
-                <QuickQuoteDialog
+                <QuoteFormDialog
                     open={isQuickQuoteOpen}
                     onOpenChange={setIsQuickQuoteOpen}
-                    user={appointment.user}
+                    initialData={{ user: appointment.user }}
                     onQuoteCreated={async (quote) => {
                         setUserQuotes(prev => [quote, ...prev]);
                         setAppointment(prev => ({ ...prev, quote }));
