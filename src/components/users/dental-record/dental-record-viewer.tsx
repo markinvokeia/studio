@@ -173,9 +173,10 @@ interface DentalRecordViewerProps {
   /** When true, prevents creating new sessions (one already exists today for this patient) */
   blockNewSession?: boolean;
   blockNewSessionMessage?: string;
+  appointmentId?: string;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -303,6 +304,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         doctorId: values.doctorId || undefined,
         planProximaCita: values.nextSessionPlan || undefined,
         fechaProximaCita: values.nextSessionDate || undefined,
+        appointmentId: appointmentId || undefined,
       },
       values.files,
     );

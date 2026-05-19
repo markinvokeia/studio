@@ -102,7 +102,7 @@ export async function fetchOdontograms(patientId: string): Promise<OdontogramSna
 
 export async function createOdontogram(
   patientId: string,
-  snapshot: { date: string; description: string; state: OdontogramState; notes: string; doctorId?: string; planProximaCita?: string; fechaProximaCita?: string },
+  snapshot: { date: string; description: string; state: OdontogramState; notes: string; doctorId?: string; planProximaCita?: string; fechaProximaCita?: string; appointmentId?: string },
   files: File[],
 ): Promise<void> {
   const formData = new FormData();
@@ -114,6 +114,7 @@ export async function createOdontogram(
   if (snapshot.doctorId) formData.append('doctor_id', snapshot.doctorId);
   if (snapshot.planProximaCita) formData.append('plan_proxima_cita', snapshot.planProximaCita);
   if (snapshot.fechaProximaCita) formData.append('fecha_proxima_cita', snapshot.fechaProximaCita);
+  if (snapshot.appointmentId) formData.append('appointment_id', snapshot.appointmentId);
   files.forEach((f) => formData.append('images', f));
   await api.post(API_ROUTES.ODONTOGRAM.CREATE_ODONTOGRAMS, formData);
 }

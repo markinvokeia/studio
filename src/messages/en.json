@@ -830,6 +830,7 @@
       "noClinicalSignals": "No recorded allergies or complications.",
       "moreAlertTags": "+{count} more",
       "sessionExistsToday": "A clinical session already exists for today. Only one session per patient per day is allowed.",
+      "sessionIsOdontogram": "The session recorded for this appointment is an Odontogram. Edit it from the Odontogram panel.",
       "workspaceLabel": "Clinical workspace",
       "sessionStatusTitle": "Session status",
       "sessionReady": "Clinical session linked",
