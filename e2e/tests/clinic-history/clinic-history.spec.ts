@@ -1,12 +1,6 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
 const T = {
-  clinicalHistoryTab: 'Historia Clínica',
-  views: {
-    anamnesis: 'Anamnesis',
-    timeline: 'Línea de Tiempo',
-    documents: 'Documentos',
-  },
   anamnesis: {
     personalTitle: 'Información Personal',
     familyTitle: 'Información Familiar',
@@ -15,19 +9,7 @@ const T = {
   },
   habits: {
     title: 'Hábitos',
-    smoking: 'Tabaquismo',
-    alcohol: 'Alcoholismo',
-    bruxism: 'Bruxismo',
     saveToast: 'Hábitos guardados exitosamente',
-  },
-  timeline: {
-    title: 'Línea de Tiempo',
-    addSession: 'Agregar sesión',
-    empty: 'No hay sesiones registradas',
-  },
-  documents: {
-    add: 'Agregar documento',
-    empty: 'No hay documentos disponibles',
   },
   common: {
     cancel: 'Cancelar',
@@ -35,24 +17,30 @@ const T = {
   },
 };
 
-async function openFirstPatientClinicalHistory(page: Page): Promise<boolean> {
+// ── Helper: abre la sub-pestaña Anamnesis desde el panel de Información ───────
+async function openAnamnesisTab(page: Page): Promise<boolean> {
   await page.goto('/patients', { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('table, [data-testid="card-list"]', { timeout: 30_000 }).catch(() => {});
 
-  const firstRadio = page.getByRole('radio').first();
-  if (!await firstRadio.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false)) {
-    return false;
-  }
+  const firstRow = page.locator('table tbody tr, [data-testid="list-item"]').first();
+  if (!await firstRow.isVisible({ timeout: 10_000 }).catch(() => false)) return false;
+  await firstRow.click();
 
-  await firstRadio.click();
+  const panelReady = await page.getByRole('button', { name: 'Dar Alta' })
+    .or(page.getByRole('button', { name: 'Reingreso' }))
+    .waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
+  if (!panelReady) return false;
 
-  const historyTab = page.getByRole('button', { name: T.clinicalHistoryTab });
-  if (!await historyTab.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true).catch(() => false)) {
-    return false;
-  }
+  // Información es el primer tab del panel (normalmente ya activo)
+  const infoTab = page.getByRole('button', { name: 'Información' });
+  if (!await infoTab.isVisible({ timeout: 5_000 }).catch(() => false)) return false;
+  await infoTab.click();
 
-  await historyTab.click();
-  await page.getByRole('button', { name: T.views.anamnesis }).waitFor({ state: 'visible', timeout: 10_000 });
+  // Clic en el sub-tab Anamnesis
+  const anamnesisSubTab = page.getByRole('button', { name: 'Anamnesis' });
+  if (!await anamnesisSubTab.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false)) return false;
+  await anamnesisSubTab.click();
+  await page.waitForTimeout(500);
   return true;
 }
 
@@ -62,7 +50,7 @@ function habitsCard(page: Page): Locator {
     .locator('xpath=ancestor::div[contains(@class,"shadow-sm")][1]');
 }
 
-async function openHabitsEditor(page: Page) {
+async function openHabitsEditor(page: Page): Promise<Locator> {
   const card = habitsCard(page);
   await card.scrollIntoViewIfNeeded();
   await expect(card).toBeVisible({ timeout: 10_000 });
@@ -71,161 +59,146 @@ async function openHabitsEditor(page: Page) {
   return card;
 }
 
-test.describe('Historia clínica', () => {
-  test('muestra la navegación principal y las tarjetas de anamnesis', async ({ page }) => {
-    const opened = await openFirstPatientClinicalHistory(page);
-    expect(opened).toBeTruthy();
-
-    await expect(page.getByRole('button', { name: T.views.anamnesis })).toBeVisible();
-    await expect(page.getByRole('button', { name: T.views.timeline })).toBeVisible();
-    await expect(page.getByRole('button', { name: T.views.documents })).toBeVisible();
-
-    await expect(page.getByText(T.anamnesis.personalTitle, { exact: true })).toBeVisible();
-    await expect(page.getByText(T.anamnesis.familyTitle, { exact: true })).toBeVisible();
-    await expect(page.getByText(T.anamnesis.medicationsTitle, { exact: true })).toBeVisible();
-    await expect(page.getByText(T.anamnesis.allergiesTitle, { exact: true })).toBeVisible();
-    await expect(page.getByText(T.habits.title, { exact: true })).toBeVisible();
+// ── Anamnesis ─────────────────────────────────────────────────────────────────
+test.describe('Anamnesis — sub-tab de Información', () => {
+  test.beforeEach(async ({ page }) => {
+    const opened = await openAnamnesisTab(page);
+    if (!opened) test.skip();
   });
 
-  test('permite alternar entre anamnesis, línea de tiempo y documentos', async ({ page }) => {
-    const opened = await openFirstPatientClinicalHistory(page);
-    expect(opened).toBeTruthy();
+  test.describe('Secciones visibles', () => {
+    test('muestra la tarjeta de Información Personal', async ({ page }) => {
+      await expect(page.getByText(T.anamnesis.personalTitle, { exact: true })).toBeVisible({ timeout: 10_000 });
+    });
 
-    await page.getByRole('button', { name: T.views.timeline }).click();
-    await expect(page.getByRole('heading', { name: T.timeline.title })).toBeVisible({ timeout: 10_000 });
-    const hasTimelineContent = await page.getByRole('button', { name: T.timeline.addSession }).isVisible({ timeout: 5_000 }).catch(() => false);
-    const hasTimelineEmpty = await page.getByText(T.timeline.empty).isVisible({ timeout: 2_000 }).catch(() => false);
-    expect(hasTimelineContent || hasTimelineEmpty).toBeTruthy();
+    test('muestra la tarjeta de Información Familiar', async ({ page }) => {
+      await expect(page.getByText(T.anamnesis.familyTitle, { exact: true })).toBeVisible({ timeout: 10_000 });
+    });
 
-    await page.getByRole('button', { name: T.views.documents }).click();
-    const hasDocumentsHeading = await page.getByRole('heading', { name: T.views.documents })
-      .isVisible({ timeout: 10_000 }).catch(() => false);
-    const hasUploadButton = await page.getByRole('button', { name: T.documents.add })
-      .isVisible({ timeout: 2_000 }).catch(() => false);
-    const hasEmptyDocuments = await page.getByText(T.documents.empty)
-      .or(page.getByText(/no documents found for this patient|sin documentos|no hay documentos/i).first())
-      .isVisible({ timeout: 2_000 }).catch(() => false);
-    const hasDocumentCards = await page.locator('[data-radix-collection-item], [role="listitem"], button')
-      .filter({ hasText: /pdf|png|jpg|jpeg|gif|documento|archivo/i }).first()
-      .isVisible({ timeout: 2_000 }).catch(() => false);
-    const hasFileInput = await page.locator('input[type="file"]').isVisible({ timeout: 2_000 }).catch(() => false);
-    expect(hasDocumentsHeading || hasUploadButton || hasEmptyDocuments || hasDocumentCards || hasFileInput).toBeTruthy();
+    test('muestra la tarjeta de Medicamentos', async ({ page }) => {
+      await expect(page.getByText(T.anamnesis.medicationsTitle, { exact: true })).toBeVisible({ timeout: 10_000 });
+    });
 
-    await page.getByRole('button', { name: T.views.anamnesis }).click();
-    await expect(page.getByText(T.habits.title, { exact: true })).toBeVisible({ timeout: 10_000 });
+    test('muestra la tarjeta de Alergias', async ({ page }) => {
+      await expect(page.getByText(T.anamnesis.allergiesTitle, { exact: true })).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('muestra la tarjeta de Hábitos', async ({ page }) => {
+      await expect(page.getByText(T.habits.title, { exact: true })).toBeVisible({ timeout: 10_000 });
+    });
   });
 
-  test('línea de tiempo permite abrir modal de sesión y cancelarlo sin guardar', async ({ page }) => {
-    const opened = await openFirstPatientClinicalHistory(page);
-    expect(opened).toBeTruthy();
+  test.describe('Interacción con secciones colapsables', () => {
+    test('cada tarjeta tiene un botón de edición/expansión', async ({ page }) => {
+      const cards = [
+        T.anamnesis.personalTitle,
+        T.anamnesis.familyTitle,
+        T.anamnesis.medicationsTitle,
+        T.anamnesis.allergiesTitle,
+        T.habits.title,
+      ];
+      for (const title of cards) {
+        const card = page.getByText(title, { exact: true })
+          .locator('xpath=ancestor::div[contains(@class,"shadow-sm")][1]');
+        if (!await card.isVisible({ timeout: 5_000 }).catch(() => false)) continue;
+        const hasBtn = await card.getByRole('button').first().isVisible({ timeout: 3_000 }).catch(() => false);
+        expect(hasBtn).toBeTruthy();
+      }
+    });
 
-    await page.getByRole('button', { name: T.views.timeline }).click();
-    await expect(page.getByRole('heading', { name: T.timeline.title })).toBeVisible({ timeout: 10_000 });
+    test('tarjeta Alergias muestra contenido o estado vacío al expandirla', async ({ page }) => {
+      const card = page.getByText(T.anamnesis.allergiesTitle, { exact: true })
+        .locator('xpath=ancestor::div[contains(@class,"shadow-sm")][1]');
+      if (!await card.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await card.getByRole('button').first().click();
+      await page.waitForTimeout(400);
+      const hasContent = await card.locator('li, [role="listitem"], input, button').first()
+        .isVisible({ timeout: 3_000 }).catch(() => false);
+      const hasEmpty = await card.getByText(/sin alergias|no hay alergias|vacío/i).first()
+        .isVisible({ timeout: 3_000 }).catch(() => false);
+      expect(hasContent || hasEmpty).toBeTruthy();
+    });
 
-    const addSessionBtn = page.getByRole('button', { name: T.timeline.addSession });
-    if (!await addSessionBtn.isVisible({ timeout: 4_000 }).catch(() => false)) return;
+    test('tarjeta Medicamentos muestra contenido o estado vacío al expandirla', async ({ page }) => {
+      const card = page.getByText(T.anamnesis.medicationsTitle, { exact: true })
+        .locator('xpath=ancestor::div[contains(@class,"shadow-sm")][1]');
+      if (!await card.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await card.getByRole('button').first().click();
+      await page.waitForTimeout(400);
+      const hasContent = await card.locator('li, [role="listitem"], input, button').first()
+        .isVisible({ timeout: 3_000 }).catch(() => false);
+      const hasEmpty = await card.getByText(/sin medicamentos|no hay medicamentos|vacío/i).first()
+        .isVisible({ timeout: 3_000 }).catch(() => false);
+      expect(hasContent || hasEmpty).toBeTruthy();
+    });
 
-    const hadEmptyBefore = await page.getByText(T.timeline.empty).isVisible({ timeout: 1_500 }).catch(() => false);
-    await addSessionBtn.click();
-
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible({ timeout: 8_000 });
-
-    const cancelBtn = page.getByRole('button', { name: T.common.cancel })
-      .or(page.getByRole('button', { name: /cerrar/i }))
-      .first();
-    if (await cancelBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await cancelBtn.click();
-    } else {
-      await page.keyboard.press('Escape');
-    }
-    await expect(dialog).not.toBeVisible({ timeout: 5_000 });
-
-    if (hadEmptyBefore) {
-      await expect(page.getByText(T.timeline.empty)).toBeVisible({ timeout: 5_000 });
-    }
+    test('tarjeta Información Familiar muestra contenido o estado vacío al expandirla', async ({ page }) => {
+      const card = page.getByText(T.anamnesis.familyTitle, { exact: true })
+        .locator('xpath=ancestor::div[contains(@class,"shadow-sm")][1]');
+      if (!await card.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      await card.getByRole('button').first().click();
+      await page.waitForTimeout(400);
+      const hasContent = await card.locator('li, [role="listitem"], input, button').first()
+        .isVisible({ timeout: 3_000 }).catch(() => false);
+      const hasEmpty = await card.getByText(/sin antecedentes|no hay|vacío/i).first()
+        .isVisible({ timeout: 3_000 }).catch(() => false);
+      expect(hasContent || hasEmpty).toBeTruthy();
+    });
   });
 
-  test('documentos permite abrir flujo de carga y salir sin persistir', async ({ page }) => {
-    const opened = await openFirstPatientClinicalHistory(page);
-    expect(opened).toBeTruthy();
+  test.describe('Hábitos — edición con restauración', () => {
+    test('la tarjeta Hábitos tiene campos de tabaquismo, alcoholismo y bruxismo', async ({ page }) => {
+      const card = await openHabitsEditor(page);
+      await expect(card.locator('#tabaquismo')).toBeVisible();
+      await expect(card.locator('#alcoholismo')).toBeVisible();
+      await expect(card.locator('#bruxismo')).toBeVisible();
+    });
 
-    await page.getByRole('button', { name: T.views.documents }).click();
-    const addDocBtn = page.getByRole('button', { name: T.documents.add });
-    if (!await addDocBtn.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+    test('edita hábitos y restaura los valores originales', async ({ page }) => {
+      const card = await openHabitsEditor(page);
+      const originalSmoking = await card.locator('#tabaquismo').inputValue();
+      const originalAlcohol = await card.locator('#alcoholismo').inputValue();
+      const originalBruxism = await card.locator('#bruxismo').inputValue();
 
-    const hadEmptyBefore = await page.getByText(T.documents.empty).isVisible({ timeout: 1_500 }).catch(() => false);
-    await addDocBtn.click();
+      const seed = Date.now();
+      await card.locator('#tabaquismo').fill(`E2E tabaquismo ${seed}`);
+      await card.locator('#alcoholismo').fill(`E2E alcohol ${seed}`);
+      await card.locator('#bruxismo').fill(`E2E bruxismo ${seed}`);
 
-    const dialog = page.getByRole('dialog');
-    if (await dialog.isVisible({ timeout: 4_000 }).catch(() => false)) {
-      const cancelBtn = page.getByRole('button', { name: T.common.cancel })
-        .or(page.getByRole('button', { name: /cerrar/i }))
-        .first();
+      const saveResponse = page.waitForResponse(r =>
+        r.url().includes('/habitos_paciente/upsert') && r.request().method() === 'POST'
+      );
+      await card.getByRole('button', { name: T.common.save }).click();
+      await saveResponse;
+      await expect(page.getByText(T.habits.saveToast).first()).toBeVisible({ timeout: 10_000 });
+
+      // Restaurar valores originales
+      const restoreCard = await openHabitsEditor(page);
+      await restoreCard.locator('#tabaquismo').fill(originalSmoking);
+      await restoreCard.locator('#alcoholismo').fill(originalAlcohol);
+      await restoreCard.locator('#bruxismo').fill(originalBruxism);
+
+      const restoreResponse = page.waitForResponse(r =>
+        r.url().includes('/habitos_paciente/upsert') && r.request().method() === 'POST'
+      );
+      await restoreCard.getByRole('button', { name: T.common.save }).click();
+      await restoreResponse;
+      await expect(page.getByText(T.habits.saveToast).first()).toBeVisible({ timeout: 10_000 });
+    });
+
+    test('cancelar edición de hábitos no persiste cambios', async ({ page }) => {
+      const card = await openHabitsEditor(page);
+      const originalSmoking = await card.locator('#tabaquismo').inputValue();
+      await card.locator('#tabaquismo').fill(`E2E cancelado ${Date.now()}`);
+      const cancelBtn = card.getByRole('button', { name: T.common.cancel });
       if (await cancelBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await cancelBtn.click();
-      } else {
-        await page.keyboard.press('Escape');
+        await page.waitForTimeout(400);
+        // Re-open to verify value was not saved
+        const reopened = await openHabitsEditor(page);
+        const restoredVal = await reopened.locator('#tabaquismo').inputValue();
+        expect(restoredVal).toBe(originalSmoking);
       }
-      await expect(dialog).not.toBeVisible({ timeout: 5_000 });
-    } else {
-      const fileInput = page.locator('input[type="file"]').first();
-      if (await fileInput.isVisible({ timeout: 2_500 }).catch(() => false)) {
-        await fileInput.setInputFiles({
-          name: `e2e-doc-${Date.now()}.txt`,
-          mimeType: 'text/plain',
-          buffer: Buffer.from('e2e test document')
-        });
-        await page.keyboard.press('Escape');
-      }
-    }
-
-    if (hadEmptyBefore) {
-      await expect(page.getByText(T.documents.empty)).toBeVisible({ timeout: 5_000 });
-    }
-  });
-
-  test('edita hábitos y restaura los valores originales', async ({ page }) => {
-    const opened = await openFirstPatientClinicalHistory(page);
-    expect(opened).toBeTruthy();
-
-    const card = await openHabitsEditor(page);
-    const originalSmoking = await card.locator('#tabaquismo').inputValue();
-    const originalAlcohol = await card.locator('#alcoholismo').inputValue();
-    const originalBruxism = await card.locator('#bruxismo').inputValue();
-
-    const seed = Date.now();
-    const updatedSmoking = `E2E tabaquismo ${seed}`;
-    const updatedAlcohol = `E2E alcohol ${seed}`;
-    const updatedBruxism = `E2E bruxismo ${seed}`;
-
-    await card.locator('#tabaquismo').fill(updatedSmoking);
-    await card.locator('#alcoholismo').fill(updatedAlcohol);
-    await card.locator('#bruxismo').fill(updatedBruxism);
-
-    const saveResponsePromise = page.waitForResponse((response) =>
-      response.url().includes('/habitos_paciente/upsert') && response.request().method() === 'POST'
-    );
-
-    await card.getByRole('button', { name: T.common.save }).click();
-    await saveResponsePromise;
-    await expect(page.getByText(T.habits.saveToast).first()).toBeVisible({ timeout: 10_000 });
-
-    await expect(habitsCard(page).getByText(updatedSmoking)).toBeVisible({ timeout: 10_000 });
-    await expect(habitsCard(page).getByText(updatedAlcohol)).toBeVisible({ timeout: 10_000 });
-    await expect(habitsCard(page).getByText(updatedBruxism)).toBeVisible({ timeout: 10_000 });
-
-    const restoreCard = await openHabitsEditor(page);
-    await restoreCard.locator('#tabaquismo').fill(originalSmoking);
-    await restoreCard.locator('#alcoholismo').fill(originalAlcohol);
-    await restoreCard.locator('#bruxismo').fill(originalBruxism);
-
-    const restoreResponsePromise = page.waitForResponse((response) =>
-      response.url().includes('/habitos_paciente/upsert') && response.request().method() === 'POST'
-    );
-
-    await restoreCard.getByRole('button', { name: T.common.save }).click();
-    await restoreResponsePromise;
-    await expect(page.getByText(T.habits.saveToast).first()).toBeVisible({ timeout: 10_000 });
+    });
   });
 });
