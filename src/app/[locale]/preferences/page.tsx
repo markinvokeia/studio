@@ -5,7 +5,8 @@ import { UserCommunicationPreferences } from '@/components/users/user-communicat
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { hasDoctorWorkspaceAccess } from '@/lib/permissions';
-import { useDoctorAlertStyle, type DoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
+import { useNotifications } from '@/context/notifications-context';
+import type { DoctorAlertStyle } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Bell, BellRing, LayoutGrid, Settings2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -16,7 +17,7 @@ export default function UserPreferencesPage() {
     const { user } = useAuth();
     const { permissions } = usePermissions();
     const isDoctor = React.useMemo(() => hasDoctorWorkspaceAccess(permissions), [permissions]);
-    const [alertStyle, setAlertStyle] = useDoctorAlertStyle(isDoctor ? user?.id : undefined);
+    const { alertStyle, setAlertStyle } = useNotifications();
 
     if (!user) {
         return null;

@@ -257,7 +257,14 @@
     "sessionCompletedAlertTitleMultiple": "{count} sessions completed",
     "sessionCompletedAlertDescriptionMultiple": "{count} sessions were completed today.",
     "sessionCompletedAlertDismiss": "Dismiss",
-    "reminderAlertTitle": "Reminder"
+    "reminderAlertTitle": "Reminder",
+    "dismiss": "Dismiss",
+    "dismissAll": "Dismiss all",
+    "previousNotification": "Previous",
+    "nextNotification": "Next",
+    "newAppointmentTitle": "New appointment",
+    "statusChangedTitle": "Status changed",
+    "reminderDueTitle": "Reminder due"
   },
   "Header": {
     "toggleLanguage": "Toggle language",

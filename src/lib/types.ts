@@ -1319,8 +1319,10 @@ export type GlobalNotificationSetting = {
   is_enabled: boolean;
 };
 
+export type DoctorAlertStyle = 'modal' | 'toast';
+
 export type UserPreferences = {
-  alert_style?: 'modal' | 'toast';
+  alert_style?: DoctorAlertStyle;
 };
 
 export type UserPreferencesResponse = {

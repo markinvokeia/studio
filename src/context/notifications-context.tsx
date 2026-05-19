@@ -4,7 +4,7 @@ import * as React from 'react';
 import { format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
-import { GlobalNotificationAlerts, type AlertBatch } from '@/components/notifications/GlobalNotificationAlerts';
+import { GlobalNotificationAlerts } from '@/components/notifications/GlobalNotificationAlerts';
 import { useAuth } from '@/context/AuthContext';
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ import type {
   AppointmentStatus,
   AppointmentStatusChangeNotification,
   CalendarReminder,
+  DoctorAlertStyle,
   NewAppointmentNotification,
   PatientDischarge,
   PatientSession,
@@ -32,7 +33,6 @@ import { formatDate } from '@/lib/utils';
 
 const POLL_MS = 10_000;
 const STORAGE_PREFIX = 'app-notifications';
-const ALERTED_IDS_PREFIX = 'notifications:alerted';
 const APPT_STATUSES_PREFIX = 'notifications:appt-statuses';
 const SECRETARY_NOTIFIED_PREFIX = 'notifications:secretary-sessions';
 const REMINDER_SEEN_KEY = 'notifications:reminder-seen';
@@ -62,24 +62,6 @@ function saveNotifications(userId: string, notifications: UnifiedNotification[])
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(storageKey(userId), JSON.stringify(notifications));
-  } catch {}
-}
-
-function loadAlertedIds(userId: string): Set<string> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const raw = window.localStorage.getItem(`${ALERTED_IDS_PREFIX}:${userId}`);
-    const arr = JSON.parse(raw ?? '[]');
-    return new Set(Array.isArray(arr) ? arr.map(String) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveAlertedIds(userId: string, ids: Set<string>) {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(`${ALERTED_IDS_PREFIX}:${userId}`, JSON.stringify([...ids]));
   } catch {}
 }
 
@@ -274,6 +256,8 @@ interface NotificationsContextValue {
   notifications: UnifiedNotification[];
   pendingCount: number;
   isPanelOpen: boolean;
+  alertStyle: DoctorAlertStyle;
+  setAlertStyle: (style: DoctorAlertStyle) => void;
   openPanel: () => void;
   closePanel: () => void;
   dismissNotification: (id: string) => void;
@@ -285,6 +269,8 @@ const NotificationsContext = React.createContext<NotificationsContextValue>({
   notifications: [],
   pendingCount: 0,
   isPanelOpen: false,
+  alertStyle: 'modal',
+  setAlertStyle: () => undefined,
   openPanel: () => undefined,
   closePanel: () => undefined,
   dismissNotification: () => undefined,
@@ -303,7 +289,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const { hasPermission } = usePermissions();
   const userId = user?.id ? String(user.id) : null;
   const { toast } = useToast();
-  const [alertStyle] = useDoctorAlertStyle(user?.id);
+  const [alertStyle, setAlertStyle] = useDoctorAlertStyle(user?.id);
   const alertStyleRef = React.useRef(alertStyle);
   React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
   const tDW = useTranslations('DoctorWorkspace');
@@ -587,7 +573,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
-  const [alertQueue, setAlertQueue] = React.useState<AlertBatch[]>([]);
+  const [alertQueue, setAlertQueue] = React.useState<UnifiedNotification[]>([]);
+  // Ref keeps a synchronous copy of alertQueue so dismissAllAlerts can read it
+  // without capturing stale closure state inside a setState updater.
+  const alertQueueRef = React.useRef<UnifiedNotification[]>([]);
+  React.useEffect(() => { alertQueueRef.current = alertQueue; }, [alertQueue]);
+
   // Seeded synchronously from localStorage so stale persisted notifications
   // never fire as alerts when the component mounts or the user changes.
   // Reminders are intentionally excluded from the seed: a reminder must always
@@ -604,7 +595,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     );
   const alertedNotifIdsRef = React.useRef<Set<string>>(seedAlertedIds(userId));
 
-  // Re-seed from the persisted alerted-IDs store when the user changes.
+  // Re-seed when the user changes.
   React.useEffect(() => {
     alertedNotifIdsRef.current = seedAlertedIds(userId);
   }, [userId]);
@@ -613,7 +604,6 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id) && !n.seen);
     if (novel.length === 0) return;
     novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
-    if (userId) saveAlertedIds(userId, alertedNotifIdsRef.current);
 
     const newAppts = novel.filter((n): n is NewAppointmentNotification => n.type === 'new_appointment');
     const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');
@@ -651,24 +641,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         });
       });
     } else {
-      const batches: AlertBatch[] = [];
-      if (newAppts.length > 0) batches.push({ type: 'new_appointment', items: newAppts });
-      if (statusChanges.length > 0) batches.push({ type: 'appointment_status_change', items: statusChanges });
-      if (sessionsDone.length > 0) batches.push({ type: 'session_completed', items: sessionsDone });
-      if (reminders.length > 0) batches.push({ type: 'reminder', items: reminders });
-      if (batches.length > 0) setAlertQueue((prev) => [...prev, ...batches]);
+      if (novel.length > 0) setAlertQueue((prev) => [...prev, ...novel]);
     }
   }, [notifications, tDW, tStatus, tN, tReminders, toast]);
 
-  const dismissAlert = React.useCallback(() => {
-    setAlertQueue((prev) => {
-      const [current, ...rest] = prev;
-      if (current) {
-        const ids = new Set(current.items.map((n) => n.id));
-        setNotifications((ns) => ns.map((n) => ids.has(n.id) ? { ...n, seen: true } : n));
-      }
-      return rest;
-    });
+  const dismissAllAlerts = React.useCallback(() => {
+    const ids = new Set(alertQueueRef.current.map((n) => n.id));
+    setNotifications((ns) => ns.map((n) => ids.has(n.id) ? { ...n, seen: true } : n));
+    setAlertQueue([]);
   }, []);
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -688,14 +668,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const pendingCount = notifications.length;
 
   const value = React.useMemo<NotificationsContextValue>(
-    () => ({ notifications, pendingCount, isPanelOpen, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications }),
-    [notifications, pendingCount, isPanelOpen, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications],
+    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications }),
+    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications],
   );
 
   return (
     <NotificationsContext.Provider value={value}>
       {children}
-      <GlobalNotificationAlerts queue={alertQueue} onDismiss={dismissAlert} />
+      <GlobalNotificationAlerts items={alertQueue} onDismissAll={dismissAllAlerts} />
     </NotificationsContext.Provider>
   );
 }

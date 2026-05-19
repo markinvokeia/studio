@@ -4,9 +4,7 @@ import * as React from 'react';
 
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
-import type { UserPreferences, UserPreferencesResponse } from '@/lib/types';
-
-export type DoctorAlertStyle = 'modal' | 'toast';
+import type { DoctorAlertStyle, UserPreferences, UserPreferencesResponse } from '@/lib/types';
 
 export function useDoctorAlertStyle(doctorId?: string | number): [DoctorAlertStyle, (style: DoctorAlertStyle) => void] {
   const [alertStyle, setAlertStyleState] = React.useState<DoctorAlertStyle>('modal');

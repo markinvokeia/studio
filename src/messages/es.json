@@ -257,7 +257,14 @@
     "sessionCompletedAlertTitleMultiple": "{count} sesiones completadas",
     "sessionCompletedAlertDescriptionMultiple": "{count} sesiones se completaron hoy.",
     "sessionCompletedAlertDismiss": "Cerrar",
-    "reminderAlertTitle": "Recordatorio"
+    "reminderAlertTitle": "Recordatorio",
+    "dismiss": "Cerrar",
+    "dismissAll": "Cerrar todas",
+    "previousNotification": "Anterior",
+    "nextNotification": "Siguiente",
+    "newAppointmentTitle": "Nueva cita",
+    "statusChangedTitle": "Cambio de estado",
+    "reminderDueTitle": "Recordatorio vencido"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
