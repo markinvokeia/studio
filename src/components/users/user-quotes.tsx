@@ -1328,7 +1328,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               </DialogHeader>
               <DialogBody className="space-y-4 py-4 px-6">
                 {/* Currency + Exchange rate */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className={`grid gap-4 ${watchedEditCurrency === 'UYU' ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   <FormField control={quoteEditForm.control} name="currency" render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('UserQuotes.dialogs.editQuote.currency')}</FormLabel>
@@ -1342,24 +1342,24 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                       <FormMessage />
                     </FormItem>
                   )} />
-                  <FormField control={quoteEditForm.control} name="exchange_rate" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('UserQuotes.dialogs.editQuote.exchangeRate')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0.0001"
-                          disabled={watchedEditCurrency === 'UYU'}
-                          {...field}
-                          value={watchedEditCurrency === 'UYU' ? '1.00' : (field.value ?? '')}
-                          onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                          className={watchedEditCurrency === 'UYU' ? 'bg-muted text-muted-foreground cursor-not-allowed' : ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
+                  {watchedEditCurrency !== 'UYU' && (
+                    <FormField control={quoteEditForm.control} name="exchange_rate" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('UserQuotes.dialogs.editQuote.exchangeRate')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.0001"
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  )}
                 </div>
 
                 {/* Notes */}

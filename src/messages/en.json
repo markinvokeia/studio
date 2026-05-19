@@ -1390,7 +1390,7 @@
     },
     "items": {
       "title": "Services to invoice",
-      "description": "Select the service and, if applicable, the workflow steps.",
+      "description": "Select the service and, if you want, the workflow steps (optional).",
       "add": "Add line",
       "lineLabel": "Line {number}",
       "service": "Service",

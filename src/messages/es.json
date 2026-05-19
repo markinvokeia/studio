@@ -1390,7 +1390,7 @@
     },
     "items": {
       "title": "Servicios a facturar",
-      "description": "Selecciona el servicio y, si aplica, los pasos del flujo.",
+      "description": "Selecciona el servicio y, si desea los pasos del flujo (opcional).",
       "add": "Agregar línea",
       "lineLabel": "Línea {number}",
       "service": "Servicio",
