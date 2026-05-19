@@ -929,15 +929,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   )} />
                 </div>
 
-                {/* Notes */}
-                <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-
                 {/* Is historical */}
                 <FormField control={invoiceEditForm.control} name="is_historical" render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0 py-1">
@@ -1086,6 +1077,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Notes */}
+                <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
               </DialogBody>
               <DialogFooter>

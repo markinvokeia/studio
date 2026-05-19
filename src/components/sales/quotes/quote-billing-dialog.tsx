@@ -5,7 +5,7 @@ import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import * as z from 'zod';
-import { AlertTriangle, ChevronsUpDown, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
+import { AlertTriangle, ChevronsUpDown, ListTree, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,7 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import type { InvoiceItem, Order, Quote, QuoteItem, Service } from '@/lib/types';
-import { formatDate, sortQuoteItems, toLocalISOString } from '@/lib/utils';
+import { cn, formatDate, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import { useToast } from '@/hooks/use-toast';
@@ -461,6 +461,11 @@ export function QuoteBillingDialog({
     }
   };
 
+  const fmtCurrency = React.useCallback(
+    (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(amount),
+    [quote?.currency],
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent maxWidth="4xl">
@@ -488,25 +493,44 @@ export function QuoteBillingDialog({
                 </Alert>
               )}
 
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-lg border p-3">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                {/* Total del presupuesto */}
+                <div className="rounded-lg border px-3 py-2">
                   <p className="text-xs text-muted-foreground">{t('summary.quoteTotal')}</p>
-                  <p className="text-base font-semibold">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(Number(quote?.total || 0))}
+                  <p className="text-base font-semibold leading-none">
+                    {fmtCurrency(Number(quote?.total || 0))}
                   </p>
                 </div>
-                <div className="rounded-lg border p-3">
+
+                {/* Facturado */}
+                <div className="rounded-lg border px-3 py-2">
                   <p className="text-xs text-muted-foreground">{t('summary.invoiced')}</p>
-                  <p className="text-base font-semibold">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(Number(quote?.amount_invoiced || 0))}
-                  </p>
+                  <p className="text-base font-semibold leading-none">{fmtCurrency(Number(quote?.amount_invoiced || 0))}</p>
                 </div>
-                <div className="rounded-lg border p-3">
+
+                {/* Pendiente de facturar */}
+                <div className="rounded-lg border px-3 py-2">
                   <p className="text-xs text-muted-foreground">{t('summary.pendingInvoice')}</p>
-                  <p className="text-base font-semibold">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(pendingQuoteAmount)}
-                  </p>
+                  <p className="text-base font-semibold leading-none">{fmtCurrency(pendingQuoteAmount)}</p>
                 </div>
+
+                {/* Fecha de Vencimiento */}
+                <FormField
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormItem className="rounded-lg border px-3 py-2 space-y-1">
+                      <FormLabel className="text-xs text-muted-foreground font-normal">{t('dueDate')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? formatDate(field.value) : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {isLoadingContext ? (
@@ -534,30 +558,41 @@ export function QuoteBillingDialog({
                           const selectedLine = getLineOption(selectedItems[index]?.quote_item_id || '');
                           const selectableOptions = getSelectableLineOptions(selectedLine?.quote_item_id);
                           const serviceSteps = selectedLine ? (stepOptions[selectedLine.service_id] || []) : [];
+                          const hasSteps = serviceSteps.length > 0;
+                          const currentStepIds = selectedItems[index]?.step_ids || [];
+                          const selectedStepLabels = getSelectedStepLabels(selectedLine?.service_id, currentStepIds);
+
                           return (
-                            <div key={field.id}>
-                              <div className="space-y-2">
-                                <div className="grid gap-3 md:grid-cols-[minmax(0,1.7fr)_minmax(280px,1.3fr)_160px_auto] md:items-start">
+                            <div key={field.id} className="space-y-2">
+                              <div className="flex flex-wrap items-end gap-2">
+                                {/* Service selector — full width on mobile, flex-1 on desktop */}
                                 <FormField
                                   control={form.control}
                                   name={`items.${index}.quote_item_id`}
                                   render={({ field: lineField }) => (
-                                    <FormItem className="space-y-2">
+                                    <FormItem className="min-w-full flex-1 space-y-1 md:min-w-0">
                                       <FormLabel className="text-xs">{t('items.service')}</FormLabel>
                                       <Select
                                         onValueChange={(value) => {
                                           lineField.onChange(value);
                                           form.setValue(`items.${index}.step_ids`, []);
                                           const option = getLineOption(value);
-                                          if (option) {
-                                            form.setValue(`items.${index}.amount`, option.pending_amount);
-                                          }
+                                          if (option) form.setValue(`items.${index}.amount`, option.pending_amount);
                                         }}
                                         value={lineField.value}
                                       >
                                         <FormControl>
-                                          <SelectTrigger className="h-10">
-                                            <SelectValue placeholder={t('items.selectService')} />
+                                          <SelectTrigger className="h-12 py-2">
+                                            {selectedLine ? (
+                                              <div className="mr-2 flex min-w-0 flex-col overflow-hidden text-left">
+                                                <span className="truncate text-sm leading-snug">{selectedLine.service_name}</span>
+                                                <span className="text-xs leading-snug text-muted-foreground">
+                                                  Facturado {fmtCurrency(selectedLine.billed_amount)} de {fmtCurrency(selectedLine.quote_item_total)}
+                                                </span>
+                                              </div>
+                                            ) : (
+                                              <SelectValue placeholder={t('items.selectService')} />
+                                            )}
                                           </SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
@@ -565,17 +600,20 @@ export function QuoteBillingDialog({
                                             <SelectItem
                                               key={option.quote_item_id}
                                               value={option.quote_item_id}
-                                              disabled={!selectableOptions.some((selectableOption) => selectableOption.quote_item_id === option.quote_item_id)}
+                                              disabled={!selectableOptions.some((o) => o.quote_item_id === option.quote_item_id)}
                                             >
-                                              <div className="flex w-full items-center justify-between gap-2">
-                                                <span>
-                                                  {option.service_name} · {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(option.pending_amount)}
+                                              <div className="flex flex-col gap-0.5 py-0.5">
+                                                <div className="flex items-center gap-2">
+                                                  <span>{option.service_name}</span>
+                                                  {option.pending_amount <= 0 && (
+                                                    <Badge variant="outline" className="text-[10px] uppercase tracking-[0.16em]">
+                                                      {t('items.fullyInvoiced')}
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                                <span className="text-xs text-muted-foreground">
+                                                  Facturado {fmtCurrency(option.billed_amount)} de {fmtCurrency(option.quote_item_total)}
                                                 </span>
-                                                {option.pending_amount <= 0 ? (
-                                                  <Badge variant="outline" className="text-[10px] uppercase tracking-[0.16em]">
-                                                    {t('items.fullyInvoiced')}
-                                                  </Badge>
-                                                ) : null}
                                               </div>
                                             </SelectItem>
                                           ))}
@@ -586,111 +624,93 @@ export function QuoteBillingDialog({
                                   )}
                                 />
 
-                                <FormField
-                                  control={form.control}
-                                  name={`items.${index}.step_ids`}
-                                  render={({ field: stepField }) => (
-                                    <FormItem className="space-y-2">
-                                      <FormLabel className="text-xs">{t('items.step')}</FormLabel>
-                                      <FormControl>
-                                        <div className="space-y-2">
-                                          {!selectedLine || serviceSteps.length === 0 ? (
-                                            <Button variant="outline" className="h-10 w-full justify-start text-left" disabled>
-                                              <span className="truncate">{t('items.noSteps')}</span>
-                                              <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                          ) : (
-                                            <>
-                                              <Popover open={stepPopoverOpenIndex === index} onOpenChange={(openState) => setStepPopoverOpenIndex(openState ? index : null)}>
-                                                <PopoverTrigger asChild>
-                                                  <Button variant="outline" className="h-10 w-full justify-start gap-2 text-left">
-                                                    <span className="truncate">
-                                                      {stepField.value?.length
-                                                        ? t('items.stepsSelected', { count: stepField.value.length })
-                                                        : t('items.selectStep')}
-                                                    </span>
-                                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                                  </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent
-                                                  className="w-[min(30rem,calc(100vw-2rem))] min-w-[20rem] p-0"
-                                                  align="start"
-                                                >
-                                                  <Command className="max-h-[22rem]">
-                                                    <CommandInput placeholder={t('items.searchStepPlaceholder')} />
-                                                    <CommandList>
-                                                      <CommandEmpty>{t('items.noSteps')}</CommandEmpty>
-                                                      <CommandGroup>
-                                                        {serviceSteps.map((step) => {
-                                                          const isChecked = stepField.value?.includes(step.id) ?? false;
-
-                                                          return (
-                                                            <CommandItem
-                                                              key={step.id}
-                                                              value={step.label}
-                                                              onSelect={() => {
-                                                                const currentValue = stepField.value || [];
-                                                                stepField.onChange(
-                                                                  isChecked
-                                                                    ? currentValue.filter((value) => value !== step.id)
-                                                                    : [...currentValue, step.id],
-                                                                );
-                                                              }}
-                                                            >
-                                                              <Checkbox checked={isChecked} className="mr-2" />
-                                                              <span className="line-clamp-2">{step.label}</span>
-                                                            </CommandItem>
+                                {/* Step icon — only when service has steps defined */}
+                                {hasSteps && (
+                                  <FormField
+                                    control={form.control}
+                                    name={`items.${index}.step_ids`}
+                                    render={({ field: stepField }) => (
+                                      <FormItem className="shrink-0">
+                                        <Popover
+                                          open={stepPopoverOpenIndex === index}
+                                          onOpenChange={(openState) => setStepPopoverOpenIndex(openState ? index : null)}
+                                        >
+                                          <PopoverTrigger asChild>
+                                            <FormControl>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="icon"
+                                                title={t('items.step')}
+                                                className={cn(
+                                                  'relative h-12 w-10',
+                                                  (stepField.value?.length ?? 0) > 0
+                                                    ? 'border-primary/50 text-primary'
+                                                    : 'text-muted-foreground',
+                                                )}
+                                              >
+                                                <ListTree className="h-4 w-4" />
+                                                {(stepField.value?.length ?? 0) > 0 && (
+                                                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                                                    {stepField.value!.length}
+                                                  </span>
+                                                )}
+                                              </Button>
+                                            </FormControl>
+                                          </PopoverTrigger>
+                                          <PopoverContent
+                                            className="w-[min(30rem,calc(100vw-2rem))] min-w-[20rem] p-0"
+                                            align="start"
+                                          >
+                                            <Command className="max-h-[22rem]">
+                                              <CommandInput placeholder={t('items.searchStepPlaceholder')} />
+                                              <CommandList>
+                                                <CommandEmpty>{t('items.noSteps')}</CommandEmpty>
+                                                <CommandGroup>
+                                                  {serviceSteps.map((step) => {
+                                                    const isChecked = stepField.value?.includes(step.id) ?? false;
+                                                    return (
+                                                      <CommandItem
+                                                        key={step.id}
+                                                        value={step.label}
+                                                        onSelect={() => {
+                                                          const current = stepField.value || [];
+                                                          stepField.onChange(
+                                                            isChecked
+                                                              ? current.filter((v) => v !== step.id)
+                                                              : [...current, step.id],
                                                           );
-                                                        })}
-                                                      </CommandGroup>
-                                                    </CommandList>
-                                                  </Command>
-                                                </PopoverContent>
-                                              </Popover>
+                                                        }}
+                                                      >
+                                                        <Checkbox checked={isChecked} className="mr-2" />
+                                                        <span className="line-clamp-2">{step.label}</span>
+                                                      </CommandItem>
+                                                    );
+                                                  })}
+                                                </CommandGroup>
+                                              </CommandList>
+                                            </Command>
+                                          </PopoverContent>
+                                        </Popover>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                )}
 
-                                              {stepField.value?.length ? (
-                                                <div className="rounded-md border bg-muted/20 p-2">
-                                                  <p className="text-xs text-muted-foreground">{t('items.selectedSteps')}</p>
-                                                  <div className="mt-1 flex flex-wrap gap-1">
-                                                    {getSelectedStepLabels(selectedLine.service_id, stepField.value).map((step) => (
-                                                      <Badge key={step.id} variant="secondary" className="max-w-full gap-1 pr-1">
-                                                        <span className="truncate">{step.label}</span>
-                                                        <Button
-                                                          type="button"
-                                                          variant="ghost"
-                                                          size="icon"
-                                                          className="h-4 w-4 shrink-0 hover:bg-transparent"
-                                                          onClick={() => {
-                                                            stepField.onChange((stepField.value || []).filter((value) => value !== step.id));
-                                                          }}
-                                                        >
-                                                          <X className="h-3 w-3" />
-                                                        </Button>
-                                                      </Badge>
-                                                    ))}
-                                                  </div>
-                                                </div>
-                                              ) : null}
-                                            </>
-                                          )}
-                                        </div>
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
+                                {/* Amount */}
                                 <FormField
                                   control={form.control}
                                   name={`items.${index}.amount`}
                                   render={({ field: amountField }) => (
-                                    <FormItem className="space-y-2">
+                                    <FormItem className="flex-1 space-y-1 md:w-36 md:flex-none">
                                       <FormLabel className="text-xs">{t('items.amount')}</FormLabel>
                                       <FormControl>
                                         <FormattedNumberInput
                                           value={amountField.value}
                                           onChange={amountField.onChange}
                                           disabled={!selectedLine || selectedLine.pending_amount <= 0}
+                                          className="h-12"
                                         />
                                       </FormControl>
                                       <FormMessage />
@@ -698,39 +718,41 @@ export function QuoteBillingDialog({
                                   )}
                                 />
 
-                                <div className="flex items-start pt-6">
-                                  <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="bg-red-600 text-white hover:bg-red-700"
-                                    onClick={() => remove(index)}
-                                    disabled={fields.length === 1}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-white" />
-                                  </Button>
-                                </div>
+                                {/* Delete */}
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="h-12 w-10 shrink-0 self-center mt-[2px] bg-red-600 text-white hover:bg-red-700"
+                                  onClick={() => remove(index)}
+                                  disabled={fields.length === 1}
+                                >
+                                  <Trash2 className="h-4 w-4 text-white" />
+                                </Button>
                               </div>
 
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pl-0 text-xs text-muted-foreground md:pl-0">
-                                  <span>
-                                    {t('items.pending')}: <span className="font-medium text-foreground">
-                                      {new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: quote?.currency || 'USD',
-                                      }).format(selectedLine?.pending_amount || 0)}
-                                    </span>
-                                  </span>
-                                  <span>
-                                    {t('items.invoiced')}: <span className="font-medium text-foreground">
-                                      {new Intl.NumberFormat('en-US', {
-                                        style: 'currency',
-                                        currency: quote?.currency || 'USD',
-                                      }).format(selectedLine?.billed_amount || 0)}
-                                    </span>
-                                  </span>
+                              {/* Selected steps — shown as badges below the main row */}
+                              {hasSteps && selectedStepLabels.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedStepLabels.map((step) => (
+                                    <Badge key={step.id} variant="secondary" className="max-w-full gap-1 pr-1">
+                                      <span className="truncate">{step.label}</span>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-4 w-4 shrink-0 hover:bg-transparent"
+                                        onClick={() => {
+                                          const current = form.getValues(`items.${index}.step_ids`) || [];
+                                          form.setValue(`items.${index}.step_ids`, current.filter((id) => id !== step.id));
+                                        }}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </Badge>
+                                  ))}
                                 </div>
-                              </div>
+                              )}
                             </div>
                           );
                         })}
@@ -767,26 +789,6 @@ export function QuoteBillingDialog({
                     )}
                   />
 
-                  <div className="flex justify-end">
-                    <div className="w-full md:w-72">
-                      <FormField
-                        control={form.control}
-                        name="due_date"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>{t('dueDate')}</FormLabel>
-                            <FormControl>
-                              <DatePickerInput
-                                value={field.value ? formatDate(field.value) : ''}
-                                onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
                 </div>
               )}
             </DialogBody>

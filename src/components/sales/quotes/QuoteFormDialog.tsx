@@ -28,7 +28,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Clinic, Quote, User } from '@/lib/types';
-import { toLocalISOString } from '@/lib/utils';
+import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
@@ -265,7 +265,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                 </Alert>
                             )}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Row: Patient · Date · Currency */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {/* User field — locked if pre-filled from context */}
                                 {prefilledUser ? (
                                     <FormField
@@ -313,22 +314,6 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                         </FormItem>
                                     )}
                                 />
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <FormField
-                                    control={form.control}
-                                    name="total"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('quoteDialog.total')}</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" readOnly className="bg-muted cursor-not-allowed" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                                 <FormField
                                     control={form.control}
                                     name="currency"
@@ -348,51 +333,35 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="exchange_rate"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
-                                            <FormControl>
-                                                <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder={t('placeholders.exchangeRate')}
-                                                    value={field.value ? Number(field.value).toFixed(2) : ''}
-                                                    disabled={isClinicCurrency}
-                                                    onChange={(e) => {
-                                                        if (isClinicCurrency) {
-                                                            field.onChange(1);
-                                                        } else {
-                                                            field.onChange(parseFloat(e.target.value) || 0);
-                                                        }
-                                                    }}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                             </div>
 
-                            <FormField
-                                control={form.control}
-                                name="notes"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('quoteDialog.notes')}</FormLabel>
-                                        <FormControl>
-                                            <Textarea
-                                                placeholder={t('quoteDialog.notesPlaceholder')}
-                                                {...field}
-                                                value={field.value || ''}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {/* Exchange rate — only when currencies differ */}
+                            {!isClinicCurrency && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="exchange_rate"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        step="0.01"
+                                                        placeholder={t('placeholders.exchangeRate')}
+                                                        value={field.value ? Number(field.value).toFixed(2) : ''}
+                                                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Total kept in form state but not shown (auto-calculated from items) */}
+                            <input type="hidden" {...form.register('total')} />
 
                             <Card>
                                 <CardHeader>
@@ -618,6 +587,25 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            {/* Notes — after items */}
+                            <FormField
+                                control={form.control}
+                                name="notes"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>{t('quoteDialog.notes')}</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder={t('quoteDialog.notesPlaceholder')}
+                                                {...field}
+                                                value={field.value || ''}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </DialogBody>
                         <DialogFooter>
                             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
