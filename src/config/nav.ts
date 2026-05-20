@@ -1,6 +1,5 @@
 
 import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
-import { DOCTOR_WORKSPACE_ROLES } from '@/constants/roles';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -92,7 +91,7 @@ export const navItems: NavItem[] = [
     title: 'DoctorWorkspace',
     href: '/workspace',
     icon: Stethoscope,
-    requiredAnyRole: DOCTOR_WORKSPACE_ROLES,
+    requiredPermission: DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS,
   },
   {
     title: 'AlertsCenter',
