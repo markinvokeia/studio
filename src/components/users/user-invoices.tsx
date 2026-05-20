@@ -481,7 +481,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
   // ── Edit invoice form ─────────────────────────────────────────────────────────
   const invoiceEditForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
-  const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem, update: updateEditInvoiceItem } = useFieldArray({
+  const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem } = useFieldArray({
     control: invoiceEditForm.control,
     name: 'items',
   });
@@ -988,7 +988,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                           field.onChange(serviceId);
                                           if (service) {
                                             const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 1;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                            invoiceEditForm.setValue(`items.${index}.service_name`, service.name);
+                                            invoiceEditForm.setValue(`items.${index}.unit_price`, Number(service.price));
+                                            invoiceEditForm.setValue(`items.${index}.total`, Number(service.price) * qty);
                                           }
                                         }}
                                         placeholder="Buscar servicio..."
@@ -1008,7 +1010,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                             field.onChange(e);
                                             const qty = parseInt(e.target.value) || 0;
                                             const price = invoiceEditForm.getValues(`items.${index}.unit_price`) || 0;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), quantity: qty, total: qty * price });
+                                            invoiceEditForm.setValue(`items.${index}.total`, qty * price);
                                           }}
                                         />
                                       </FormControl>
@@ -1025,7 +1027,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                             field.onChange(e);
                                             const price = parseFloat(e.target.value) || 0;
                                             const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 0;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), unit_price: price, total: qty * price });
+                                            invoiceEditForm.setValue(`items.${index}.total`, qty * price);
                                           }}
                                         />
                                       </FormControl>
