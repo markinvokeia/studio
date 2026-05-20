@@ -37,6 +37,30 @@ interface CalendarHeaderProps {
   children?: React.ReactNode;
 }
 
+interface ViewMenuItemsProps {
+  onViewChange: (view: CalendarView) => void;
+  t: ReturnType<typeof useTranslations>;
+}
+
+function ViewMenuItems({ onViewChange, t }: ViewMenuItemsProps) {
+  return (
+    <>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger>{t('views.day')}</DropdownMenuSubTrigger>
+        <DropdownMenuSubContent>
+          <DropdownMenuItem onSelect={() => onViewChange('day')}>{t('views.day')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onViewChange('2-day')}>{t('views.2day')}</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onViewChange('3-day')}>{t('views.3day')}</DropdownMenuItem>
+        </DropdownMenuSubContent>
+      </DropdownMenuSub>
+      <DropdownMenuItem onSelect={() => onViewChange('week')}>{t('views.week')}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => onViewChange('month')}>{t('views.month')}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => onViewChange('year')}>{t('views.year')}</DropdownMenuItem>
+      <DropdownMenuItem onSelect={() => onViewChange('schedule')}>{t('views.schedule')}</DropdownMenuItem>
+    </>
+  );
+}
+
 export function CalendarHeader({
   headerTitle,
   view,
@@ -55,8 +79,8 @@ export function CalendarHeader({
 
   const viewKey = view.includes('-') ? view.replace('-', '') : view;
 
-  // Mobile: compact header
-  if (breakpoint === 'mobile') {
+  // Mobile / tablet: compact header
+  if (breakpoint === 'mobile' || breakpoint === 'tablet') {
     return (
       <div className="calendar-header-mobile">
         <div className="flex items-center justify-between gap-2">
@@ -80,6 +104,20 @@ export function CalendarHeader({
             </Button>
             {extraActions}
             {extraActionsAfterToday}
+            {breakpoint === 'tablet' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    {t(`views.${viewKey}`)}
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <ViewMenuItems onViewChange={onViewChange} t={t} />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
         {children ? (
@@ -122,18 +160,7 @@ export function CalendarHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>{t('views.day')}</DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem onSelect={() => onViewChange('day')}>{t('views.day')}</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onViewChange('2-day')}>{t('views.2day')}</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onViewChange('3-day')}>{t('views.3day')}</DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-            <DropdownMenuItem onSelect={() => onViewChange('week')}>{t('views.week')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onViewChange('month')}>{t('views.month')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onViewChange('year')}>{t('views.year')}</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onViewChange('schedule')}>{t('views.schedule')}</DropdownMenuItem>
+            <ViewMenuItems onViewChange={onViewChange} t={t} />
           </DropdownMenuContent>
         </DropdownMenu>
         {trailingActions}

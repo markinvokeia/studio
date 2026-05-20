@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, parseISO } from "date-fns"
+import type { QuoteItem } from '@/lib/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -115,4 +116,64 @@ export function formatDisplayDate(date: string | Date | null | undefined): strin
  */
 export function isValidString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '' && value !== 'null';
+}
+
+function compareNumericStrings(left: string, right: string): number {
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  const leftIsNumeric = Number.isFinite(leftNumber);
+  const rightIsNumeric = Number.isFinite(rightNumber);
+
+  if (leftIsNumeric && rightIsNumeric && leftNumber !== rightNumber) {
+    return leftNumber - rightNumber;
+  }
+
+  return left.localeCompare(right, undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
+export function sortQuoteItems<T extends Pick<QuoteItem, 'id'>>(items: T[]): T[] {
+  return [...items].sort((left, right) => compareNumericStrings(String(left.id || ''), String(right.id || '')));
+}
+
+export function formatServicePrice(
+  price: number | string | null | undefined,
+  currency: string | null | undefined,
+  freeLabel: string,
+): string {
+  const normalizedPrice = Number(price ?? 0);
+
+  if (!Number.isFinite(normalizedPrice) || normalizedPrice === 0) {
+    return freeLabel;
+  }
+
+  return currency ? `${currency} ${normalizedPrice}` : String(normalizedPrice);
+}
+
+const _moneyFmt = new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 });
+
+export function fmtMoney(amount: number, currency: string): string {
+  return `${_moneyFmt.format(amount)} (${currency})`;
+}
+
+export function fmtMultiCurrency(amounts: Record<string, number>): string {
+  const entries = Object.entries(amounts)
+    .filter(([, v]) => v > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) return '—';
+  return entries.map(([c, v]) => `${_moneyFmt.format(v)} (${c})`).join(' / ');
+}
+
+export function sanitizeTextForSpeech(value: string): string {
+  return value
+    .replace(/\\n/g, '. ')
+    .replace(/\r?\n/g, '. ')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/[_`#>~]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\.\s*\./g, '.')
+    .trim();
 }

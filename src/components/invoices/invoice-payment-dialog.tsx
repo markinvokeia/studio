@@ -37,10 +37,10 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { Credit, Invoice, PaymentMethod } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, formatISO } from 'date-fns';
+import { format } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, CreditCard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -56,7 +56,7 @@ const paymentFormSchema = (t: (key: string) => string) =>
       amount: z.coerce.number().min(0, t('validation.amountPositive')),
       method: z.string().optional(),
       status: z.enum(['pending', 'completed', 'failed']),
-      payment_date: z.date({ required_error: t('validation.dateRequired') }),
+      created_at: z.date({ required_error: t('validation.dateRequired') }),
       invoice_currency: z.string(),
       payment_currency: z.string(),
       exchange_rate: z.coerce.number().optional(),
@@ -257,7 +257,7 @@ export function InvoicePaymentDialog({
       amount: Math.max(0, (invoice.total || 0) - (invoice.paid_amount || 0)),
       method: '',
       status: 'completed',
-      payment_date: new Date(),
+      created_at: new Date(),
       invoice_currency: invoiceCurrency,
       payment_currency: invoiceCurrency,
       exchange_rate: 1,
@@ -365,7 +365,7 @@ export function InvoicePaymentDialog({
         }),
         query: {
           invoice_id: parseInt(invoice.id, 10),
-          payment_date: formatISO(values.payment_date),
+          payment_date: toLocalISOString(values.created_at),
           amount: values.amount,
           converted_amount: convertedAmount,
           method: selectedMethod?.name || 'Credit',
@@ -542,7 +542,7 @@ export function InvoicePaymentDialog({
                     />
                     <FormField
                       control={form.control}
-                      name="payment_date"
+                      name="created_at"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t('paymentDialog.date')}</FormLabel>

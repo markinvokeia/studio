@@ -4,6 +4,7 @@
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import type { Service } from '@/lib/types';
+import { formatServicePrice } from '@/lib/utils';
 import { ColumnDef } from '@tanstack/react-table';
 import { Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -16,6 +17,7 @@ interface ServicesColumnsProps {
 
 export const ServicesColumnsWrapper = ({ onDelete }: ServicesColumnsProps): ColumnDef<Service>[] => {
   const t = useTranslations('ServicesColumns');
+  const tGeneral = useTranslations('General');
 
   const columns: ColumnDef<Service>[] = [
     createSelectColumn<Service>(),
@@ -42,7 +44,7 @@ export const ServicesColumnsWrapper = ({ onDelete }: ServicesColumnsProps): Colu
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('price')} />
       ),
-      cell: ({ row }) => `$${row.original.price}`,
+      cell: ({ row }) => formatServicePrice(row.original.price, row.original.currency, tGeneral('free')),
     },
     {
       accessorKey: 'currency',

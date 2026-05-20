@@ -1,0 +1,317 @@
+{
+  "name": "Reportes - Bloque Pacientes",
+  "nodes": [
+    {
+      "id": "wh-nuevos-px",
+      "name": "GET /reports/nuevos-pacientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/nuevos-pacientes",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-nuevos-px",
+      "name": "Query Nuevos Pacientes",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.id,\n  u.name,\n  u.email,\n  u.phone_number,\n  u.created_at AS registration_date,\n  MIN(a.start_datetime) AS first_appointment,\n  COUNT(a.id) AS total_appointments\nFROM users u\nLEFT JOIN appointments a ON a.patient_id = u.id\nWHERE u.is_sales = true\n  AND u.created_at::date BETWEEN $1::date AND $2::date\nGROUP BY u.id, u.name, u.email, u.phone_number, u.created_at\nORDER BY u.created_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-nuevos-build",
+      "name": "Build Nuevos Pacientes Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst conCita = rows.filter(r => r.first_appointment).length;\nconst sinCita = rows.length - conCita;\nreturn [{ json: {\n  summary: { num_nuevos: rows.length, con_cita: conCita, sin_cita: sinCita, tasa_conversion: rows.length ? conCita / rows.length : 0 },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-nuevos-px",
+      "name": "Respond Nuevos Pacientes",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-inactivos",
+      "name": "GET /reports/pacientes-inactivos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/pacientes-inactivos",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-inactivos",
+      "name": "Query Pacientes Inactivos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH last_activity AS (\n  SELECT patient_id AS user_id, MAX(start_datetime) AS last_date\n  FROM appointments\n  WHERE status != 'cancelled'\n  GROUP BY patient_id\n  UNION ALL\n  SELECT paciente_id AS user_id, MAX(fecha_sesion) AS last_date\n  FROM sesiones_clinicas\n  GROUP BY paciente_id\n  UNION ALL\n  SELECT paciente_id AS user_id, MAX(fecha_sesion) AS last_date\n  FROM sesiones\n  GROUP BY paciente_id\n),\npatient_last AS (\n  SELECT user_id, MAX(last_date) AS last_activity_date\n  FROM last_activity\n  GROUP BY user_id\n),\npatient_debt AS (\n  SELECT\n    user_id,\n    COALESCE(SUM(CASE WHEN currency = 'UYU' THEN total - paid_amount ELSE 0 END), 0) AS debt_uyu,\n    COALESCE(SUM(CASE WHEN currency = 'USD' THEN total - paid_amount ELSE 0 END), 0) AS debt_usd\n  FROM invoices\n  WHERE is_sales = true\n    AND status = 'booked'\n    AND payment_state IN ('unpaid', 'partially_paid')\n  GROUP BY user_id\n)\nSELECT\n  u.id,\n  u.name AS patient_name,\n  u.phone_number,\n  u.email,\n  u.appointment_date AS alta_medica_date,\n  pl.last_activity_date,\n  CASE\n    WHEN pl.last_activity_date IS NOT NULL\n    THEN CURRENT_DATE - pl.last_activity_date::date\n    ELSE NULL\n  END AS days_inactive,\n  CASE\n    WHEN u.appointment_date IS NOT NULL THEN 'alta_medica'\n    ELSE 'inactividad'\n  END AS inactivity_reason,\n  COALESCE(pd.debt_uyu, 0) AS debt_uyu,\n  COALESCE(pd.debt_usd, 0) AS debt_usd\nFROM users u\nLEFT JOIN patient_last pl ON pl.user_id = u.id\nLEFT JOIN patient_debt pd ON pd.user_id = u.id\nWHERE u.is_sales = true\n  AND u.is_active = true\n  AND (\n    pl.last_activity_date IS NULL\n    OR pl.last_activity_date::date < $1::date\n  )\n  AND ($2::text != 'true' OR u.appointment_date IS NOT NULL)\n  AND (\n    $3::text != 'true'\n    OR (\n      u.appointment_date IS NULL\n      AND (\n        COALESCE(pd.debt_uyu, 0) > 0\n        OR COALESCE(pd.debt_usd, 0) > 0\n      )\n    )\n  )\nORDER BY pl.last_activity_date ASC NULLS FIRST",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.inactive_since || '2024-01-01',\n  $input.first().json.query?.only_alta_medica === 'true' ? 'true' : 'false',\n  $input.first().json.query?.only_debtors === 'true' ? 'true' : 'false'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-inactivos-build",
+      "name": "Build Inactivos Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).map(r => ({\n  ...r,\n  days_inactive: r.days_inactive != null ? Number(r.days_inactive) : null,\n  debt_uyu: Number(r.debt_uyu || 0),\n  debt_usd: Number(r.debt_usd || 0),\n}));\n\nconst altaMedica  = rows.filter(r => r.inactivity_reason === 'alta_medica').length;\nconst inactividad = rows.filter(r => r.inactivity_reason === 'inactividad').length;\nconst conDeuda    = rows.filter(r =>\n  r.inactivity_reason === 'inactividad' && (r.debt_uyu > 0 || r.debt_usd > 0)\n).length;\n\nreturn [{ json: {\n  summary: {\n    total_inactivos: rows.length,\n    alta_medica: altaMedica,\n    inactividad: inactividad,\n    con_deuda: conDeuda\n  },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-inactivos",
+      "name": "Respond Pacientes Inactivos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-trat-curso",
+      "name": "GET /reports/tratamientos-en-curso",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        500
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/tratamientos-en-curso",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-trat-curso",
+      "name": "Query Tratamientos Curso",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        500
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH step_doctor AS (\n  SELECT DISTINCT ON (steps.sequence_id)\n    steps.sequence_id,\n    COALESCE(sesion.doctor_id, a.assignee_id) AS doctor_id\n  FROM treatment_seq_steps steps\n  LEFT JOIN sesiones_clinicas sesion ON sesion.id = steps.sesion_id\n  LEFT JOIN appointments a ON a.id = steps.appointment_id\n  WHERE sesion.doctor_id IS NOT NULL OR a.assignee_id IS NOT NULL\n  ORDER BY\n    steps.sequence_id,\n    CASE WHEN steps.sesion_id IS NOT NULL THEN 0 ELSE 1 END,\n    steps.step_position DESC\n)\nSELECT\n  ts.id,\n  u.name AS patient_name,\n  u.phone_number,\n  sc.name AS service_name,\n  COALESCE(sc.category, 'Sin categoría') AS category,\n  COALESCE(doc.name, 'Sin asignar') AS doctor_name,\n  ts.started_at,\n  ts.status,\n  COUNT(steps.id)::int AS total_steps,\n  COUNT(CASE WHEN steps.milestone_status = 'done'    THEN 1 END)::int AS done_steps,\n  COUNT(CASE WHEN steps.milestone_status = 'pending' THEN 1 END)::int AS pending_steps,\n  COUNT(CASE WHEN steps.milestone_status = 'waiting' THEN 1 END)::int AS waiting_steps,\n  COUNT(CASE WHEN steps.milestone_status = 'alert'   THEN 1 END)::int AS alert_steps,\n  CASE WHEN ts.started_at IS NOT NULL\n    THEN (CURRENT_DATE - ts.started_at::date)::int\n    ELSE NULL\n  END AS days_active,\n  CASE WHEN MAX(steps.updated_at) IS NOT NULL\n    THEN (CURRENT_DATE - MAX(steps.updated_at)::date)::int\n    ELSE NULL\n  END AS days_since_last_step,\n  json_agg(\n    json_build_object(\n      'step_position', steps.step_position,\n      'step_name', steps.step_name,\n      'milestone_status', steps.milestone_status\n    ) ORDER BY steps.step_position\n  ) FILTER (WHERE steps.id IS NOT NULL) AS steps_detail\nFROM treatment_sequences ts\nJOIN users u ON u.id = ts.patient_id\nJOIN service_catalog sc ON sc.id = ts.service_id\nLEFT JOIN step_doctor sd ON sd.sequence_id = ts.id\nLEFT JOIN users doc ON doc.id = sd.doctor_id\nLEFT JOIN treatment_seq_steps steps ON steps.sequence_id = ts.id\nWHERE ts.started_at::date BETWEEN $1::date AND $2::date\n  AND ($3::text = 'all' OR ts.status = $3::text)\nGROUP BY ts.id, u.name, u.phone_number, sc.name, sc.category, doc.name, ts.started_at, ts.status\nHAVING ($4::text = 'all' OR COUNT(CASE WHEN steps.milestone_status = $4::text THEN 1 END) > 0)\nORDER BY ts.started_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.status || 'all',\n  $input.first().json.query?.step_status || 'all'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-trat-curso-build",
+      "name": "Build Tratamientos Curso Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        500
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).map(r => ({\n  ...r,\n  total_steps:          Number(r.total_steps    || 0),\n  done_steps:           Number(r.done_steps     || 0),\n  pending_steps:        Number(r.pending_steps  || 0),\n  waiting_steps:        Number(r.waiting_steps  || 0),\n  alert_steps:          Number(r.alert_steps    || 0),\n  days_active:          r.days_active          != null ? Number(r.days_active)          : null,\n  days_since_last_step: r.days_since_last_step != null ? Number(r.days_since_last_step) : null,\n  steps_detail:         Array.isArray(r.steps_detail) ? r.steps_detail : (r.steps_detail ? JSON.parse(r.steps_detail) : []),\n}));\n\nconst total           = rows.length;\nconst completados     = rows.filter(r => r.status === 'completed').length;\nconst en_curso        = total - completados;\nconst tasa_completado = total > 0 ? completados / total : 0;\nconst steps_done      = rows.reduce((s, r) => s + r.done_steps,    0);\nconst steps_pending   = rows.reduce((s, r) => s + r.pending_steps, 0);\nconst steps_waiting   = rows.reduce((s, r) => s + r.waiting_steps, 0);\nconst steps_alert     = rows.reduce((s, r) => s + r.alert_steps,   0);\n\nreturn [{ json: {\n  summary: { total, en_curso, completados, tasa_completado, steps_done, steps_pending, steps_waiting, steps_alert },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-trat-curso",
+      "name": "Respond Tratamientos Curso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        500
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/nuevos-pacientes": {
+      "main": [
+        [
+          {
+            "node": "Query Nuevos Pacientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Nuevos Pacientes": {
+      "main": [
+        [
+          {
+            "node": "Build Nuevos Pacientes Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Nuevos Pacientes Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Nuevos Pacientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/pacientes-inactivos": {
+      "main": [
+        [
+          {
+            "node": "Query Pacientes Inactivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pacientes Inactivos": {
+      "main": [
+        [
+          {
+            "node": "Build Inactivos Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Inactivos Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Pacientes Inactivos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/tratamientos-en-curso": {
+      "main": [
+        [
+          {
+            "node": "Query Tratamientos Curso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Tratamientos Curso": {
+      "main": [
+        [
+          {
+            "node": "Build Tratamientos Curso Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Tratamientos Curso Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Tratamientos Curso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

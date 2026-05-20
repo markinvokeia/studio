@@ -21,9 +21,35 @@ interface VoiceChatProps {
     messages: ChatMessage[];
     onSendText: (text: string) => void;
     isSending: boolean;
+    composerPlaceholder?: string;
+    trailingActions?: React.ReactNode;
 }
 
-export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
+function normalizeChatMessageContent(value: string): string {
+    return value.replace(/\\n/g, '\n');
+}
+
+function renderSimpleMarkdown(value: string): React.ReactNode {
+    const normalized = normalizeChatMessageContent(value);
+    const segments = normalized.split(/(\*\*.*?\*\*)/g);
+
+    return segments.map((segment, index) => {
+        const boldMatch = segment.match(/^\*\*(.*?)\*\*$/);
+        if (boldMatch) {
+            return <strong key={index} className="font-semibold">{boldMatch[1]}</strong>;
+        }
+
+        return <React.Fragment key={index}>{segment}</React.Fragment>;
+    });
+}
+
+export function VoiceChat({
+    messages,
+    onSendText,
+    isSending,
+    composerPlaceholder,
+    trailingActions,
+}: VoiceChatProps) {
     const t = useTranslations('VoiceChat');
     const [input, setInput] = React.useState('');
     const bottomRef = React.useRef<HTMLDivElement>(null);
@@ -61,6 +87,8 @@ export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
         onSendText(text);
     };
 
+    const placeholder = composerPlaceholder || t('inputPlaceholder');
+
     return (
         <div className="flex flex-col h-full">
             <ScrollArea
@@ -97,7 +125,7 @@ export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
                                         {t('voiceMessage')}
                                     </span>
                                 )}
-                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                <p className="whitespace-pre-wrap break-words">{renderSimpleMarkdown(msg.content)}</p>
                             </div>
                         </div>
                     ))}
@@ -118,7 +146,7 @@ export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
                 </div>
             </ScrollArea>
 
-            <div className="flex gap-2 p-3 border-t shrink-0">
+            <div className="flex gap-2 p-3 border-t shrink-0 items-end">
                 <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -128,11 +156,12 @@ export function VoiceChat({ messages, onSendText, isSending }: VoiceChatProps) {
                             handleSend();
                         }
                     }}
-                    placeholder={t('inputPlaceholder')}
+                    placeholder={placeholder}
                     className="text-sm rounded-full"
                     disabled={isSending}
                     autoFocus
                 />
+                {trailingActions}
                 <Button
                     size="icon"
                     onClick={handleSend}

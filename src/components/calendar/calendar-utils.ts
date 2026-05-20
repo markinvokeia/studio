@@ -126,6 +126,24 @@ export function getEventStyle(event: CalendarEvent): React.CSSProperties {
   };
 }
 
+/**
+ * Returns a text color (`#111` or `#fff`) that contrasts well with the given
+ * hex background. Uses the WCAG relative luminance formula. Falls back to
+ * white when the input is not a parseable hex (e.g. `hsl(...)`).
+ */
+export function getReadableTextColor(bg?: string | null): string {
+  if (!bg) return '#fff';
+  const hex = bg.startsWith('#') ? bg.slice(1) : '';
+  if (hex.length !== 6 && hex.length !== 8) return '#fff';
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#fff';
+  // Perceived brightness (0–1). Threshold 0.6 picks dark text on light pastels.
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.6 ? '#111' : '#fff';
+}
+
 // ---------------------------------------------------------------------------
 // Event group value
 // ---------------------------------------------------------------------------

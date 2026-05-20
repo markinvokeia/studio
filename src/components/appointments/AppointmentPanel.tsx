@@ -1,23 +1,135 @@
 'use client';
 
+import * as React from 'react';
+import { differenceInMinutes, format, parseISO } from 'date-fns';
+import {
+  ArrowRight,
+  Calendar as CalendarIcon,
+  CalendarSync,
+  Clock,
+  Edit,
+  FileText,
+  HeartPulse,
+  Info,
+  Layers,
+  Loader2,
+  MapPin,
+  StickyNote,
+  Stethoscope,
+  UserSquare,
+} from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { Separator } from '@/components/ui/separator';
-import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip';
-import type { VerticalTab } from '@/components/ui/vertical-tab-strip';
-import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
-import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
-import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
-import { InvoiceDetailSheet } from '@/components/appointments/InvoiceDetailSheet';
-import { Appointment, Invoice, Order, PatientSession } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
 import {
-  CalendarClock, Users, UserSquare, FileText, Receipt, Stethoscope, CreditCard,
-  Edit, Trash2, Loader2, ClipboardList,
-} from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import * as React from 'react';
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
+import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
+import { formatDisplayDate, cn, formatServicePrice } from '@/lib/utils';
+import type { Appointment, AppointmentStatus, Invoice, Order, PatientSession } from '@/lib/types';
+
+import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
+import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
+import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
+import { getStatusIcon } from '@/components/appointments/status-icons';
+
+function initials(name?: string): string {
+  if (!name) return '?';
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('') || '?';
+}
+
+function parseLocalDateTime(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value !== 'string') return null;
+
+  const localValue = value.replace(/Z$/, '');
+  const parsed = parseISO(localValue);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function timeFromDateTime(value: unknown): string | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : format(value, 'HH:mm');
+  if (typeof value !== 'string') return null;
+
+  const timePart = value.replace(/Z$/, '').split('T')[1];
+  return timePart ? timePart.slice(0, 5) : null;
+}
+
+function openInNewTab(path: string) {
+  const url = new URL(path, window.location.origin);
+  window.open(url.toString(), '_blank', 'noopener,noreferrer');
+}
+
+function useCanOpenDetailDeepLinks() {
+  const [canOpenDetailDeepLinks, setCanOpenDetailDeepLinks] = React.useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => setCanOpenDetailDeepLinks(media.matches);
+
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  return canOpenDetailDeepLinks;
+}
+
+interface DetailRowProps {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: React.ReactNode;
+  detail?: React.ReactNode;
+  onClick?: () => void;
+  tone?: 'default' | 'warning';
+  className?: string;
+}
+
+function DetailRow({ icon: Icon, label, value, detail, onClick, tone = 'default', className }: DetailRowProps) {
+  const Component = onClick ? 'button' : 'div';
+
+  return (
+    <Component
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={cn(
+        'flex w-full items-center gap-3 border-b border-border/70 py-3 text-left',
+        onClick && 'transition-colors hover:bg-muted/20',
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          'grid h-10 w-10 shrink-0 place-items-center rounded-xl',
+          tone === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-muted/60 text-muted-foreground',
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="block text-sm font-semibold leading-snug text-foreground">{value}</span>
+        {detail && <span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span>}
+      </span>
+    </Component>
+  );
+}
 
 interface AppointmentPanelProps {
   open: boolean;
@@ -28,11 +140,17 @@ interface AppointmentPanelProps {
   quoteOrder: Order | null;
   quoteInvoices: Invoice[];
   isLoadingQuoteInfo: boolean;
-  /** Doctor color for the doctor avatar */
   doctorColor?: string;
-  onEdit: (appointment: Appointment) => void;
-  onCancel: (appointment: Appointment) => void;
-  onOpenClinicSession: (appointment: Appointment) => void;
+  onEdit?: (appointment: Appointment) => void;
+  onCancel?: (appointment: Appointment) => void;
+  onOpenClinicSession?: (appointment: Appointment) => void;
+  onReschedule?: (appointment: Appointment) => void;
+  onStatusChange: (
+    appointment: Appointment,
+    newStatus: AppointmentStatus,
+    extra?: StatusChangeExtra,
+  ) => void;
+  onRequestCustomCancellation?: (appointment: Appointment) => void;
 }
 
 export function AppointmentPanel({
@@ -46,292 +164,416 @@ export function AppointmentPanel({
   isLoadingQuoteInfo,
   doctorColor,
   onEdit,
-  onCancel,
   onOpenClinicSession,
+  onReschedule,
+  onStatusChange,
+  onRequestCustomCancellation,
 }: AppointmentPanelProps) {
+  const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
+  const tReason = useTranslations('CancellationReason');
+  const tReschedule = useTranslations('AppointmentReschedule');
+  const tPanel = useTranslations('AppointmentPanel');
+  const tServices = useTranslations('ServicesPage');
+  const tServicesColumns = useTranslations('ServicesColumns');
+  const tGeneral = useTranslations('General');
 
-  const [activeTab, setActiveTab] = React.useState('info');
   const [isPatientSheetOpen, setIsPatientSheetOpen] = React.useState(false);
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
-  const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
+  const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
+  const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
 
-  // Reset to info tab when a different appointment is opened
-  React.useEffect(() => {
-    if (open) setActiveTab('info');
-  }, [open, appointment?.id]);
+  const openPatientDetail = React.useCallback(() => {
+    if (!appointment?.patientId) return;
+    if (canOpenDetailDeepLinks) {
+      const params = new URLSearchParams({ f: appointment.patientId });
+      openInNewTab(`/${locale}/patients?${params.toString()}`);
+      return;
+    }
+    setIsPatientSheetOpen(true);
+  }, [appointment, canOpenDetailDeepLinks, locale]);
 
-  const baseTabs: VerticalTab[] = [
-    { id: 'info', icon: CalendarClock, label: t('panelTabs.info') },
-    { id: 'patient', icon: Users, label: tColumns('patient') },
-    { id: 'doctor', icon: UserSquare, label: tColumns('doctor') },
-    { id: 'session', icon: Stethoscope, label: t('linkedSession') },
-  ];
+  const openDoctorDetail = React.useCallback(() => {
+    if (!appointment?.doctorId) return;
+    if (canOpenDetailDeepLinks) {
+      const params = new URLSearchParams({ f: appointment.doctorId, t: 'Detalles' });
+      openInNewTab(`/${locale}/config/doctors?${params.toString()}`);
+      return;
+    }
+    setIsDoctorSheetOpen(true);
+  }, [appointment, canOpenDetailDeepLinks, locale]);
 
-  const conditionalTabs: VerticalTab[] = [];
-  if (appointment?.quote_id) {
-    conditionalTabs.push({ id: 'quote', icon: FileText, label: t('panelTabs.quote') });
-  }
-  if (quoteInvoices.length > 0) {
-    conditionalTabs.push({ id: 'invoices', icon: Receipt, label: t('panelTabs.invoices') });
-    conditionalTabs.push({ id: 'payments', icon: CreditCard, label: t('panelTabs.payments') });
-  }
+  const openServiceDetail = React.useCallback((service: NonNullable<Appointment['services']>[number]) => {
+    const filter = service.name || service.id;
+    if (!filter) return;
 
-  const tabs = [...baseTabs, ...conditionalTabs];
+    const params = new URLSearchParams({ f: filter, t: 'Detalles' });
+    const path = `/${locale}/sales/services?${params.toString()}`;
+
+    if (canOpenDetailDeepLinks) {
+      openInNewTab(path);
+      return;
+    }
+
+    setSelectedService(service);
+  }, [canOpenDetailDeepLinks, locale]);
 
   if (!appointment) return null;
 
   const serviceName = appointment.services && appointment.services.length > 0
-    ? appointment.services.map(s => s.name).join(', ')
-    : appointment.service_name || '';
+    ? appointment.services.map((service) => service.name).join(', ')
+    : appointment.service_name || appointment.summary || '';
+  const startDt = parseLocalDateTime(appointment.start?.dateTime);
+  const endDt = parseLocalDateTime(appointment.end?.dateTime);
+  const endTime = timeFromDateTime(appointment.end?.dateTime);
+  const durationMin = startDt && endDt ? differenceInMinutes(endDt, startDt) : null;
+  const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
+  const statusColor = STATUS_ACCENT_COLOR[appointment.status];
+  const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
+  const patientMeta = [appointment.patientPhone].filter(Boolean).join(' · ');
+  const hasServices = appointment.services && appointment.services.length > 0;
+  const invoiceCount = quoteInvoices.length;
+  const isCancelled = appointment.status === 'cancelled';
+  const cancellationReasonLabel = isCancelled
+    ? appointment.cancellation_reason
+      ? tReason(appointment.cancellation_reason)
+      : tPanel('cancellationReasonUnknown')
+    : null;
 
   return (
     <>
       <ResizableSheet
         open={open}
         onOpenChange={onOpenChange}
-        defaultWidth={780}
-        minWidth={480}
-        maxWidth={1200}
+        defaultWidth={920}
+        minWidth={520}
+        maxWidth={1280}
         storageKey="appointment-panel-width"
       >
-        <div className="flex flex-col h-full overflow-hidden">
-          {/* Header */}
-          <div className="flex-none border-b border-border bg-card px-5 py-3 pr-14">
-            <SheetTitle className="text-sm font-semibold leading-tight truncate">
-              {appointment.patientName}
-            </SheetTitle>
-            {serviceName && (
-              <p className="text-xs text-muted-foreground mt-0.5 truncate">{serviceName}</p>
-            )}
-            <SheetDescription className="sr-only">{t('panelTabs.info')}</SheetDescription>
+        <div className="flex h-full flex-col overflow-hidden bg-card font-body">
+          <div className="flex-none border-b border-border bg-card px-5 py-4 pr-24">
+            <div className="flex items-start gap-3">
+              <button
+                type="button"
+                onClick={openPatientDetail}
+                className="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label={tPanel('openPatient')}
+                disabled={!appointment.patientId}
+              >
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-primary/25 text-base font-semibold text-primary">
+                    {initials(appointment.patientName)}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <SheetTitle asChild>
+                    <button
+                      type="button"
+                      onClick={openPatientDetail}
+                      disabled={!appointment.patientId}
+                      className={cn(
+                        'truncate text-left text-lg font-semibold text-foreground',
+                        appointment.patientId && 'hover:underline underline-offset-4',
+                      )}
+                    >
+                      {appointment.patientName}
+                    </button>
+                  </SheetTitle>
+                  <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-sm font-semibold text-muted-foreground">
+                    {appointmentCode}
+                  </span>
+                </div>
+                {patientMeta && (
+                  <p className="mt-1 truncate text-sm font-medium text-muted-foreground">{patientMeta}</p>
+                )}
+                {serviceName && (
+                  <SheetDescription className="mt-1 truncate text-sm text-muted-foreground">
+                    {serviceName}
+                  </SheetDescription>
+                )}
+              </div>
+
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+                <StatusIcon className="h-3.5 w-3.5" style={{ color: statusColor }} />
+                {cancellationReasonLabel ?? tStatus(appointment.status)}
+              </span>
+            </div>
           </div>
 
-          {/* Body */}
-          <div className="flex flex-col flex-1 overflow-hidden min-h-0">
-            <VerticalTabStrip
-              tabs={tabs}
-              activeTabId={activeTab}
-              onTabClick={(tab) => setActiveTab(tab.id)}
-            />
-
-            <div className="flex-1 overflow-auto p-4 space-y-3">
-              {/* ── Info ───────────────────────────────────────────────── */}
-              {activeTab === 'info' && (
-                <div className="space-y-3">
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                    <div>
-                      <dt className="text-xs text-muted-foreground font-medium">{tColumns('date')}</dt>
-                      <dd className="font-medium">{format(parseISO(appointment.date), 'dd/MM/yyyy')}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground font-medium">{tColumns('time')}</dt>
-                      <dd className="font-medium">{appointment.time} {appointment.end?.dateTime ? `→ ${format(parseISO(appointment.end.dateTime.replace(/Z$/, '')), 'HH:mm')}` : ''}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground font-medium">{tColumns('status')}</dt>
-                      <dd><Badge className="capitalize text-xs">{tStatus(appointment.status.toLowerCase())}</Badge></dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground font-medium">{tColumns('calendar')}</dt>
-                      <dd className="font-medium truncate">{appointment.calendar_name}</dd>
-                    </div>
-                    {appointment.services && appointment.services.length > 0 && (
-                      <div className="col-span-2">
-                        <dt className="text-xs text-muted-foreground font-medium">{t('contextMenu.services')}</dt>
-                        <dd className="font-medium">{appointment.services.map(s => s.name).join(', ')}</dd>
-                      </div>
-                    )}
-                    {appointment.notes && (
-                      <div className="col-span-2">
-                        <dt className="text-xs text-muted-foreground font-medium">{t('contextMenu.notes')}</dt>
-                        <dd className="text-sm whitespace-pre-wrap">{appointment.notes}</dd>
-                      </div>
-                    )}
-                  </dl>
-
-                  {/* Treatment plan link — shown when appointment is linked to a treatment_seq_steps row */}
-                  {appointment.treatment_seq_step_id != null && (
-                    <>
-                      <Separator />
-                      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                          <ClipboardList className="h-3.5 w-3.5 shrink-0" />
-                          {t('treatmentSequence.title')}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('treatmentSequence.stepRef', { id: appointment.treatment_seq_step_id })}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  <Separator />
-
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5"
-                      onClick={() => { onEdit(appointment); onOpenChange(false); }}
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                      {tColumns('edit')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      className="gap-1.5"
-                      onClick={() => { onCancel(appointment); onOpenChange(false); }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      {t('AppointmentsColumns.cancel')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Patient ────────────────────────────────────────────── */}
-              {activeTab === 'patient' && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{tColumns('patient')}: <span className="font-medium text-foreground">{appointment.patientName}</span></p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setIsPatientSheetOpen(true)}
-                  >
-                    <Users className="h-3.5 w-3.5" />
-                    {t('panelTabs.openPatient')}
-                  </Button>
-                </div>
-              )}
-
-              {/* ── Doctor ─────────────────────────────────────────────── */}
-              {activeTab === 'doctor' && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{tColumns('doctor')}: <span className="font-medium text-foreground">{appointment.doctorName}</span></p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setIsDoctorSheetOpen(true)}
-                  >
-                    <UserSquare className="h-3.5 w-3.5" />
-                    {t('panelTabs.openDoctor')}
-                  </Button>
-                </div>
-              )}
-
-              {/* ── Quote ──────────────────────────────────────────────── */}
-              {activeTab === 'quote' && appointment.quote_id && (
-                <div className="space-y-3">
-                  <p className="text-sm text-muted-foreground">{tColumns('quoteDocNo')}: <span className="font-mono font-medium text-foreground">{appointment.quote_doc_no}</span></p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setIsQuoteSheetOpen(true)}
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    {t('panelTabs.openQuote')}
-                  </Button>
-                </div>
-              )}
-
-              {/* ── Invoices ───────────────────────────────────────────── */}
-              {activeTab === 'invoices' && (
-                <div className="space-y-2">
-                  {isLoadingQuoteInfo ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : quoteInvoices.length > 0 ? (
-                    quoteInvoices.map(inv => (
-                      <button
-                        key={inv.id}
-                        type="button"
-                        onClick={() => setSelectedInvoice(inv)}
-                        className="flex items-center gap-1.5 font-mono text-xs rounded-lg bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 transition-colors"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        {inv.doc_no || inv.invoice_ref}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">{t('notInvoiced')}</p>
-                  )}
-                </div>
-              )}
-
-              {/* ── Payments ───────────────────────────────────────────── */}
-              {activeTab === 'payments' && (
-                <div className="space-y-2">
-                  {quoteInvoices.map(inv => (
-                    <div key={inv.id} className="flex items-center justify-between p-2 rounded-lg border border-border text-sm">
-                      <span className="font-mono text-xs">{inv.doc_no || inv.invoice_ref}</span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedInvoice(inv)}
-                        className="text-xs text-primary underline-offset-2 hover:underline"
-                      >
-                        {t('panelTabs.viewPayments')}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* ── Clinic Session ─────────────────────────────────────── */}
-              {activeTab === 'session' && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{t('linkedSession')}</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs gap-1.5"
-                      onClick={() => onOpenClinicSession(appointment)}
-                    >
-                      <Stethoscope className="h-3.5 w-3.5" />
-                      {linkedSession ? t('editSession') : t('createSession')}
-                    </Button>
-                  </div>
-                  {isLoadingLinkedSession ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  ) : linkedSession ? (
-                    <div className="rounded-xl border border-border p-3 space-y-1.5 text-sm bg-muted/20">
-                      <div className="flex gap-2">
-                        <span className="font-medium text-xs text-muted-foreground">{t('createDialog.date')}:</span>
-                        <span>{linkedSession.fecha_sesion ? format(parseISO(linkedSession.fecha_sesion), 'dd/MM/yyyy') : '—'}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="font-medium text-xs text-muted-foreground">{tColumns('doctor')}:</span>
-                        <span>{linkedSession.doctor_name || '—'}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="font-medium text-xs text-muted-foreground">{t('procedure')}:</span>
-                        <span className="truncate">{linkedSession.procedimiento_realizado || '—'}</span>
-                      </div>
-                      {linkedSession.notas_clinicas && (
-                        <div className="flex gap-2">
-                          <span className="font-medium text-xs text-muted-foreground">{t('contextMenu.notes')}:</span>
-                          <span className="text-muted-foreground line-clamp-3">{linkedSession.notas_clinicas}</span>
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <div className="min-w-0 flex-1 overflow-auto px-5 py-4">
+              {isCancelled && (
+                <section className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-background text-destructive shadow-sm">
+                      <StatusIcon className="h-5 w-5" strokeWidth={2.4} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {tPanel('cancellationReasonLabel')}
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold text-foreground">
+                        {cancellationReasonLabel}
+                      </p>
+                      {appointment.cancellation_note && (
+                        <div className="mt-3 border-t border-destructive/15 pt-3">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            {tPanel('cancellationNoteLabel')}
+                          </p>
+                          <p className="mt-0.5 whitespace-pre-wrap text-sm text-foreground/85">
+                            {appointment.cancellation_note}
+                          </p>
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">{t('noLinkedSession')}</p>
-                  )}
+                  </div>
+                </section>
+              )}
+
+              <section>
+                <div className="mb-3 flex items-center gap-2">
+                  <Info className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-base font-semibold">{t('panelTabs.info')}</h3>
                 </div>
+
+                <div className="grid gap-x-8 md:grid-cols-2">
+                  <DetailRow
+                    icon={CalendarIcon}
+                    label={tColumns('date')}
+                    value={formatDisplayDate(appointment.date)}
+                  />
+                  <DetailRow
+                    icon={Clock}
+                    label={tColumns('time')}
+                    value={`${appointment.time}${endTime ? ` -> ${endTime}` : ''}`}
+                    detail={durationMin != null && durationMin > 0
+                      ? tPanel('durationMinutes', { minutes: durationMin })
+                      : undefined}
+                  />
+                  <DetailRow
+                    icon={MapPin}
+                    label={tColumns('calendar')}
+                    value={appointment.calendar_name || '-'}
+                  />
+                  <DetailRow
+                    icon={UserSquare}
+                    label={tColumns('doctor')}
+                    value={appointment.doctorName || '-'}
+                    detail={doctorColor ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: doctorColor }} />
+                        {tPanel('openDoctor')}
+                      </span>
+                    ) : undefined}
+                    onClick={appointment.doctorId ? openDoctorDetail : undefined}
+                  />
+                </div>
+
+                {hasServices && (
+                  <DetailRow
+                    icon={Layers}
+                    label={tPanel('servicesCount', { count: appointment.services?.length ?? 0 })}
+                    value={
+                      <span className="flex flex-col">
+                        {appointment.services?.map((service) => (
+                          <button
+                            key={service.id}
+                            type="button"
+                            className="flex w-full items-center gap-2 border-b border-dashed border-border/70 py-2 text-left transition-colors hover:bg-muted/20 last:border-b-0"
+                            onClick={() => openServiceDetail(service)}
+                          >
+                            <span
+                              className="h-2.5 w-2.5 rounded-full"
+                              style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
+                            />
+                            <span className="min-w-0 flex-1 truncate underline-offset-4 hover:underline">{service.name}</span>
+                            {service.duration_minutes ? (
+                              <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                                {tPanel('durationMinutes', { minutes: service.duration_minutes })}
+                              </span>
+                            ) : null}
+                          </button>
+                        ))}
+                      </span>
+                    }
+                    className="md:col-span-2"
+                  />
+                )}
+
+                {appointment.notes && (
+                  <DetailRow
+                    icon={StickyNote}
+                    label={t('contextMenu.notes')}
+                    value={<span className="whitespace-pre-wrap font-medium">{appointment.notes}</span>}
+                    tone="warning"
+                    className="md:col-span-2"
+                  />
+                )}
+              </section>
+
+              {(linkedSession || isLoadingLinkedSession || appointment.treatment_seq_step_id != null) && (
+                <section className="mt-6 border-t border-border pt-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <HeartPulse className="h-4 w-4 text-muted-foreground" />
+                      <h3 className="text-base font-semibold">{t('linkedSession')}</h3>
+                    </div>
+                    {onOpenClinicSession && (
+                      <Button
+                        variant="link"
+                        className="h-auto px-0 text-primary"
+                        onClick={() => onOpenClinicSession(appointment)}
+                      >
+                        {linkedSession ? t('editSession') : t('createSession')}
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {isLoadingLinkedSession ? (
+                    <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {t('linkedSession')}
+                    </div>
+                  ) : linkedSession ? (
+                    <div className="grid gap-4 rounded-xl border border-border bg-primary/5 p-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+                      <div className="space-y-1">
+                        <p className="font-mono text-sm font-semibold text-muted-foreground">
+                          #S-{String(linkedSession.sesion_id).padStart(4, '0')}
+                        </p>
+                        <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                          <span className="h-2 w-2 rounded-full bg-primary" />
+                          {formatDisplayDate(linkedSession.fecha_sesion)}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">
+                          {linkedSession.procedimiento_realizado || t('procedure')}
+                        </p>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                          {[linkedSession.doctor_name || linkedSession.nombre_doctor, linkedSession.notas_clinicas]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      </div>
+                      {onOpenClinicSession && (
+                        <Button
+                          variant="outline"
+                          className="justify-self-start gap-2 border-primary/25 text-primary hover:bg-primary/10 md:justify-self-end"
+                          onClick={() => onOpenClinicSession(appointment)}
+                        >
+                          <Stethoscope className="h-4 w-4" />
+                          {t('editSession')}
+                        </Button>
+                      )}
+                    </div>
+                  ) : onOpenClinicSession ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenClinicSession(appointment)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-4 text-left transition-colors hover:bg-muted/35"
+                    >
+                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                      <span className="flex-1">
+                        <span className="block font-semibold">{t('noLinkedSession')}</span>
+                        <span className="text-xs text-muted-foreground">{t('createSession')}</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  ) : (
+                    <div className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border p-4 text-left">
+                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
+                      <span className="flex-1">
+                        <span className="block font-semibold">{t('noLinkedSession')}</span>
+                        <span className="text-xs text-muted-foreground">{t('createSession')}</span>
+                      </span>
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {(appointment.quote_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
+                <section className="mt-6 border-t border-border pt-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => appointment.quote_id && setIsQuoteSheetOpen(true)}
+                    disabled={!appointment.quote_id}
+                    className="flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/35 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <span className="flex-1">
+                      <span className="block font-mono text-xs font-semibold">
+                        {appointment.quote_doc_no || appointment.quote_id || t('noLinkedOrder')}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {isLoadingQuoteInfo
+                          ? t('linkedInvoice')
+                          : invoiceCount > 0
+                            ? `${t('linkedInvoice')} · ${invoiceCount}`
+                            : t('notInvoiced')}
+                      </span>
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                </section>
               )}
             </div>
+
+            <AppointmentStatusRail
+              variant="side"
+              appointment={appointment}
+              onChange={(status, extra) => onStatusChange(appointment, status, extra)}
+              onRequestCustomCancellation={
+                onRequestCustomCancellation
+                  ? () => onRequestCustomCancellation(appointment)
+                  : undefined
+              }
+            />
           </div>
+
+          {(onReschedule || onEdit) && (
+            <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
+              <div className="flex items-center justify-end gap-3">
+                {onReschedule && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="gap-2"
+                    disabled={!canReschedule(appointment.status)}
+                    title={!canReschedule(appointment.status)
+                      ? tReschedule('blockedTooltip', { status: tStatus(appointment.status) })
+                      : undefined}
+                    onClick={() => { onReschedule(appointment); onOpenChange(false); }}
+                  >
+                    <CalendarSync className="h-4 w-4" />
+                    {tReschedule('action')}
+                  </Button>
+                )}
+                {onEdit && (
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={() => { onEdit(appointment); onOpenChange(false); }}
+                  >
+                    <Edit className="h-4 w-4" />
+                    {tColumns('edit')}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </ResizableSheet>
 
-      {/* Sub-sheets — managed internally */}
       {appointment.patientId && (
         <PatientDetailSheet
           open={isPatientSheetOpen}
@@ -360,13 +602,82 @@ export function AppointmentPanel({
           patientName={appointment.patientName}
         />
       )}
-      {selectedInvoice && (
-        <InvoiceDetailSheet
-          open={!!selectedInvoice}
-          onOpenChange={(open) => { if (!open) setSelectedInvoice(null); }}
-          invoice={selectedInvoice}
-        />
-      )}
+      <Dialog open={!!selectedService} onOpenChange={(nextOpen) => !nextOpen && setSelectedService(null)}>
+        <DialogContent maxWidth="md" className="w-[calc(100vw-1.5rem)] rounded-xl">
+          {selectedService && (
+            <>
+              <DialogHeader>
+                <div className="flex min-w-0 items-center gap-3">
+                  <span
+                    className="h-9 w-9 shrink-0 rounded-full border border-white/60 shadow-sm"
+                    style={{ backgroundColor: selectedService.color || STATUS_ACCENT_COLOR.confirmed }}
+                  />
+                  <div className="min-w-0">
+                    <DialogTitle className="truncate">{selectedService.name}</DialogTitle>
+                    <DialogDescription className="truncate">
+                      {selectedService.category || selectedService.category_name || tServices('title')}
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <DialogBody className="space-y-4 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServicesColumns('price')}
+                    </p>
+                    <p className="text-lg font-bold text-foreground">
+                      {formatServicePrice(selectedService.price || 0, selectedService.currency, tGeneral('free'))}
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-3">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServicesColumns('duration')}
+                    </p>
+                    <p className="text-lg font-bold text-foreground">
+                      {tPanel('durationMinutes', { minutes: selectedService.duration_minutes || 0 })}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2">
+                    <span className="text-xs text-muted-foreground">{tServicesColumns('category')}</span>
+                    <span className="truncate text-xs font-medium">
+                      {selectedService.category || selectedService.category_name || '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-b border-border/50 py-2">
+                    <span className="text-xs text-muted-foreground">{tServicesColumns('isActive')}</span>
+                    <Badge variant={selectedService.is_active ? 'success' : 'outline'}>
+                      {selectedService.is_active ? tServicesColumns('active') : tServicesColumns('inactive')}
+                    </Badge>
+                  </div>
+                </div>
+
+                {selectedService.description && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServices('createDialog.descriptionLabel')}
+                    </p>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{selectedService.description}</p>
+                  </div>
+                )}
+
+                {selectedService.indications && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      {tServices('createDialog.indicationsLabel')}
+                    </p>
+                    <p className="whitespace-pre-wrap text-sm text-foreground">{selectedService.indications}</p>
+                  </div>
+                )}
+              </DialogBody>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

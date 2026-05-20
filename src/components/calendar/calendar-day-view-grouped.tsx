@@ -74,6 +74,8 @@ export function CalendarDayViewGrouped({
 
   const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
+    if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
@@ -128,7 +130,7 @@ export function CalendarDayViewGrouped({
                         style={{ width: 8, height: 8, background: col.color, boxShadow: `0 0 4px ${col.color}80` }}
                       />
                     )}
-                    {col.label}
+                    <span className="truncate min-w-0" title={col.label}>{col.label}</span>
                   </div>
                 ))}
               </div>

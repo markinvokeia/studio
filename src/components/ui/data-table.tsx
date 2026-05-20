@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import { flushSync } from 'react-dom';
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -31,6 +32,7 @@ import { DataTableToolbar } from './data-table-toolbar';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -63,6 +65,10 @@ interface DataTableProps<TData, TValue> {
   createButtonIconOnly?: boolean;
   customToolbar?: React.ReactNode | ((table: any) => React.ReactNode);
   getRowClassName?: (row: TData) => string;
+  /** When true the search input filters across all columns instead of a single column */
+  useGlobalFilter?: boolean;
+  /** When true, overrides pagination to show all rows (used before programmatic window.print()) */
+  printMode?: boolean;
   /** When true, renders `renderCard` list instead of the standard table */
   isNarrow?: boolean;
   /** Card renderer for narrow mode — receives the row's original data and selection state */
@@ -102,6 +108,8 @@ export function DataTable<TData, TValue>({
   createButtonIconOnly,
   customToolbar,
   getRowClassName,
+  useGlobalFilter,
+  printMode,
   isNarrow,
   renderCard,
   onRowClick,
@@ -151,6 +159,36 @@ export function DataTable<TData, TValue>({
     ...(isControlledPagination && { onPaginationChange: onPaginationChange }),
   });
 
+  // Show all rows before printing (Cmd+P); restore afterwards.
+  // flushSync forces React to commit synchronously inside the beforeprint handler.
+  React.useEffect(() => {
+    const savedSizeRef = { value: table.getState().pagination.pageSize };
+    const expand = () => {
+      savedSizeRef.value = table.getState().pagination.pageSize;
+      flushSync(() => { table.setPageSize(data.length || 99999); });
+    };
+    const restore = () => { table.setPageSize(savedSizeRef.value); };
+    window.addEventListener('beforeprint', expand);
+    window.addEventListener('afterprint', restore);
+    return () => {
+      window.removeEventListener('beforeprint', expand);
+      window.removeEventListener('afterprint', restore);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.length]);
+
+  // Programmatic printMode: expand/restore for the print button flow.
+  const savedPrintSizeRef = React.useRef<number>(10);
+  React.useEffect(() => {
+    if (printMode) {
+      savedPrintSizeRef.current = table.getState().pagination.pageSize;
+      table.setPageSize(data.length || 99999);
+    } else {
+      table.setPageSize(savedPrintSizeRef.current);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [printMode, data.length]);
+
   // Use a ref so the callback never appears in deps — prevents firing on every render.
   const onRowSelectionChangeRef = React.useRef(onRowSelectionChange);
   React.useLayoutEffect(() => { onRowSelectionChangeRef.current = onRowSelectionChange; });
@@ -165,24 +203,27 @@ export function DataTable<TData, TValue>({
 
 
   return (
-    <div className="w-full flex-1 flex flex-col min-h-0 space-y-4">
-      {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder) && (
-        <DataTableToolbar
-          table={table}
-          filterColumnId={filterColumnId!}
-          filterPlaceholder={filterPlaceholder!}
-          onCreate={onCreate}
-          onRefresh={onRefresh}
-          isRefreshing={isRefreshing}
-          columnTranslations={columnTranslations}
-          extraButtons={extraButtons}
-          createButtonLabel={createButtonLabel}
-          filterOptions={filterOptions}
-          onFilterChange={onFilterChange}
-          filterValue={filterValue}
-          createButtonIconOnly={createButtonIconOnly}
-        />
-      )}
+    <div className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
+      <div className="print:hidden">
+        {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder || useGlobalFilter) && (
+          <DataTableToolbar
+            table={table}
+            filterColumnId={filterColumnId}
+            filterPlaceholder={filterPlaceholder}
+            useGlobalFilter={useGlobalFilter}
+            onCreate={onCreate}
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+            columnTranslations={columnTranslations}
+            extraButtons={extraButtons}
+            createButtonLabel={createButtonLabel}
+            filterOptions={filterOptions}
+            onFilterChange={onFilterChange}
+            filterValue={filterValue}
+            createButtonIconOnly={createButtonIconOnly}
+          />
+        )}
+      </div>
       {showCardList ? (
         <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
           {table.getRowModel().rows?.length ? (
@@ -203,20 +244,29 @@ export function DataTable<TData, TValue>({
         </div>
       ) : null}
       {!showCardList ? (
-      <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
+      <div className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
         <table className={cn("w-full caption-bottom text-sm")}>
-          <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
+          <TableHeader className="sticky print:static top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                    <TableHead
+                      key={header.id}
+                      style={{ width: header.getSize() !== 150 ? `${header.getSize()}px` : undefined }}
+                      className={header.column.getCanSort() ? 'cursor-pointer select-none' : ''}
+                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div className={cn('flex items-center gap-1', header.column.getCanSort() && 'group')}>
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getCanSort() && (
+                            header.column.getIsSorted() === 'asc'  ? <ArrowUp   className="h-3 w-3 text-foreground"              /> :
+                            header.column.getIsSorted() === 'desc' ? <ArrowDown className="h-3 w-3 text-foreground"              /> :
+                                                                     <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-40" />
+                          )}
+                        </div>
+                      )}
                     </TableHead>
                   );
                 })}
@@ -264,7 +314,9 @@ export function DataTable<TData, TValue>({
         </table>
       </div>
       ) : null}
-      <DataTablePagination table={table} />
+      <div className="print:hidden">
+        <DataTablePagination table={table} />
+      </div>
     </div>
   );
 }

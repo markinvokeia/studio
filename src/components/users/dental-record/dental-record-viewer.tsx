@@ -7,13 +7,16 @@ import { ImageLightbox } from '@/components/ui/image-viewer';
 import { cn } from '@/lib/utils';
 import type {
   OdontogramCondition,
+  OdontogramMarcacion,
   OdontogramSnapshot,
   OdontogramState,
   OdontogramSurface,
   OdontogramToothState,
   ToothPerioData,
 } from '@/lib/types';
-import { createOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
+import { upsertOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
 import { CONDITION_MAP } from './condition-toolbar';
 import { ConditionToolbar } from './condition-toolbar';
@@ -38,6 +41,7 @@ import {
   Maximize,
   Minimize,
   Minus,
+  Pencil,
   Plus,
   Smile,
   Stethoscope,
@@ -64,6 +68,23 @@ function generateSessionLabel() {
 
 function cloneState(s: OdontogramState): OdontogramState {
   return JSON.parse(JSON.stringify(s));
+}
+
+function applyMarcaciones(base: OdontogramState, marcaciones: OdontogramMarcacion[]): OdontogramState {
+  const state = cloneState(base);
+  for (const m of marcaciones) {
+    const tooth: OdontogramToothState = state[m.diente]
+      ? JSON.parse(JSON.stringify(state[m.diente])) : {};
+    if (!m.superficie || m.superficie === 'whole') {
+      tooth.whole = m.condicion;
+    } else if (m.superficie === 'overlay') {
+      tooth.overlays = [...(tooth.overlays ?? []), m.condicion];
+    } else {
+      tooth[m.superficie as OdontogramSurface] = m.condicion;
+    }
+    state[m.diente] = tooth;
+  }
+  return state;
 }
 
 const SURF_ABBR: Record<OdontogramSurface, string> = {
@@ -140,9 +161,25 @@ type DesktopLayout = 'flat' | 'mouth';
 interface DentalRecordViewerProps {
   patientId: string;
   patientName?: string;
+  doctorId?: string;
+  doctorName?: string;
+  autoStartSession?: boolean;
+  autoStartDescription?: string;
+  autoStartNotes?: string;
+  autoStartMarcaciones?: OdontogramMarcacion[];
+  onSessionSaved?: () => void;
+  /** When true: hides session history nav and auto-starts a new session on load */
+  createMode?: boolean;
+  onCancelCreate?: () => void;
+  /** When true, prevents creating new sessions (one already exists today for this patient) */
+  blockNewSession?: boolean;
+  blockNewSessionMessage?: string;
+  appointmentId?: string;
+  /** When true, auto-enters edit mode for the snapshot matching appointmentId after load */
+  autoNavigateToAppointmentSession?: boolean;
 }
 
-export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -152,6 +189,8 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingSnapshot, setEditingSnapshot] = useState<OdontogramSnapshot | null>(null);
   const [editingState, setEditingState] = useState<OdontogramState>({});
   const [editingDefaultDescription, setEditingDefaultDescription] = useState('');
   const [notes, setNotes] = useState('');
@@ -194,8 +233,21 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
       setHistoryIndex(snapshots.length - 1);
       setDoctors(docs);
       setIsLoading(false);
+
+      if (autoNavigateToAppointmentSession && appointmentId) {
+        const idx = snapshots.findIndex((s) => s.appointmentId === appointmentId);
+        if (idx >= 0) setHistoryIndex(idx);
+      }
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patientId]);
+
+  useEffect(() => {
+    if ((autoStartSession || createMode) && !isLoading && !blockNewSession) {
+      handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStartSession, blockNewSession, createMode, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -229,27 +281,44 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
     try { return t(`conditions.${c}`); } catch { return CONDITION_MAP[c]?.icon ?? c; }
   }
 
-  function handleStartNewSession() {
+  function handleStartNewSession(description?: string, notes?: string, marcaciones?: OdontogramMarcacion[]) {
     const base = currentSnapshot?.state ?? {};
-    setEditingState(cloneState(base));
-    setNotes('');
-    setEditingDefaultDescription(generateSessionLabel());
+    const initialState = marcaciones?.length
+      ? applyMarcaciones(base, marcaciones)
+      : cloneState(base);
+    setEditingState(initialState);
+    setNotes(notes ?? '');
+    setEditingDefaultDescription(description || generateSessionLabel());
     setIsEditing(true);
     setSelectedToothId(null);
-    // Auto-expand to fullscreen on mobile for a better editing experience
+    if (isMobile) setIsFullscreen(true);
+  }
+
+  function handleStartEditSession(snapshot: OdontogramSnapshot) {
+    setEditingSessionId(snapshot.id ?? null);
+    setEditingSnapshot(snapshot);
+    setEditingState(cloneState(snapshot.state));
+    setNotes(snapshot.notes ?? '');
+    setEditingDefaultDescription(snapshot.description || generateSessionLabel());
+    setIsEditing(true);
+    setSelectedToothId(null);
     if (isMobile) setIsFullscreen(true);
   }
 
   function handleCancelEditing() {
     setIsEditing(false);
+    setIsFullscreen(false);
     setEditingState({});
+    setEditingSessionId(null);
+    setEditingSnapshot(null);
     setNotes('');
     setEditingDefaultDescription('');
     setSelectedToothId(null);
+    if (createMode) onCancelCreate?.();
   }
 
   const handleSave = useCallback(async (values: SessionFormValues) => {
-    await createOdontogram(
+    await upsertOdontogram(
       patientId,
       {
         date: values.date,
@@ -257,24 +326,45 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
         state: editingState,
         notes: values.notes,
         doctorId: values.doctorId || undefined,
+        planProximaCita: values.nextSessionPlan || undefined,
+        fechaProximaCita: values.nextSessionDate || undefined,
+        appointmentId: editingSnapshot?.appointmentId || appointmentId || undefined,
       },
       values.files,
+      editingSessionId ?? undefined,
     );
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(`dental_perio_${patientId}`, JSON.stringify(perioData));
     }
 
+    if (values.shouldDischarge && values.dischargeDate) {
+      try {
+        await api.post(API_ROUTES.PATIENT_DISCHARGE, {
+          id: patientId,
+          appointment_date: values.dischargeDate,
+        });
+        toast({ title: t('session.discharge.toastSuccess') });
+      } catch {
+        // discharge failure is non-blocking — session already saved
+      }
+    }
+
     const updated = await fetchOdontograms(patientId);
     setHistory(updated);
     setHistoryIndex(updated.length - 1);
     setIsEditing(false);
+    setIsFullscreen(false);
     setEditingState({});
+    setEditingSessionId(null);
+    setEditingSnapshot(null);
     setNotes('');
     setEditingDefaultDescription('');
     setSelectedToothId(null);
     toast({ title: t('session.saveSuccess'), description: values.description });
-  }, [editingState, patientId, perioData, t, toast]);
+    onSessionSaved?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointmentId, editingSessionId, editingSnapshot, editingState, onSessionSaved, patientId, perioData, t, toast]);
 
   function handleApply(
     toothId: string,
@@ -346,7 +436,6 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
   }
 
   const handleSelectTooth = useCallback((id: string) => {
-    console.log('[DentalRecord] handleSelectTooth id:', id);
     setSelectedToothId((prev) => (prev === id ? null : id));
   }, []);
 
@@ -504,32 +593,9 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
       )}
     >
       {/* ── Nav ── */}
-      {isMobile ? (
-        /* Mobile: two rows */
+      {!createMode && (isMobile ? (
+        /* Mobile: single row — session navigation */
         <div className="flex flex-col gap-2">
-          {/* Row 1 — mode toggle (full width) */}
-          <div className="flex rounded-md border overflow-hidden text-xs">
-            <button
-              onClick={() => setMode('odontogram')}
-              className={cn(
-                'flex-1 py-2 px-2.5 font-medium transition-colors',
-                mode === 'odontogram'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted',
-              )}
-            >
-              {t('tab.odontogram')}
-            </button>
-            <button
-              disabled
-              className="flex-1 py-2 px-2.5 font-medium bg-background text-muted-foreground/40 cursor-not-allowed"
-              title={t('tab.periodontogramSoon')}
-            >
-              {t('tab.periodontogram')}
-            </button>
-          </div>
-
-          {/* Row 2 — session navigation */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setHistoryIndex((i) => Math.max(0, i - 1))}
@@ -559,8 +625,14 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
               <ChevronRight className="h-4 w-4" />
             </button>
 
+            {!isEditing && currentSnapshot && (
+              <Button size="sm" variant="ghost" onClick={() => handleStartEditSession(currentSnapshot)} className="h-7 w-7 p-0 shrink-0" title={t('editSession')}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+
             {!isEditing && (
-              <Button size="sm" onClick={handleStartNewSession} className="h-7 w-7 p-0 shrink-0" title={t('newSession')}>
+              <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="h-7 w-7 p-0 shrink-0" title={blockNewSession ? blockNewSessionMessage : t('newSession')}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -591,27 +663,6 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
       ) : (
         /* Desktop: single row */
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex rounded-md border overflow-hidden text-xs shrink-0">
-            <button
-              onClick={() => setMode('odontogram')}
-              className={cn(
-                'py-1.5 px-2.5 font-medium transition-colors whitespace-nowrap',
-                mode === 'odontogram'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background text-muted-foreground hover:bg-muted',
-              )}
-            >
-              {t('tab.odontogram')}
-            </button>
-            <button
-              disabled
-              className="py-1.5 px-2.5 font-medium whitespace-nowrap bg-background text-muted-foreground/40 cursor-not-allowed"
-              title={t('tab.periodontogramSoon')}
-            >
-              {t('tab.periodontogram')}
-            </button>
-          </div>
-
           <div className="flex-1 min-w-0">
             {currentSnapshot ? (
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -655,8 +706,15 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             )}
           </div>
 
+          {!isEditing && currentSnapshot && (
+            <Button size="sm" variant="outline" onClick={() => handleStartEditSession(currentSnapshot)} className="gap-1.5 text-xs shrink-0">
+              <Pencil className="h-3.5 w-3.5" />
+              {t('editSession')}
+            </Button>
+          )}
+
           {!isEditing && (
-            <Button size="sm" onClick={handleStartNewSession} className="gap-1.5 text-xs shrink-0">
+            <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="gap-1.5 text-xs shrink-0" title={blockNewSession ? blockNewSessionMessage : undefined}>
               <Plus className="h-3.5 w-3.5" />
               {t('newSession')}
             </Button>
@@ -684,7 +742,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
         </div>
-      )}
+      ))}
 
       {/* ── Editing action buttons ── */}
       {isEditing && (
@@ -713,7 +771,7 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
             <p className="font-semibold text-foreground">{t('noSessions')}</p>
             <p className="text-sm text-muted-foreground mt-1">{t('noSessionsDesc')}</p>
           </div>
-          <Button onClick={handleStartNewSession} className="gap-2">
+          <Button onClick={() => handleStartNewSession()} disabled={blockNewSession} className="gap-2" title={blockNewSession ? blockNewSessionMessage : undefined}>
             <Stethoscope className="h-4 w-4" />
             {t('newSession')}
           </Button>
@@ -1003,13 +1061,18 @@ export function DentalRecordViewer({ patientId, patientName }: DentalRecordViewe
       {/* ── Session form (editing only) ── */}
       {isEditing && (
         <SessionForm
-          defaultDate={new Date().toISOString().split('T')[0]}
+          defaultDate={editingSnapshot?.date ?? new Date().toISOString().split('T')[0]}
           defaultDescription={editingDefaultDescription}
+          defaultNextSessionPlan={editingSnapshot?.planProximaCita}
+          defaultNextSessionDate={editingSnapshot?.fechaProximaCita}
           doctors={doctors}
           notes={notes}
           onNotesChange={setNotes}
           onSave={handleSave}
           onCancel={handleCancelEditing}
+          lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
+          lockDoctorName={doctorName ?? (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
+          isEdit={!!editingSessionId}
         />
       )}
 

@@ -1,0 +1,75 @@
+{
+  "name": "Sticky Notes — Delete",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Sticky Notes — Delete\n\n**POST** `/webhook/sticky-notes/delete`\n\nBorrdo lógico de una nota (status → 'deleted').\n\n**Request body:** `{ \"id\": \"uuid\" }`\n\n**Response 200:** `{ \"success\": true }`",
+        "height": 180,
+        "width": 300,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-100, 20],
+      "typeVersion": 1,
+      "id": "sn-delete-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sticky-notes/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [300, 300],
+      "id": "sn-delete-wh",
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst id = body?.id ?? null;\nif (!id) throw new Error('Campo id es requerido');\nreturn [{ json: { id } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300],
+      "id": "sn-delete-extract",
+      "name": "Extract ID"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sticky_notes SET status = 'deleted', updated_at = NOW() WHERE id = '{{ $json.id }}'::uuid",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [780, 300],
+      "id": "sn-delete-query",
+      "name": "Soft Delete"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"success\":true}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1020, 300],
+      "id": "sn-delete-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook":    { "main": [[{ "node": "Extract ID",  "type": "main", "index": 0 }]] },
+    "Extract ID": { "main": [[{ "node": "Soft Delete", "type": "main", "index": 0 }]] },
+    "Soft Delete":{ "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": ["sticky-notes", "clinic"]
+}

@@ -1,0 +1,49 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet author="mark" id="1778158878382-1">
+        <createTable tableName="sticky_notes">
+            <column defaultValueComputed="gen_random_uuid()" name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="sticky_notes_pkey"/>
+            </column>
+            <column name="text" type="TEXT">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValue="yellow" name="color" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_by" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueComputed="CURRENT_TIMESTAMP" name="created_at" type="TIMESTAMP WITHOUT TIME ZONE">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMP WITHOUT TIME ZONE"/>
+            <column defaultValue="active" name="status" type="VARCHAR(20)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <changeSet author="mark" id="1778158878382-2">
+        <addForeignKeyConstraint
+            baseColumnNames="created_by"
+            baseTableName="sticky_notes"
+            constraintName="sticky_notes_created_by_fkey"
+            referencedColumnNames="id"
+            referencedTableName="users"/>
+    </changeSet>
+
+    <changeSet author="mark" id="1778158878382-3">
+        <createIndex indexName="idx_sticky_notes_created_by" tableName="sticky_notes">
+            <column name="created_by"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet author="mark" id="1778158878382-4">
+        <createIndex indexName="idx_sticky_notes_status" tableName="sticky_notes">
+            <column name="status"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

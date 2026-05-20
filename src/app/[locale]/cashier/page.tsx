@@ -510,7 +510,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         }},
     ];
 
-    const renderAmount = (amount: number, currency: 'UYU' | 'USD') => {
+    const renderAmount = (amount: number, currency: 'UYU' | 'USD', key?: string) => {
         const formattedAmount = `${currency} ${amount.toFixed(2)}`;
         const convertedAmount =
             session.currency !== currency
@@ -521,7 +521,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 : null;
 
         return (
-            <div className="text-2xl font-bold">
+            <div key={key} className="text-2xl font-bold">
                 <div>{formattedAmount}</div>
                 {convertedAmount && (
                     <div className="text-sm font-normal text-muted-foreground">
@@ -563,7 +563,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <div className="h-[3px] w-full" style={{ background: card.accentColor }} />
                             <div className="px-3 py-2.5 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium truncate">{card.title}</span>
-                                {card.amounts.map(({ v, c }) => renderAmount(v, c))}
+                                {card.amounts.map(({ v, c }) => renderAmount(v, c, c))}
                                 {card.extra}
                             </div>
                         </div>

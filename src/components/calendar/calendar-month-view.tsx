@@ -72,6 +72,8 @@ export function CalendarMonthView({
           className="calendar-day"
           onClick={(e) => {
             if (e.button !== 0) return;
+            // Ignore synthetic clicks that bubbled from portalled children.
+            if (!e.currentTarget.contains(e.target as Node)) return;
             if (onSlotClick) {
               e.stopPropagation();
               onSlotClick(date);

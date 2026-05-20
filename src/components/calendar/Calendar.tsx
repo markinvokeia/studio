@@ -28,9 +28,7 @@ export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarVi
 /** Resolve view to an effective variant based on breakpoint */
 function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): CalendarView {
   if (!isMobile) return view;
-  // On mobile: 2-day becomes day, year becomes month
-  // Week stays as week — the mobile carousel handles all 7 days via swipe
-  if (view === '2-day') return 'day';
+  // On mobile: year becomes month
   if (view === 'year') return 'month';
   return view;
 }
@@ -57,6 +55,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const t = useTranslations('Calendar');
   const breakpoint = useCalendarBreakpoint();
   const isMobile = breakpoint === 'mobile';
+  const isCompactHeader = breakpoint !== 'desktop';
 
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
 
@@ -75,6 +74,8 @@ const Calendar: React.FC<CalendarProps> = ({
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
   const timeZoneLabel = t('timeZone');
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
+  const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day';
+  const useMobileDayLayout = (isMobile && (isGrouped || !isMultiDayView)) || (breakpoint === 'tablet' && isGrouped);
 
   // Shared event handler props
   const eventHandlers = {
@@ -92,8 +93,8 @@ const Calendar: React.FC<CalendarProps> = ({
       case 'week': {
         const numDays = effectiveView === 'week' ? 7 : effectiveView === '3-day' ? 3 : effectiveView === '2-day' ? 2 : 1;
 
-        // Mobile: carousel-based view
-        if (isMobile) {
+        // Mobile grouped/single-day, and grouped tablet: carousel-based view
+        if (useMobileDayLayout) {
           return (
             <CalendarDayViewMobile
               currentDate={currentDate}
@@ -109,7 +110,7 @@ const Calendar: React.FC<CalendarProps> = ({
           );
         }
 
-        // Desktop/Tablet: grouped or standard
+        // Desktop: grouped or standard
         if (isGrouped) {
           return (
             <CalendarDayViewGrouped
@@ -200,7 +201,7 @@ const Calendar: React.FC<CalendarProps> = ({
         onNext={handleNext}
         onToday={handleToday}
         onViewChange={handleViewChange}
-        onOpenFilterSheet={isMobile && filterSheet ? () => setFilterSheetOpen(true) : undefined}
+        onOpenFilterSheet={isCompactHeader && filterSheet ? () => setFilterSheetOpen(true) : undefined}
         extraActions={extraActions}
         extraActionsAfterToday={extraActionsAfterToday}
         trailingActions={trailingActions}
@@ -226,7 +227,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
       {/* Mobile: FAB for creating appointments */}
       {isMobile && onSlotClick && (
-        <CalendarFab onClick={() => onSlotClick(new Date())} />
+        <CalendarFab label={t('create')} onClick={() => onSlotClick(new Date())} />
       )}
 
       {/* Mobile: filter bottom sheet */}

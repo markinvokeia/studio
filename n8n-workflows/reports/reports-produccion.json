@@ -1,0 +1,210 @@
+{
+  "name": "Reportes - Bloque Producción Clínica",
+  "nodes": [
+    {
+      "id": "wh-prod-doctor",
+      "name": "GET /reports/produccion-doctor",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/produccion-doctor",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-prod-doctor",
+      "name": "Query Produccion Doctor",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 100],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  doc.id AS doctor_id,\n  doc.name AS doctor_name,\n  COALESCE(i.currency, 'UYU') AS currency,\n  COUNT(DISTINCT sc.paciente_id) AS num_pacientes,\n  COUNT(DISTINCT i.id) AS num_facturas,\n  COALESCE(SUM(i.total), 0) AS total_facturado,\n  COALESCE(SUM(i.paid_amount), 0) AS total_cobrado,\n  COALESCE(AVG(i.total), 0) AS ticket_promedio\nFROM sesiones_clinicas sc\nJOIN users doc ON doc.id = sc.doctor_id\nLEFT JOIN quotes q ON q.id = sc.quote_id\nLEFT JOIN orders o ON o.quote_id = q.id\nLEFT JOIN invoices i ON i.order_id = o.id AND i.is_sales = true\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\nWHERE sc.fecha_sesion::date BETWEEN $1::date AND $2::date\n  AND ($4::uuid IS NULL OR sc.doctor_id = $4::uuid)\nGROUP BY doc.id, doc.name, i.currency\nORDER BY total_facturado DESC NULLS LAST",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null,\n  $input.first().json.query?.doctor_id || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-prod-build",
+      "name": "Build Produccion Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 100],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst totalFact = rows.reduce((s, r) => s + Number(r.total_facturado || 0), 0);\nconst totalCobr = rows.reduce((s, r) => s + Number(r.total_cobrado || 0), 0);\nconst ticket = rows.length ? rows.reduce((s,r) => s + Number(r.ticket_promedio || 0), 0) / rows.length : 0;\nreturn [{ json: {\n  summary: { total_facturado: totalFact, total_cobrado: totalCobr, num_doctores: rows.length, ticket_promedio: ticket },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-prod-doctor",
+      "name": "Respond Produccion Doctor",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-tratamientos",
+      "name": "GET /reports/tratamientos-realizados",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/tratamientos-realizados",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-tratamientos",
+      "name": "Query Tratamientos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  COALESCE(sc_cat.name, ts.descripcion_tratamiento) AS service_name,\n  COALESCE(sc_cat.category, 'Sin categoría') AS category,\n  COUNT(ts.id) AS cantidad,\n  COALESCE(SUM(oi.unit_price), 0) AS total_facturado,\n  COALESCE(AVG(oi.unit_price), 0) AS precio_promedio\nFROM tratamientos_sesion ts\nJOIN sesiones_clinicas sc ON sc.id = ts.sesion_id\nLEFT JOIN service_catalog sc_cat ON sc_cat.name ILIKE ts.descripcion_tratamiento\nLEFT JOIN quotes q ON q.id = sc.quote_id\nLEFT JOIN orders o ON o.quote_id = q.id\nLEFT JOIN order_items oi ON oi.order_id = o.id AND oi.service_id = sc_cat.id\nWHERE sc.fecha_sesion::date BETWEEN $1::date AND $2::date\n  AND ($3::uuid IS NULL OR sc.doctor_id = $3::uuid)\nGROUP BY service_name, category\nORDER BY cantidad DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.doctor_id || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-trat-build",
+      "name": "Build Tratamientos Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 300],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst totalTrat = rows.reduce((s, r) => s + Number(r.cantidad || 0), 0);\nconst totalFact = rows.reduce((s, r) => s + Number(r.total_facturado || 0), 0);\nconst cats = new Set(rows.map(r => r.category)).size;\nconst avg = totalTrat ? totalFact / totalTrat : 0;\n// Add pct\nconst withPct = rows.map(r => ({ ...r, pct_total: totalFact ? Number(r.total_facturado) / totalFact * 100 : 0 }));\nreturn [{ json: {\n  summary: { total_tratamientos: totalTrat, total_facturado: totalFact, precio_promedio: avg, num_categorias: cats },\n  rows: withPct\n} }];"
+      }
+    },
+    {
+      "id": "resp-tratamientos",
+      "name": "Respond Tratamientos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-comparativo",
+      "name": "GET /reports/comparativo-produccion",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 500],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/comparativo-produccion",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-comparativo",
+      "name": "Query Comparativo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 500],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  TO_CHAR(sc.fecha_sesion, 'YYYY-MM') AS mes,\n  EXTRACT(MONTH FROM sc.fecha_sesion)::integer AS mes_num,\n  doc.name AS doctor_name,\n  COALESCE(i.currency, 'UYU') AS currency,\n  COALESCE(SUM(i.total), 0) AS total_facturado,\n  COALESCE(SUM(i.paid_amount), 0) AS total_cobrado,\n  COUNT(DISTINCT sc.paciente_id) AS num_pacientes\nFROM sesiones_clinicas sc\nJOIN users doc ON doc.id = sc.doctor_id\nLEFT JOIN quotes q ON q.id = sc.quote_id\nLEFT JOIN orders o ON o.quote_id = q.id\nLEFT JOIN invoices i ON i.order_id = o.id AND i.is_sales = true\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\nWHERE EXTRACT(YEAR FROM sc.fecha_sesion) = $1::integer\n  AND ($2::uuid IS NULL OR sc.doctor_id = $2::uuid)\nGROUP BY mes, mes_num, doc.name, i.currency\nORDER BY mes_num, doc.name",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.year || new Date().getFullYear(),\n  $input.first().json.query?.doctor_id || null,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-comparativo",
+      "name": "Respond Comparativo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 500],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: { rows: $input.all().map(i => i.json) } } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-honorarios",
+      "name": "GET /reports/honorarios",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 700],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/honorarios",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-honorarios",
+      "name": "Query Honorarios",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 700],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  doc.id AS doctor_id,\n  doc.name AS doctor_name,\n  COALESCE(i.currency, 'UYU') AS currency,\n  COALESCE(SUM(i.total), 0) AS total_facturado,\n  COALESCE(SUM(i.paid_amount), 0) AS total_cobrado,\n  COALESCE(pc.productividad_porcentaje, 0) AS porcentaje\nFROM sesiones_clinicas sc\nJOIN users doc ON doc.id = sc.doctor_id\nLEFT JOIN payroll_employees pe ON pe.user_id = doc.id\nLEFT JOIN payroll_employments pem ON pem.employee_id = pe.id AND pem.is_active = true\nLEFT JOIN payroll_categories pc ON pc.id = pem.category_id\nLEFT JOIN quotes q ON q.id = sc.quote_id\nLEFT JOIN orders o ON o.quote_id = q.id\nLEFT JOIN invoices i ON i.order_id = o.id AND i.is_sales = true\nWHERE sc.fecha_sesion::date BETWEEN $1::date AND $2::date\n  AND ($3::uuid IS NULL OR sc.doctor_id = $3::uuid)\nGROUP BY doc.id, doc.name, i.currency, pc.productividad_porcentaje\nORDER BY total_facturado DESC NULLS LAST",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.doctor_id || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-honorarios-build",
+      "name": "Build Honorarios Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 700],
+      "parameters": {
+        "jsCode": "const basis = $('GET /reports/honorarios').first().json.query?.basis || 'cobrado';\nconst rows = $input.all().map(i => ({\n  ...i.json,\n  base_calculo: basis === 'facturado' ? Number(i.json.total_facturado) : Number(i.json.total_cobrado),\n  honorario_calculado: (basis === 'facturado' ? Number(i.json.total_facturado) : Number(i.json.total_cobrado)) * Number(i.json.porcentaje) / 100\n}));\nconst totalBase = rows.reduce((s, r) => s + r.base_calculo, 0);\nconst totalHon = rows.reduce((s, r) => s + r.honorario_calculado, 0);\nconst avgPct = rows.length ? rows.reduce((s, r) => s + Number(r.porcentaje), 0) / rows.length : 0;\nreturn [{ json: {\n  summary: { total_base: totalBase, total_honorarios: totalHon, num_doctores: rows.length, porcentaje_promedio: avgPct },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-honorarios",
+      "name": "Respond Honorarios",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [760, 700],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/produccion-doctor": { "main": [[{ "node": "Query Produccion Doctor", "type": "main", "index": 0 }]] },
+    "Query Produccion Doctor": { "main": [[{ "node": "Build Produccion Response", "type": "main", "index": 0 }]] },
+    "Build Produccion Response": { "main": [[{ "node": "Respond Produccion Doctor", "type": "main", "index": 0 }]] },
+    "GET /reports/tratamientos-realizados": { "main": [[{ "node": "Query Tratamientos", "type": "main", "index": 0 }]] },
+    "Query Tratamientos": { "main": [[{ "node": "Build Tratamientos Response", "type": "main", "index": 0 }]] },
+    "Build Tratamientos Response": { "main": [[{ "node": "Respond Tratamientos", "type": "main", "index": 0 }]] },
+    "GET /reports/comparativo-produccion": { "main": [[{ "node": "Query Comparativo", "type": "main", "index": 0 }]] },
+    "Query Comparativo": { "main": [[{ "node": "Respond Comparativo", "type": "main", "index": 0 }]] },
+    "GET /reports/honorarios": { "main": [[{ "node": "Query Honorarios", "type": "main", "index": 0 }]] },
+    "Query Honorarios": { "main": [[{ "node": "Build Honorarios Response", "type": "main", "index": 0 }]] },
+    "Build Honorarios Response": { "main": [[{ "node": "Respond Honorarios", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

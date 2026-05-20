@@ -1,0 +1,103 @@
+{
+  "name": "Sticky Notes - Eliminar",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sticky-notes/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-extract",
+      "name": "Extraer ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Extrae y valida el id de la nota a eliminar\nconst body = $input.first().json.body || $input.first().json;\n\nconst id = (body.id || '').toString().trim();\n\nif (!id) {\n  throw new Error('El campo id es requerido');\n}\n\n// Validar formato UUID básico\nconst uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nif (!uuidRegex.test(id)) {\n  throw new Error('El id debe ser un UUID válido');\n}\n\nreturn [{ json: { id } }];"
+      }
+    },
+    {
+      "id": "node-pg-delete",
+      "name": "Eliminar Nota",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sticky_notes\nSET\n  status     = 'deleted',\n  updated_at = CURRENT_TIMESTAMP\nWHERE id     = $1::uuid\n  AND status != 'deleted'\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check",
+      "name": "Verificar Eliminación",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300],
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\n\nif (result.error) {\n  throw new Error('Error al eliminar: ' + (result.error?.message || String(result.error)));\n}\n\nif (!result.id) {\n  throw new Error('Nota no encontrada o ya estaba eliminada');\n}\n\nreturn [{ json: { id: result.id, deleted: true } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Extraer ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extraer ID": {
+      "main": [
+        [{ "node": "Eliminar Nota", "type": "main", "index": 0 }]
+      ]
+    },
+    "Eliminar Nota": {
+      "main": [
+        [{ "node": "Verificar Eliminación", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verificar Eliminación": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión.\n2. En el nodo 'Eliminar Nota', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/sticky-notes/delete\n\nPAYLOAD:\n{ \"id\": \"uuid-de-la-nota\" }\n\nRESPUESTA EXITOSA:\n{ \"id\": \"uuid-de-la-nota\", \"deleted\": true }\n\nNOTA: Este endpoint hace un soft delete (status = 'deleted').\nLa nota sigue en la base de datos pero no aparece en los listados.\n\nNOTA DE SEGURIDAD: Para mayor seguridad, agregar verificación de propiedad\n(AND created_by = $2::uuid) usando el user_id extraído del JWT del header.\nVer sticky-notes-get.json para el patrón de extracción de JWT.\n\nTABLA REQUERIDA: sticky_notes (ver changelog_20260507_1200.xml)"
+  }
+}

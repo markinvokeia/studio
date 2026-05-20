@@ -1,0 +1,127 @@
+{
+  "name": "Reportes - Bloque Gestión",
+  "nodes": [
+    {
+      "id": "wh-estado-res",
+      "name": "GET /reports/estado-resultados",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 100],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/estado-resultados",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-ingresos-er",
+      "name": "Query ER Ingresos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 60],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT 'ingresos' AS tipo, COALESCE(pm.name, 'Sin método') AS concepto,\n  SUM(p.amount_applied) AS total, p.source_currency AS currency\nFROM payments p\nLEFT JOIN payment_methods pm ON pm.id = p.payment_method_id\nWHERE p.payment_date::date BETWEEN $1::date AND $2::date\n  AND p.is_sales = true AND p.status = 'completed'\n  AND ($3::varchar IS NULL OR p.source_currency = $3::varchar)\nGROUP BY pm.name, p.source_currency",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "pg-gastos-er",
+      "name": "Query ER Gastos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 180],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT 'gastos' AS tipo, COALESCE(mc.name, 'Sin categoría') AS concepto,\n  SUM(mt.amount) AS total, mt.currency\nFROM miscellaneous_transactions mt\nLEFT JOIN misc_transaction_categories mc ON mc.id = mt.category_id\nWHERE mt.transaction_date::date BETWEEN $1::date AND $2::date\n  AND mt.is_sales = false\n  AND ($3::varchar IS NULL OR mt.currency = $3::varchar)\nGROUP BY mc.name, mt.currency",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "code-er-merge",
+      "name": "Merge Estado Resultados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 120],
+      "parameters": {
+        "jsCode": "const ingresosRows = $('Query ER Ingresos').all().map(i => i.json);\nconst gastosRows = $('Query ER Gastos').all().map(i => i.json);\nconst totalIngresos = ingresosRows.reduce((s, r) => s + Number(r.total || 0), 0);\nconst totalGastos = gastosRows.reduce((s, r) => s + Number(r.total || 0), 0);\nconst neto = totalIngresos - totalGastos;\nconst margen = totalIngresos ? neto / totalIngresos : 0;\nreturn [{ json: {\n  ingresos: { total: totalIngresos, lineas: ingresosRows },\n  gastos: { total: totalGastos, lineas: gastosRows },\n  resultado: { neto, margen }\n} }];"
+      }
+    },
+    {
+      "id": "resp-estado-res",
+      "name": "Respond Estado Resultados",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [780, 120],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": { "responseCode": 200 }
+      }
+    },
+    {
+      "id": "wh-kpis",
+      "name": "GET /reports/kpis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 380],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/kpis",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-kpis",
+      "name": "Query KPIs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [320, 380],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  -- Total cobrado\n  (SELECT COALESCE(SUM(p.amount_applied), 0)\n   FROM payments p\n   WHERE p.payment_date::date BETWEEN $1::date AND $2::date\n     AND p.is_sales = true AND p.status = 'completed'\n     AND ($3::varchar IS NULL OR p.source_currency = $3::varchar)) AS total_cobrado,\n  -- Nuevos pacientes\n  (SELECT COUNT(*) FROM users u\n   WHERE u.is_sales = true\n     AND u.created_at::date BETWEEN $1::date AND $2::date) AS nuevos_pacientes,\n  -- Tasa retención (pacientes con >1 cita / total con cita)\n  (SELECT ROUND(\n    COUNT(CASE WHEN citas > 1 THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1\n   ) FROM (\n    SELECT patient_id, COUNT(*) AS citas FROM appointments\n    WHERE start_datetime::date BETWEEN $1::date AND $2::date GROUP BY patient_id\n   ) sub) AS tasa_retencion,\n  -- Tasa ocupación agenda\n  (SELECT ROUND(\n    COUNT(CASE WHEN status IN ('completed','confirmed') THEN 1 END)::numeric / NULLIF(COUNT(*), 0) * 100, 1\n   ) FROM appointments\n   WHERE start_datetime::date BETWEEN $1::date AND $2::date) AS tasa_ocupacion,\n  -- Ticket promedio\n  (SELECT COALESCE(AVG(i.total), 0)\n   FROM invoices i\n   WHERE i.created_at::date BETWEEN $1::date AND $2::date\n     AND i.is_sales = true\n     AND ($3::varchar IS NULL OR i.currency = $3::varchar)) AS ticket_promedio,\n  -- Total gastos\n  (SELECT COALESCE(SUM(mt.amount), 0)\n   FROM miscellaneous_transactions mt\n   WHERE mt.transaction_date::date BETWEEN $1::date AND $2::date\n     AND mt.is_sales = false\n     AND ($3::varchar IS NULL OR mt.currency = $3::varchar)) AS total_gastos",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": { "postgres": { "id": "POSTGRES_CREDENTIAL_ID", "name": "Postgres" } }
+    },
+    {
+      "id": "resp-kpis",
+      "name": "Respond KPIs",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [540, 380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $input.first().json } }}",
+        "options": { "responseCode": 200 }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/estado-resultados": {
+      "main": [
+        [
+          { "node": "Query ER Ingresos", "type": "main", "index": 0 },
+          { "node": "Query ER Gastos", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Query ER Ingresos": { "main": [[{ "node": "Merge Estado Resultados", "type": "main", "index": 0 }]] },
+    "Query ER Gastos": { "main": [[{ "node": "Merge Estado Resultados", "type": "main", "index": 1 }]] },
+    "Merge Estado Resultados": { "main": [[{ "node": "Respond Estado Resultados", "type": "main", "index": 0 }]] },
+    "GET /reports/kpis": { "main": [[{ "node": "Query KPIs", "type": "main", "index": 0 }]] },
+    "Query KPIs": { "main": [[{ "node": "Respond KPIs", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null
+}

@@ -72,6 +72,21 @@ export interface MedicationCatalogItem {
     nombre_comercial?: string;
 }
 
+const SESSION_SCALAR_FIELDS = new Set([
+    'doctor_id',
+    'doctor_name',
+    'fecha_sesion',
+    'procedimiento_realizado',
+    'diagnostico',
+    'notas_clinicas',
+    'plan_proxima_cita',
+    'fecha_proxima_cita',
+    'quote_id',
+    'appointment_id',
+    'step_id',
+    'sesion_id',
+]);
+
 interface UseClinicHistoryReturn {
     // Data
     personalHistory: PersonalHistoryItem[];
@@ -133,7 +148,14 @@ interface UseClinicHistoryReturn {
 
     // Session functions with attachments
     createSession: (userId: string, data: any, files?: File[]) => Promise<number | undefined>;
-    updateSession: (sessionId: number, userId: string, data: any, files?: File[], deletedAttachmentIds?: string[]) => Promise<void>;
+    updateSession: (
+        sessionId: number,
+        userId: string,
+        data: any,
+        files?: File[],
+        deletedAttachmentIds?: string[],
+        existingAttachments?: any[]
+    ) => Promise<void>;
     deleteSession: (sessionId: number, userId: string) => Promise<void>;
     fetchDoctors: () => Promise<void>;
     doctors: { id: string; name: string }[];
@@ -731,7 +753,7 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         // Scalar fields
         const skipKeys = new Set(['tratamientos', 'archivos_adjuntos', 'deletedAttachmentIds']);
         Object.entries(sessionData).forEach(([k, v]) => {
-            if (!skipKeys.has(k) && v !== undefined && v !== null) {
+            if (SESSION_SCALAR_FIELDS.has(k) && !skipKeys.has(k) && v !== undefined && v !== null) {
                 formData.append(k, String(v));
             }
         });

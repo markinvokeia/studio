@@ -33,12 +33,12 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
 import { Invoice, Service, User } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { format } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -48,7 +48,7 @@ import * as z from 'zod';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
-import { DatePicker } from '../ui/date-picker';
+import { DatePickerInput } from '../ui/date-picker';
 import { DialogDescription } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -62,11 +62,14 @@ const getCreateInvoiceFormSchema = (t: (key: string) => string) => z.object({
   currency: z.enum(['UYU', 'USD']),
   order_id: z.string().optional(),
   quote_id: z.string().optional(),
+  created_at: z.date({ required_error: t('validation.dateRequired') }),
+  due_date: z.date().optional(),
   notes: z.string().optional(),
   is_historical: z.boolean().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, t('validation.quantityMin')),
     unit_price: z.coerce.number().min(0, t('validation.unitPriceNonNegative')),
     total: z.coerce.number().optional(),
@@ -198,11 +201,21 @@ const getColumns = (
       },
     },
     {
+      accessorKey: 'due_date',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title={columnTranslations.due_date || "Due Date"} />
+      ),
+      cell: ({ row }) => {
+        const dueDate = row.original.due_date;
+        return <div className="font-medium">{dueDate ? formatDisplayDate(dueDate) : '-'}</div>;
+      },
+    },
+    {
       accessorKey: 'createdAt',
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={columnTranslations.createdAt || "Created At"} />
       ),
-      cell: ({ row }) => formatDateTime(row.original.createdAt),
+      cell: ({ row }) => formatDisplayDate(row.original.createdAt),
     },
     {
       id: 'actions',
@@ -308,6 +321,7 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
     type: t('columns.type'),
     payment_status: t('columns.paymentStatus'),
     paid_amount: t('columns.paidAmount'),
+    due_date: t('columns.dueDate'),
     createdAt: t('columns.createdAt'),
     ...columnTranslations,
   }), [t, isSales, columnTranslations]);
@@ -433,12 +447,15 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
                 title={row.doc_no || String(row.id)}
                 subtitle={[
                   row.user_name,
-                  formatDateTime(row.createdAt).split(' ')[0],
+                  formatDisplayDate(row.createdAt),
                   row.total != null
                     ? [row.currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(row.total))].filter(Boolean).join(' ')
                     : undefined,
                   row.status,
                 ].filter(Boolean).join(' · ')}
+                fields={[
+                  { label: columnTranslations.due_date || "Due Date", value: row.due_date ? formatDisplayDate(row.due_date) : '-' },
+                ]}
                 showArrow
                 onClick={() => onRowSelectionChange?.([row])}
               />
@@ -548,6 +565,8 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       currency: 'UYU',
       items: [],
       total: 0,
+      created_at: new Date(),
+      due_date: undefined,
       notes: '',
       is_historical: false,
     },
@@ -556,12 +575,18 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const isEditing = !!invoice;
   const items = useWatch({ control: form.control, name: 'items' }) || [];
   const invoiceType = form.watch('type');
+  const createdAt = form.watch('created_at');
 
   const calculatedTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.total) || 0), 0);
 
   React.useEffect(() => {
     form.setValue('total', calculatedTotal);
   }, [calculatedTotal, form]);
+
+  React.useEffect(() => {
+    if (!isOpen || isEditing || !createdAt) return;
+    form.setValue('due_date', addDays(createdAt, 30));
+  }, [createdAt, form, isEditing, isOpen]);
 
   // Debounced User Search
   React.useEffect(() => {
@@ -681,12 +706,15 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               total: Number(invoice.total || 0),
               order_id: invoice.order_id ? String(invoice.order_id) : undefined,
               quote_id: invoice.quote_id ? String(invoice.quote_id) : undefined,
+              created_at: invoice.createdAt ? parseISO(formatDate(invoice.createdAt)) : new Date(),
+              due_date: invoice.due_date ? parseISO(formatDate(invoice.due_date)) : undefined,
               items: itemsNormalized.map((item: any) => {
                 const rawServiceId = item.service_id || item.product_id;
                 const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
                 return {
                   id: item.id ? String(item.id) : undefined,
                   service_id: serviceId,
+                  service_name: item.service_name || item.product_name || item.name || item.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : ''),
                   quantity: Number(item.quantity || item.product_uom_qty || 1),
                   unit_price: Number(item.unit_price || item.price_unit || 0),
                   total: Number(item.total || item.price_total || 0),
@@ -703,6 +731,8 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               currency: 'UYU',
               items: [],
               total: 0,
+              created_at: new Date(),
+              due_date: addDays(new Date(), 30),
             });
           }
         } catch (error) {
@@ -759,12 +789,13 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             const mappedItems = itemsNormalized.map((item: any) => {
               const rawServiceId = item.service_id || item.product_id;
               const serviceId = Array.isArray(rawServiceId) ? String(rawServiceId[0]) : String(rawServiceId || '');
-              return {
-                id: item.id ? String(item.id) : undefined,
-                service_id: serviceId,
-                quantity: Number(item.quantity || item.product_uom_qty || 1),
-                unit_price: Number(item.unit_price || item.price_unit || 0),
-                total: Number(item.total || item.price_total || 0),
+                return {
+                  id: item.id ? String(item.id) : undefined,
+                  service_id: serviceId,
+                  service_name: item.service_name || item.product_name || item.name || item.display_name || (Array.isArray(rawServiceId) ? rawServiceId[1] : ''),
+                  quantity: Number(item.quantity || item.product_uom_qty || 1),
+                  unit_price: Number(item.unit_price || item.price_unit || 0),
+                  total: Number(item.total || item.price_total || 0),
               };
             });
             form.setValue('items', mappedItems);
@@ -789,9 +820,29 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
       }
 
       const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
+      const normalizedItems = (values.items || []).map(item => ({
+        id: item.id,
+        service_id: item.service_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total: item.total,
+      }));
       const payload = isEditing && invoice
-        ? { ...values, id: invoice.id, is_sales: isSales }
-        : { ...values, is_sales: isSales };
+        ? {
+            ...values,
+            items: normalizedItems,
+            id: invoice.id,
+            created_at: toLocalISOString(values.created_at),
+            due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
+            is_sales: isSales,
+          }
+        : {
+            ...values,
+            items: normalizedItems,
+            created_at: toLocalISOString(values.created_at),
+            due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
+            is_sales: isSales,
+          };
 
       const responseData = await api.post(endpoint, payload);
 
@@ -813,7 +864,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   };
 
   const handleAddItem = () => {
-    form.setValue('items', [...items, { service_id: '', quantity: 1, unit_price: 0, total: 0 }]);
+    form.setValue('items', [...items, { service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0 }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -850,67 +901,6 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                 </Alert>
               )}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('type')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
-                          <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField control={form.control} name="currency" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('currency')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="USD">USD</SelectItem>
-                        <SelectItem value="UYU">UYU</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <div className="text-right pt-7">
-                  <span className="font-semibold text-lg">{t('total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: form.watch('currency') }).format(calculatedTotal)}</span>
-                </div>
-              </div>
-              {invoiceType === 'credit_note' && (
-                <FormField
-                  control={form.control}
-                  name="parent_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('parentInvoice')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder={t('selectParentInvoice')} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {bookedInvoices.map(inv => (
-                            <SelectItem key={inv.id} value={String(inv.id)}>
-                              {inv.doc_no} - {inv.user_name} - ${inv.total}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="user_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>
@@ -980,18 +970,97 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     <FormMessage />
                   </FormItem>
                 )} />
-
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('type')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="invoice">{t('types.invoice')}</SelectItem>
+                          <SelectItem value="credit_note">{t('types.credit_note')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField control={form.control} name="currency" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('currency')}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="UYU">UYU</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
               </div>
-
-              <FormField control={form.control} name="notes" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('notes')}</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder={t('notesPlaceholder')} {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              {invoiceType === 'credit_note' && (
+                <FormField
+                  control={form.control}
+                  name="parent_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('parentInvoice')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('selectParentInvoice')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {bookedInvoices.map(inv => (
+                            <SelectItem key={inv.id} value={String(inv.id)}>
+                              {inv.doc_no} - {inv.user_name} - ${inv.total}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="created_at"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('createdAt')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="due_date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{tRoot('columns.dueDate')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <FormField
                 control={form.control}
@@ -1052,10 +1121,12 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                             <ServiceSelector
                               isSales={isSales}
                               value={field.value}
+                              selectedServiceName={form.getValues(`items.${index}.service_name`) || undefined}
                               onValueChange={(serviceId, service) => {
                                 field.onChange(serviceId);
                                 if (service) {
                                   const quantity = form.getValues(`items.${index}.quantity`) || 1;
+                                  form.setValue(`items.${index}.service_name`, service.name);
                                   form.setValue(`items.${index}.unit_price`, service.price);
                                   form.setValue(`items.${index}.total`, service.price * quantity);
                                 }
@@ -1140,8 +1211,32 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                     ))}
                     <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
                   </div>
+                  <div className="mt-4 flex justify-end border-t border-dashed pt-4">
+                    <div className="text-right">
+                      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        {t('total')}
+                      </p>
+                      <p className="text-2xl font-semibold">
+                        {new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: form.getValues('currency') || 'UYU',
+                        }).format(calculatedTotal)}
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
+              <FormField control={form.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('notes')}</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder={t('notesPlaceholder')} {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
             </DialogBody>
 
             <DialogFooter>

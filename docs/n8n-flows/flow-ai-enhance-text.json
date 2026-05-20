@@ -1,0 +1,113 @@
+{
+  "name": "AI — Enhance Text",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## AI — Enhance Text\n\n**POST** `/webhook/ai/enhance-text`\n\nMejora ortografía, gramática, sintaxis y puntuación del texto recibido.\nDetecta intenciones clave y devuelve acciones junto al texto corregido.\n\n**Credencial requerida:**\n`Google Gemini` — tipo *Google PaLM API* (usa tu `GOOGLE_GENAI_API_KEY`)\n\n**Request body:** `{ \"text\": \"texto a mejorar\" }`\n\n**Response 200:**\n```json\n{\n  \"enhanced_text\": \"Texto mejorado.\",\n  \"processed_by\": \"backend\",\n  \"actions\": [\"CALENDAR\", \"QUOTE\"]\n}\n```",
+        "height": 340,
+        "width": 420,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [-100, 20],
+      "typeVersion": 1,
+      "id": "ai-enhance-note",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai/enhance-text",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "id": "ai-enhance-wh",
+      "name": "Webhook",
+      "webhookId": "ai-enhance-text"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\nconst text = (body?.text ?? '').trim();\nif (!text) throw new Error('Campo text es requerido');\nreturn [{ json: { text: 'Entrada: ' + JSON.stringify(text) + '\\nSalida:' } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300],
+      "id": "ai-enhance-extract",
+      "name": "Extract Text"
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "Actúa como un procesador de texto automatizado. Tu única función es recibir un texto, corregir su ortografía y sintaxis, y detectar intenciones clave.\n\nREGLAS ESTRICTAS E INQUEBRANTABLES:\n1. NO agregues saludos, introducciones, explicaciones ni despedidas.\n2. NO agregues información nueva, no des contexto, ni respondas a preguntas que el texto haga.\n3. Mantén la longitud original: si el texto es una oración corta, la mejora debe ser igualmente corta.\n4. Devuelve ÚNICAMENTE un objeto JSON válido con los campos texto_mejorado, acciones y redirects. Nada de texto fuera de las llaves.\n\nINTENCIONES A DETECTAR (campo acciones):\n- cita, turno, agendar, consulta → agregar CALENDAR\n- presupuesto, cotización, tratamiento → agregar QUOTE\n- factura, cobrar, pendiente de pago, pago → agregar INVOICE\n- comprar, compra, proveedor, adquirir, pedido → agregar PURCHASE\n- Sin coincidencia → acciones: []\n\nURLs DE REDIRECCION (campo redirects, en el mismo orden que acciones):\n- CALENDAR → /appointments?act=Crear\n- QUOTE → /users?t=Presupuestos&act=Crear\n- INVOICE → /users?t=Facturas&act=Crear\n- PURCHASE → /purchases/providers\n- Sin acciones → redirects: []\n\nEJEMPLOS:\n\nEntrada: \"nesesito un turno para mañana y tmb q me pasen el presupuesto\"\nSalida: {{\"texto_mejorado\":\"Necesito un turno para mañana y también que me pasen el presupuesto.\",\"acciones\":[\"CALENDAR\",\"QUOTE\"],\"redirects\":[\"/appointments?act=Crear\",\"/users?t=Presupuestos&act=Crear\"]}}\n\nEntrada: \"hola q tal\"\nSalida: {{\"texto_mejorado\":\"Hola, ¿qué tal?\",\"acciones\":[],\"redirects\":[]}}\n\nEntrada: \"quiero cobrar la factura de juan perez q esta pendiente de pago\"\nSalida: {{\"texto_mejorado\":\"Quiero cobrar la factura de Juan Pérez que está pendiente de pago.\",\"acciones\":[\"INVOICE\"],\"redirects\":[\"/users?t=Facturas&act=Crear\"]}}\n\nEntrada: \"notas rapidas que tu puedas agregarlas dictandole cualquier cosa y\"\nSalida: {{\"texto_mejorado\":\"Las notas rápidas se pueden agregar por dictado o por escritura.\",\"acciones\":[],\"redirects\":[]}}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [940, 300],
+      "id": "ai-enhance-agent",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "gemini-2.0-flash",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "google-gemini",
+          "name": "Google Gemini"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [940, 520],
+      "id": "ai-enhance-gemini-model",
+      "name": "Gemini 2.0 Flash"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = ($input.first().json.output ?? '').trim();\n\nlet parsed;\ntry {\n  const match = output.match(/\\{[\\s\\S]*\\}/);\n  parsed = match ? JSON.parse(match[0]) : {};\n} catch {\n  parsed = {};\n}\n\nconst VALID = ['CALENDAR', 'QUOTE', 'INVOICE', 'PURCHASE'];\nconst enhancedText = typeof parsed.texto_mejorado === 'string' && parsed.texto_mejorado.trim()\n  ? parsed.texto_mejorado.trim()\n  : '';\n\nif (!enhancedText) throw new Error('El agente devolvió una respuesta inválida: ' + output);\n\nreturn [{\n  json: {\n    enhanced_text: enhancedText,\n    processed_by: 'backend',\n    actions: Array.isArray(parsed.acciones)\n      ? parsed.acciones.filter(a => VALID.includes(a))\n      : [],\n    redirects: Array.isArray(parsed.redirects)\n      ? parsed.redirects.filter(r => typeof r === 'string')\n      : []\n  }\n}];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1180, 300],
+      "id": "ai-enhance-format",
+      "name": "Format Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 200 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1420, 300],
+      "id": "ai-enhance-respond",
+      "name": "Respond 200"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Extract Text", "type": "main", "index": 0 }]] },
+    "Extract Text": { "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]] },
+    "AI Agent": { "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]] },
+    "Format Response": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] },
+    "Gemini 2.0 Flash": {
+      "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1", "errorWorkflow": "" },
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": ["ai", "clinic"]
+}

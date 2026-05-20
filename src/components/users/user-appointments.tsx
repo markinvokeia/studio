@@ -1,19 +1,20 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { API_ROUTES } from '@/constants/routes';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Appointment, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
+import { Appointment, AppointmentStatus, CancellationReason, PatientSession, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
+import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
+import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { FileText, Stethoscope, Calendar as CalendarIcon, Clock, UserCircle, RefreshCw, Info } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -26,7 +27,60 @@ const isWhite = (color: string | null | undefined) => {
   return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
 };
 
-const getColumns = (t: (key: string) => string, tStatus: (key: string) => string): ColumnDef<Appointment>[] => [
+function getAppointmentDateTime(appointment: Appointment): Date | null {
+  const startDateTime = appointment.start?.dateTime;
+  if (typeof startDateTime === 'string') {
+    const parsedStart = parseISO(startDateTime.replace(/Z$/, ''));
+    if (!Number.isNaN(parsedStart.getTime())) return parsedStart;
+  }
+
+  const fallbackDateTime = `${appointment.date}T${appointment.time || '00:00'}:00`;
+  const parsedFallback = parseISO(fallbackDateTime);
+  return Number.isNaN(parsedFallback.getTime()) ? null : parsedFallback;
+}
+
+function sortAppointmentsForPatientTimeline(appointments: Appointment[]): Appointment[] {
+  const now = new Date();
+  const todayKey = format(now, 'yyyy-MM-dd');
+
+  return [...appointments].sort((left, right) => {
+    const leftDateTime = getAppointmentDateTime(left);
+    const rightDateTime = getAppointmentDateTime(right);
+
+    if (!leftDateTime || !rightDateTime) return 0;
+
+    const leftDateKey = format(leftDateTime, 'yyyy-MM-dd');
+    const rightDateKey = format(rightDateTime, 'yyyy-MM-dd');
+    const leftIsToday = leftDateKey === todayKey;
+    const rightIsToday = rightDateKey === todayKey;
+
+    if (leftIsToday && !rightIsToday) return -1;
+    if (!leftIsToday && rightIsToday) return 1;
+
+    if (leftIsToday && rightIsToday) {
+      const leftDistance = Math.abs(leftDateTime.getTime() - now.getTime());
+      const rightDistance = Math.abs(rightDateTime.getTime() - now.getTime());
+      if (leftDistance !== rightDistance) return leftDistance - rightDistance;
+      return leftDateTime.getTime() - rightDateTime.getTime();
+    }
+
+    const leftIsFuture = leftDateTime.getTime() >= now.getTime();
+    const rightIsFuture = rightDateTime.getTime() >= now.getTime();
+
+    if (leftIsFuture && !rightIsFuture) return -1;
+    if (!leftIsFuture && rightIsFuture) return 1;
+
+    return leftIsFuture
+      ? leftDateTime.getTime() - rightDateTime.getTime()
+      : rightDateTime.getTime() - leftDateTime.getTime();
+  });
+}
+
+const getColumns = (
+  t: (key: string) => string,
+  onStatusChange: (appointment: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => void,
+  onRequestCustomCancellation: (appointment: Appointment) => void,
+): ColumnDef<Appointment>[] => [
   {
     accessorKey: 'summary',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('service')} />,
@@ -62,19 +116,15 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     accessorKey: 'status',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
     cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      const variant = {
-        completed: 'success',
-        confirmed: 'default',
-        pending: 'info',
-        cancelled: 'destructive',
-        scheduled: 'info',
-      }[status.toLowerCase()] ?? ('default' as any);
-
+      const appointment = row.original;
       return (
-        <Badge variant={variant} className="capitalize">
-          {tStatus(status.toLowerCase())}
-        </Badge>
+        <div onClick={(e) => e.stopPropagation()}>
+          <AppointmentStatusMenu
+            appointment={appointment}
+            onChange={(s, extra) => onStatusChange(appointment, s, extra)}
+            onRequestCustomCancellation={() => onRequestCustomCancellation(appointment)}
+          />
+        </div>
       );
     },
   },
@@ -109,7 +159,8 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getAppointmentsForUser(
   user: User | null,
-  calendarSourceIds: string[]
+  calendarSourceIds: string[],
+  calendars: CalendarType[] = []
 ): Promise<Appointment[]> {
   if (!user || !user.id) return [];
 
@@ -155,22 +206,32 @@ async function getAppointmentsForUser(
       const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || 'Doctor';
 
       const endNode = apiAppt.end_time || apiAppt.end;
+      const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
+      const calendar = calendars.find(c => String(c.id) === calendarSourceId);
 
       const appointment = {
         id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
         patientId: String(user.id),
-        patientName: user.name,
+        patientName: apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || user.name,
+        patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail,
+        patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone,
         doctorId: String(doctorId || ''),
         doctorName: doctorName,
         doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || '',
         summary: apiAppt.summary || 'Cita',
         description: apiAppt.description || '',
+        notes: apiAppt.notes || '',
+        calendar_source_id: calendarSourceId,
+        calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
         date: format(appointmentDateTime, 'yyyy-MM-dd'),
         time: format(appointmentDateTime, 'HH:mm'),
-        status: apiAppt.status || 'confirmed',
+        status: normalizeAppointmentStatus(apiAppt.status),
+        cancellation_reason: normalizeCancellationReason(
+          apiAppt.cancellation_reason || apiAppt.cancellationReason || apiAppt.cancellationreason,
+        ),
+        cancellation_note: apiAppt.cancellation_note || apiAppt.cancellationNote || apiAppt.cancellationnote || null,
         created_at: apiAppt.created_at || apiAppt.createdat,
         google_calendar_id: apiAppt.google_calendar_id || undefined,
-        calendar_source_id: apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '',
         googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
         quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
         quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
@@ -197,44 +258,11 @@ async function getAppointmentsForUser(
       return appointment;
     }).filter((apt): apt is Appointment => apt !== null);
 
-    return appointments;
+    return sortAppointmentsForPatientTimeline(appointments);
   } catch (error) {
     console.error("Failed to fetch appointments:", error);
     return [];
   }
-}
-
-// Linked session columns
-function getLinkedSessionColumns(t: (key: string) => string): ColumnDef<PatientSession>[] {
-  return [
-    {
-      accessorKey: 'fecha_sesion',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />,
-      cell: ({ row }) => {
-        const val: string = row.original.fecha_sesion;
-        if (!val) return <span className="text-muted-foreground">—</span>;
-        const d = parseISO(val);
-        return <span>{format(d, 'dd/MM/yyyy')}</span>;
-      },
-    },
-    {
-      accessorKey: 'procedimiento_realizado',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.procedure')} />,
-      cell: ({ row }) => (
-        <span className="truncate max-w-[300px] block" title={row.original.procedimiento_realizado}>
-          {row.original.procedimiento_realizado || '—'}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'doctor_name',
-      header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.doctor')} />,
-      cell: ({ row }) => {
-        const val = row.original.doctor_name || row.original.nombre_doctor;
-        return <span>{val || '—'}</span>;
-      },
-    },
-  ];
 }
 
 interface UserAppointmentsProps {
@@ -244,10 +272,7 @@ interface UserAppointmentsProps {
 
 export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps) {
   const t = useTranslations('AppointmentsColumns');
-  const tStatus = useTranslations('AppointmentStatus');
   const tAppointmentsPage = useTranslations('AppointmentsPage');
-  const tUserAppointments = useTranslations('UserAppointments');
-  const { hasPermission } = usePermissions();
   const isViewportNarrow = useViewportNarrow();
   
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -261,7 +286,53 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   const [linkedSessions, setLinkedSessions] = React.useState<PatientSession[]>([]);
   const [isLoadingLinkedSessions, setIsLoadingLinkedSessions] = React.useState(false);
 
-  const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
+  const { updateStatus } = useAppointmentStatus({
+    onSuccess: (appt, newStatus, extra) => {
+      const patch = {
+        status: newStatus,
+        cancellation_reason: extra?.cancellation_reason ?? null,
+        cancellation_note: extra?.cancellation_note ?? null,
+      };
+
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === appt.id ? { ...a, ...patch } : a)),
+      );
+      setSelectedAppointment((prev) =>
+        prev && prev.id === appt.id ? { ...prev, ...patch } : prev,
+      );
+    },
+  });
+
+  const handleStatusChange = React.useCallback(
+    (
+      appointment: Appointment,
+      newStatus: AppointmentStatus,
+      extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string },
+    ) => {
+      updateStatus({ appointment, newStatus, ...extra });
+    },
+    [updateStatus],
+  );
+
+  const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
+  const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
+    setPendingCancellation(appointment);
+  }, []);
+  const handleConfirmCustomCancellation = React.useCallback((note: string) => {
+    if (!pendingCancellation) return;
+    updateStatus({
+      appointment: pendingCancellation,
+      newStatus: 'cancelled',
+      cancellation_reason: 'other',
+      cancellation_note: note,
+    });
+    setPendingCancellation(null);
+  }, [pendingCancellation, updateStatus]);
+
+  const columns = React.useMemo(
+    () => getColumns(t, handleStatusChange, handleRequestCustomCancellation),
+    [t, handleStatusChange, handleRequestCustomCancellation],
+  );
 
   const loadCalendars = React.useCallback(async () => {
     const fetchedCalendars = await getCalendars();
@@ -274,7 +345,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
 
     const calendarSourceIds = calendars.map(c => String(c.id));
 
-    const fetchedAppointments = await getAppointmentsForUser(user, calendarSourceIds);
+    const fetchedAppointments = await getAppointmentsForUser(user, calendarSourceIds, calendars);
     setAppointments(fetchedAppointments);
     setIsLoading(false);
   }, [user, calendars]);
@@ -355,7 +426,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
       setIsSheetOpen(false);
       setLinkedSessions([]);
     }
-  }, [loadLinkedSessions]);
+  }, [loadLinkedSessions, user.id]);
 
   if (isLoading) {
     return (
@@ -381,33 +452,23 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             isNarrow={isViewportNarrow}
-            renderCard={(appointment: Appointment, _isSelected: boolean) => {
-              const statusLower = appointment.status?.toLowerCase() || '';
-              const statusVariant = ({
-                completed: 'success',
-                confirmed: 'default',
-                pending: 'info',
-                cancelled: 'destructive',
-                scheduled: 'info',
-              }[statusLower] ?? 'default') as any;
-              return (
-                <DataCard isSelected={_isSelected}
-                  title={appointment.summary || '-'}
-                  subtitle={`${appointment.date || ''} ${appointment.time || ''}`.trim()}
-                  badge={
-                    statusLower ? (
-                      <Badge variant={statusVariant} className="capitalize text-[10px]">
-                        {tStatus(statusLower)}
-                      </Badge>
-                    ) : undefined
-                  }
-                  fields={[
-                    { label: t('doctor'), value: appointment.doctorName || '-' },
-                    { label: t('quoteDocNo'), value: appointment.quote_doc_no || '-' },
-                  ]}
-                />
-              );
-            }}
+            renderCard={(appointment: Appointment, _isSelected: boolean) => (
+              <DataCard isSelected={_isSelected}
+                title={appointment.summary || '-'}
+                subtitle={`${appointment.date || ''} ${appointment.time || ''}`.trim()}
+                badge={
+                  <AppointmentStatusMenu
+                    appointment={appointment}
+                    onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
+                    onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                  />
+                }
+                fields={[
+                  { label: t('doctor'), value: appointment.doctorName || '-' },
+                  { label: t('quoteDocNo'), value: appointment.quote_doc_no || '-' },
+                ]}
+              />
+            )}
             columnTranslations={{
               service_name: t('service'),
               doctorName: t('doctor'),
@@ -419,8 +480,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         </CardContent>
       </Card>
 
-      {/* Appointment Detail Sheet */}
-      <ResizableSheet
+      <AppointmentPanel
         open={isSheetOpen}
         onOpenChange={(open) => {
           setIsSheetOpen(open);
@@ -430,154 +490,20 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
             setLinkedSessions([]);
           }
         }}
-        defaultWidth={700}
-        minWidth={500}
-        maxWidth={1200}
-        storageKey="user-appointments-sheet-width"
-      >
-        {selectedAppointment && (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex-none border-b border-border bg-card">
-              <div className="px-6 py-5 pr-12">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <SheetTitle className="text-lg font-semibold text-card-foreground truncate">
-                      {selectedAppointment.summary}
-                    </SheetTitle>
-                    <SheetDescription className="text-sm text-muted-foreground mt-0.5">
-                      {tUserAppointments('appointmentDetails')}
-                    </SheetDescription>
-                  </div>
-                  <Badge
-                    variant={
-                      selectedAppointment.status === 'completed' ? 'success' :
-                      selectedAppointment.status === 'cancelled' ? 'destructive' :
-                      selectedAppointment.status === 'pending' ? 'info' : 'default'
-                    }
-                    className="capitalize shrink-0"
-                  >
-                    {tStatus(selectedAppointment.status.toLowerCase())}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Appointment Info Grid */}
-            <div className="flex-none px-6 py-4 border-b border-border">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('date')}</p>
-                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.date}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('time')}</p>
-                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.time}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                    <UserCircle className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('doctor')}</p>
-                    <p className="text-sm font-medium mt-0.5">{selectedAppointment.doctorName || '—'}</p>
-                  </div>
-                </div>
-                {selectedAppointment.quote_doc_no && (
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground leading-none">{tUserAppointments('quote')}</p>
-                      <Badge variant="secondary" className="font-mono mt-0.5 text-xs">
-                        {selectedAppointment.quote_doc_no}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {selectedAppointment.description && (
-                <>
-                  <Separator className="my-3" />
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">{tUserAppointments('notes')}</p>
-                    <p className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
-                      {selectedAppointment.description}
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Linked Sessions */}
-            <div className="flex-1 flex flex-col overflow-hidden px-6 py-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <Stethoscope className="h-4 w-4 text-muted-foreground" />
-                  {tUserAppointments('linkedSessions')}
-                  {linkedSessions.length > 0 && (
-                    <Badge variant="secondary" className="text-xs px-1.5 py-0 font-normal">
-                      {linkedSessions.length}
-                    </Badge>
-                  )}
-                </h4>
-                {selectedAppointment.quote_id && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={() => selectedAppointment.quote_id && loadLinkedSessions(String(user.id), selectedAppointment.quote_id)}
-                    disabled={isLoadingLinkedSessions}
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${isLoadingLinkedSessions ? 'animate-spin' : ''}`} />
-                  </Button>
-                )}
-              </div>
-
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                {!selectedAppointment.quote_id ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
-                      <Info className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {tUserAppointments('noLinkedQuote')}
-                    </p>
-                  </div>
-                ) : linkedSessions.length === 0 && !isLoadingLinkedSessions ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted mb-3">
-                      <Stethoscope className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {tUserAppointments('noLinkedSessions')}
-                    </p>
-                  </div>
-                ) : (
-                  <DataTable
-                    columns={getLinkedSessionColumns(tUserAppointments)}
-                    data={linkedSessions}
-                    isRefreshing={isLoadingLinkedSessions}
-                    onRefresh={() => selectedAppointment.quote_id && loadLinkedSessions(String(user.id), selectedAppointment.quote_id)}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </ResizableSheet>
+        appointment={selectedAppointment}
+        linkedSession={linkedSessions[0] ?? null}
+        isLoadingLinkedSession={isLoadingLinkedSessions}
+        quoteOrder={null}
+        quoteInvoices={[]}
+        isLoadingQuoteInfo={false}
+        onStatusChange={handleStatusChange}
+        onRequestCustomCancellation={handleRequestCustomCancellation}
+      />
+      <CancellationNoteDialog
+        open={!!pendingCancellation}
+        onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
+        onConfirm={handleConfirmCustomCancellation}
+      />
     </>
   );
 }

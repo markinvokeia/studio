@@ -30,6 +30,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -54,7 +55,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDate, formatDateTime, formatDisplayDate, getDocumentFileName, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -78,10 +79,12 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced',
         'not_invoiced', 'partially_invoiced', 'Pending']),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
+    created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
+        service_name: z.string().optional(),
         quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
         unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
         total: z.coerce.number().min(0, t('validation.totalPositive')),
@@ -95,6 +98,7 @@ const quoteItemFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     quote_id: z.string(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
     unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
@@ -353,7 +357,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
         const normalized = normalizeApiResponse(data);
         const itemsData = normalized.items;
 
-        return itemsData.map((apiItem: any) => ({
+        const quoteItems = itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
             service_id: apiItem.service_id || t('defaults.notAvailable'),
             service_name: apiItem.service_name || t('defaults.notAvailable'),
@@ -362,6 +366,8 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
             total: apiItem.total || 0,
             tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
         }));
+
+        return sortQuoteItems(quoteItems);
     } catch (error) {
         console.error("Failed to fetch quote items:", error);
         return [];
@@ -917,7 +923,7 @@ export default function QuotesPage() {
             {
                 user_id: '', total: 0, currency: defaultCurrency, status: 'draft',
                 payment_status: 'unpaid', billing_status: 'not invoiced',
-                exchange_rate: exchangeRate, notes: '', items: []
+                exchange_rate: exchangeRate, created_at: new Date(), notes: '', items: []
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -964,6 +970,7 @@ export default function QuotesPage() {
         const mappedItems = items.map(item => ({
             id: item.id,
             service_id: String(item.service_id),
+            service_name: item.service_name || '',
             quantity: item.quantity,
             unit_price: item.unit_price,
             total: item.total,
@@ -975,7 +982,10 @@ export default function QuotesPage() {
                 id: quote.id, user_id: quote.user_id, total: quote.total,
                 currency: normalized.currency, status: normalized.status,
                 payment_status: normalized.payment_status, billing_status: normalized.billing_status,
-                exchange_rate: exchangeRate, notes: quote.notes || '', items: mappedItems
+                exchange_rate: exchangeRate,
+                created_at: quote.createdAt ? parseISO(formatDate(quote.createdAt)) : new Date(),
+                notes: quote.notes || '',
+                items: mappedItems
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -1031,6 +1041,7 @@ export default function QuotesPage() {
             const payload = {
                 ...values,
                 billing_status: normalizeBilling(values.billing_status),
+                created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit
             };
             await upsertQuote(payload as any, t);
@@ -1090,7 +1101,7 @@ export default function QuotesPage() {
         const sessionRate = getSessionExchangeRate();
         setExchangeRate(sessionRate);
 
-        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
+        quoteItemForm.reset({ quote_id: selectedQuote.id, service_id: '', service_name: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
         setIsQuoteItemDialogOpen(true);
     };
 
@@ -1107,6 +1118,7 @@ export default function QuotesPage() {
             id: item.id,
             quote_id: selectedQuote.id,
             service_id: String(item.service_id),
+            service_name: item.service_name || '',
             quantity: item.quantity,
             unit_price: item.unit_price,
             total: item.total,
@@ -1738,8 +1750,8 @@ export default function QuotesPage() {
                                                 <ResizableSheet
                                                     open={!!selectedInvoice}
                                                     onOpenChange={(open) => { if (!open) closeInvoiceDetails(); }}
-                                                    defaultWidth={720}
-                                                    minWidth={560}
+                                                    defaultWidth={820}
+                                                    minWidth={640}
                                                     maxWidth={1100}
                                                     storageKey="sales-quotes-invoice-detail-width"
                                                 >
@@ -1759,7 +1771,7 @@ export default function QuotesPage() {
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.status')}</p><Badge variant="outline" className="capitalize">{tInvoiceStatus(selectedInvoice.status.toLowerCase())}</Badge></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.paymentStatus')}</p><Badge variant="secondary" className="capitalize">{selectedInvoice.payment_status ? tInvoiceStatus(selectedInvoice.payment_status.toLowerCase()) : ''}</Badge></div>
-                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDateTime(selectedInvoice.createdAt)}</p></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDisplayDate(selectedInvoice.createdAt)}</p></div>
                                                                 </div>
                                                                 {selectedInvoice.notes && <div className="rounded-lg border border-border p-3 text-sm whitespace-pre-wrap">{selectedInvoice.notes}</div>}
                                                                 <div className="flex items-center justify-end">
@@ -1809,7 +1821,7 @@ export default function QuotesPage() {
                                                             </SheetHeader>
                                                             <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 text-sm">
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{selectedPayment.payment_date}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.transaction_type')}</p><Badge variant="secondary" className="capitalize">{selectedPayment.transaction_type}</Badge></div>
@@ -1917,62 +1929,59 @@ export default function QuotesPage() {
                                         <AlertDescription>{quoteSubmissionError}</AlertDescription>
                                     </Alert>
                                 )}
-                                <FormField
-                                    control={quoteForm.control}
-                                    name="user_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('quoteDialog.user')}</FormLabel>
-                                            <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command shouldFilter={false}>
-                                                        <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
-                                                        <CommandList>
-                                                            {isLoadingUsers ? (
-                                                                <CommandEmpty>Searching...</CommandEmpty>
-                                                            ) : (
-                                                                <>
-                                                                    <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {allUsers.map((user) => (
-                                                                            <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
-                                                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                {user.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </>
-                                                            )}
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <FormField
                                         control={quoteForm.control}
-                                        name="total"
+                                        name="user_id"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>{t('quoteDialog.total')}</FormLabel>
+                                                <FormLabel>{t('quoteDialog.user')}</FormLabel>
+                                                <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
+                                                                {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
+                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                        <Command shouldFilter={false}>
+                                                            <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
+                                                            <CommandList>
+                                                                {isLoadingUsers ? (
+                                                                    <CommandEmpty>Searching...</CommandEmpty>
+                                                                ) : (
+                                                                    <>
+                                                                        <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
+                                                                        <CommandGroup>
+                                                                            {allUsers.map((user) => (
+                                                                                <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
+                                                                                    <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
+                                                                                    {user.name}
+                                                                                </CommandItem>
+                                                                            ))}
+                                                                        </CommandGroup>
+                                                                    </>
+                                                                )}
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="created_at"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.createdAt')}</FormLabel>
                                                 <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        placeholder={t('placeholders.total')}
-                                                        {...field}
-                                                        readOnly
-                                                        className="bg-muted cursor-not-allowed"
+                                                    <DatePickerInput
+                                                        value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                                                        onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
                                                     />
                                                 </FormControl>
                                                 <FormMessage />
@@ -1996,50 +2005,31 @@ export default function QuotesPage() {
                                             </FormItem>
                                         )}
                                     />
-                                    <FormField
-                                        control={quoteForm.control}
-                                        name="exchange_rate"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        step="0.01"
-                                                        placeholder={t('placeholders.exchangeRate')}
-                                                        value={field.value ? Number(field.value).toFixed(2) : ''}
-                                                        disabled={isClinicCurrency}
-                                                        onChange={(e) => {
-                                                            if (isClinicCurrency) {
-                                                                field.onChange(1);
-                                                            } else {
-                                                                field.onChange(parseFloat(e.target.value) || 0);
-                                                            }
-                                                        }}
-                                                    />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
                                 </div>
-                                <FormField
-                                    control={quoteForm.control}
-                                    name="notes"
-                                    render={({ field }) => (
-                                        <FormItem className="md:col-span-3">
-                                            <FormLabel>{t('quoteDialog.notes')}</FormLabel>
-                                            <FormControl>
-                                                <Textarea
-                                                    placeholder={t('quoteDialog.notesPlaceholder')}
-                                                    {...field}
-                                                    value={field.value || ''}
-                                                />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                <input type="hidden" {...quoteForm.register('total')} />
+                                {!isClinicCurrency && (
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <FormField
+                                            control={quoteForm.control}
+                                            name="exchange_rate"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>{t('quoteDialog.exchangeRate')}</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            placeholder={t('placeholders.exchangeRate')}
+                                                            value={field.value ? Number(field.value).toFixed(2) : ''}
+                                                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                )}
                                 <Card>
                                     <CardHeader>
                                         <div className="flex justify-between items-center">
@@ -2065,11 +2055,13 @@ export default function QuotesPage() {
                                                                 <ServiceSelector
                                                                     isSales={true}
                                                                     value={field.value}
+                                                                    selectedServiceName={quoteForm.getValues(`items.${index}.service_name`) || undefined}
                                                                     onValueChange={(serviceId, service) => {
                                                                         field.onChange(serviceId);
                                                                         if (service) {
                                                                             const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                             const servicePrice = Number(service.price);
+                                                                            quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                             quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                             quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                         }
@@ -2160,12 +2152,14 @@ export default function QuotesPage() {
                                                                         <FormItem>
                                                                             <ServiceSelector
                                                                                 isSales={true}
-                                                                            value={field.value}
+                                                                                value={field.value}
+                                                                                selectedServiceName={quoteForm.getValues(`items.${index}.service_name`) || undefined}
                                                                             onValueChange={(serviceId, service) => {
                                                                                 field.onChange(serviceId);
                                                                                 if (service) {
                                                                                     const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
                                                                                     const servicePrice = Number(service.price);
+                                                                                    quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                                     quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                                     quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                                 }
@@ -2247,6 +2241,23 @@ export default function QuotesPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
+                                <FormField
+                                    control={quoteForm.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.notes')}</FormLabel>
+                                            <FormControl>
+                                                <Textarea
+                                                    placeholder={t('quoteDialog.notesPlaceholder')}
+                                                    {...field}
+                                                    value={field.value || ''}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)} disabled={isSubmittingQuote}>{t('quoteDialog.cancel')}</Button>
@@ -2300,11 +2311,13 @@ export default function QuotesPage() {
                                             <ServiceSelector
                                                 isSales={true}
                                                 value={field.value}
+                                                selectedServiceName={quoteItemForm.getValues('service_name') || undefined}
                                                 onValueChange={(serviceId, service) => {
                                                     field.onChange(serviceId);
                                                     if (service) {
                                                         const quantity = quoteItemForm.getValues('quantity') || 1;
                                                         const servicePrice = Number(service.price);
+                                                        quoteItemForm.setValue('service_name', service.name);
                                                         quoteItemForm.setValue('unit_price', servicePrice);
                                                         quoteItemForm.setValue('total', servicePrice * quantity);
                                                     }

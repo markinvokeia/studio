@@ -1,0 +1,419 @@
+{
+  "name": "Reportes - Bloque Ingresos",
+  "nodes": [
+    {
+      "id": "wh-ingresos-periodo",
+      "name": "GET /reports/ingresos-periodo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/ingresos-periodo",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-ingresos-periodo",
+      "name": "Query Ingresos Periodo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  DATE_TRUNC($3, p.payment_date) AS periodo,\n  p.source_currency AS currency,\n  SUM(p.amount_applied) AS total_cobrado,\n  COUNT(p.id) AS num_cobros,\n  AVG(p.amount_applied) AS promedio\nFROM payments p\nWHERE p.payment_date::date BETWEEN $1::date AND $2::date\n  AND p.is_sales = true\n  AND p.status = 'completed'\n  AND ($4::varchar IS NULL OR p.source_currency = $4::varchar)\nGROUP BY periodo, currency\nORDER BY periodo DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.group_by || 'day',\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-ingresos-build",
+      "name": "Build Ingresos Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst total = rows.reduce((s, r) => s + Number(r.total_cobrado || 0), 0);\nconst numCobros = rows.reduce((s, r) => s + Number(r.num_cobros || 0), 0);\nconst totales = rows.map(r => Number(r.total_cobrado || 0));\nconst mejor = totales.length ? Math.max(...totales) : 0;\nconst mejorRow = rows.find(r => Number(r.total_cobrado) === mejor);\nconst promedio = rows.length ? total / rows.length : 0;\nreturn [{ json: {\n  summary: { total_cobrado: total, num_cobros: numCobros, promedio_periodo: promedio, mejor_periodo: mejorRow?.periodo?.substring(0, 10) || '' },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-ingresos-periodo",
+      "name": "Respond Ingresos Periodo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-fact-cobranza",
+      "name": "GET /reports/facturacion-cobranza",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/facturacion-cobranza",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-fact-cobranza",
+      "name": "Query Facturacion Cobranza",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  TO_CHAR(i.created_at, 'YYYY-MM') AS mes,\n  i.currency,\n  SUM(i.total) AS total_facturado,\n  SUM(i.paid_amount) AS total_cobrado,\n  SUM(i.total - i.paid_amount) AS pendiente,\n  ROUND(SUM(i.paid_amount) / NULLIF(SUM(i.total), 0) * 100, 1) AS pct_cobrado\nFROM invoices i\nWHERE i.is_sales = true\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::varchar IS NULL OR i.currency = $3::varchar)\nGROUP BY mes, i.currency\nORDER BY mes DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-fact-build",
+      "name": "Build Facturacion Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json);\nconst totalFact = rows.reduce((s, r) => s + Number(r.total_facturado || 0), 0);\nconst totalCobr = rows.reduce((s, r) => s + Number(r.total_cobrado || 0), 0);\nconst pendiente = rows.reduce((s, r) => s + Number(r.pendiente || 0), 0);\nconst pct = totalFact ? totalCobr / totalFact * 100 : 0;\nreturn [{ json: {\n  summary: { total_facturado: totalFact, total_cobrado: totalCobr, pendiente, pct_cobrado: pct },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-fact-cobranza",
+      "name": "Respond Facturacion Cobranza",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-deudores",
+      "name": "GET /reports/deudores",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        500
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/deudores",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-deudores",
+      "name": "Query Deudores",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        500
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH invoice_aging AS (\n  SELECT\n    i.user_id,\n    SUM(i.total - i.paid_amount) AS total_debt,\n    SUM(CASE WHEN CURRENT_DATE - i.created_at::date BETWEEN 0 AND 30\n             THEN i.total - i.paid_amount ELSE 0 END) AS bucket_0_30,\n    SUM(CASE WHEN CURRENT_DATE - i.created_at::date BETWEEN 31 AND 60\n             THEN i.total - i.paid_amount ELSE 0 END) AS bucket_31_60,\n    SUM(CASE WHEN CURRENT_DATE - i.created_at::date BETWEEN 61 AND 90\n             THEN i.total - i.paid_amount ELSE 0 END) AS bucket_61_90,\n    SUM(CASE WHEN CURRENT_DATE - i.created_at::date > 90\n             THEN i.total - i.paid_amount ELSE 0 END) AS bucket_90_plus\n  FROM invoices i\n  WHERE i.is_sales = true\n    AND i.status = 'booked'\n    AND i.currency = $1::varchar\n    AND i.payment_state IN ('unpaid', 'partially_paid')\n  GROUP BY i.user_id\n  HAVING SUM(i.total - i.paid_amount) > COALESCE($2::numeric, 0)\n    AND (\n      $3::text = 'all'\n      OR ($3::text = '0-30'  AND SUM(CASE WHEN CURRENT_DATE - i.created_at::date BETWEEN 0  AND 30 THEN i.total - i.paid_amount ELSE 0 END) > 0)\n      OR ($3::text = '31-60' AND SUM(CASE WHEN CURRENT_DATE - i.created_at::date BETWEEN 31 AND 60 THEN i.total - i.paid_amount ELSE 0 END) > 0)\n      OR ($3::text = '61-90' AND SUM(CASE WHEN CURRENT_DATE - i.created_at::date BETWEEN 61 AND 90 THEN i.total - i.paid_amount ELSE 0 END) > 0)\n      OR ($3::text = '+90'   AND SUM(CASE WHEN CURRENT_DATE - i.created_at::date > 90 THEN i.total - i.paid_amount ELSE 0 END) > 0)\n    )\n)\nSELECT\n  u.id,\n  u.name AS patient_name,\n  u.phone_number,\n  u.email,\n  ia.total_debt,\n  ia.bucket_0_30,\n  ia.bucket_31_60,\n  ia.bucket_61_90,\n  ia.bucket_90_plus\nFROM invoice_aging ia\nJOIN users u ON u.id = ia.user_id\nORDER BY ia.total_debt DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.currency || 'UYU',\n  $input.first().json.query?.min_amount ? Number($input.first().json.query.min_amount) : null,\n  $input.first().json.query?.bucket || 'all'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-deudores-build",
+      "name": "Build Deudores Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        500
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).map(r => ({\n  ...r,\n  total_debt:     Number(r.total_debt     || 0),\n  bucket_0_30:   Number(r.bucket_0_30   || 0),\n  bucket_31_60:  Number(r.bucket_31_60  || 0),\n  bucket_61_90:  Number(r.bucket_61_90  || 0),\n  bucket_90_plus: Number(r.bucket_90_plus || 0),\n}));\nconst totalDeuda  = rows.reduce((s, r) => s + r.total_debt,    0);\nconst bucket030   = rows.reduce((s, r) => s + r.bucket_0_30,   0);\nconst bucket3160  = rows.reduce((s, r) => s + r.bucket_31_60,  0);\nconst bucket6190  = rows.reduce((s, r) => s + r.bucket_61_90,  0);\nconst bucket90    = rows.reduce((s, r) => s + r.bucket_90_plus, 0);\nreturn [{ json: {\n  summary: { total_deuda: totalDeuda, num_deudores: rows.length, bucket_0_30: bucket030, bucket_31_60: bucket3160, bucket_61_90: bucket6190, bucket_90_plus: bucket90 },\n  rows\n} }];"
+      }
+    },
+    {
+      "id": "resp-deudores",
+      "name": "Respond Deudores",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        500
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-servicios",
+      "name": "GET /reports/servicios",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        700
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/servicios",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-servicios",
+      "name": "Query Servicios",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        700
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH billing AS (\n  SELECT\n    ii.service_id,\n    COUNT(DISTINCT i.id)             AS num_facturas,\n    COALESCE(SUM(ii.total), 0)       AS total_facturado,\n    COALESCE(AVG(ii.unit_price), 0)  AS precio_promedio\n  FROM invoice_items ii\n  JOIN invoices i ON i.id = ii.invoice_id\n    AND i.is_sales = true\n    AND i.status = 'booked'\n    AND i.created_at::date BETWEEN $1::date AND $2::date\n    AND ($4::varchar IS NULL OR i.currency = $4::varchar)\n  WHERE ii.service_id IS NOT NULL\n  GROUP BY ii.service_id\n),\nquoting AS (\n  SELECT\n    qi.service_id,\n    COUNT(DISTINCT q.id) AS num_presupuestos\n  FROM quote_items qi\n  JOIN quotes q ON q.id = qi.quote_id\n    AND q.is_sales = true\n    AND q.created_at::date BETWEEN $1::date AND $2::date\n    AND ($4::varchar IS NULL OR q.currency = $4::varchar)\n  WHERE qi.service_id IS NOT NULL\n  GROUP BY qi.service_id\n),\nsesiones AS (\n  SELECT\n    asc2.service_id,\n    COUNT(DISTINCT asc2.appointment_id) AS num_sesiones\n  FROM appointment_service_catalog asc2\n  JOIN appointments a ON a.id = asc2.appointment_id\n    AND a.start_datetime::date BETWEEN $1::date AND $2::date\n    AND a.status IN ('completed', 'confirmed')\n  GROUP BY asc2.service_id\n),\ntratamientos AS (\n  SELECT\n    ts.service_id,\n    COUNT(DISTINCT ts.id) AS num_tratamientos\n  FROM treatment_sequences ts\n  WHERE ts.started_at::date BETWEEN $1::date AND $2::date\n  GROUP BY ts.service_id\n)\nSELECT\n  sc.id,\n  sc.name                               AS service_name,\n  COALESCE(sc.category, 'Sin categoría') AS category,\n  COALESCE(sc.service_type, 'single')    AS service_type,\n  COALESCE(b.num_facturas,      0)::int  AS num_facturas,\n  COALESCE(b.total_facturado,   0)       AS total_facturado,\n  COALESCE(b.precio_promedio,   0)       AS precio_promedio,\n  COALESCE(q.num_presupuestos,  0)::int  AS num_presupuestos,\n  COALESCE(s.num_sesiones,      0)::int  AS num_sesiones,\n  COALESCE(t.num_tratamientos,  0)::int  AS num_tratamientos\nFROM service_catalog sc\nLEFT JOIN billing     b ON b.service_id = sc.id\nLEFT JOIN quoting     q ON q.service_id = sc.id\nLEFT JOIN sesiones    s ON s.service_id = sc.id\nLEFT JOIN tratamientos t ON t.service_id = sc.id\nWHERE (\n  COALESCE(b.num_facturas,    0) > 0\n  OR COALESCE(q.num_presupuestos, 0) > 0\n  OR COALESCE(s.num_sesiones,     0) > 0\n  OR COALESCE(t.num_tratamientos, 0) > 0\n)\n  AND (\n    $3::text = 'all'\n    OR ($3::text = 'flow'   AND sc.service_type = 'workflow')\n    OR ($3::text = 'single' AND sc.service_type = 'single')\n  )\nORDER BY total_facturado DESC NULLS LAST, num_sesiones DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.tipo || 'all',\n  $input.first().json.query?.currency || 'UYU'\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-servicios-build",
+      "name": "Build Servicios Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        700
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).map(r => ({\n  ...r,\n  is_flow:          r.service_type === 'workflow',\n  num_facturas:     Number(r.num_facturas     || 0),\n  total_facturado:  Number(r.total_facturado  || 0),\n  precio_promedio:  Number(r.precio_promedio  || 0),\n  num_presupuestos: Number(r.num_presupuestos || 0),\n  num_sesiones:     Number(r.num_sesiones     || 0),\n  num_tratamientos: Number(r.num_tratamientos || 0),\n}));\nconst total_facturado = rows.reduce((s, r) => s + r.total_facturado, 0);\nconst total_sesiones  = rows.reduce((s, r) => s + r.num_sesiones,    0);\nconst precio_promedio = rows.length ? rows.reduce((s, r) => s + r.precio_promedio, 0) / rows.length : 0;\nconst servicio_top    = rows[0]?.service_name || '';\nconst rowsWithPct = rows.map(r => ({\n  ...r,\n  pct_total: total_facturado ? r.total_facturado / total_facturado * 100 : 0,\n}));\nreturn [{ json: {\n  summary: { total_servicios: rows.length, total_facturado, total_sesiones, precio_promedio, servicio_top },\n  rows: rowsWithPct\n} }];"
+      }
+    },
+    {
+      "id": "resp-servicios",
+      "name": "Respond Servicios",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        760,
+        700
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/ingresos-periodo": {
+      "main": [
+        [
+          {
+            "node": "Query Ingresos Periodo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ingresos Periodo": {
+      "main": [
+        [
+          {
+            "node": "Build Ingresos Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ingresos Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Ingresos Periodo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/facturacion-cobranza": {
+      "main": [
+        [
+          {
+            "node": "Query Facturacion Cobranza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Facturacion Cobranza": {
+      "main": [
+        [
+          {
+            "node": "Build Facturacion Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Facturacion Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Facturacion Cobranza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/deudores": {
+      "main": [
+        [
+          {
+            "node": "Query Deudores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Deudores": {
+      "main": [
+        [
+          {
+            "node": "Build Deudores Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Deudores Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Deudores",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /reports/servicios": {
+      "main": [
+        [
+          {
+            "node": "Query Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Servicios": {
+      "main": [
+        [
+          {
+            "node": "Build Servicios Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Servicios Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

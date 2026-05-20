@@ -1,0 +1,192 @@
+{
+  "name": "Sticky Notes - Upsert",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "sticky-notes/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Extrae y valida los campos del body\nconst body = $input.first().json.body || $input.first().json;\n\nconst id         = (body.id          || '').toString().trim();\nconst text       = (body.text        || '').toString().trim();\nconst color      = (body.color       || 'yellow').toString().trim();\nconst created_by = (body.created_by  || '').toString().trim();\n\nconst VALID_COLORS = ['yellow', 'pink', 'blue', 'green', 'purple', 'orange'];\n\nif (!text) {\n  throw new Error('El campo text es requerido');\n}\nif (!created_by) {\n  throw new Error('El campo created_by es requerido');\n}\nif (!VALID_COLORS.includes(color)) {\n  throw new Error(`Color inválido: ${color}. Valores permitidos: ${VALID_COLORS.join(', ')}`);\n}\n\nreturn [{ json: {\n  id,\n  text,\n  color,\n  created_by,\n  is_update: id !== ''\n} }];"
+      }
+    },
+    {
+      "id": "node-if-update",
+      "name": "¿Es Actualización?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [540, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_update }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-pg-update",
+      "name": "Actualizar Nota",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [760, 160],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE sticky_notes\nSET\n  text       = $2,\n  color      = $3,\n  updated_at = CURRENT_TIMESTAMP\nWHERE id         = $1::uuid\n  AND created_by = $4::uuid\n  AND status    != 'deleted'\nRETURNING\n  id,\n  text,\n  color,\n  created_by,\n  created_at,\n  updated_at,\n  status",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.id, $json.text, $json.color, $json.created_by ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check-update",
+      "name": "Verificar Actualización",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 160],
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\n\nif (result.error) {\n  throw new Error('Error al actualizar: ' + (result.error?.message || String(result.error)));\n}\nif (!result.id) {\n  throw new Error('Nota no encontrada o no pertenece al usuario');\n}\n\nreturn [{ json: result }];"
+      }
+    },
+    {
+      "id": "node-respond-update",
+      "name": "Responder Actualización",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 160],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "node-pg-insert",
+      "name": "Insertar Nota",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [760, 440],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO sticky_notes (text, color, created_by)\nVALUES ($1, $2, $3::uuid)\nRETURNING\n  id,\n  text,\n  color,\n  created_by,\n  created_at,\n  updated_at,\n  status",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.text, $json.color, $json.created_by ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check-insert",
+      "name": "Verificar Inserción",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 440],
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\n\nif (result.error) {\n  throw new Error('Error al insertar: ' + (result.error?.message || String(result.error)));\n}\nif (!result.id) {\n  throw new Error('No se pudo crear la nota');\n}\n\nreturn [{ json: result }];"
+      }
+    },
+    {
+      "id": "node-respond-insert",
+      "name": "Responder Inserción",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1200, 440],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validar Datos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [{ "node": "¿Es Actualización?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Es Actualización?": {
+      "main": [
+        [{ "node": "Actualizar Nota", "type": "main", "index": 0 }],
+        [{ "node": "Insertar Nota",   "type": "main", "index": 0 }]
+      ]
+    },
+    "Actualizar Nota": {
+      "main": [
+        [{ "node": "Verificar Actualización", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verificar Actualización": {
+      "main": [
+        [{ "node": "Responder Actualización", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insertar Nota": {
+      "main": [
+        [{ "node": "Verificar Inserción", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verificar Inserción": {
+      "main": [
+        [{ "node": "Responder Inserción", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión.\n2. En los nodos 'Actualizar Nota' e 'Insertar Nota', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/sticky-notes/upsert\n\nPAYLOAD PARA CREAR:\n{\n  \"text\": \"Texto de la nota\",\n  \"color\": \"yellow\",\n  \"created_by\": \"uuid-del-usuario\"\n}\n\nPAYLOAD PARA ACTUALIZAR (incluir id):\n{\n  \"id\": \"uuid-de-la-nota\",\n  \"text\": \"Texto actualizado\",\n  \"color\": \"blue\",\n  \"created_by\": \"uuid-del-usuario\"\n}\n\nCOLORES VÁLIDOS: yellow, pink, blue, green, purple, orange\n\nRESPUESTA (create o update exitoso):\n{\n  \"id\": \"uuid\",\n  \"text\": \"...\",\n  \"color\": \"yellow\",\n  \"created_by\": \"uuid\",\n  \"created_at\": \"2026-05-07T12:00:00\",\n  \"updated_at\": null,\n  \"status\": \"active\"\n}\n\nNOTA DE SEGURIDAD: El UPDATE verifica que la nota pertenezca al created_by recibido.\nPara mayor seguridad, validar created_by contra el JWT del header Authorization.\n\nTABLA REQUERIDA: sticky_notes (ver changelog_20260507_1200.xml)"
+  }
+}

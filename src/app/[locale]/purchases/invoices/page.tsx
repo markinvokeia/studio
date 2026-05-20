@@ -28,7 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
 import { CreditNote, Invoice, InvoiceAllocation, InvoiceItem, Payment, Service } from '@/lib/types';
-import { formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -41,6 +41,7 @@ import * as z from 'zod';
 const invoiceItemSchema = z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Service name is required'),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, 'Quantity must be at least 1'),
     unit_price: z.coerce.number().min(0, 'Unit price cannot be negative'),
 });
@@ -72,6 +73,7 @@ async function getInvoices(type: string = 'all'): Promise<Invoice[]> {
             type: apiInvoice.type || 'invoice',
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
+            due_date: apiInvoice.due_date || null,
             currency: apiInvoice.currency || 'USD',
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
@@ -535,7 +537,6 @@ function InvoicesPageContent() {
         if (!selectedInvoice) return;
         try {
             const payload = {
-                ...data,
                 id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
                 invoice_id: parseInt(selectedInvoice.id, 10),
                 service_id: parseInt(data.service_id, 10),
@@ -698,8 +699,12 @@ function InvoicesPageContent() {
                                                 <span className="text-sm">{selectedInvoice.user_name || '-'}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{t('columns.dueDate')}:</span>
+                                                <span className="text-sm">{selectedInvoice.due_date ? formatDisplayDate(selectedInvoice.due_date) : '-'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.createdAt')}:</span>
-                                                <span className="text-sm">{formatDateTime(selectedInvoice.createdAt)}</span>
+                                                <span className="text-sm">{formatDisplayDate(selectedInvoice.createdAt)}</span>
                                             </div>
                                             {selectedInvoice.notes && (
                                                 <div className="flex items-center gap-2 w-full mt-1">
@@ -790,7 +795,7 @@ function InvoicesPageContent() {
                                                             </SheetHeader>
                                                             <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDateTime(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('transaction_type')}</p><Badge variant="secondary" className="capitalize">{tPaymentTransactionType(selectedPayment.transaction_type || 'direct_payment')}</Badge></div>
@@ -1025,6 +1030,7 @@ const ItemFormDialog = ({
                 itemForm.reset({
                     id: String(editingItem.id),
                     service_id: String(editingItem.service_id),
+                    service_name: editingItem.service_name || '',
                     quantity: editingItem.quantity,
                     unit_price: editingItem.unit_price,
                 });
@@ -1032,6 +1038,7 @@ const ItemFormDialog = ({
                 itemForm.reset({
                     id: undefined,
                     service_id: '',
+                    service_name: '',
                     quantity: 1,
                     unit_price: 0
                 });
@@ -1042,6 +1049,7 @@ const ItemFormDialog = ({
     const handleServiceChange = (serviceId: string, service?: Service) => {
         itemForm.setValue('service_id', serviceId);
         if (service) {
+            itemForm.setValue('service_name', service.name);
             itemForm.setValue('unit_price', service.price || 0);
         }
     };
@@ -1071,6 +1079,7 @@ const ItemFormDialog = ({
                                         <ServiceSelector
                                             isSales={false}
                                             value={field.value ?? ''}
+                                            selectedServiceName={itemForm.getValues('service_name') || editingItem?.service_name || undefined}
                                             onValueChange={handleServiceChange}
                                             placeholder={t('InvoiceItemsTable.form.selectService') || 'Buscar servicio...'}
                                             triggerText={t('InvoiceItemsTable.form.selectService') || 'Seleccionar servicio'}

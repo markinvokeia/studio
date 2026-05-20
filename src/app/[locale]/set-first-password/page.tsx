@@ -97,13 +97,16 @@ export default function SetFirstPasswordPage() {
 
         } catch (err: any) {
             let errorMessage = t('errors.generic');
-            if (err.message.includes('400')) {
-                errorMessage = t('errors.invalidPassword');
-            } else if (err.message.includes('401')) {
+            if (err.status === 400) {
+                const errors: string[] = err.data?.errors;
+                errorMessage = Array.isArray(errors) && errors.length > 0
+                    ? errors.join(' ')
+                    : err.data?.message || t('errors.invalidPassword');
+            } else if (err.status === 401) {
                 errorMessage = t('errors.invalidToken');
-            } else if (err.message.includes('403')) {
+            } else if (err.status === 403) {
                 errorMessage = t('errors.alreadySet');
-            } else if (err.message.includes('500')) {
+            } else if (err.status === 500) {
                 errorMessage = t('errors.serverError');
             }
             setError(errorMessage);

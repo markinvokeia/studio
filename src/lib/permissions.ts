@@ -1,11 +1,35 @@
 import { NavItem } from '@/config/nav';
+import { DASHBOARD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { DOCTOR_WORKSPACE_ROLES } from '@/constants/roles';
+
+function cleanSeparators(items: NavItem[]): NavItem[] {
+  const result: NavItem[] = [];
+  for (const item of items) {
+    if (item.isSeparator) {
+      // Only add separator if there's at least one non-separator item before it
+      // (prevents leading separators and consecutive separators)
+      if (result.length > 0 && !result[result.length - 1].isSeparator) {
+        result.push(item);
+      }
+    } else {
+      result.push(item);
+    }
+  }
+  // Remove trailing separator if it's the last item
+  while (result.length > 0 && result[result.length - 1].isSeparator) {
+    result.pop();
+  }
+  return result;
+}
 
 export function filterNavByPermissions(
   items: NavItem[],
   userPermissions: string[],
   userRoles: string[]
 ): NavItem[] {
-  return items.filter(item => {
+  const filtered = items.filter(item => {
+    if (item.isSeparator) return true;
+
     if (item.requiredPermission && !userPermissions.includes(item.requiredPermission)) {
       return false;
     }
@@ -24,6 +48,12 @@ export function filterNavByPermissions(
       return false;
     }
 
+    if (item.requiredAnyRole) {
+      const lowerRoles = userRoles.map((r) => r.toLowerCase());
+      const hasAnyRole = item.requiredAnyRole.some((r) => lowerRoles.includes(r.toLowerCase()));
+      if (!hasAnyRole) return false;
+    }
+
     if (item.items && item.items.length > 0) {
       const filteredItems = filterNavByPermissions(item.items, userPermissions, userRoles);
       if (filteredItems.length === 0) return false;
@@ -32,4 +62,18 @@ export function filterNavByPermissions(
 
     return true;
   });
+
+  return cleanSeparators(filtered);
+}
+
+export function hasDoctorWorkspaceAccess(userPermissions: string[]): boolean {
+  return userPermissions.includes(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS);
+}
+
+export function canManageDoctorWorkspaceSessions(userPermissions: string[], userRoles: string[] = []): boolean {
+  if (userPermissions.includes(DASHBOARD_PERMISSIONS.DOCTOR_WORKSPACE_ACCESS)) return true;
+  const hasWritePermission = [TIMELINE_PERMISSIONS.CREATE, TIMELINE_PERMISSIONS.UPDATE].some(p => userPermissions.includes(p));
+  const lowerUserRoles = userRoles.map(r => r.toLowerCase());
+  const hasDoctorRole = DOCTOR_WORKSPACE_ROLES.some(role => lowerUserRoles.includes(role.toLowerCase()));
+  return hasWritePermission || hasDoctorRole;
 }

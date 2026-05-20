@@ -1,0 +1,147 @@
+{
+  "name": "Reportes - Bloque Gastos",
+  "nodes": [
+    {
+      "id": "wh-gastos",
+      "name": "GET /reports/gastos-operativos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "reports/gastos-operativos",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "pg-misc",
+      "name": "Query Misc Expenses",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  mt.id,\n  mt.doc_no,\n  mt.transaction_date::text AS date,\n  mc.name AS category_name,\n  mc.id AS category_id,\n  COALESCE(mt.beneficiary, 'Sin beneficiario') AS entity_name,\n  mt.amount,\n  mt.currency,\n  mt.status,\n  COALESCE(pm.name, 'Sin método') AS payment_method,\n  mt.description AS notes\nFROM miscellaneous_transactions mt\nJOIN miscellaneous_categories mc ON mc.id = mt.category_id\n  AND mc.category_type = 'expense'\nLEFT JOIN payment_methods pm ON pm.id = mt.payment_method_id\nWHERE mt.transaction_date BETWEEN $1::date AND $2::date\n  AND ($3::integer IS NULL OR mt.category_id = $3::integer)\n  AND ($4::varchar IS NULL OR mt.currency = $4::varchar)\nORDER BY mt.transaction_date DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $input.first().json.query?.date_from,\n  $input.first().json.query?.date_to,\n  $input.first().json.query?.category_id ? Number($input.first().json.query.category_id) : null,\n  $input.first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "pg-invoices",
+      "name": "Query Supplier Invoices",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  i.id,\n  i.doc_no,\n  i.created_at::date::text AS date,\n  u.id::text AS supplier_id,\n  u.name AS supplier_name,\n  u.rut AS supplier_rut,\n  i.total,\n  i.paid_amount,\n  (i.total - i.paid_amount) AS pending_amount,\n  i.currency,\n  i.payment_state,\n  i.status AS invoice_status,\n  i.due_date::text AS due_date,\n  i.notes,\n  (\n    SELECT sc.name\n    FROM invoice_items ii\n    JOIN service_catalog sc ON sc.id = ii.service_id\n    WHERE ii.invoice_id = i.id\n    ORDER BY ii.total DESC\n    LIMIT 1\n  ) AS top_service\nFROM invoices i\nJOIN users u ON u.id = i.user_id\nWHERE i.is_sales = false\n  AND i.status != 'cancel'\n  AND i.created_at::date BETWEEN $1::date AND $2::date\n  AND ($3::uuid IS NULL OR i.user_id = $3::uuid)\n  AND ($4::varchar IS NULL OR i.currency = $4::varchar)\nORDER BY i.created_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $('GET /reports/gastos-operativos').first().json.query?.date_from,\n  $('GET /reports/gastos-operativos').first().json.query?.date_to,\n  $('GET /reports/gastos-operativos').first().json.query?.supplier_id || null,\n  $('GET /reports/gastos-operativos').first().json.query?.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-gastos-build",
+      "name": "Build Gastos Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const invoiceRows = $input.all().map(i => i.json);\nconst miscRows = $('Query Misc Expenses').all().map(i => i.json);\nconst activeMisc = miscRows.filter(r => r.status !== 'cancelled');\n\nconst totalMisc      = activeMisc.reduce((s, r) => s + Number(r.amount || 0), 0);\nconst totalFacturado = invoiceRows.reduce((s, r) => s + Number(r.total || 0), 0);\nconst totalPagado    = invoiceRows.reduce((s, r) => s + Number(r.paid_amount || 0), 0);\nconst totalDeuda     = invoiceRows.reduce((s, r) => s + Number(r.pending_amount || 0), 0);\n\n// by_category (misc)\nconst catMap = {};\nfor (const r of activeMisc) {\n  const cat = r.category_name || 'Sin categoría';\n  catMap[cat] = (catMap[cat] || 0) + Number(r.amount || 0);\n}\nconst by_category = Object.entries(catMap)\n  .sort((a, b) => b[1] - a[1])\n  .map(([category, amount]) => ({ category, amount, pct: totalMisc ? Number((amount / totalMisc * 100).toFixed(1)) : 0 }));\n\n// by_supplier (invoices)\nconst suppMap = {};\nfor (const r of invoiceRows) {\n  const key = r.supplier_id || r.supplier_name || 'desconocido';\n  if (!suppMap[key]) suppMap[key] = { supplier_id: r.supplier_id || '', supplier_name: r.supplier_name || 'Sin proveedor', rut: r.supplier_rut || null, total: 0, paid: 0, pending: 0, invoices: 0 };\n  suppMap[key].total   += Number(r.total || 0);\n  suppMap[key].paid    += Number(r.paid_amount || 0);\n  suppMap[key].pending += Number(r.pending_amount || 0);\n  suppMap[key].invoices++;\n}\nconst by_supplier = Object.values(suppMap).sort((a, b) => b.total - a.total);\nconst by_supplier_debt = [...by_supplier].filter(s => s.pending > 0).sort((a, b) => b.pending - a.pending);\n\n// by_period (stacked misc + facturas)\nconst periodMap = {};\nfor (const r of activeMisc) {\n  const p = (r.date || '').substring(0, 10);\n  if (!periodMap[p]) periodMap[p] = { misc: 0, facturas: 0 };\n  periodMap[p].misc += Number(r.amount || 0);\n}\nfor (const r of invoiceRows) {\n  const p = (r.date || '').substring(0, 10);\n  if (!periodMap[p]) periodMap[p] = { misc: 0, facturas: 0 };\n  periodMap[p].facturas += Number(r.total || 0);\n}\nconst by_period = Object.entries(periodMap)\n  .sort((a, b) => a[0].localeCompare(b[0]))\n  .map(([periodo, d]) => ({ periodo, misc: d.misc, facturas: d.facturas, total: d.misc + d.facturas }));\n\n// by_service (top services in supplier invoices)\nconst svcMap = {};\nfor (const r of invoiceRows) {\n  if (!r.top_service) continue;\n  svcMap[r.top_service] = (svcMap[r.top_service] || 0) + Number(r.total || 0);\n}\nconst by_service = Object.entries(svcMap)\n  .sort((a, b) => b[1] - a[1]).slice(0, 10)\n  .map(([service, amount]) => ({ service, amount }));\n\n// by_payment_state\nconst stateMap = {};\nfor (const r of invoiceRows) {\n  const st = r.payment_state || 'unpaid';\n  if (!stateMap[st]) stateMap[st] = { count: 0, total: 0 };\n  stateMap[st].count++;\n  stateMap[st].total += Number(r.total || 0);\n}\nconst by_payment_state = Object.entries(stateMap)\n  .map(([state, d]) => ({ state, ...d }));\n\nreturn [{ json: {\n  summary: {\n    total_misc: totalMisc, total_facturado: totalFacturado,\n    total_pagado: totalPagado, total_deuda: totalDeuda,\n    num_misc: miscRows.length, num_invoices: invoiceRows.length,\n    top_category: by_category[0]?.category || '',\n    top_supplier: by_supplier[0]?.supplier_name || '',\n    top_debtor:   by_supplier_debt[0]?.supplier_name || ''\n  },\n  by_category, by_supplier, by_supplier_debt, by_period, by_service, by_payment_state,\n  misc_rows: miscRows, invoice_rows: invoiceRows\n} }];"
+      }
+    },
+    {
+      "id": "resp-gastos",
+      "name": "Respond Gastos Operativos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        980,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /reports/gastos-operativos": {
+      "main": [
+        [
+          {
+            "node": "Query Misc Expenses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Misc Expenses": {
+      "main": [
+        [
+          {
+            "node": "Query Supplier Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Supplier Invoices": {
+      "main": [
+        [
+          {
+            "node": "Build Gastos Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Gastos Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Gastos Operativos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

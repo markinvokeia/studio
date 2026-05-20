@@ -10,6 +10,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { AlertNotificationsProvider } from '@/context/alert-notifications-context';
 import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
+import { NotificationsProvider } from '@/context/notifications-context';
 
 
 export const metadata: Metadata = {
@@ -46,9 +47,11 @@ return (
             }}
           />
           <TVDisplayProvider>
-            <PrivateRoute>
-              {children}
-            </PrivateRoute>
+            <NotificationsProvider>
+              <PrivateRoute>
+                {children}
+              </PrivateRoute>
+            </NotificationsProvider>
           </TVDisplayProvider>
         </NextIntlClientProvider>
         <Toaster />

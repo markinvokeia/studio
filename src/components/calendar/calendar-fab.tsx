@@ -5,9 +5,10 @@ import { Plus } from 'lucide-react';
 
 interface CalendarFabProps {
   onClick: () => void;
+  label: string;
 }
 
-export function CalendarFab({ onClick }: CalendarFabProps) {
+export function CalendarFab({ onClick, label }: CalendarFabProps) {
   return (
     <Button
       size="icon"
@@ -15,7 +16,7 @@ export function CalendarFab({ onClick }: CalendarFabProps) {
       onClick={onClick}
     >
       <Plus className="h-6 w-6" />
-      <span className="sr-only">Create appointment</span>
+      <span className="sr-only">{label}</span>
     </Button>
   );
 }

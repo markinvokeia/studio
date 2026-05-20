@@ -289,6 +289,10 @@ async function getPatientsData(pagination: PaginationState, columnFilters: Colum
 }
 
 export default function DashboardPage() {
+    return <LegacyDashboardPage />;
+}
+
+function LegacyDashboardPage() {
     const tStats = useTranslations('Stats');
     const tKpi = useTranslations('KpiRow');
     const t = useTranslations();

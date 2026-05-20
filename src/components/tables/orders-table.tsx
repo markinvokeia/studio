@@ -19,10 +19,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Order, Quote, User } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDate, formatDateTime, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
+import { addDays, parseISO } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, MoreHorizontal, ShoppingCart } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -32,7 +33,7 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Checkbox } from '../ui/checkbox';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
-import { DatePicker } from '../ui/date-picker';
+import { DatePicker, DatePickerInput } from '../ui/date-picker';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
@@ -90,13 +91,21 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
   }, [onRowSelectionChange]);
   const [invoiceDate, setInvoiceDate] = React.useState<Date | undefined>(undefined);
   React.useEffect(() => { setInvoiceDate(new Date()); }, []);
+  const [invoiceDueDate, setInvoiceDueDate] = React.useState<Date | undefined>(undefined);
   const [invoiceNotes, setInvoiceNotes] = React.useState('');
   const [invoiceSubmissionError, setInvoiceSubmissionError] = React.useState<string | null>(null);
   const locale = useLocale();
 
+  React.useEffect(() => {
+    if (!isInvoiceDialogOpen || !invoiceDate) return;
+    setInvoiceDueDate(addDays(invoiceDate, 30));
+  }, [invoiceDate, isInvoiceDialogOpen]);
+
   const handleInvoiceClick = (order: Order) => {
+    const createdDate = new Date();
     setSelectedOrderForInvoice(order);
-    setInvoiceDate(new Date());
+    setInvoiceDate(createdDate);
+    setInvoiceDueDate(addDays(createdDate, 30));
     setInvoiceNotes('');
     setInvoiceSubmissionError(null);
     setIsInvoiceDialogOpen(true);
@@ -111,7 +120,8 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
         is_sales: isSales,
         query: JSON.stringify({
           order_id: parseInt(selectedOrderForInvoice.id, 10),
-          invoice_date: invoiceDate.toISOString(),
+          invoice_date: toLocalISOString(invoiceDate),
+          due_date: invoiceDueDate ? toLocalISOString(invoiceDueDate) : undefined,
           is_sales: isSales,
           user_id: selectedOrderForInvoice.user_id,
           notes: invoiceNotes || '',
@@ -373,6 +383,14 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
               onChange={(e) => setInvoiceNotes(e.target.value)}
               placeholder={tOrdersPage('invoiceDialog.notesPlaceholder')}
               className="mt-2 min-h-[80px]"
+            />
+          </div>
+          <div className="px-6 pb-2">
+            <label className="text-sm font-medium">{tOrdersPage('invoiceDialog.dueDateLabel')}</label>
+            <DatePickerInput
+              value={invoiceDueDate ? formatDate(invoiceDueDate) : ''}
+              onChange={(iso) => setInvoiceDueDate(iso ? parseISO(iso) : undefined)}
+              className="mt-2"
             />
           </div>
           <DialogFooter>

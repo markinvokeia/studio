@@ -14,6 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
+import { DatePickerInput } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,8 +30,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
-import { cn, formatDateTime, getDocumentFileName } from '@/lib/utils';
-import { format } from 'date-fns';
+import { cn, formatDate, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
@@ -49,6 +50,7 @@ import * as z from 'zod';
 // ── Schemas ───────────────────────────────────────────────────────────────────
 const itemSchema = z.object({
   service_id: z.string().min(1, 'Selecciona un servicio'),
+  service_name: z.string().optional(),
   quantity: z.coerce.number().min(1, 'Mínimo 1'),
   unit_price: z.coerce.number().min(0, 'Precio inválido'),
 });
@@ -57,11 +59,14 @@ type ItemFormValues = z.infer<typeof itemSchema>;
 const invoiceEditSchema = z.object({
   type: z.enum(['invoice', 'credit_note']),
   currency: z.enum(['USD', 'UYU']),
+  created_at: z.date({ required_error: 'La fecha de factura es obligatoria' }),
+  due_date: z.date().optional(),
   is_historical: z.boolean().optional(),
   notes: z.string().optional(),
   items: z.array(z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, 'Selecciona un servicio'),
+    service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, 'Mínimo 1'),
     unit_price: z.coerce.number().min(0, 'Precio inválido'),
     total: z.coerce.number().optional(),
@@ -150,13 +155,13 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.dueDate')} />,
     cell: ({ row }) => {
       const dueDate = row.original.due_date;
-      return <div className="font-medium">{dueDate ? formatDateTime(dueDate) : '-'}</div>;
+      return <div className="font-medium">{dueDate ? formatDisplayDate(dueDate) : '-'}</div>;
     },
   },
   {
     accessorKey: 'createdAt',
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('InvoicesPage.columns.createdAt')} />,
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    cell: ({ row }) => formatDisplayDate(row.original.createdAt),
   },
 ];
 
@@ -486,6 +491,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     const mappedItems = invoiceItems.map(i => ({
       id: i.id,
       service_id: i.service_id,
+      service_name: i.service_name || '',
       quantity: i.quantity,
       unit_price: i.unit_price,
       total: i.total,
@@ -493,6 +499,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     invoiceEditForm.reset({
       type: (selectedInvoice.type as 'invoice' | 'credit_note') ?? 'invoice',
       currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'USD',
+      created_at: selectedInvoice.createdAt ? parseISO(formatDate(selectedInvoice.createdAt)) : new Date(),
+      due_date: selectedInvoice.due_date ? parseISO(formatDate(selectedInvoice.due_date)) : undefined,
       is_historical: selectedInvoice.is_historical ?? false,
       notes: selectedInvoice.notes ?? '',
       items: mappedItems,
@@ -510,6 +518,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       invoiceEditForm.setValue('items', invoiceItems.map(i => ({
         id: i.id,
         service_id: i.service_id,
+        service_name: i.service_name || '',
         quantity: i.quantity,
         unit_price: i.unit_price,
         total: i.total,
@@ -533,6 +542,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         total: calculatedTotal,
         order_id: selectedInvoice.order_id !== 'N/A' ? selectedInvoice.order_id : undefined,
         quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
+        created_at: values.created_at ? toLocalISOString(values.created_at) : undefined,
+        due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
         notes: values.notes || '',
         is_historical: values.is_historical ?? false,
         is_sales: isSales,
@@ -562,8 +573,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   React.useEffect(() => {
     if (!isItemDialogOpen) return;
     editingItem
-      ? itemForm.reset({ service_id: editingItem.service_id, quantity: editingItem.quantity, unit_price: editingItem.unit_price })
-      : itemForm.reset({ service_id: '', quantity: 1, unit_price: 0 });
+      ? itemForm.reset({ service_id: editingItem.service_id, service_name: editingItem.service_name || '', quantity: editingItem.quantity, unit_price: editingItem.unit_price })
+      : itemForm.reset({ service_id: '', service_name: '', quantity: 1, unit_price: 0 });
   }, [isItemDialogOpen, editingItem, itemForm]);
 
   const handleSubmitItem = async (values: ItemFormValues) => {
@@ -700,7 +711,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             renderCard={(invoice: Invoice, _isSelected: boolean) => (
               <DataCard isSelected={_isSelected}
                 title={invoice.doc_no || `INV-${invoice.id}`}
-                subtitle={formatDateTime(invoice.createdAt)}
+                subtitle={formatDisplayDate(invoice.createdAt)}
                 badge={
                   <div className="flex gap-1 flex-wrap justify-end">
                     <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
@@ -716,7 +727,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 fields={[
                   { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
                   { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
-                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDateTime(invoice.due_date) : '-' },
+                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
                 ]}
               />
             )}
@@ -783,8 +794,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                     <span className="text-sm">{selectedInvoice.quote_doc_no || '-'}</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{t('InvoicesPage.columns.dueDate')}:</span>
+                    <span className="text-sm">{selectedInvoice.due_date ? formatDisplayDate(selectedInvoice.due_date) : '-'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Creado:</span>
-                    <span className="text-sm">{formatDateTime(selectedInvoice.createdAt)}</span>
+                    <span className="text-sm">{formatDisplayDate(selectedInvoice.createdAt)}</span>
                   </div>
                   {selectedInvoice.notes && (
                     <div className="flex items-center gap-2 w-full mt-1">
@@ -886,14 +901,33 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   )} />
                 </div>
 
-                {/* Notes */}
-                <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
-                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                {/* Invoice date + Due date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={invoiceEditForm.control} name="created_at" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha de Factura</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={invoiceEditForm.control} name="due_date" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('InvoicesPage.columns.dueDate')}</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
 
                 {/* Is historical */}
                 <FormField control={invoiceEditForm.control} name="is_historical" render={({ field }) => (
@@ -949,11 +983,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                       <ServiceSelector
                                         isSales={isSales}
                                         value={field.value}
+                                        selectedServiceName={invoiceEditForm.getValues(`items.${index}.service_name`) || undefined}
                                         onValueChange={(serviceId, service) => {
                                           field.onChange(serviceId);
                                           if (service) {
                                             const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 1;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price), total: Number(service.price) * qty });
                                           }
                                         }}
                                         placeholder="Buscar servicio..."
@@ -1027,16 +1062,31 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       )}
                     </div>
                     {editInvoiceItemFields.length > 0 && (
-                      <div className="flex justify-end px-4 pb-3">
-                        <span className="text-sm font-semibold">
-                          Total: {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(
-                            editInvoiceItemFields.reduce((sum, _, i) => sum + (Number(invoiceEditForm.getValues(`items.${i}.total`)) || 0), 0)
-                          )}
-                        </span>
+                      <div className="mt-4 flex justify-end border-t border-dashed px-4 pb-4 pt-4">
+                        <div className="text-right">
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                            Total
+                          </p>
+                          <p className="text-2xl font-semibold">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedEditInvoiceCurrency || 'USD' }).format(
+                              editInvoiceItemFields.reduce((sum, _, i) => sum + (Number(invoiceEditForm.getValues(`items.${i}.total`)) || 0), 0)
+                            )}
+                          </p>
+                        </div>
                       </div>
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Notes */}
+                <FormField control={invoiceEditForm.control} name="notes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                    <FormControl><Textarea rows={2} placeholder="Observaciones..." {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>
@@ -1072,16 +1122,20 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Servicio</FormLabel>
-                    <Select onValueChange={(val) => {
-                      field.onChange(val);
-                      const svc = services.find(s => s.id === val);
-                      if (svc && !editingItem) itemForm.setValue('unit_price', svc.price);
-                    }} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Seleccionar servicio" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {services.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <ServiceSelector
+                      isSales={isSales}
+                      value={field.value}
+                      selectedServiceName={itemForm.getValues('service_name') || editingItem?.service_name || undefined}
+                      onValueChange={(serviceId, service) => {
+                        field.onChange(serviceId);
+                        if (service) {
+                          itemForm.setValue('service_name', service.name);
+                          if (!editingItem) itemForm.setValue('unit_price', service.price);
+                        }
+                      }}
+                      placeholder="Seleccionar servicio"
+                      triggerText="Seleccionar servicio"
+                    />
                     <FormMessage />
                   </FormItem>
                 )} />

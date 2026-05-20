@@ -61,34 +61,56 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
     },
     {
       accessorKey: 'id',
+      size: 96,
+      minSize: 80,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.id')} />
       ),
     },
     {
       accessorKey: 'service_name',
+      size: 280,
+      minSize: 220,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.service')} />
       ),
+      cell: ({ row }) => {
+        const serviceName = row.original.service_name || '-';
+        return (
+          <div className="max-w-[24rem] min-w-[14rem] truncate font-medium" title={serviceName}>
+            {serviceName}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'steps',
+      size: 220,
+      minSize: 180,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.step')} />
       ),
       cell: ({ row }) => {
         const steps = row.original.steps || row.original.step_id;
-        return <div className="font-medium">{steps || '-'}</div>;
+        return (
+          <div className="min-w-[11rem] max-w-[18rem] whitespace-normal break-words text-sm font-medium leading-5" title={steps || '-'}>
+            {steps || '-'}
+          </div>
+        );
       },
     },
     {
       accessorKey: 'quantity',
+      size: 96,
+      minSize: 80,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.quantity')} />
       ),
     },
     {
       accessorKey: 'unit_price',
+      size: 140,
+      minSize: 120,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.unitPrice')} />
       ),
@@ -103,6 +125,8 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
     },
     {
       accessorKey: 'total',
+      size: 140,
+      minSize: 120,
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('columns.total')} />
       ),
@@ -117,6 +141,8 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
     },
     {
       id: 'actions',
+      size: 64,
+      minSize: 64,
       cell: ({ row }) => {
         const item = row.original;
         return (

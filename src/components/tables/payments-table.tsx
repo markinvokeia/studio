@@ -10,7 +10,7 @@ import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Payment } from '@/lib/types';
-import { cn, formatDateTime } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { isPaymentEditable } from '@/services/payments-service';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { CreditCard, MoreHorizontal, Pencil, Printer, Send } from 'lucide-react';
@@ -120,7 +120,7 @@ const getColumns = (
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title={t('date')} />
       ),
-      cell: ({ row }) => formatDateTime(row.getValue('payment_date'))
+      cell: ({ row }) => formatDisplayDate(row.getValue('payment_date'))
     },
     {
       accessorKey: 'amount_applied',
@@ -354,7 +354,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
               title={row.doc_no || String(row.id)}
               subtitle={[
                 row.user_name,
-                formatDateTime(row.payment_date).split(' ')[0],
+                formatDisplayDate(row.payment_date),
                 row.amount_applied != null
                   ? [row.source_currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(Number(row.amount_applied)))].filter(Boolean).join(' ')
                   : undefined,

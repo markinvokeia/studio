@@ -115,7 +115,9 @@ export function ResizableSheet({
           'flex flex-col p-0 gap-0 overflow-hidden transition-[width] duration-150',
           side === 'right' ? 'border-l' : 'border-r'
         )}
-        style={(isFullscreen || isMobile) ? { width: '100vw', maxWidth: 'none' } : { width: `${width}px`, maxWidth: 'none' }}
+        style={(isFullscreen || isMobile)
+          ? { width: '100vw', maxWidth: 'none' }
+          : { width: `min(${width}px, calc(100vw - 2rem))`, maxWidth: 'none' }}
       >
         {/* Resize Handle — hidden in fullscreen or mobile */}
         {!isFullscreen && !isMobile && (

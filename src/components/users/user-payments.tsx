@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
-import { formatDateTime, getDocumentFileName } from '@/lib/utils';
+import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { isPaymentEditable, mapApiPaymentToPayment } from '@/services/payments-service';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -119,9 +119,9 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
     },
   },
   {
-    accessorKey: 'createdAt',
-    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.createdAt')} />,
-    cell: ({ row }) => formatDateTime(row.original.createdAt),
+    accessorKey: 'payment_date',
+    header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.date')} />,
+    cell: ({ row }) => formatDisplayDate(row.original.payment_date || row.original.createdAt),
   },
 ];
 
@@ -421,7 +421,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                 <DataCard isSelected={_isSelected}
                   className={payment.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
                   title={payment.doc_no || `PAY-${payment.id}`}
-                  subtitle={formatDateTime(payment.createdAt)}
+                  subtitle={formatDisplayDate(payment.payment_date || payment.createdAt)}
                   badge={
                     <div className="flex gap-1 flex-wrap justify-end">
                       {payment.is_historical && (
@@ -454,7 +454,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               amount: t('PaymentsPage.columns.amount'),
               method: t('PaymentsPage.columns.method'),
               type: t('PaymentsPage.columns.type'),
-              createdAt: t('PaymentsPage.columns.createdAt'),
+              payment_date: t('PaymentsPage.columns.date'),
             }}
           />
         </CardContent>
@@ -521,7 +521,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Fecha:</span>
-                    <span className="text-sm">{formatDateTime(selectedPayment.createdAt)}</span>
+                    <span className="text-sm">{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</span>
                   </div>
                   {selectedPayment.transaction_type && (
                     <div className="flex items-center gap-2">
