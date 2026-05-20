@@ -59,7 +59,7 @@ import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { format, isValid, parseISO } from 'date-fns';
+import { addMinutes, format, isValid, parseISO } from 'date-fns';
 import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -267,7 +267,12 @@ async function getAppointments(
             const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || doctor?.name || 'Doctor';
 
             const endNode = apiAppt.end_time || apiAppt.end;
-            const endDateTimeStr = typeof endNode === 'string' ? endNode : (endNode?.dateTime);
+            const rawEndDateTimeStr = typeof endNode === 'string' ? endNode : (endNode?.dateTime);
+            let endDateTimeStr = rawEndDateTimeStr;
+            const parsedEnd = endDateTimeStr ? parseISO(endDateTimeStr.replace(/Z$/, '')) : null;
+            if (!parsedEnd || !isValid(parsedEnd) || parsedEnd.getTime() <= appointmentDateTime.getTime()) {
+                endDateTimeStr = format(addMinutes(appointmentDateTime, 15), "yyyy-MM-dd'T'HH:mm:ss");
+            }
 
             const appointment: Appointment = {
                 id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id || ''),
@@ -297,7 +302,7 @@ async function getAppointments(
                 color: finalColor,
                 colorId: appointmentColorId,
                 start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
-                end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
+                end: { dateTime: endDateTimeStr },
                 services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
                     id: String(s.id),
                     name: s.name || '',
@@ -1176,8 +1181,16 @@ export default function AppointmentsPage() {
         const selectedDoctorIdSet = new Set(selectedDoctorIds.map(String));
         const selectedCalendarIdSet = new Set(selectedCalendarIds.map(String));
         const events = appointments
-            .filter((appt) => selectedDoctorIdSet.has(String(appt.doctorId || '')))
-            .filter((appt) => selectedCalendarIdSet.has(String(appt.calendar_source_id || appt.calendar_id || '')))
+            .filter((appt) => {
+                const id = String(appt.doctorId || '');
+                if (!id) return true;
+                return selectedDoctorIdSet.has(id);
+            })
+            .filter((appt) => {
+                const id = String(appt.calendar_source_id || appt.calendar_id || '');
+                if (!id) return true;
+                return selectedCalendarIdSet.has(id);
+            })
             .map(appt => {
             if (!appt.start?.dateTime || !appt.end?.dateTime) {
                 console.warn("Appointment missing start or end dateTime:", appt);
