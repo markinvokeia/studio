@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -291,7 +292,14 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.user')}</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder={t('quoteDialog.selectUser')} {...field} />
+                                                    <UserSelector
+                                                        filterType="PACIENTE"
+                                                        isSales={true}
+                                                        value={field.value}
+                                                        onValueChange={(userId) => form.setValue('user_id', userId)}
+                                                        triggerText={t('quoteDialog.selectUser')}
+                                                        placeholder={t('quoteDialog.selectUser')}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>

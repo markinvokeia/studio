@@ -15,7 +15,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DetailHeader } from '@/components/ui/detail-header';
 import {
     Dialog,
@@ -29,7 +28,6 @@ import {
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import {
     Select,
@@ -39,12 +37,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { useDebounce } from '@/hooks/use-debounce';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -57,7 +55,7 @@ import { getPurchaseServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, CheckCircle, ChevronsUpDown, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, StickyNote, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -343,30 +341,6 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     }
 }
 
-async function getUsers(t: (key: string) => string, search?: string): Promise<User[]> {
-    try {
-        const params: any = { filter_type: 'PROVEEDOR' };
-        if (search?.trim()) {
-            params.search = search.trim();
-        }
-        const responseData = await api.get(API_ROUTES.PURCHASES.USERS, params);
-        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-        const usersData = Array.isArray(data.data) ? data.data : [];
-        return usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : t('defaults.notAvailable'),
-            name: apiUser.name || t('defaults.noName'),
-            email: apiUser.email || t('defaults.noEmail'),
-            phone_number: apiUser.phone_number || '000-000-0000',
-            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-            avatar: '',
-            identity_document: ''
-        }));
-    } catch (error) {
-        console.error("Failed to fetch users:", error);
-        return [];
-    }
-}
-
 async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.PURCHASES.QUOTES_UPSERT, { ...quoteData, is_sales: false });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
@@ -475,12 +449,8 @@ function QuotesPageContent() {
     const [selectedQuoteItem, setSelectedQuoteItem] = React.useState<QuoteItem | null>(null);
     const [quoteItemRowSelection, setQuoteItemRowSelection] = React.useState<RowSelectionState>({});
 
-    const [allUsers, setAllUsers] = React.useState<User[]>([]);
-    const [userSearchTerm, setUserSearchTerm] = React.useState('');
-    const debouncedUserSearch = useDebounce(userSearchTerm, 300);
-    const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
+    const [selectedQuoteUser, setSelectedQuoteUser] = React.useState<User | null>(null);
     const [allServices, setAllServices] = React.useState<Service[]>([]);
-    const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -666,39 +636,6 @@ function QuotesPageContent() {
         }
     };
 
-    const loadUsersForQuoteDialog = React.useCallback(async () => {
-        try {
-            const users = await getUsers(t);
-            setAllUsers(users);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadUsers') });
-        }
-    }, [t, toast]);
-
-    // Fetch users when search term changes (debounced) or when dialog opens
-    React.useEffect(() => {
-        const fetchUsers = async () => {
-            if (!isQuoteDialogOpen) return;
-            setIsLoadingUsers(true);
-            try {
-                const users = await getUsers(t, debouncedUserSearch);
-                setAllUsers(users);
-            } catch (error) {
-                console.error('Failed to fetch users:', error);
-            } finally {
-                setIsLoadingUsers(false);
-            }
-        };
-        fetchUsers();
-    }, [debouncedUserSearch, isQuoteDialogOpen, t]);
-
-    // Reset user search when dialog closes
-    React.useEffect(() => {
-        if (!isQuoteDialogOpen) {
-            setUserSearchTerm('');
-        }
-    }, [isQuoteDialogOpen]);
-
     const loadServicesForQuoteDialog = React.useCallback(async () => {
         try {
             const fetchedServices = await getServices();
@@ -710,6 +647,7 @@ function QuotesPageContent() {
 
     const handleCreateQuote = async () => {
         setEditingQuote(null);
+        setSelectedQuoteUser(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
@@ -784,6 +722,7 @@ function QuotesPageContent() {
                 keepTouched: false, keepIsValid: false, keepSubmitCount: false
             }
         );
+        setSelectedQuoteUser(quote.user_id ? { id: quote.user_id, name: quote.user_name || '', email: '', phone_number: '', is_active: true, avatar: '' } : null);
         setQuoteSubmissionError(null);
 
         if (allServices.length === 0) {
@@ -1678,38 +1617,20 @@ function QuotesPageContent() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.user')}</FormLabel>
-                                                <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                                    <PopoverTrigger asChild>
-                                                        <FormControl>
-                                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
-                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                            </Button>
-                                                        </FormControl>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                        <Command shouldFilter={false}>
-                                                            <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
-                                                            <CommandList>
-                                                                {isLoadingUsers ? (
-                                                                    <CommandEmpty>Searching...</CommandEmpty>
-                                                                ) : (
-                                                                    <>
-                                                                        <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
-                                                                        <CommandGroup>
-                                                                            {allUsers.map((user) => (
-                                                                                <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
-                                                                                    <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                    {user.name}
-                                                                                </CommandItem>
-                                                                            ))}
-                                                                        </CommandGroup>
-                                                                    </>
-                                                                )}
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
+                                                <FormControl>
+                                                    <UserSelector
+                                                        filterType="PROVEEDOR"
+                                                        isSales={false}
+                                                        value={field.value}
+                                                        selectedUserName={selectedQuoteUser?.name}
+                                                        onValueChange={(userId, user) => {
+                                                            quoteForm.setValue('user_id', userId);
+                                                            setSelectedQuoteUser(user || null);
+                                                        }}
+                                                        triggerText={t('quoteDialog.selectUser')}
+                                                        placeholder={t('quoteDialog.searchUser')}
+                                                    />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

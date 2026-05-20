@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DetailHeader } from '@/components/ui/detail-header';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -20,7 +19,7 @@ import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UserSelector } from '@/components/ui/user-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
@@ -30,7 +29,6 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
-import { useDebounce } from '@/hooks/use-debounce';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation, PaymentMethod, User } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
@@ -39,7 +37,7 @@ import { getSalesPayments } from '@/services/payments-service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
+import { AlertTriangle, CreditCard, Loader2, Maximize2, Minimize2, Printer, RefreshCw, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -109,13 +107,9 @@ export default function PaymentsPage() {
     const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
     const [isConfirmPrepaidOpen, setIsConfirmPrepaidOpen] = React.useState(false);
     const [prepaidData, setPrepaidData] = React.useState<PrepaidFormValues | null>(null);
-    const [users, setUsers] = React.useState<User[]>([]);
-    const [userSearchTerm, setUserSearchTerm] = React.useState('');
-    const debouncedUserSearch = useDebounce(userSearchTerm, 300);
-    const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
+    const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [isUserPopoverOpen, setIsUserPopoverOpen] = React.useState(false);
 
     const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
@@ -182,62 +176,8 @@ export default function PaymentsPage() {
     }, []);
 
     React.useEffect(() => {
-        let isCancelled = false;
-        const fetchUsers = async () => {
-            if (!isPrepaidDialogOpen) return;
-            setIsLoadingUsers(true);
-            try {
-                const queryParams: Record<string, string> = {
-                    filter_type: 'PACIENTE',
-                };
-                if (debouncedUserSearch && debouncedUserSearch.trim()) {
-                    queryParams.search = debouncedUserSearch.trim();
-                }
-                const responseData = await api.get(API_ROUTES.USERS, queryParams);
-
-                let usersData = [];
-                if (Array.isArray(responseData) && responseData.length > 0) {
-                    const firstElement = responseData[0];
-                    if (firstElement.json && typeof firstElement.json === 'object') {
-                        usersData = firstElement.json.data || [];
-                    } else if (firstElement.data) {
-                        usersData = firstElement.data;
-                    } else {
-                        usersData = responseData;
-                    }
-                } else if (typeof responseData === 'object' && responseData !== null && responseData.data) {
-                    usersData = responseData.data;
-                } else if (Array.isArray(responseData)) {
-                    usersData = responseData;
-                }
-
-                if (!isCancelled) {
-                    setUsers(usersData.map((apiUser: any) => ({
-                        id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-                        name: apiUser.name || 'No Name',
-                        email: apiUser.email || 'no-email@example.com',
-                        phone_number: apiUser.phone_number || '000-000-0000',
-                        is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-                        avatar: '',
-                        identity_document: ''
-                    })));
-                }
-            } catch (error) {
-                console.error("Failed to fetch users:", error);
-                if (!isCancelled) setUsers([]);
-            } finally {
-                if (!isCancelled) setIsLoadingUsers(false);
-            }
-        };
-
-        fetchUsers();
-        return () => { isCancelled = true; };
-    }, [debouncedUserSearch, isPrepaidDialogOpen]);
-
-    React.useEffect(() => {
         if (!isPrepaidDialogOpen) {
-            setUserSearchTerm('');
-            setUsers([]);
+            setSelectedUser(null);
         }
     }, [isPrepaidDialogOpen]);
 
@@ -356,8 +296,7 @@ export default function PaymentsPage() {
     const handleCreatePrepaid = async () => {
         form.reset();
         setSubmissionError(null);
-        setUserSearchTerm('');
-        setUsers([]);
+        setSelectedUser(null);
         const fetchedMethods = await getPaymentMethods();
         setPaymentMethods(fetchedMethods);
         setIsPrepaidDialogOpen(true);
@@ -389,7 +328,7 @@ export default function PaymentsPage() {
             }
 
             const selectedMethod = paymentMethods.find(pm => pm.id === prepaidData.payment_method_id);
-            const clientUser = users.find(u => u.id === prepaidData.user_id);
+            const clientUser = selectedUser;
 
             const payload = {
                 cash_session_id: sessionId,
@@ -635,52 +574,20 @@ export default function PaymentsPage() {
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('prepaidDialog.client')}</FormLabel>
-                                            <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                            {field.value ? users.find(u => u.id === field.value)?.name : t('prepaidDialog.selectClient')}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command shouldFilter={false}>
-                                                        <CommandInput
-                                                            placeholder={t('prepaidDialog.searchClient')}
-                                                            value={userSearchTerm}
-                                                            onValueChange={setUserSearchTerm}
-                                                        />
-                                                        <CommandList>
-                                                            {isLoadingUsers ? (
-                                                                <div className="flex items-center justify-center p-4">
-                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                                    <span className="text-sm text-muted-foreground">Buscando...</span>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <CommandEmpty>{t('prepaidDialog.noClient')}</CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {users.map((user) => (
-                                                                            <CommandItem
-                                                                                value={user.name}
-                                                                                key={user.id}
-                                                                                onSelect={() => {
-                                                                                    form.setValue("user_id", user.id);
-                                                                                    setIsUserPopoverOpen(false);
-                                                                                }}
-                                                                            >
-                                                                                <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                {user.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </>
-                                                            )}
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <FormControl>
+                                                <UserSelector
+                                                    filterType="PACIENTE"
+                                                    isSales={true}
+                                                    value={field.value}
+                                                    selectedUserName={selectedUser?.name}
+                                                    onValueChange={(userId, user) => {
+                                                        form.setValue('user_id', userId);
+                                                        setSelectedUser(user || null);
+                                                    }}
+                                                    triggerText={t('prepaidDialog.selectClient')}
+                                                    placeholder={t('prepaidDialog.searchClient')}
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
