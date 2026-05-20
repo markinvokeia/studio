@@ -1014,7 +1014,7 @@ export function AppointmentFormDialog({
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
-                                    <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
+                                    <Popover open={isUserSearchOpen} onOpenChange={(open) => { setUserSearchOpen(open); if (!open) setUserSearchQuery(''); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")} disabled={readOnlyFields?.user || isLoadingQuotes}>
                                                 {appointment.user ? appointment.user.name : t('createDialog.selectUser')}
@@ -1145,7 +1145,7 @@ export function AppointmentFormDialog({
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
-                                    <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                                    <Popover open={isServiceSearchOpen} onOpenChange={(open) => { setServiceSearchOpen(open); if (!open) setServiceSearchQuery(''); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
                                                 {isLoadingQuoteServices ? (
@@ -1234,7 +1234,7 @@ export function AppointmentFormDialog({
                                 </div>
                                 <div className="space-y-2">
                                     <Label>{tColumns('doctor')}</Label>
-                                    <Popover open={isDoctorSearchOpen} onOpenChange={setDoctorSearchOpen}>
+                                    <Popover open={isDoctorSearchOpen} onOpenChange={(open) => { setDoctorSearchOpen(open); if (!open) setDoctorSearchQuery(''); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start">
                                                 {appointment.doctor ? appointment.doctor.name : t('createDialog.selectDoctor')}

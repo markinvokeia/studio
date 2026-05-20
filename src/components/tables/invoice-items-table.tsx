@@ -189,6 +189,7 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onCreate={canEdit ? onCreate : undefined}
+          createButtonLabel={t('addItem')}
           enableSingleRowSelection={onRowSelectionChange ? true : false}
           onRowSelectionChange={onRowSelectionChange}
           rowSelection={rowSelection}

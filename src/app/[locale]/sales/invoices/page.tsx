@@ -1063,7 +1063,7 @@ const ItemFormDialog = ({
                     </div>
                 ) : (
                     <Form {...itemForm}>
-                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
                             <DialogBody className="space-y-4 px-6 py-4">
                                 <FormField
                                     control={itemForm.control}

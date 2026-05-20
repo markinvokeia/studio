@@ -2186,7 +2186,8 @@
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
         "notInList": "Not in list"
-      }
+      },
+      "addItem": "Add Item"
     },
     "common": {
       "closeDetails": "Close details"
@@ -4283,7 +4284,7 @@
         "items": "Quote Items",
         "addItem": "Add Item",
         "cancel": "Cancel",
-        "save": "Save changes"
+        "save": "Save"
       },
       "confirmAction": {
         "confirmTitle": "Confirm Quote",
@@ -4315,7 +4316,7 @@
         "toothNumber": "Tooth #",
         "toothNumberOptional": "Tooth # (optional)",
         "cancel": "Cancel",
-        "save": "Save changes",
+        "save": "Save",
         "add": "Add"
       },
       "deleteItem": {

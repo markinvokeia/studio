@@ -2163,7 +2163,8 @@
         "quantity": "Cantidad",
         "unitPrice": "Precio Unitario",
         "notInList": "No está en la lista"
-      }
+      },
+      "addItem": "Agregar Artículo"
     },
     "common": {
       "closeDetails": "Cerrar detalles"
@@ -4259,9 +4260,9 @@
         "notesOptional": "Notas (opcional)",
         "notesPlaceholder": "Observaciones...",
         "items": "Ítems del presupuesto",
-        "addItem": "Agregar ítem",
+        "addItem": "Agregar Artículo",
         "cancel": "Cancelar",
-        "save": "Guardar cambios"
+        "save": "Guardar"
       },
       "confirmAction": {
         "confirmTitle": "Confirmar presupuesto",
@@ -4293,7 +4294,7 @@
         "toothNumber": "N° de diente",
         "toothNumberOptional": "N° de diente (opcional)",
         "cancel": "Cancelar",
-        "save": "Guardar cambios",
+        "save": "Guardar",
         "add": "Agregar"
       },
       "deleteItem": {

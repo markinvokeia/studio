@@ -865,7 +865,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>
         <DialogContent maxWidth="4xl">
           <Form {...invoiceEditForm}>
-            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
                 <DialogTitle>Editar factura</DialogTitle>
                 <DialogDescription>Modifica los datos de la factura {selectedInvoice?.doc_no}.</DialogDescription>
@@ -953,7 +953,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                           variant="outline"
                           onClick={() => { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
                         >
-                          Agregar ítem
+                          Agregar Artículo
                         </Button>
                       )}
                     </div>
@@ -1094,7 +1094,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isSubmittingInvoice}>
                   {isSubmittingInvoice && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Guardar cambios
+                  Guardar
                 </Button>
               </DialogFooter>
             </form>

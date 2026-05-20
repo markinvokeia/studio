@@ -1321,7 +1321,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
         <DialogContent maxWidth="4xl">
           <Form {...quoteEditForm}>
-            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); } } }}>
               <DialogHeader>
                 <DialogTitle>{t('UserQuotes.dialogs.editQuote.title')}</DialogTitle>
                 <DialogDescription>{t('UserQuotes.dialogs.editQuote.description', { docNo: selectedQuote?.doc_no })}</DialogDescription>
@@ -1592,7 +1592,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             <DialogDescription>{t('UserQuotes.dialogs.itemDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
-            <form onSubmit={itemForm.handleSubmit(handleSubmitItem)}>
+            <form onSubmit={itemForm.handleSubmit(handleSubmitItem)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
               <div className="px-6 py-4 space-y-4">
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>

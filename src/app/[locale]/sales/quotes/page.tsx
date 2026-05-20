@@ -1920,7 +1920,7 @@ export default function QuotesPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddQuoteItem(); } }}>
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {quoteSubmissionError && (
                                     <Alert variant="destructive">
