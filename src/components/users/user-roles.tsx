@@ -23,7 +23,7 @@ async function getAllRoles(): Promise<Role[]> {
   try {
     const data = await api.get(API_ROUTES.ROLES);
     const rolesData = Array.isArray(data) ? data : (data.roles || data.data || []);
-    return rolesData.map((role: any) => ({ id: String(role.id), name: role.name }));
+    return rolesData.map((role: any) => ({ id: String(role.id), name: role.name, is_default: role.is_default ?? false }));
   } catch (error) {
     console.error("Failed to fetch all roles:", error);
     return [];

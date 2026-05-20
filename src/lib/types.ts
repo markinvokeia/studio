@@ -97,6 +97,7 @@ export type Document = {
 export type Role = {
   id: string;
   name: string;
+  is_default?: boolean;
 };
 
 export type Permission = {

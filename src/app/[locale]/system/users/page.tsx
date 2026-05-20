@@ -29,7 +29,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { User, UserRole } from '@/lib/types';
+import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -148,6 +148,25 @@ async function upsertUser(userData: UserFormValues) {
   }
 
   return responseData;
+}
+
+async function getAllRoles(): Promise<Role[]> {
+  try {
+    const data = await api.get(API_ROUTES.ROLES);
+    const rolesData = Array.isArray(data) ? data : (data.roles || data.data || []);
+    return rolesData.map((role: any) => ({
+      id: String(role.id),
+      name: role.name,
+      is_default: role.is_default ?? false,
+    }));
+  } catch (error) {
+    console.error("Failed to fetch all roles:", error);
+    return [];
+  }
+}
+
+async function assignDefaultRole(userId: string, roles: UserRoleAssignment[]): Promise<void> {
+  await api.patch(API_ROUTES.ROLES_ASSIGN, { user_id: userId, roles });
 }
 
 async function getRolesForUser(userId: string): Promise<UserRole[]> {
@@ -477,13 +496,29 @@ export default function SystemUsersPage() {
     form.clearErrors();
 
     try {
-      await upsertUser(data);
+      const response = await upsertUser(data);
+
       toast({
         title: t('SystemUsersPage.createDialog.createSuccessTitle'),
         description: t('SystemUsersPage.createDialog.createSuccessDescription'),
       });
       setIsDialogOpen(false);
       loadUsers();
+
+      // Silently assign the default role after creation
+      const newUserId = (Array.isArray(response) ? response[0]?.data?.id : null) ??
+        response?.data?.id ?? response?.id ?? response?.user_id;
+      if (newUserId) {
+        try {
+          const roles = await getAllRoles();
+          const defaultRole = roles.find(r => r.is_default);
+          if (defaultRole) {
+            await assignDefaultRole(String(newUserId), [{ role_id: defaultRole.id, is_active: true }]);
+          }
+        } catch {
+          // User was created — role assignment failure is non-blocking
+        }
+      }
 
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
