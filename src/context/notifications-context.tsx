@@ -263,6 +263,7 @@ interface NotificationsContextValue {
   dismissNotification: (id: string) => void;
   clearAll: () => void;
   refreshNotifications: () => void;
+  markSessionAction: (notificationId: string, action: 'quote' | 'invoice' | 'schedule') => void;
 }
 
 const NotificationsContext = React.createContext<NotificationsContextValue>({
@@ -276,6 +277,7 @@ const NotificationsContext = React.createContext<NotificationsContextValue>({
   dismissNotification: () => undefined,
   clearAll: () => undefined,
   refreshNotifications: () => undefined,
+  markSessionAction: () => undefined,
 });
 
 export function useNotifications() {
@@ -312,6 +314,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const [notifications, setNotifications] = React.useState<UnifiedNotification[]>([]);
   const [isPanelOpen, setIsPanelOpen] = React.useState(false);
+  const markSessionAction = React.useCallback((notificationId: string, action: 'quote' | 'invoice' | 'schedule') => {
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (n.id !== notificationId || n.type !== 'session_completed') return n;
+        const current = n.actions_taken ?? [];
+        if (current.includes(action)) return n;
+        return { ...n, actions_taken: [...current, action] };
+      }),
+    );
+  }, []);
   const mountedRef = React.useRef(false);
   const secretaryProcessingRef = React.useRef<Set<string>>(new Set());
   // Prevents write-back loop when syncing notifications received from another tab
@@ -668,8 +680,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const pendingCount = notifications.length;
 
   const value = React.useMemo<NotificationsContextValue>(
-    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications }),
-    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications],
+    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction }),
+    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction],
   );
 
   return (

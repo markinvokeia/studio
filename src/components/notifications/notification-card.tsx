@@ -147,18 +147,21 @@ function AppointmentStatusCard({ notification }: { notification: AppointmentStat
 // ── Session completed card ────────────────────────────────────────────────────
 
 function SessionCompletedCard({ notification }: { notification: SessionCompletedNotification }) {
-  const { dismissNotification, closePanel } = useNotifications();
+  const { dismissNotification, closePanel, markSessionAction } = useNotifications();
   const t = useTranslations('Notifications');
   const locale = useLocale();
   const router = useRouter();
   const { appointment, session, createdAt } = notification;
 
-  const hasNextPlan = Boolean(session?.plan_proxima_cita?.trim());
+  const taken = notification.actions_taken ?? [];
+  const hasNextPlan = Boolean(session?.plan_proxima_cita?.trim()) && !taken.includes('schedule');
   const hasTreatments = Array.isArray(session?.tratamientos) && session.tratamientos.length > 0;
-  const hasNoQuote = !appointment.quote_id;
-  const hasQuote = !!appointment.quote_id;
+  const hasQuote = !!appointment.quote_id || taken.includes('quote');
+  const hasNoQuote = !hasQuote && !taken.includes('invoice');
+  const hasInvoiceAction = hasQuote && !taken.includes('invoice');
 
-  const goToAppointments = (action: string) => {
+  const goToAppointments = (action: 'quote' | 'invoice' | 'schedule') => {
+    markSessionAction(notification.id, action);
     closePanel();
     const params = new URLSearchParams({ act: action, patientId: appointment.patientId, patientName: appointment.patientName || '' });
     if (action === 'schedule') {
@@ -240,7 +243,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
         </div>
 
         {/* Quick actions — shown only when relevant */}
-        {(hasNoQuote || hasQuote || hasNextPlan) && (
+        {(hasNoQuote || hasInvoiceAction || hasNextPlan) && (
           <div className="mt-3 flex flex-col gap-1.5">
             {hasNoQuote && (
               <Button
@@ -254,7 +257,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
               </Button>
             )}
 
-            {hasQuote && (
+            {hasInvoiceAction && (
               <Button
                 variant="outline"
                 size="sm"

@@ -562,6 +562,7 @@ export type SessionCompletedNotification = {
   appointment: Appointment;
   session?: PatientSession | null;
   discharge?: PatientDischarge | null;
+  actions_taken?: ('quote' | 'invoice' | 'schedule')[];
 };
 
 export type ReminderPanelNotification = {
