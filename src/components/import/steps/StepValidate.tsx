@@ -3,6 +3,67 @@
 import { ImportField, ImportSchema } from '@/config/import-schemas';
 import { ColumnMapping } from '@/components/import/steps/StepMapColumns';
 import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+
+function isValidYMD(year: number, month: number, day: number): boolean {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const d = new Date(year, month - 1, day);
+  return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day;
+}
+
+function toYMD(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+export function parseAnyDate(value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+
+  // YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+    const [y, m, d] = v.split('-').map(Number);
+    return isValidYMD(y, m, d) ? v : null;
+  }
+
+  // ISO timestamp: 2024-01-15T...
+  if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+    const date = new Date(v);
+    if (!isNaN(date.getTime())) return toYMD(date.getFullYear(), date.getMonth() + 1, date.getDate());
+    return null;
+  }
+
+  // DD/MM/YYYY, DD-MM-YYYY, DD.MM.YYYY (preferencia latinoamérica)
+  const dmy = v.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const month = Number(dmy[2]);
+    const year = Number(dmy[3]);
+    if (isValidYMD(year, month, day)) return toYMD(year, month, day);
+    // fallback: intentar como MM/DD/YYYY si DD/MM falla
+    if (isValidYMD(year, day, month)) return toYMD(year, day, month);
+    return null;
+  }
+
+  // YYYY/MM/DD, YYYY.MM.DD
+  const ymd = v.match(/^(\d{4})[/.](\d{1,2})[/.](\d{1,2})$/);
+  if (ymd) {
+    const year = Number(ymd[1]);
+    const month = Number(ymd[2]);
+    const day = Number(ymd[3]);
+    return isValidYMD(year, month, day) ? toYMD(year, month, day) : null;
+  }
+
+  // DD/MM/YY con año de 2 dígitos
+  const dmyShort = v.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2})$/);
+  if (dmyShort) {
+    const day = Number(dmyShort[1]);
+    const month = Number(dmyShort[2]);
+    const yearShort = Number(dmyShort[3]);
+    const year = yearShort <= 30 ? 2000 + yearShort : 1900 + yearShort;
+    return isValidYMD(year, month, day) ? toYMD(year, month, day) : null;
+  }
+
+  return null;
+}
 import { useTranslations } from 'next-intl';
 
 export interface ValidationError {
@@ -70,8 +131,8 @@ export function validateData(
         if (!csvHeader) return;
         const colIndex = headers.indexOf(csvHeader);
         const value = colIndex >= 0 ? (row[colIndex] ?? '').trim() : '';
-        if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-          errors.push({ row: rowIndex + 1, field: field.label, error: `Formato de fecha inválido (esperado YYYY-MM-DD)` });
+        if (value && parseAnyDate(value) === null) {
+          errors.push({ row: rowIndex + 1, field: field.label, error: `Formato de fecha no reconocido` });
         }
       });
 

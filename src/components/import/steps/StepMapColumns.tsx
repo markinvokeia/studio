@@ -28,7 +28,11 @@ export function buildAutoMapping(csvHeaders: string[], fields: ImportField[]): C
   const mapping: ColumnMapping = {};
   csvHeaders.forEach((header) => {
     const normalizedHeader = normalizeKey(header);
-    const match = fields.find((f) => normalizeKey(f.key) === normalizedHeader);
+    const match = fields.find(
+      (f) =>
+        normalizeKey(f.key) === normalizedHeader ||
+        f.aliases?.some((alias) => normalizeKey(alias) === normalizedHeader)
+    );
     mapping[header] = match ? match.key : null;
   });
   return mapping;
@@ -43,7 +47,9 @@ export function StepMapColumns({ csvHeaders, schema, mapping, onChange }: StepMa
 
   const isAutoMapped = (csvHeader: string, fieldKey: string | null) => {
     if (!fieldKey) return false;
-    return normalizeKey(csvHeader) === normalizeKey(fieldKey);
+    if (normalizeKey(csvHeader) === normalizeKey(fieldKey)) return true;
+    const field = schema.fields.find((f) => f.key === fieldKey);
+    return field?.aliases?.some((alias) => normalizeKey(alias) === normalizeKey(csvHeader)) ?? false;
   };
 
   const isUnmapped = (csvHeader: string) => {
