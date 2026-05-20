@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { UserSelector } from '@/components/ui/user-selector';
 import {
     Dialog,
     DialogBody,
@@ -36,7 +37,7 @@ import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, format, isValid, parse, parseISO } from 'date-fns';
-import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Stethoscope, UserRound, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -133,15 +134,12 @@ export function AppointmentFormDialog({
     const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
     // Search States
-    const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
-    const [userSearchQuery, setUserSearchQuery] = React.useState('');
-    const [userSearchResults, setUserSearchResults] = React.useState<UserType[]>([]);
-    const [isSearchingUsers, setIsSearchingUsers] = React.useState(false);
-
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
     const [serviceSearchQuery, setServiceSearchQuery] = React.useState('');
     const [serviceSearchResults, setServiceSearchResults] = React.useState<Service[]>([]);
     const [isSearchingServices, setIsSearchingServices] = React.useState(false);
+    const [isCreatingService, setIsCreatingService] = React.useState(false);
+    const [isSavingService, setIsSavingService] = React.useState(false);
 
     const [isDoctorSearchOpen, setDoctorSearchOpen] = React.useState(false);
     const [doctorSearchQuery, setDoctorSearchQuery] = React.useState('');
@@ -384,48 +382,6 @@ export function AppointmentFormDialog({
         }
     }, [open, editingAppointment, initialData, calendars]);
 
-    // User Search Logic
-    React.useEffect(() => {
-        const handler = setTimeout(async () => {
-            if (!isUserSearchOpen && userSearchQuery.length === 0) {
-                setUserSearchResults([]);
-                return;
-            }
-
-            setIsSearchingUsers(true);
-            try {
-                const data = await api.get(API_ROUTES.USERS, { search: userSearchQuery, filter_type: 'PACIENTE' });
-                let usersData = [];
-                if (Array.isArray(data) && data.length > 0) {
-                    const firstElement = data[0];
-                    if (firstElement.json && typeof firstElement.json === 'object') {
-                        usersData = firstElement.json.data || [];
-                    } else if (firstElement.data) {
-                        usersData = firstElement.data;
-                    }
-                } else if (typeof data === 'object' && data !== null && data.data) {
-                    usersData = data.data;
-                }
-
-                setUserSearchResults(usersData.map((apiUser: any): UserType => ({
-                    id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-                    name: apiUser.name || 'No Name',
-                    email: apiUser.email || 'no-email@example.com',
-                    phone_number: apiUser.phone_number || '000-000-0000',
-                    is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-                    avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-                })));
-            } catch (error) {
-                console.error("Failed to fetch users:", error);
-                setUserSearchResults([]);
-            } finally {
-                setIsSearchingUsers(false);
-            }
-        }, 300);
-
-        return () => clearTimeout(handler);
-    }, [userSearchQuery, isUserSearchOpen]);
-
     // Service Search Logic
     React.useEffect(() => {
         const handler = setTimeout(async () => {
@@ -436,10 +392,10 @@ export function AppointmentFormDialog({
             setIsSearchingServices(true);
             try {
                 const result = await getSalesServices({ search: serviceSearchQuery, limit: 50 });
-                setServiceSearchResults(result.items.map((apiService: any): Service => ({
+                setServiceSearchResults(result.items.filter((apiService: any) => apiService.name?.trim()).map((apiService: any): Service => ({
                     id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
-                    name: apiService.name || 'No Name',
-                    category: apiService.category || 'No Category',
+                    name: apiService.name,
+                    category: apiService.category || '',
                     price: apiService.price || 0,
                     duration_minutes: apiService.duration_minutes || 0,
                     is_active: apiService.is_active,
@@ -456,6 +412,51 @@ export function AppointmentFormDialog({
 
         return () => clearTimeout(handler);
     }, [serviceSearchQuery, isServiceSearchOpen]);
+
+    React.useEffect(() => { setIsCreatingService(false); }, [serviceSearchQuery]);
+
+    const handleCreateServiceInline = React.useCallback(async () => {
+        const name = serviceSearchQuery.trim();
+        if (!name) return;
+        setIsSavingService(true);
+        try {
+            await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
+                name,
+                price: 0,
+                currency: 'UYU',
+                is_sales: true,
+                is_active: true,
+                duration_minutes: 60,
+                category: '',
+                description: '',
+            });
+            const result = await getSalesServices({ search: name, limit: 50 });
+            const newServices = result.items.filter((apiService: any) => apiService.name?.trim()).map((apiService: any): Service => ({
+                id: String(apiService.id),
+                name: apiService.name,
+                category: apiService.category || '',
+                price: apiService.price || 0,
+                duration_minutes: apiService.duration_minutes || 0,
+                is_active: apiService.is_active,
+                service_type: apiService.service_type || 'single',
+                treatment_steps: apiService.treatment_steps || [],
+            }));
+            setServiceSearchResults(newServices);
+            const created = newServices.find((s: Service) => s.name.toLowerCase() === name.toLowerCase()) || newServices[0];
+            if (created) {
+                setAppointment(prev => {
+                    const already = prev.services.some(s => s.id === created.id);
+                    return already ? prev : { ...prev, services: [...prev.services, created] };
+                });
+                setServiceSearchOpen(false);
+                setIsCreatingService(false);
+            }
+        } catch (error) {
+            console.error('Failed to create service:', error);
+        } finally {
+            setIsSavingService(false);
+        }
+    }, [serviceSearchQuery]);
 
     const checkAvailability = React.useCallback(async (formData: typeof appointment) => {
         console.log(`Evaluating calendar availability check. calendar_settings.check_availability is: ${checkCalendarAvailability}`);
@@ -1014,30 +1015,22 @@ export function AppointmentFormDialog({
                             <div className="space-y-4">
                                 <div className="space-y-2">
                                     <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
-                                    <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                        <PopoverTrigger asChild>
-                                            <Button variant="outline" className={cn("w-full justify-start", errors.includes('user') && "border-destructive text-destructive")} disabled={readOnlyFields?.user || isLoadingQuotes}>
-                                                {appointment.user ? appointment.user.name : t('createDialog.selectUser')}
-                                                <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                            <Command>
-                                                <CommandInput placeholder={t('createDialog.searchUserPlaceholder')} onValueChange={setUserSearchQuery} />
-                                                <CommandList>
-                                                    <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {userSearchResults.map(user => (
-                                                            <CommandItem key={user.id} value={user.name} onSelect={() => { setAppointment(prev => ({ ...prev, user })); setUserSearchOpen(false); setErrors(prev => prev.filter(err => err !== 'user')); }}>
-                                                                <Check className={cn("mr-2 h-4 w-4", appointment.user?.id === user.id ? "opacity-100" : "opacity-0")} />
-                                                                {user.name}
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <UserSelector
+                                        filterType="PACIENTE"
+                                        isSales={true}
+                                        value={appointment.user?.id}
+                                        selectedUserName={appointment.user?.name}
+                                        onValueChange={(_, user) => {
+                                            if (user) {
+                                                setAppointment(prev => ({ ...prev, user }));
+                                                setErrors(prev => prev.filter(err => err !== 'user'));
+                                            }
+                                        }}
+                                        disabled={readOnlyFields?.user || isLoadingQuotes}
+                                        triggerText={t('createDialog.selectUser')}
+                                        placeholder={t('createDialog.searchUserPlaceholder')}
+                                        className={errors.includes('user') ? 'border-destructive text-destructive' : undefined}
+                                    />
                                 </div>
 
                                 {/* Quote Selection */}
@@ -1145,7 +1138,7 @@ export function AppointmentFormDialog({
 
                                 <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
-                                    <Popover open={isServiceSearchOpen} onOpenChange={setServiceSearchOpen}>
+                                    <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) setIsCreatingService(false); setServiceSearchOpen(o); }}>
                                         <PopoverTrigger asChild>
                                             <Button variant="outline" className="w-full justify-start" disabled={readOnlyFields?.services || isLoadingQuoteServices}>
                                                 {isLoadingQuoteServices ? (
@@ -1162,7 +1155,7 @@ export function AppointmentFormDialog({
                                             </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                            <Command>
+                                            <Command shouldFilter={false}>
                                                 <CommandInput placeholder={t('createDialog.searchServicePlaceholder')} onValueChange={setServiceSearchQuery} />
                                                 <CommandList>
                                                     <CommandEmpty>{isSearchingServices ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
@@ -1179,6 +1172,39 @@ export function AppointmentFormDialog({
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
+                                                    {serviceSearchQuery.trim() && (
+                                                        <div className={cn('border-t', serviceSearchResults.length === 0 && 'border-t-0')}>
+                                                            {isCreatingService ? (
+                                                                <div className="p-2 space-y-1.5">
+                                                                    <p className="text-xs text-muted-foreground px-1">
+                                                                        Este servicio se creará automáticamente
+                                                                    </p>
+                                                                    <div className="flex items-center gap-2 px-1">
+                                                                        <span className="text-sm flex-1 truncate font-medium">"{serviceSearchQuery}"</span>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            className="bg-green-600 hover:bg-green-700 text-white shrink-0"
+                                                                            onClick={handleCreateServiceInline}
+                                                                            disabled={isSavingService}
+                                                                            type="button"
+                                                                        >
+                                                                            {isSavingService && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                                                                            Guardar
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-accent cursor-pointer text-left"
+                                                                    onClick={() => setIsCreatingService(true)}
+                                                                    type="button"
+                                                                >
+                                                                    <Plus className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                    <span className="truncate">Crear "{serviceSearchQuery}"</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </CommandList>
                                             </Command>
                                         </PopoverContent>
@@ -1245,7 +1271,7 @@ export function AppointmentFormDialog({
                                             <Command>
                                                 <CommandInput placeholder={t('createDialog.searchDoctorPlaceholder')} onValueChange={setDoctorSearchQuery} />
                                                 <CommandList>
-                                                    <CommandEmpty>{isSearchingUsers ? t('createDialog.searching') : tGeneral('noResults')}</CommandEmpty>
+                                                    <CommandEmpty>{tGeneral('noResults')}</CommandEmpty>
                                                     <CommandGroup>
                                                         <CommandItem onSelect={() => { setAppointment(prev => ({ ...prev, doctor: null })); setDoctorSearchOpen(false); }}>
                                                             <Check className={cn("mr-2 h-4 w-4", !appointment.doctor ? "opacity-100" : "opacity-0")} />

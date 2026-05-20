@@ -4,12 +4,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { UserSelector } from '@/components/ui/user-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
@@ -18,11 +17,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
 import { PaymentMethod, User } from '@/lib/types';
-import { cn, toLocalISOString } from '@/lib/utils';
+import { toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -65,10 +64,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
     const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
 
     const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
-    const [users, setUsers] = React.useState<User[]>([]);
-    const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
-    const [userSearchTerm, setUserSearchTerm] = React.useState('');
-    const [isUserPopoverOpen, setIsUserPopoverOpen] = React.useState(false);
+    const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
     const [pendingData, setPendingData] = React.useState<PrepaidFormValues | null>(null);
@@ -90,12 +86,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
     React.useEffect(() => {
         if (!open) return;
         setSubmissionError(null);
-        setUserSearchTerm('');
-        if (initialUser) {
-            setUsers([initialUser]);
-        } else {
-            setUsers([]);
-        }
+        setSelectedUser(initialUser || null);
         form.reset({
             user_id: initialUser?.id || '',
             payment_amount: 0,
@@ -108,43 +99,6 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
         getPaymentMethods().then(setPaymentMethods);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
-
-    // Debounced user search — only when no initialUser
-    React.useEffect(() => {
-        if (!open || initialUser) return;
-        let cancelled = false;
-        const timer = setTimeout(async () => {
-            setIsLoadingUsers(true);
-            try {
-                const params: Record<string, string> = { filter_type: 'PROVEEDOR' };
-                if (userSearchTerm.trim()) params.search = userSearchTerm.trim();
-                const responseData = await api.get(API_ROUTES.USERS, params);
-                let usersData: any[] = [];
-                if (Array.isArray(responseData) && responseData.length > 0) {
-                    const first = responseData[0];
-                    usersData = first.json?.data || first.data || responseData;
-                } else if (responseData?.data) {
-                    usersData = responseData.data;
-                }
-                if (!cancelled) {
-                    setUsers(usersData.map((u: any) => ({
-                        id: String(u.id),
-                        name: u.name || 'Sin nombre',
-                        email: u.email || '',
-                        phone_number: u.phone_number || '',
-                        is_active: u.is_active ?? true,
-                        avatar: '',
-                        identity_document: '',
-                    })));
-                }
-            } catch {
-                if (!cancelled) setUsers([]);
-            } finally {
-                if (!cancelled) setIsLoadingUsers(false);
-            }
-        }, 300);
-        return () => { cancelled = true; clearTimeout(timer); };
-    }, [userSearchTerm, open, initialUser]);
 
     const onSubmit = (data: PrepaidFormValues) => {
         setSubmissionError(null);
@@ -166,7 +120,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
             }
 
             const selectedMethod = paymentMethods.find(pm => pm.id === pendingData.payment_method_id);
-            const clientUser = users.find(u => u.id === pendingData.user_id) || initialUser;
+            const clientUser = selectedUser || initialUser;
 
             const payload = {
                 cash_session_id: sessionId,
@@ -231,41 +185,20 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
                                                 {initialUser.name}
                                             </div>
                                         ) : (
-                                            <Popover open={isUserPopoverOpen} onOpenChange={setIsUserPopoverOpen}>
-                                                <PopoverTrigger asChild>
-                                                    <FormControl>
-                                                        <Button variant="outline" role="combobox" className={cn('w-full justify-between', !field.value && 'text-muted-foreground')}>
-                                                            {field.value ? users.find(u => u.id === field.value)?.name : t('prepaidDialog.selectSupplier')}
-                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                        </Button>
-                                                    </FormControl>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                    <Command shouldFilter={false}>
-                                                        <CommandInput placeholder={t('prepaidDialog.searchSupplier')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
-                                                        <CommandList>
-                                                            {isLoadingUsers ? (
-                                                                <div className="flex items-center justify-center p-4">
-                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                                                    <span className="text-sm text-muted-foreground">{t('prepaidDialog.searching')}</span>
-                                                                </div>
-                                                            ) : (
-                                                                <>
-                                                                    <CommandEmpty>{t('prepaidDialog.noSupplier')}</CommandEmpty>
-                                                                    <CommandGroup>
-                                                                        {users.map(u => (
-                                                                            <CommandItem value={u.name} key={u.id} onSelect={() => { form.setValue('user_id', u.id); setIsUserPopoverOpen(false); }}>
-                                                                                <Check className={cn('mr-2 h-4 w-4', u.id === field.value ? 'opacity-100' : 'opacity-0')} />
-                                                                                {u.name}
-                                                                            </CommandItem>
-                                                                        ))}
-                                                                    </CommandGroup>
-                                                                </>
-                                                            )}
-                                                        </CommandList>
-                                                    </Command>
-                                                </PopoverContent>
-                                            </Popover>
+                                            <FormControl>
+                                                <UserSelector
+                                                    filterType="PROVEEDOR"
+                                                    isSales={false}
+                                                    value={field.value}
+                                                    selectedUserName={selectedUser?.name}
+                                                    onValueChange={(userId, user) => {
+                                                        form.setValue('user_id', userId);
+                                                        setSelectedUser(user || null);
+                                                    }}
+                                                    triggerText={t('prepaidDialog.selectSupplier')}
+                                                    placeholder={t('prepaidDialog.searchSupplier')}
+                                                />
+                                            </FormControl>
                                         )}
                                         <FormMessage />
                                     </FormItem>
