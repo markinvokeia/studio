@@ -45,12 +45,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
-import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, CancellationReason, PatientSession, Quote, SessionPrefillData } from '@/lib/types';
+import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, Quote, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { addMonths, format, isBefore, isValid, parseISO } from 'date-fns';
@@ -125,6 +125,23 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     const [patientAppointments, setPatientAppointments] = React.useState<Appointment[]>([]);
     const [isLoadingPatientAppointments, setIsLoadingPatientAppointments] = React.useState(false);
+    const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+
+    React.useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const data = await api.get(API_ROUTES.CALENDARS);
+                const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
+                if (!cancelled) {
+                    setCalendars(list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar)));
+                }
+            } catch {
+                if (!cancelled) setCalendars([]);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     const fetchPatientAppointments = React.useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
@@ -149,17 +166,46 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 if (!dtStr) return null;
                 const dt = parseISO(dtStr.replace(/Z$/, ''));
                 if (isNaN(dt.getTime())) return null;
+                const endNode = apiAppt.end_time || apiAppt.end;
+                const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
+                const calendar = calendars.find(c => String(c.id) === calendarSourceId);
                 return {
-                    id: String(apiAppt.appointment_id || apiAppt.id),
+                    id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
                     patientId: currentUserId,
-                    patientName: '',
-                    doctorId: String(apiAppt.doctor_id || ''),
-                    doctorName: apiAppt.doctor_name || apiAppt.doctorName || '',
+                    patientName: apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || userName || '',
+                    patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail,
+                    patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone,
+                    doctorId: String(apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid || ''),
+                    doctorName: apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || '',
+                    doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || '',
                     summary: apiAppt.summary || 'Cita',
+                    description: apiAppt.description || '',
+                    notes: apiAppt.notes || '',
                     date: format(dt, 'yyyy-MM-dd'),
                     time: format(dt, 'HH:mm'),
                     status: normalizeAppointmentStatus(apiAppt.status),
+                    cancellation_reason: normalizeCancellationReason(
+                        apiAppt.cancellation_reason || apiAppt.cancellationReason || apiAppt.cancellationreason,
+                    ),
+                    cancellation_note: apiAppt.cancellation_note || apiAppt.cancellationNote || apiAppt.cancellationnote || null,
+                    created_at: apiAppt.created_at || apiAppt.createdat,
+                    google_calendar_id: apiAppt.google_calendar_id || apiAppt.googleCalendarId || undefined,
+                    googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
+                    calendar_source_id: calendarSourceId,
+                    calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
+                    color: apiAppt.color,
                     start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
+                    end: typeof endNode === 'string' ? { dateTime: endNode } : endNode,
+                    services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
+                        id: String(s.id),
+                        name: s.name || '',
+                        price: Number(s.price || 0),
+                        category: '',
+                        duration_minutes: 30,
+                        is_active: true,
+                    })) : [],
+                    quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
+                    quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
                 } as Appointment;
             }).filter(Boolean) as Appointment[];
             setPatientAppointments(appointments);
@@ -168,7 +214,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         } finally {
             setIsLoadingPatientAppointments(false);
         }
-    }, []);
+    }, [userName, calendars]);
 
     React.useEffect(() => {
         if (userId) {

@@ -159,7 +159,8 @@ async function getCalendars(): Promise<CalendarType[]> {
 
 async function getAppointmentsForUser(
   user: User | null,
-  calendarSourceIds: string[]
+  calendarSourceIds: string[],
+  calendars: CalendarType[] = []
 ): Promise<Appointment[]> {
   if (!user || !user.id) return [];
 
@@ -205,16 +206,23 @@ async function getAppointmentsForUser(
       const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || 'Doctor';
 
       const endNode = apiAppt.end_time || apiAppt.end;
+      const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
+      const calendar = calendars.find(c => String(c.id) === calendarSourceId);
 
       const appointment = {
         id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
         patientId: String(user.id),
-        patientName: user.name,
+        patientName: apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || user.name,
+        patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail,
+        patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone,
         doctorId: String(doctorId || ''),
         doctorName: doctorName,
         doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || '',
         summary: apiAppt.summary || 'Cita',
         description: apiAppt.description || '',
+        notes: apiAppt.notes || '',
+        calendar_source_id: calendarSourceId,
+        calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
         date: format(appointmentDateTime, 'yyyy-MM-dd'),
         time: format(appointmentDateTime, 'HH:mm'),
         status: normalizeAppointmentStatus(apiAppt.status),
@@ -224,7 +232,6 @@ async function getAppointmentsForUser(
         cancellation_note: apiAppt.cancellation_note || apiAppt.cancellationNote || apiAppt.cancellationnote || null,
         created_at: apiAppt.created_at || apiAppt.createdat,
         google_calendar_id: apiAppt.google_calendar_id || undefined,
-        calendar_source_id: apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '',
         googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
         quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
         quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
@@ -338,7 +345,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
 
     const calendarSourceIds = calendars.map(c => String(c.id));
 
-    const fetchedAppointments = await getAppointmentsForUser(user, calendarSourceIds);
+    const fetchedAppointments = await getAppointmentsForUser(user, calendarSourceIds, calendars);
     setAppointments(fetchedAppointments);
     setIsLoading(false);
   }, [user, calendars]);
