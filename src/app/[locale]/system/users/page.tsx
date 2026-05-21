@@ -47,8 +47,14 @@ import { useDeepLink } from '@/hooks/use-deep-link';
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, { message: t('SystemUsersPage.createDialog.validation.nameRequired') }),
-  email: z.string().optional(),
-  phone: z.string().optional(),
+  email: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  }, { message: t('SystemUsersPage.createDialog.validation.emailInvalid') }),
+  phone: z.string().optional().refine(val => {
+    if (!val || val.trim() === '') return true;
+    return isValidPhoneNumber(val);
+  }, { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
     .regex(/^\d*$/, { message: t('SystemUsersPage.createDialog.validation.identityInvalid') })
     .max(10, { message: t('SystemUsersPage.createDialog.validation.identityMaxLength') })
@@ -56,30 +62,9 @@ const userFormSchema = (t: (key: string) => string) => z.object({
     .or(z.literal('')),
   is_active: z.boolean().default(false),
 }).refine((data) => {
-  // At least one of email or phone must be provided
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
-
-  if (!hasEmail && !hasPhone) {
-    return false;
-  }
-
-  // If email is provided, it must be valid
-  if (hasEmail) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(data.email!)) {
-      return false;
-    }
-  }
-
-  // If phone is provided, it must be valid
-  if (hasPhone) {
-    if (!isValidPhoneNumber(data.phone!)) {
-      return false;
-    }
-  }
-
-  return true;
+  return hasEmail || hasPhone;
 }, {
   message: t('SystemUsersPage.createDialog.validation.emailOrPhoneRequired'),
   path: ['email'],

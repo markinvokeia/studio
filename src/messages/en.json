@@ -3545,13 +3545,17 @@
         "phoneInvalid": "Invalid phone number",
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
-        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later."
       },
       "editSave": "Save",
       "serverError": "Server error, please try again later.",
       "errorTitle": "Error",
       "createSuccessTitle": "User created",
-      "createSuccessDescription": "The user has been created successfully"
+      "createSuccessDescription": "The user has been created successfully",
+      "editSuccessTitle": "User updated",
+      "editSuccessDescription": "The user has been updated successfully"
     },
     "setInitialPassword": "Set Initial Password",
     "tabs": {
@@ -3562,7 +3566,7 @@
       "logs": "Logs",
       "history": "Clinic History",
       "notes": "Notes",
-      "details": "Detalles"
+      "details": "Details"
     },
     "detailsFor": "Details for {name}",
     "close": "Close details",
