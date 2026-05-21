@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Mic } from 'lucide-react';
+import { Loader2, Mic, MicOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-// ── Web Speech API types (not always exported from lib.dom.d.ts) ──────────────
+// ── Web Speech API types ──────────────────────────────────────────────────────
 interface ISpeechRecognitionEvent extends Event {
     readonly resultIndex: number;
     readonly results: SpeechRecognitionResultList;
@@ -32,29 +32,15 @@ declare const webkitSpeechRecognition: ISpeechRecognitionConstructor | undefined
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-type VoiceState = 'idle' | 'listening' | 'recording' | 'processing';
+type VoiceState = 'idle' | 'recording' | 'processing';
 
-// Silence: RMS below this value (0-255 scale) for SILENCE_DURATION_MS → auto-stop
 const SILENCE_THRESHOLD_RMS = 12;
 const SILENCE_DURATION_MS = 2000;
-
-const WAKE_PHRASES = [
-    'hey invoke', 'hei invoke', 'ei invoke', 'oye invoke', 'hey invoque',
-    'hey in vogue', 'hey in boke', 'hay invoke',
-];
-
-// Words that trigger manual stop while recording
 const STOP_WORDS = ['enviar', 'send', 'listo', 'done', 'terminar'];
 
 interface VoiceAssistantProps {
-    /** Called when the user finishes recording — parent handles sending + chat */
     onAudioReady: (blob: Blob) => void;
-    /** True while parent is processing/sending the audio */
     isProcessing: boolean;
-    /**
-     * When provided and a transcript is captured during recording (> 10 chars),
-     * this is called instead of onAudioReady. The blob is included as fallback.
-     */
     onTranscriptReady?: (text: string, blob: Blob) => void;
 }
 
@@ -66,9 +52,6 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
     const [audioLevel, setAudioLevel] = React.useState<number[]>([2, 2, 2, 2, 2]);
 
     const voiceStateRef = React.useRef<VoiceState>('idle');
-    // Ref to break circular dep between startRecording ↔ startWakeWordListening
-    const startWakeWordListeningRef = React.useRef<() => void>(() => {});
-    const wakeRecognitionRef = React.useRef<ISpeechRecognition | null>(null);
     const stopRecognitionRef = React.useRef<ISpeechRecognition | null>(null);
     const transcriptRecognitionRef = React.useRef<ISpeechRecognition | null>(null);
     const rollingTranscriptRef = React.useRef<string>('');
@@ -78,12 +61,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
     const animFrameRef = React.useRef<number | null>(null);
     const streamRef = React.useRef<MediaStream | null>(null);
     const silenceStartRef = React.useRef<number | null>(null);
-    const rescheduleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-    const retryCountRef = React.useRef(0);
-    const MAX_WAKE_RETRIES = 10;
-    const BASE_RETRY_DELAY_MS = 300;
     const lastAudioLevelUpdateRef = React.useRef(0);
-    const AUDIO_LEVEL_THROTTLE_MS = 100; // ~10 Hz
 
     const getSpeechRecognitionCtor = (): ISpeechRecognitionConstructor | undefined =>
         (typeof SpeechRecognition !== 'undefined' ? SpeechRecognition : undefined) ??
@@ -133,12 +111,12 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
 
         const recorder = mediaRecorderRef.current;
         if (recorder && recorder.state !== 'inactive') {
-            recorder.stop(); // onstop fires → onAudioReady
+            recorder.stop();
         }
         await releaseStream();
     }, [stopAnimFrame, releaseStream, stopStopWordRecognition, stopTranscriptRecognition]);
 
-    // ── "enviar" stop-word recognition (runs while recording) ────────────────
+    // ── Stop-word recognition ─────────────────────────────────────────────────
 
     const startStopWordRecognition = React.useCallback(() => {
         const SR = getSpeechRecognitionCtor();
@@ -148,21 +126,17 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
         stopRecognitionRef.current = recognition;
         recognition.continuous = true;
         recognition.interimResults = false;
-        recognition.lang = 'es-ES'; // stop words are Spanish
+        recognition.lang = 'es-ES';
 
         recognition.onresult = (event: ISpeechRecognitionEvent) => {
             if (voiceStateRef.current !== 'recording') return;
             const transcript = Array.from(event.results)
                 .map((r: SpeechRecognitionResult) => r[0].transcript.toLowerCase().trim())
                 .join(' ');
-
-            if (STOP_WORDS.some((w) => transcript.includes(w))) {
-                stopRecording();
-            }
+            if (STOP_WORDS.some((w) => transcript.includes(w))) stopRecording();
         };
 
         recognition.onend = () => {
-            // Restart if still recording
             if (voiceStateRef.current === 'recording') {
                 setTimeout(() => {
                     if (voiceStateRef.current === 'recording') startStopWordRecognition();
@@ -173,7 +147,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
         try { recognition.start(); } catch { /* ignore */ }
     }, [stopRecording]);
 
-    // ── Full-transcript recognition (accumulates spoken text during recording) ─
+    // ── Transcript recognition ────────────────────────────────────────────────
 
     const startTranscriptRecognition = React.useCallback(() => {
         const SR = getSpeechRecognitionCtor();
@@ -189,9 +163,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
             if (voiceStateRef.current !== 'recording') return;
             let transcript = '';
             for (let i = 0; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    transcript += event.results[i][0].transcript;
-                }
+                if (event.results[i].isFinal) transcript += event.results[i][0].transcript;
             }
             if (transcript) rollingTranscriptRef.current = transcript.trim();
         };
@@ -204,14 +176,12 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
             }
         };
 
-        recognition.onerror = () => {
-            transcriptRecognitionRef.current = null;
-        };
+        recognition.onerror = () => { transcriptRecognitionRef.current = null; };
 
         try { recognition.start(); } catch { /* ignore */ }
     }, []);
 
-    // ── Start recording + VAD ─────────────────────────────────────────────────
+    // ── Start recording ───────────────────────────────────────────────────────
 
     const startRecording = React.useCallback(async () => {
         if (voiceStateRef.current === 'recording') return;
@@ -254,14 +224,12 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
                         onAudioReady(blob);
                     }
                 } else {
-                    setState('listening');
-                    startWakeWordListeningRef.current();
+                    setState('idle');
                 }
             };
 
             recorder.start(100);
 
-            // Start stop-word + transcript recognition in parallel
             rollingTranscriptRef.current = '';
             startStopWordRecognition();
             startTranscriptRecognition();
@@ -272,12 +240,10 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
                 if (voiceStateRef.current !== 'recording') return;
                 analyser.getByteFrequencyData(dataArray);
 
-                const rms = Math.sqrt(
-                    dataArray.reduce((s, v) => s + v * v, 0) / dataArray.length,
-                );
+                const rms = Math.sqrt(dataArray.reduce((s, v) => s + v * v, 0) / dataArray.length);
 
                 const now = performance.now();
-                if (now - lastAudioLevelUpdateRef.current >= AUDIO_LEVEL_THROTTLE_MS) {
+                if (now - lastAudioLevelUpdateRef.current >= 100) {
                     lastAudioLevelUpdateRef.current = now;
                     const bars = Array.from({ length: BAR_COUNT }, (_, i) => {
                         const offset = Math.floor((i / BAR_COUNT) * dataArray.length);
@@ -304,182 +270,39 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
             animFrameRef.current = requestAnimationFrame(checkSilence);
         } catch {
             toast({ title: t('micError'), variant: 'destructive', duration: 4000 });
-            setState('listening');
-            startWakeWordListeningRef.current();
+            setState('idle');
         }
     }, [onAudioReady, onTranscriptReady, releaseStream, startStopWordRecognition, startTranscriptRecognition, stopRecording, t, toast]);
 
-    // ── Wake word detection ───────────────────────────────────────────────────
-
-    const startWakeWordListening = React.useCallback(() => {
-        if (typeof window === 'undefined') return;
-
-        retryCountRef.current = 0;
-
-        const SR = getSpeechRecognitionCtor();
-        if (!SR) return;
-
-        if (wakeRecognitionRef.current) {
-            try { wakeRecognitionRef.current.abort(); } catch { /* ignore */ }
-        }
-
-        if (rescheduleTimerRef.current !== null) {
-            clearTimeout(rescheduleTimerRef.current);
-            rescheduleTimerRef.current = null;
-        }
-
-        const recognition = new SR();
-        wakeRecognitionRef.current = recognition;
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        // Use en-US: "Invoke" is English — es-ES often mishears it
-        recognition.lang = 'en-US';
-
-        recognition.onresult = (event: ISpeechRecognitionEvent) => {
-            if (voiceStateRef.current !== 'listening') return;
-
-            const transcript = Array.from(event.results)
-                .map((r: SpeechRecognitionResult) => r[0].transcript.toLowerCase())
-                .join(' ');
-
-            if (WAKE_PHRASES.some((phrase) => transcript.includes(phrase))) {
-                recognition.abort();
-                startRecording();
-            }
-        };
-
-        const reschedule = (baseDelay: number) => {
-            // Guard: only one pending reschedule at a time
-            if (rescheduleTimerRef.current !== null) return;
-            if (voiceStateRef.current !== 'listening') return;
-
-            retryCountRef.current += 1;
-            if (retryCountRef.current > MAX_WAKE_RETRIES) {
-                // Give up — user can click the mic to restart manually
-                setState('idle');
-                return;
-            }
-
-            // Exponential backoff: 300, 600, 1200, 2400, …  capped at 10s
-            const delay = Math.min(baseDelay * Math.pow(2, retryCountRef.current - 1), 10000);
-            rescheduleTimerRef.current = setTimeout(() => {
-                rescheduleTimerRef.current = null;
-                if (voiceStateRef.current === 'listening') startWakeWordListening();
-            }, delay);
-        };
-
-        recognition.onerror = () => reschedule(BASE_RETRY_DELAY_MS);
-        recognition.onend = () => reschedule(BASE_RETRY_DELAY_MS);
-
-        setState('listening');
-        try { recognition.start(); } catch { /* ignore duplicate start */ }
-    }, [startRecording]);
-
-    // Keep ref in sync so startRecording can call it without circular deps
-    React.useEffect(() => {
-        startWakeWordListeningRef.current = startWakeWordListening;
-    }, [startWakeWordListening]);
-
-    // ── Pause wake-word listening when tab is hidden ──────────────────────────
-    // SpeechRecognition keeps a live audio session even in background tabs,
-    // preventing Chrome from throttling or suspending the process.
-    React.useEffect(() => {
-        const handleVisibility = () => {
-            if (document.hidden) {
-                // Tab hidden — stop recognition to release mic + CPU
-                if (voiceStateRef.current === 'listening') {
-                    voiceStateRef.current = 'idle';
-                    setVoiceState('idle');
-                    try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
-                    wakeRecognitionRef.current = null;
-                }
-            } else {
-                // Tab visible again — resume if not recording/processing
-                if (voiceStateRef.current === 'idle') {
-                    startWakeWordListening();
-                }
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibility);
-        return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }, [startWakeWordListening]);
-
-    // ── Yield mic to sticky notes when requested ──────────────────────────────
-
-    React.useEffect(() => {
-        const handleMicRequest = () => {
-            // Pause wake-word listening so the sticky notes recognition can start
-            if (voiceStateRef.current === 'listening') {
-                voiceStateRef.current = 'idle'; // prevent onend from rescheduling
-                setVoiceState('idle');
-                try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
-                wakeRecognitionRef.current = null;
-                if (rescheduleTimerRef.current !== null) {
-                    clearTimeout(rescheduleTimerRef.current);
-                    rescheduleTimerRef.current = null;
-                }
-            }
-        };
-
-        const handleMicRelease = () => {
-            // Resume wake-word listening after sticky notes releases the mic
-            // Small delay so Chrome fully closes the previous session first
-            setTimeout(() => {
-                if (voiceStateRef.current === 'idle') startWakeWordListening();
-            }, 400);
-        };
-
-        window.addEventListener('sticky-notes:mic-request', handleMicRequest);
-        window.addEventListener('sticky-notes:mic-release', handleMicRelease);
-        return () => {
-            window.removeEventListener('sticky-notes:mic-request', handleMicRequest);
-            window.removeEventListener('sticky-notes:mic-release', handleMicRelease);
-        };
-    }, [startWakeWordListening]);
-
-    // ── Sync processing state from parent ────────────────────────────────────
+    // ── Sync processing → idle when parent finishes ───────────────────────────
 
     React.useEffect(() => {
         if (!isProcessing && voiceStateRef.current === 'processing') {
-            setState('listening');
-            startWakeWordListening();
+            setState('idle');
         }
-    }, [isProcessing, startWakeWordListening]);
+    }, [isProcessing]);
 
-    // ── Mount / unmount ───────────────────────────────────────────────────────
+    // ── Unmount cleanup ───────────────────────────────────────────────────────
 
     React.useEffect(() => {
-        startWakeWordListening();
-        if (rescheduleTimerRef.current !== null) {
-            clearTimeout(rescheduleTimerRef.current);
-            rescheduleTimerRef.current = null;
-        }
         return () => {
             voiceStateRef.current = 'idle';
-            if (rescheduleTimerRef.current !== null) {
-                clearTimeout(rescheduleTimerRef.current);
-                rescheduleTimerRef.current = null;
-            }
-            try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
             try { stopRecognitionRef.current?.abort(); } catch { /* ignore */ }
             try { transcriptRecognitionRef.current?.abort(); } catch { /* ignore */ }
             stopAnimFrame();
             streamRef.current?.getTracks().forEach((t) => t.stop());
-            if (audioContextRef.current?.state !== 'closed') {
-                audioContextRef.current?.close();
-            }
+            if (audioContextRef.current?.state !== 'closed') audioContextRef.current?.close();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ── Manual click ─────────────────────────────────────────────────────────
+    // ── Manual click ──────────────────────────────────────────────────────────
 
     const handleClick = () => {
         if (isProcessing) return;
         if (voiceStateRef.current === 'recording') {
             stopRecording();
-        } else if (voiceStateRef.current !== 'processing') {
-            try { wakeRecognitionRef.current?.abort(); } catch { /* ignore */ }
+        } else if (voiceStateRef.current === 'idle') {
             startRecording();
         }
     };
@@ -487,7 +310,6 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
     // ── Render ────────────────────────────────────────────────────────────────
 
     const isRecording = voiceState === 'recording';
-    const isListening = voiceState === 'listening';
 
     return (
         <div className="relative flex flex-col items-center">
@@ -496,43 +318,29 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
                 size="icon"
                 onClick={handleClick}
                 disabled={isProcessing}
-                title={
-                    isRecording
-                        ? t('clickToStop')
-                        : isListening
-                          ? t('listeningForWakeWord')
-                          : t('clickToSpeak')
-                }
+                title={isRecording ? t('clickToStop') : t('clickToSpeak')}
                 className={cn(
-                    'rounded-full h-9 w-9 relative transition-all duration-200',
-                    isRecording && 'bg-red-500/15 text-red-600 hover:bg-red-500/25',
-                    isProcessing && 'opacity-60 cursor-not-allowed',
+                    'rounded-xl h-10 w-10 relative transition-all duration-200',
+                    isRecording
+                        ? 'bg-red-500/15 text-red-600 hover:bg-red-500/25'
+                        : isProcessing
+                            ? 'bg-muted/60 opacity-60 cursor-not-allowed'
+                            : 'bg-muted/60 text-muted-foreground hover:bg-muted',
                 )}
             >
                 {isProcessing ? (
                     <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+                ) : isRecording ? (
+                    <MicOff className="h-5 w-5 text-red-600" />
                 ) : (
-                    <Mic
-                        className={cn(
-                            'h-5 w-5 transition-colors',
-                            isRecording && 'text-red-600',
-                            isListening && 'text-muted-foreground',
-                        )}
-                    />
+                    <Mic className="h-5 w-5 text-muted-foreground" />
                 )}
 
-                {/* Pulsing ring while recording */}
                 {isRecording && (
-                    <span className="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-60" />
-                )}
-
-                {/* Green dot: wake word active */}
-                {isListening && (
-                    <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-green-500 animate-pulse shadow-sm shadow-green-500/50" />
+                    <span className="absolute inset-0 rounded-xl border-2 border-red-500 animate-ping opacity-60" />
                 )}
             </Button>
 
-            {/* Audio level bars while recording */}
             {isRecording && (
                 <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-end gap-[2px]">
                     {audioLevel.map((h, i) => (

@@ -49,6 +49,7 @@ import {
     AlertTriangle,
     Check,
     ChevronDown,
+    Globe,
     KeyRound,
     LogOut,
     Menu,
@@ -230,37 +231,6 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                 </div>
 
                 <div className="mt-auto flex flex-col items-center gap-2 pb-4 shrink-0 border-t border-[var(--nav-border)] pt-3">
-                    {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_THEME) && (
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)] transition-all">
-                                            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                                            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                                            <span className="sr-only">{tHeader('toggleTheme')}</span>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent side="right" align="end" className="rounded-xl w-40">
-                                        <DropdownMenuItem onClick={() => setTheme('light')} className="flex items-center justify-between">
-                                            <span>Invoke</span>
-                                            {theme === 'light' && <Check className="h-4 w-4 text-primary" />}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setTheme('claro')} className="flex items-center justify-between">
-                                            <span>Claro</span>
-                                            {theme === 'claro' && <Check className="h-4 w-4 text-primary" />}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setTheme('dark')} className="flex items-center justify-between">
-                                            <span>Oscuro</span>
-                                            {theme === 'dark' && <Check className="h-4 w-4 text-primary" />}
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </TooltipTrigger>
-                            <TooltipContent side="right">{tHeader('toggleTheme')}</TooltipContent>
-                        </Tooltip>
-                    )}
-
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <DropdownMenu>
@@ -270,7 +240,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                         <span className="sr-only">{user?.name || tHeader('myAccount')}</span>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent side="right" align="end" className="w-56 rounded-xl p-2">
+                                <DropdownMenuContent side="right" align="end" className="w-60 rounded-xl p-2">
                                     <DropdownMenuLabel className="px-2 py-1.5 text-sm font-bold text-primary truncate">
                                         {user?.name || tHeader('myAccount')}
                                     </DropdownMenuLabel>
@@ -287,6 +257,53 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                             <span>{tHeader('preferences')}</span>
                                         </DropdownMenuItem>
                                     </Link>
+                                    <DropdownMenuSeparator />
+                                    <>
+                                        <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            {tHeader('toggleTheme')}
+                                        </DropdownMenuLabel>
+                                        <div className="flex items-center gap-1 px-2 pb-1">
+                                            {(['light', 'claro', 'dark'] as const).map((t) => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    onClick={() => setTheme(t)}
+                                                    className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${theme === t ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                                >
+                                                    {t === 'dark' ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+                                                    {t === 'light' ? 'Invoke' : t === 'claro' ? 'Claro' : 'Oscuro'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </>
+                                    <>
+                                        <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                            <Globe className="inline h-3 w-3 mr-1" />Idioma
+                                        </DropdownMenuLabel>
+                                        <div className="flex items-center gap-1 px-2 pb-1">
+                                            {([
+                                                { code: 'es', label: '🇺🇾 Español' },
+                                                { code: 'en', label: '🇺🇸 English' },
+                                            ] as const).map(({ code, label }) => {
+                                                const isActive = locale === code;
+                                                return (
+                                                    <button
+                                                        key={code}
+                                                        type="button"
+                                                        disabled={isActive}
+                                                        onClick={() => {
+                                                            const sp = new URLSearchParams(window.location.search);
+                                                            const newPath = pathname.replace(`/${locale}`, `/${code}`);
+                                                            router.replace(`${newPath}?${sp.toString()}`);
+                                                        }}
+                                                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                                    >
+                                                        {label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogoutClick} className="rounded-lg font-medium text-destructive focus:text-destructive">
                                         <LogOut className="mr-2 h-4 w-4" />

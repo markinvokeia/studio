@@ -26,7 +26,7 @@ export function NotificationsBell({ className, variant = 'round' }: Notification
       className={cn(
         'relative',
         variant === 'round' ? 'rounded-full h-9 w-9' : 'rounded-xl h-9 w-9',
-        pendingCount > 0 && 'bg-primary/10 text-primary',
+        pendingCount > 0 ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
         className,
       )}
       aria-label={t('openPanel')}

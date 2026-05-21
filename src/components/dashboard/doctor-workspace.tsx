@@ -814,7 +814,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
         } catch {}
 
         return (
-          <Collapsible key={session.sesion_id} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
+          <Collapsible key={`${session.sesion_id}-${index}`} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
             <div className="relative flex items-start gap-3 pl-9 sm:pl-[4.75rem]">
               {/* Date + dot in the left gutter */}
               <div className="absolute left-0 top-0 flex items-center gap-1.5">
