@@ -331,7 +331,7 @@
       "title": "Active Cash Session",
       "description": "Session for {user} at {cashPoint} is currently open.",
       "button": "Go to Cashier",
-      "tooltip": "View your active cash session"
+      "tooltip": "View active session"
     },
     "title": "No Active Cash Session",
     "description": "You do not have an active cash session. Please open one to start recording transactions.",
@@ -4534,6 +4534,12 @@
         "colorInvalid": "Invalid color."
       }
     }
+  },
+  "AlertsWidget": {
+    "title": "Pending alerts",
+    "empty": "No pending alerts",
+    "viewAll": "View alerts",
+    "defaultCategory": "General"
   },
   "AlertsCenterPage": {
     "title": "Alerts Center",

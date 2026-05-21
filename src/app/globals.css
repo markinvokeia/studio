@@ -60,6 +60,13 @@
 .panel-hint-enter { animation: panel-hint-in  0.25s ease-out forwards; }
 .panel-hint-exit  { animation: panel-hint-out 0.25s ease-in  forwards; }
 
+/* Widget panel pushes page content on sm+ screens */
+@media (min-width: 640px) {
+  html.widget-panel-open .widget-content-area {
+    margin-right: 3.5rem; /* w-14 */
+  }
+}
+
 @layer base {
 
   html,

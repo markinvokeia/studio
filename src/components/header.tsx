@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import { AlertsWidget } from './alerts-widget';
 import { ExchangeRate } from './exchange-rate';
 import { StickyNotesOverlay } from './sticky-notes-overlay';
 import { VoiceAssistant } from './voice-assistant';
@@ -176,11 +177,19 @@ export function Header() {
     const panelHintTimerRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
     const hintInitializedRef = React.useRef(false);
     const prevHintCountsRef = React.useRef({ alerts: 0, inbox: 0, notes: 0 });
+    const toggleBtnRef = React.useRef<HTMLButtonElement>(null);
     const alertsIconRef = React.useRef<HTMLDivElement>(null);
     const inboxIconRef = React.useRef<HTMLDivElement>(null);
     const notesIconRef = React.useRef<HTMLDivElement>(null);
+    const isExpandedRef = React.useRef(isExpanded);
 
     React.useEffect(() => { setIsClient(true); }, []);
+
+    React.useEffect(() => {
+        isExpandedRef.current = isExpanded;
+        document.documentElement.classList.toggle('widget-panel-open', isExpanded);
+        return () => document.documentElement.classList.remove('widget-panel-open');
+    }, [isExpanded]);
     React.useEffect(() => { fetchNotes(); }, [fetchNotes]);
     React.useEffect(() => { if (isStickyNotesOpen) fetchNotes(); }, [isStickyNotesOpen, fetchNotes]);
 
@@ -234,13 +243,15 @@ export function Header() {
             label: string,
             colorClass: string,
             iconEl: React.ReactNode,
-            ref: React.RefObject<HTMLDivElement | null>,
+            iconRef: React.RefObject<HTMLDivElement | null>,
         ) => {
             panelHintTimerRef.current.forEach(clearTimeout);
             panelHintTimerRef.current = [];
             setPanelHintLeaving(false);
-            const rect = ref.current?.getBoundingClientRect();
-            const top = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+            // When expanded use the specific icon ref; when collapsed use the toggle tab ref
+            const sourceEl = isExpandedRef.current ? iconRef.current : toggleBtnRef.current;
+            const rect = sourceEl?.getBoundingClientRect();
+            const top = rect ? rect.top + rect.height / 2 : 32;
             setPanelHint({ label, colorClass, iconEl, top });
             panelHintTimerRef.current.push(
                 setTimeout(() => setPanelHintLeaving(true), 4700),
@@ -283,7 +294,7 @@ export function Header() {
             );
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [alertCount, inboxCount, notes.length, isExpanded]);
+    }, [alertCount, inboxCount, notes.length]);
 
     React.useEffect(() => {
         return () => { panelHintTimerRef.current.forEach(clearTimeout); };
@@ -396,6 +407,7 @@ export function Header() {
                 {!isExpanded ? (
                     /* Collapsed tab — fixed to top-right corner */
                     <button
+                        ref={toggleBtnRef}
                         type="button"
                         onClick={() => { setIsExpanded(true); setShouldPulse(false); setPeekItem(null); }}
                         className={cn(
@@ -420,6 +432,7 @@ export function Header() {
                     <div className="fixed inset-y-0 right-0 z-[50] flex flex-col items-center gap-2 pt-3 pb-3 w-14 bg-[hsl(var(--floating-header-bg)/0.97)] backdrop-blur-md border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
                         <Button
+                            ref={toggleBtnRef}
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsExpanded(false)}
@@ -440,32 +453,11 @@ export function Header() {
 
                         <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
 
-                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
-                            <div ref={alertsIconRef} className="w-full">
-                                <PanelItem label="Alertas">
-                                    <Link href={`/${locale}/alerts`} passHref>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className={cn(
-                                                'relative rounded-xl h-10 w-10',
-                                                alertCount > 0
-                                                    ? 'bg-red-500/10 text-red-600'
-                                                    : 'bg-muted/60 text-muted-foreground',
-                                            )}
-                                            title="Alertas"
-                                        >
-                                            <Bell className="h-5 w-5" />
-                                            {alertCount > 0 && (
-                                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
-                                                    {alertCount > 99 ? '99+' : alertCount}
-                                                </span>
-                                            )}
-                                        </Button>
-                                    </Link>
-                                </PanelItem>
-                            </div>
-                        )}
+                        <div ref={alertsIconRef} className="w-full">
+                            <PanelItem label="Alertas">
+                                <AlertsWidget />
+                            </PanelItem>
+                        </div>
 
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
                             <PanelItem label="Cambio">
@@ -481,7 +473,7 @@ export function Header() {
 
                         {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                             <div ref={notesIconRef} className="w-full">
-                                <PanelItem label="Notas">
+                            <PanelItem label="Notas">
                                     <Button
                                         variant="ghost"
                                         size="icon"

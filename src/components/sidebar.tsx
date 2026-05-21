@@ -467,7 +467,7 @@ function MobileNav() {
     const [isLogoutAlertOpen, setIsLogoutAlertOpen] = React.useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
     const [passwordChangeError, setPasswordChangeError] = React.useState<string | null>(null);
-    const [mobileFooterPanel, setMobileFooterPanel] = React.useState<'theme' | 'user' | null>(null);
+    const [mobileFooterPanel, setMobileFooterPanel] = React.useState<'theme' | 'user' | 'language' | null>(null);
     const pathname = usePathname();
     const router = useRouter();
     const locale = useLocale();
@@ -705,6 +705,31 @@ function MobileNav() {
                                     </div>
                                 </div>
                             )}
+                            {mobileFooterPanel === 'language' && (
+                                <div className="px-4 py-3 border-b border-[var(--nav-border)] animate-in fade-in slide-in-from-bottom-2 duration-150">
+                                    <div className="flex items-center gap-2">
+                                        {([{ code: 'es', label: '🇺🇾 Español' }, { code: 'en', label: '🇺🇸 English' }] as const).map(({ code, label }) => (
+                                            <button
+                                                key={code}
+                                                type="button"
+                                                onClick={() => {
+                                                    const newPath = pathname.replace(`/${locale}`, `/${code}`);
+                                                    router.push(newPath);
+                                                    setMobileFooterPanel(null);
+                                                }}
+                                                className={cn(
+                                                    "flex-1 py-2 rounded-lg text-xs font-medium transition-colors",
+                                                    locale === code
+                                                        ? "bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
+                                                        : "text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)]"
+                                                )}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                             {mobileFooterPanel === 'user' && (
                                 <div className="px-4 py-3 border-b border-[var(--nav-border)] animate-in fade-in slide-in-from-bottom-2 duration-150">
                                     <div className="flex items-center gap-3 mb-2">
@@ -746,8 +771,20 @@ function MobileNav() {
                                     </div>
                                 </div>
                             )}
-                            {/* Trigger buttons */}
+                            {/* Trigger buttons: avatar → theme → language */}
                             <div className="px-4 py-3 flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setMobileFooterPanel(mobileFooterPanel === 'user' ? null : 'user')}
+                                    className={cn(
+                                        "relative h-9 w-9 rounded-full ring-2 shrink-0 font-bold text-sm flex items-center justify-center transition-all",
+                                        mobileFooterPanel === 'user'
+                                            ? "ring-[var(--nav-active-indicator)] bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
+                                            : "ring-[var(--nav-border)] bg-[var(--nav-active-bg)] text-[var(--nav-foreground)] hover:ring-[var(--nav-active-indicator)]"
+                                    )}
+                                >
+                                    <span aria-hidden="true">{userInitial}</span>
+                                </button>
                                 {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_THEME) && (
                                     <button
                                         type="button"
@@ -765,15 +802,15 @@ function MobileNav() {
                                 )}
                                 <button
                                     type="button"
-                                    onClick={() => setMobileFooterPanel(mobileFooterPanel === 'user' ? null : 'user')}
+                                    onClick={() => setMobileFooterPanel(mobileFooterPanel === 'language' ? null : 'language')}
                                     className={cn(
-                                        "relative h-9 w-9 rounded-full ring-2 shrink-0 font-bold text-sm flex items-center justify-center transition-all",
-                                        mobileFooterPanel === 'user'
-                                            ? "ring-[var(--nav-active-indicator)] bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
-                                            : "ring-[var(--nav-border)] bg-[var(--nav-active-bg)] text-[var(--nav-foreground)] hover:ring-[var(--nav-active-indicator)]"
+                                        "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                                        mobileFooterPanel === 'language'
+                                            ? "bg-[var(--nav-active-bg)] text-[var(--nav-foreground)]"
+                                            : "text-[var(--nav-text-muted)] hover:bg-[var(--nav-hover-bg)] hover:text-[var(--nav-foreground)]"
                                     )}
                                 >
-                                    <span aria-hidden="true">{userInitial}</span>
+                                    <Globe className="h-5 w-5" />
                                 </button>
                             </div>
                         </div>
