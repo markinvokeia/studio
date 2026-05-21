@@ -449,18 +449,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
       const newStatuses: Record<string, string> = {};
       const newlyCompleted: Appointment[] = [];
-      // Suppress sessions the current user completed themselves from the workspace
-      const locallyUpdated = readLocallyUpdatedIds(userId);
 
       for (const appt of appointments) {
         newStatuses[appt.id] = appt.status;
         const prev = previousStatuses[appt.id];
         if (
           appt.status === 'completed' &&
-          prev !== undefined &&
           prev !== 'completed' &&
-          !secretaryProcessingRef.current.has(appt.id) &&
-          !locallyUpdated.has(appt.id)
+          !secretaryProcessingRef.current.has(appt.id)
         ) {
           newlyCompleted.push(appt);
         }
