@@ -25,7 +25,7 @@ import { api } from '@/services/api';
 import { AttachedFile, PatientSession, TreatmentDetail } from '@/lib/types';
 import { addMonths, format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, File, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Calendar as CalendarIcon, File, Loader2, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
@@ -135,6 +135,10 @@ export function ClinicSessionDialog({
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
 
+    // AI-generated treatments (fetched before save on new sessions)
+    const [aiTreatments, setAiTreatments] = React.useState<TreatmentDetail[]>([]);
+    const [isFetchingAiTreatments, setIsFetchingAiTreatments] = React.useState(false);
+
     // Attachments state
     const [attachedFiles, setAttachedFiles] = React.useState<File[]>([]);
     const [existingAttachments, setExistingAttachments] = React.useState<AttachedFile[]>([]);
@@ -205,6 +209,8 @@ export function ClinicSessionDialog({
             setDoctorError(false);
             setShouldDischargePatient(false);
             setDischargeDate('');
+            setAiTreatments([]);
+            setIsFetchingAiTreatments(false);
             return;
         }
 
@@ -250,12 +256,63 @@ export function ClinicSessionDialog({
 
         setIsSubmitting(true);
         try {
-            const dataToSave: ClinicSessionFormData = {
-                ...form,
-                tratamientos: treatments.length > 0 ? treatments.map(t => ({
+            // For new sessions with a filled procedure: fetch AI treatments synchronously
+            // so they are included in the session creation payload.
+            let fetchedAiTreatments: TreatmentDetail[] = aiTreatments;
+            if (!existingSession && form.procedimiento_realizado?.trim()) {
+                setIsFetchingAiTreatments(true);
+                try {
+                    // Timeout prevents a stalled n8n webhook from permanently locking the form.
+                    const aiCall = api.post(API_ROUTES.AI.TREATMENTS, {
+                        procedimiento: form.procedimiento_realizado,
+                        proxima_sesion_clinica: form.plan_proxima_cita ?? '',
+                    });
+                    const aiTimeout = new Promise<never>((_, reject) =>
+                        setTimeout(() => reject(new Error('AI treatments timeout')), 8_000),
+                    );
+                    const aiResponse = await Promise.race([aiCall, aiTimeout]);
+                    // Parse treatments — handle multiple response shapes:
+                    //   Format A (expected): [{ "tratamientos": [{...}] }]
+                    //   Format B (non-array wrapper): { "tratamientos": [{...}] }
+                    //   Format C (direct array): [{...}]
+                    let parsed: TreatmentDetail[] = [];
+                    if (Array.isArray(aiResponse)) {
+                        if (Array.isArray(aiResponse[0]?.tratamientos)) {
+                            parsed = aiResponse[0].tratamientos as TreatmentDetail[]; // Format A
+                        } else if (
+                            aiResponse.length > 0 &&
+                            (aiResponse[0]?.service_id !== undefined || aiResponse[0]?.service_name !== undefined)
+                        ) {
+                            parsed = aiResponse as TreatmentDetail[]; // Format C
+                        }
+                    } else if (Array.isArray(aiResponse?.tratamientos)) {
+                        parsed = aiResponse.tratamientos as TreatmentDetail[]; // Format B
+                    }
+                    fetchedAiTreatments = parsed;
+                    setAiTreatments(parsed);
+                } catch (err) {
+                    // Non-blocking: log the failure but continue with manual treatments only
+                    console.warn('[ClinicSessionDialog] AI treatments call failed:', err);
+                    fetchedAiTreatments = [];
+                } finally {
+                    setIsFetchingAiTreatments(false);
+                }
+            }
+
+            // Merge manual treatments + AI treatments.
+            // Always include tratamientos in the payload (even as []) so the backend
+            // receives the field and can process accordingly.
+            const mergedTreatments: TreatmentDetail[] = [
+                ...treatments.map(t => ({
                     numero_diente: t.numero_diente,
                     descripcion: t.descripcion,
-                })) : undefined,
+                })),
+                ...fetchedAiTreatments,
+            ];
+
+            const dataToSave: ClinicSessionFormData = {
+                ...form,
+                tratamientos: mergedTreatments,   // always present (may be [])
                 ...(showAttachments ? {
                     archivos_adjuntos: attachedFiles,
                     deletedAttachmentIds,
@@ -472,6 +529,34 @@ export function ClinicSessionDialog({
                                         placeholder={t('procedurePlaceholder')}
                                         className="min-h-[80px] xl:min-h-[100px] resize-y"
                                     />
+                                    {/* AI loading indicator (shown under procedure while the call is in-flight) */}
+                                    {!existingSession && isFetchingAiTreatments && (
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            <Sparkles className="h-3 w-3" />
+                                            <span>{t('aiTreatments.generating')}</span>
+                                        </div>
+                                    )}
+                                    {/* Current-session badges (is_for_next_session !== true) */}
+                                    {!existingSession && !isFetchingAiTreatments && aiTreatments.some(t => t.is_for_next_session !== true) && (
+                                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                            {aiTreatments
+                                                .filter(t => t.is_for_next_session !== true)
+                                                .map((treatment, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        title={t('aiTreatments.currentSession')}
+                                                        className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                                                    >
+                                                        <Sparkles className="h-3 w-3 opacity-70" />
+                                                        {treatment.service_name || treatment.descripcion}
+                                                        {treatment.quantity && treatment.quantity > 1 && (
+                                                            <span className="opacity-70">×{treatment.quantity}</span>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Next Appointment Plan */}
@@ -483,6 +568,26 @@ export function ClinicSessionDialog({
                                         placeholder={t('nextSessionPlanPlaceholder')}
                                         className="min-h-[60px] xl:min-h-[80px] resize-y"
                                     />
+                                    {/* Next-session badges (is_for_next_session === true) */}
+                                    {!existingSession && !isFetchingAiTreatments && aiTreatments.some(t => t.is_for_next_session === true) && (
+                                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                                            {aiTreatments
+                                                .filter(t => t.is_for_next_session === true)
+                                                .map((treatment, idx) => (
+                                                    <span
+                                                        key={idx}
+                                                        title={t('aiTreatments.nextSession')}
+                                                        className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                                                    >
+                                                        <Sparkles className="h-3 w-3 opacity-70" />
+                                                        {treatment.service_name || treatment.descripcion}
+                                                        {treatment.quantity && treatment.quantity > 1 && (
+                                                            <span className="opacity-70">×{treatment.quantity}</span>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Next Appointment Date */}

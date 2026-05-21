@@ -24,7 +24,7 @@ import { Button } from '@/components/ui/button';
 import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { useNotifications } from '@/context/notifications-context';
-import { cn } from '@/lib/utils';
+import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
   AppointmentStatus,
@@ -32,6 +32,7 @@ import type {
   NewAppointmentNotification,
   ReminderPanelNotification,
   SessionCompletedNotification,
+  TreatmentDetail,
   UnifiedNotification,
 } from '@/lib/types';
 
@@ -155,22 +156,99 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
 
   const taken = notification.actions_taken ?? [];
   const hasNextPlan = Boolean(session?.plan_proxima_cita?.trim()) && !taken.includes('schedule');
-  const hasTreatments = Array.isArray(session?.tratamientos) && session.tratamientos.length > 0;
   const hasQuote = !!appointment.quote_id || taken.includes('quote');
   const hasNoQuote = !hasQuote && !taken.includes('invoice');
-  const hasInvoiceAction = hasQuote && !taken.includes('invoice');
+  // La factura puede crearse sin presupuesto previo (para la sesión actual)
+  const hasInvoiceAction = !taken.includes('invoice');
 
-  const goToAppointments = (action: 'quote' | 'invoice' | 'schedule') => {
+  // Loading state independiente por botón
+  const [loadingAction, setLoadingAction] = React.useState<'quote' | 'invoice' | 'schedule' | null>(null);
+
+  /**
+   * Obtiene los tratamientos más frescos del backend.
+   * La notificación se guarda en localStorage en el momento en que se detecta la
+   * sesión como completada — antes de que el AI haya terminado de insertar
+   * tratamientos. Re-fetching garantiza que tenemos los datos post-IA.
+   */
+  const fetchFreshTratamientos = React.useCallback(async (): Promise<TreatmentDetail[]> => {
+    if (!appointment.patientId) return [];
+    try {
+      const rawSessions: any = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, {
+        user_id: appointment.patientId,
+      });
+      const arr: any[] = Array.isArray(rawSessions)
+        ? rawSessions
+        : (rawSessions?.patient_sessions ?? rawSessions?.data ?? []);
+      // Buscar la sesión que corresponde a esta cita o la más reciente
+      const sorted = [...arr].sort(
+        (a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''),
+      );
+      const matched =
+        sorted.find((s) => String(s.appointment_id ?? '') === appointment.id) ?? sorted[0];
+      // Normalizar para mapear service_catalog_id → service_id (string)
+      return Array.isArray(matched?.tratamientos)
+        ? matched.tratamientos.map(normalizeTratamiento)
+        : [];
+    } catch {
+      return [];
+    }
+  }, [appointment.patientId, appointment.id]);
+
+  /** Re-fetcha la sesión, filtra servicios IA y navega a /appointments */
+  const goToAppointments = async (action: 'quote' | 'invoice' | 'schedule') => {
+    setLoadingAction(action);
     markSessionAction(notification.id, action);
+    // Cerrar el panel inmediatamente — el trabajo async continúa en background.
     closePanel();
-    const params = new URLSearchParams({ act: action, patientId: appointment.patientId, patientName: appointment.patientName || '' });
+
+    const params = new URLSearchParams({
+      act: action,
+      patientId: appointment.patientId,
+      patientName: appointment.patientName || '',
+    });
+
     if (action === 'schedule') {
       if (session?.fecha_proxima_cita) params.set('date', session.fecha_proxima_cita);
       if (appointment.doctorId) params.set('doctorId', appointment.doctorId);
       if (appointment.doctorName) params.set('doctorName', appointment.doctorName);
+      if (appointment.quote_id) params.set('quoteId', appointment.quote_id);
+      if (appointment.calendar_source_id) params.set('calendarId', appointment.calendar_source_id);
     }
+
+    // Fetch treatments once and select the relevant subset per action.
+    const freshTratamientos = await fetchFreshTratamientos();
+    const aiServices = freshTratamientos.filter((t) => t.service_id);
+    const nextServices = aiServices.filter((t) => t.is_for_next_session === true);
+    const currentServices = aiServices.filter((t) => t.is_for_next_session !== true);
+
+    const toStore =
+      action === 'schedule'
+        // Próxima sesión; fallback a todos si ninguno tiene el flag explícito
+        ? (nextServices.length > 0 ? nextServices : aiServices)
+        : action === 'quote'
+          ? (nextServices.length > 0 ? nextServices : aiServices)
+          : (currentServices.length > 0 ? currentServices : aiServices); // invoice
+
+    if (toStore.length > 0) {
+      try {
+        sessionStorage.setItem(`notif-services:${notification.id}`, JSON.stringify(toStore));
+        params.set('sessionRef', notification.id);
+      } catch {
+        // sessionStorage no disponible — continuar sin pre-carga
+      }
+    }
+
     router.push(`/${locale}/appointments?${params.toString()}`);
+    // Reset loading state — the panel may not unmount when closed (just hidden),
+    // so without this reset all buttons stay disabled after navigation.
+    setLoadingAction(null);
   };
+
+  // Servicios del snapshot local (solo para display en la card, no para el form).
+  // Normalizar para mapear service_catalog_id → service_id.
+  const allTratamientos: TreatmentDetail[] = (session?.tratamientos ?? []).map(normalizeTratamiento);
+  const aiCurrentServices = allTratamientos.filter((t) => t.service_id && t.is_for_next_session !== true);
+  const aiNextServices = allTratamientos.filter((t) => t.service_id && t.is_for_next_session === true);
 
   return (
     <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-emerald-500/60">
@@ -235,10 +313,36 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
             </div>
           )}
 
-          {hasTreatments && (
-            <p className="text-[11px] text-muted-foreground">
-              {t('treatmentCount', { count: session!.tratamientos.length })}
-            </p>
+          {/* Servicios IA — sesión actual */}
+          {aiCurrentServices.length > 0 && (
+            <div className="rounded-lg bg-amber-50/60 dark:bg-amber-950/20 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600/80">
+                {t('currentSessionServices')}
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {aiCurrentServices.map((s, i) => (
+                  <li key={i} className="text-[11px] text-foreground truncate">
+                    · {s.service_name || s.descripcion}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Servicios IA — próxima sesión */}
+          {aiNextServices.length > 0 && (
+            <div className="rounded-lg bg-blue-50/40 dark:bg-blue-950/15 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500/80">
+                {t('nextSessionServices')}
+              </p>
+              <ul className="mt-1 space-y-0.5">
+                {aiNextServices.map((s, i) => (
+                  <li key={i} className="text-[11px] text-foreground truncate">
+                    · {s.service_name || s.descripcion}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
 
@@ -250,10 +354,18 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 variant="outline"
                 size="sm"
                 className="h-7 w-full justify-start gap-2 text-[11px]"
+                disabled={loadingAction !== null}
                 onClick={() => goToAppointments('quote')}
               >
-                <ListChecks className="h-3.5 w-3.5 text-primary" />
+                {loadingAction === 'quote'
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <ListChecks className="h-3.5 w-3.5 text-primary" />}
                 {t('actionCreateQuote')}
+                {aiNextServices.length > 0 && loadingAction !== 'quote' && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {aiNextServices.length} {t('servicesPreloaded')}
+                  </span>
+                )}
               </Button>
             )}
 
@@ -262,10 +374,18 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 variant="outline"
                 size="sm"
                 className="h-7 w-full justify-start gap-2 text-[11px]"
+                disabled={loadingAction !== null}
                 onClick={() => goToAppointments('invoice')}
               >
-                <FileText className="h-3.5 w-3.5 text-amber-500" />
+                {loadingAction === 'invoice'
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <FileText className="h-3.5 w-3.5 text-amber-500" />}
                 {t('actionGenerateInvoice')}
+                {aiCurrentServices.length > 0 && loadingAction !== 'invoice' && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {aiCurrentServices.length} {t('servicesPreloaded')}
+                  </span>
+                )}
               </Button>
             )}
 
@@ -274,10 +394,18 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 variant="outline"
                 size="sm"
                 className="h-7 w-full justify-start gap-2 text-[11px]"
+                disabled={loadingAction !== null}
                 onClick={() => goToAppointments('schedule')}
               >
-                <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />
+                {loadingAction === 'schedule'
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <CalendarPlus className="h-3.5 w-3.5 text-blue-500" />}
                 {t('actionScheduleNext')}
+                {aiNextServices.length > 0 && loadingAction !== 'schedule' && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {aiNextServices.length} {t('servicesPreloaded')}
+                  </span>
+                )}
               </Button>
             )}
           </div>

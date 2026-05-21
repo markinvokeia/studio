@@ -32,7 +32,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
-import { Invoice, Service, User } from '@/lib/types';
+import { Invoice, Service, SessionPreloadedService, User } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
@@ -504,9 +504,11 @@ interface InvoiceFormDialogProps {
   isSales: boolean;
   invoice?: Invoice | null;
   initialUser?: User;
+  /** Servicios pre-cargados por IA desde la sesión clínica actual */
+  initialItems?: SessionPreloadedService[];
 }
 
-export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser }: InvoiceFormDialogProps) {
+export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser, initialItems }: InvoiceFormDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
   const tRoot = useTranslations('InvoicesPage');
   const [users, setUsers] = React.useState<User[]>([]);
@@ -725,11 +727,21 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             if (initialUser) {
               setUsers([initialUser]);
             }
+            // Pre-cargar ítems generados por IA si están disponibles
+            const preloadedItems = initialItems
+              ?.filter(i => i.service_id)
+              .map(i => ({
+                service_id: i.service_id!,
+                service_name: i.service_name ?? '',
+                quantity: i.quantity ?? 1,
+                unit_price: i.unit_price ?? 0,
+                total: (i.unit_price ?? 0) * (i.quantity ?? 1),
+              })) ?? [];
             form.reset({
               type: 'invoice',
               user_id: initialUser ? initialUser.id : '',
               currency: 'UYU',
-              items: [],
+              items: preloadedItems,
               total: 0,
               created_at: new Date(),
               due_date: addDays(new Date(), 30),

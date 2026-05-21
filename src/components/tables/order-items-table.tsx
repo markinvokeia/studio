@@ -609,7 +609,6 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         appointmentId={selectedItem?.appointment_id}
         defaultDate={selectedDate}
         serviceName={selectedItem?.service_name}
-        showTreatments={true}
         showAttachments={true}
       />
 

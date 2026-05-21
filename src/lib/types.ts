@@ -693,7 +693,23 @@ export type DentalSurface = {
 export type TreatmentDetail = {
   numero_diente: number | null;
   descripcion: string;
+  // Campos que llegan del backend al leer sesiones clínicas guardadas
+  service_catalog_id?: number | string; // ID del servicio tal como lo guarda el backend
+  // Campos generados por IA / normalizados en el frontend
+  service_id?: string;    // Siempre usar este en el frontend (string, normalizado desde service_catalog_id)
+  service_name?: string;
+  unit_price?: number;
+  quantity?: number;
+  is_for_next_session?: boolean;
 };
+
+/**
+ * Servicio pre-cargado por IA desde una sesión clínica, para pre-llenar presupuesto/factura.
+ * `service_id` es siempre requerido — sólo los tratamientos con ID pueden pre-cargar forms.
+ */
+export type SessionPreloadedService =
+  Required<Pick<TreatmentDetail, 'service_id'>> &
+  Pick<TreatmentDetail, 'service_name' | 'unit_price' | 'quantity' | 'is_for_next_session' | 'numero_diente'>;
 
 export type AttachedFile = {
   id?: string;

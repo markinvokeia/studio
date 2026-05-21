@@ -760,7 +760,9 @@ export function useClinicHistory(): UseClinicHistoryReturn {
 
         Object.entries(scalarOverrides).forEach(([k, v]) => formData.append(k, v));
 
-        if (sessionData.tratamientos && sessionData.tratamientos.length > 0) {
+        // Always send tratamientos so the backend receives the field.
+        // The dialog guarantees it is always an array ([] when empty).
+        if (sessionData.tratamientos !== undefined) {
             formData.append('tratamientos', JSON.stringify(sessionData.tratamientos));
         }
 
@@ -778,8 +780,16 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             const formData = buildSessionFormData(sessionData, { paciente_id: userId }, files);
             const response = await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, formData);
             await fetchPatientSessions(userId);
-            // Return the new sesion_id so callers can link it to treatment steps
-            return response?.sesion_id ?? response?.data?.sesion_id ?? response?.id ?? undefined;
+            // La API devuelve [{ code, data: { id: "334", ... } }] — normalizar el array
+            // y leer el id desde todos los paths posibles del backend.
+            const first = Array.isArray(response) ? response[0] : response;
+            const rawId =
+                first?.data?.id ??
+                first?.data?.sesion_id ??
+                first?.sesion_id ??
+                first?.id ??
+                undefined;
+            return rawId !== undefined && rawId !== null ? Number(rawId) : undefined;
         } catch (error) {
             console.error("Failed to create session:", error);
             throw error;

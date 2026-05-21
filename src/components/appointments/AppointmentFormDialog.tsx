@@ -1487,7 +1487,6 @@ export function AppointmentFormDialog({
                         setIsSessionDialogOpen(open);
                     }}
                     existingSession={linkedSession ?? undefined}
-                    showTreatments={true}
                     showAttachments={true}
                     quoteId={appointment.quote?.id || editingAppointment?.quote_id}
                     appointmentId={editingAppointment?.id || pendingSaveResult?.result?.appointment_id || pendingSaveResult?.result?.id}

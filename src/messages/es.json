@@ -241,6 +241,9 @@
     "procedure": "Procedimiento",
     "nextPlan": "Plan próxima cita",
     "treatmentCount": "{count} tratamiento(s) aplicado(s)",
+    "currentSessionServices": "Servicios sesión actual",
+    "nextSessionServices": "Servicios próxima sesión",
+    "servicesPreloaded": "precargados",
     "actionCreateQuote": "Crear presupuesto",
     "actionScheduleNext": "Agendar próxima cita",
     "actionGenerateInvoice": "Generar factura",
@@ -1651,7 +1654,9 @@
         "total": "Total",
         "selectService": "Seleccionar Servicio",
         "toothNumber": "Número de Diente",
-        "empty": "Aún no se han agregado artículos."
+        "empty": "Aún no se han agregado artículos.",
+        "currentSessionBadge": "Sesión actual",
+        "nextSessionBadge": "Próxima sesión"
       },
       "notes": "Notas",
       "notesPlaceholder": "Agregue notas adicionales aquí..."
@@ -5420,6 +5425,12 @@
       "applySuccess": "La IA completó la sesión clínica.",
       "applyError": "No se pudo estructurar el dictado con IA.",
       "missingInformation": "Información que conviene confirmar"
+    },
+    "aiTreatments": {
+      "generating": "Analizando tratamientos con IA...",
+      "title": "Tratamientos detectados por IA",
+      "currentSession": "Sesión actual",
+      "nextSession": "Próxima sesión"
     }
   },
   "VoiceAssistant": {

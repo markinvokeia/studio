@@ -1239,7 +1239,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
     if (!selectedAppointment?.patientId) return;
 
+    // Obtener sesion_id: para updates ya lo tenemos; para creates lo retorna createSession.
+    let sesionId: number | undefined;
     if (linkedSession?.sesion_id) {
+      sesionId = linkedSession.sesion_id;
       await updateSession(
         linkedSession.sesion_id,
         selectedAppointment.patientId,
@@ -1249,7 +1252,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         linkedSession.archivos_adjuntos,
       );
     } else {
-      await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
+      sesionId = await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
     }
 
     if (selectedAppointment.status !== 'completed') {
@@ -1261,7 +1264,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       });
     }
 
-      await loadLinkedSession(selectedAppointment);
+    await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
     createSession,
@@ -1616,7 +1619,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           defaultDate={selectedAppointment.start?.dateTime
             ? parseISO(selectedAppointment.start.dateTime.replace(/Z$/, ''))
             : parseISO(`${formatDate(selectedAppointment.date)}T${selectedAppointment.time || '00:00'}:00`)}
-          showTreatments={true}
           showAttachments={true}
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}

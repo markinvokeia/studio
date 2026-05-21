@@ -27,7 +27,7 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
 } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, normalizeTratamiento } from '@/lib/utils';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -479,7 +479,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
                   ? rawSessions
                   : ((rawSessions as any)?.patient_sessions ?? (rawSessions as any)?.data ?? []);
                 const sessions: PatientSession[] = arr
-                  .map((s: any) => ({ ...s, sesion_id: Number(s.sesion_id) }))
+                  .map((s: any) => ({
+                    ...s,
+                    sesion_id: Number(s.sesion_id),
+                    // Normalizar tratamientos para mapear service_catalog_id → service_id
+                    tratamientos: Array.isArray(s.tratamientos)
+                      ? s.tratamientos.map(normalizeTratamiento)
+                      : [],
+                  }))
                   .sort((a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''));
                 return sessions.find((s) => String(s.appointment_id ?? '') === appt.id) ?? sessions[0] ?? null;
               })

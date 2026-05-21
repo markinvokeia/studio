@@ -118,6 +118,8 @@ export const API_ROUTES = {
     AI: {
         DOCTOR_QUERY: '/ai/doctor/query',
         ENHANCE_TEXT: '/ai/enhance-text',
+        /** Genera tratamientos estructurados desde procedimiento y plan de próxima sesión */
+        TREATMENTS: '/ai/treatments',
     },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',

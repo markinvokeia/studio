@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clinic, Quote, User } from '@/lib/types';
+import { Clinic, Quote, TreatmentDetail, User } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,10 +56,14 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
+        /** Nombre del servicio — solo para display en ServiceSelector pre-cargado */
+        service_name: z.string().optional(),
         quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
         unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
         total: z.coerce.number().min(0, t('validation.totalPositive')),
         tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
+        /** Flag para diferenciar servicios de sesión actual vs próxima sesión (generado por IA) */
+        is_for_next_session: z.boolean().optional(),
     })).default([]),
 });
 
@@ -100,9 +104,11 @@ export interface QuoteFormDialogProps {
     onSaveSuccess?: () => void;
     onQuoteCreated?: (quote: Quote) => void;
     isSales?: boolean;
+    /** Servicios pre-cargados por IA desde la sesión clínica (TreatmentDetail con service_id) */
+    initialItems?: Pick<TreatmentDetail, 'service_id' | 'service_name' | 'unit_price' | 'quantity' | 'is_for_next_session' | 'numero_diente'>[];
 }
 
-export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true }: QuoteFormDialogProps) {
+export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true, initialItems }: QuoteFormDialogProps) {
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession } = useAuth();
@@ -131,11 +137,20 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
         getClinic().then(setClinic);
     }, []);
 
-    // Reset form when dialog opens
+    // Reset form when dialog opens — pre-carga ítems IA si están disponibles
     React.useEffect(() => {
         if (!open) return;
         const defaultCurrency = clinic?.currency || 'UYU';
         const sessionRate = getSessionExchangeRate();
+        const preloadedItems = initialItems?.filter(i => i.service_id).map(i => ({
+            service_id: i.service_id!,
+            service_name: i.service_name ?? '',
+            quantity: i.quantity ?? 1,
+            unit_price: i.unit_price ?? 0,
+            total: (i.unit_price ?? 0) * (i.quantity ?? 1),
+            tooth_number: (i.numero_diente ?? '') as number | '',
+            is_for_next_session: i.is_for_next_session ?? false,
+        })) ?? [];
         form.reset(
             {
                 user_id: initialData?.user?.id || '',
@@ -147,7 +162,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 exchange_rate: 1,
                 created_at: new Date(),
                 notes: '',
-                items: [],
+                items: preloadedItems,
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -207,6 +222,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 unit_price: item.unit_price,
                 total: item.total,
                 tooth_number: item.tooth_number ? Number(item.tooth_number) : null,
+                // Flag de sesión para el backend (ignorado si aún no tiene soporte)
+                is_for_next_session: item.is_for_next_session ?? false,
             }));
             const normalizeBilling = (s: string) =>
                 s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
@@ -387,7 +404,19 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                             {fields.map((fieldItem, index) => (
                                                 <div key={fieldItem.id} className="rounded-lg border bg-muted/30 p-3 space-y-3">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-medium text-muted-foreground">{t('quoteDialog.items.title')} #{index + 1}</span>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="text-xs font-medium text-muted-foreground">{t('quoteDialog.items.title')} #{index + 1}</span>
+                                                            {watchedItems?.[index]?.is_for_next_session === true && (
+                                                                <span className="rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                                                    {t('quoteDialog.items.nextSessionBadge')}
+                                                                </span>
+                                                            )}
+                                                            {watchedItems?.[index]?.is_for_next_session === false && watchedItems?.[index]?.service_id && (
+                                                                <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                                                    {t('quoteDialog.items.currentSessionBadge')}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <Button type="button" variant="destructive" size="icon" className="h-7 w-7 shrink-0" onClick={() => remove(index)}>
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -398,11 +427,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                             <ServiceSelector
                                                                 isSales={isSales}
                                                                 value={field.value}
+                                                                selectedServiceName={watchedItems?.[index]?.service_name}
                                                                 onValueChange={(serviceId, service) => {
                                                                     field.onChange(serviceId);
                                                                     if (service) {
                                                                         const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                         const servicePrice = Number(service.price);
+                                                                        form.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                         form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                         form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                     }
@@ -499,11 +530,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                     <ServiceSelector
                                                                         isSales={isSales}
                                                                         value={field.value}
+                                                                        selectedServiceName={watchedItems?.[index]?.service_name}
                                                                         onValueChange={(serviceId, service) => {
                                                                             field.onChange(serviceId);
                                                                             if (service) {
                                                                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                                 const servicePrice = Number(service.price);
+                                                                                form.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                                 form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                                 form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                             }
@@ -512,6 +545,17 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                         noResultsText={t('itemDialog.noServiceFound')}
                                                                         triggerText={t('quoteDialog.items.selectService')}
                                                                     />
+                                                                    {/* Badge de sesión generado por IA */}
+                                                                    {watchedItems?.[index]?.is_for_next_session === true && (
+                                                                        <span className="inline-flex items-center mt-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                                                            {t('quoteDialog.items.nextSessionBadge')}
+                                                                        </span>
+                                                                    )}
+                                                                    {watchedItems?.[index]?.is_for_next_session === false && watchedItems?.[index]?.service_id && (
+                                                                        <span className="inline-flex items-center mt-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                                                            {t('quoteDialog.items.currentSessionBadge')}
+                                                                        </span>
+                                                                    )}
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )} />

@@ -241,6 +241,9 @@
     "procedure": "Procedure",
     "nextPlan": "Next plan",
     "treatmentCount": "{count} treatment(s) applied",
+    "currentSessionServices": "Current session services",
+    "nextSessionServices": "Next session services",
+    "servicesPreloaded": "preloaded",
     "actionCreateQuote": "Create quote",
     "actionScheduleNext": "Schedule next appointment",
     "actionGenerateInvoice": "Generate invoice",
@@ -1651,7 +1654,9 @@
         "total": "Total",
         "selectService": "Select Service",
         "toothNumber": "Tooth Number",
-        "empty": "No items added yet."
+        "empty": "No items added yet.",
+        "currentSessionBadge": "Current session",
+        "nextSessionBadge": "Next session"
       },
       "notes": "Notes",
       "notesPlaceholder": "Add any additional notes here..."
@@ -5441,6 +5446,12 @@
       "applySuccess": "AI completed the clinical session fields.",
       "applyError": "Could not structure the dictation with AI.",
       "missingInformation": "Information worth confirming"
+    },
+    "aiTreatments": {
+      "generating": "Analyzing treatments with AI...",
+      "title": "AI-detected treatments",
+      "currentSession": "Current session",
+      "nextSession": "Next session"
     }
   },
   "VoiceAssistant": {
