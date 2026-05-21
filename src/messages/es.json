@@ -334,7 +334,7 @@
       "title": "Sesión de Caja Activa",
       "description": "La sesión para {user} en {cashPoint} está abierta.",
       "button": "Ir a Caja",
-      "tooltip": "Ver su sesión de caja activa"
+      "tooltip": "Ver sesión activa"
     },
     "title": "Sin Sesión de Caja Activa",
     "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
@@ -4518,6 +4518,12 @@
         "colorInvalid": "Color inválido."
       }
     }
+  },
+  "AlertsWidget": {
+    "title": "Alertas pendientes",
+    "empty": "No hay alertas pendientes",
+    "viewAll": "Ver alertas",
+    "defaultCategory": "General"
   },
   "AlertsCenterPage": {
     "title": "Centro de Alertas",

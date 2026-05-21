@@ -118,7 +118,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       <div className="print:hidden">
         <Sidebar />
       </div>
-      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible")}>
+      <div className={cn("widget-content-area flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible")}>
         <div className="print:hidden">
           <Header />
         </div>
