@@ -22,14 +22,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { api } from '@/services/api';
-import { AttachedFile, PatientSession, TreatmentDetail } from '@/lib/types';
+import { AttachedFile, PatientSession, Service, TreatmentDetail } from '@/lib/types';
 import { addMonths, format } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, File, Loader2, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Check, ChevronsUpDown, File, Loader2, Plus, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { API_ROUTES } from '@/constants/routes';
 import { cn, formatDate } from '@/lib/utils';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { getSalesServices } from '@/services/services';
 
 interface ClinicSessionDialogProps {
     open: boolean;
@@ -135,9 +137,18 @@ export function ClinicSessionDialog({
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
 
-    // AI-generated treatments (fetched before save on new sessions)
+    // AI-generated treatments (fetched on demand via "Generate" button)
     const [aiTreatments, setAiTreatments] = React.useState<TreatmentDetail[]>([]);
     const [isFetchingAiTreatments, setIsFetchingAiTreatments] = React.useState(false);
+    const [aiGenerated, setAiGenerated] = React.useState(false);
+    // Service catalog for manual add
+    const [services, setServices] = React.useState<Service[]>([]);
+    const [isLoadingServices, setIsLoadingServices] = React.useState(false);
+    // Manual add state
+    const [isAddingManual, setIsAddingManual] = React.useState(false);
+    const [selectedServiceId, setSelectedServiceId] = React.useState('');
+    const [selectedSessionType, setSelectedSessionType] = React.useState<'current' | 'next'>('current');
+    const [servicePopoverOpen, setServicePopoverOpen] = React.useState(false);
 
     // Attachments state
     const [attachedFiles, setAttachedFiles] = React.useState<File[]>([]);
@@ -156,11 +167,13 @@ export function ClinicSessionDialog({
         appointment_id: appointmentId,
     });
 
-    // Fetch doctors when dialog opens
+    // Fetch doctors and services catalog when dialog opens
     React.useEffect(() => {
         if (open) {
             fetchDoctors();
+            if (services.length === 0) fetchServices();
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     // Reset form when dialog opens; apply partial updates from agent while already open
@@ -188,11 +201,10 @@ export function ClinicSessionDialog({
                 sesion_id: existingSession?.sesion_id,
             });
 
+            // For existing sessions: existing treatments go into aiTreatments (badges).
+            // For new sessions with prefill: use the tooth-based treatments panel.
             if (existingSession?.tratamientos && existingSession.tratamientos.length > 0) {
-                setTreatments(existingSession.tratamientos.map(t => ({
-                    numero_diente: t.numero_diente,
-                    descripcion: t.descripcion || '',
-                })));
+                setTreatments([]);
             } else if (prefillTreatments && prefillTreatments.length > 0) {
                 setTreatments(prefillTreatments.map(t => ({ ...t })));
             } else {
@@ -209,8 +221,13 @@ export function ClinicSessionDialog({
             setDoctorError(false);
             setShouldDischargePatient(false);
             setDischargeDate('');
-            setAiTreatments([]);
+            setAiTreatments(existingSession?.tratamientos ?? []);
             setIsFetchingAiTreatments(false);
+            setAiGenerated(false);
+            setIsAddingManual(false);
+            setSelectedServiceId('');
+            setSelectedSessionType('current');
+            setServicePopoverOpen(false);
             return;
         }
 
@@ -240,6 +257,18 @@ export function ClinicSessionDialog({
         }
     };
 
+    const fetchServices = async () => {
+        setIsLoadingServices(true);
+        try {
+            const { items } = await getSalesServices({ limit: 200 });
+            setServices(items);
+        } catch (error) {
+            console.error("Failed to fetch services:", error);
+        } finally {
+            setIsLoadingServices(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -256,58 +285,12 @@ export function ClinicSessionDialog({
 
         setIsSubmitting(true);
         try {
-            // For new sessions with a filled procedure: fetch AI treatments synchronously
-            // so they are included in the session creation payload.
-            let fetchedAiTreatments: TreatmentDetail[] = aiTreatments;
-            if (!existingSession && form.procedimiento_realizado?.trim()) {
-                setIsFetchingAiTreatments(true);
-                try {
-                    // Timeout prevents a stalled n8n webhook from permanently locking the form.
-                    const aiCall = api.post(API_ROUTES.AI.TREATMENTS, {
-                        procedimiento: form.procedimiento_realizado,
-                        proxima_sesion_clinica: form.plan_proxima_cita ?? '',
-                    });
-                    const aiTimeout = new Promise<never>((_, reject) =>
-                        setTimeout(() => reject(new Error('AI treatments timeout')), 8_000),
-                    );
-                    const aiResponse = await Promise.race([aiCall, aiTimeout]);
-                    // Parse treatments — handle multiple response shapes:
-                    //   Format A (expected): [{ "tratamientos": [{...}] }]
-                    //   Format B (non-array wrapper): { "tratamientos": [{...}] }
-                    //   Format C (direct array): [{...}]
-                    let parsed: TreatmentDetail[] = [];
-                    if (Array.isArray(aiResponse)) {
-                        if (Array.isArray(aiResponse[0]?.tratamientos)) {
-                            parsed = aiResponse[0].tratamientos as TreatmentDetail[]; // Format A
-                        } else if (
-                            aiResponse.length > 0 &&
-                            (aiResponse[0]?.service_id !== undefined || aiResponse[0]?.service_name !== undefined)
-                        ) {
-                            parsed = aiResponse as TreatmentDetail[]; // Format C
-                        }
-                    } else if (Array.isArray(aiResponse?.tratamientos)) {
-                        parsed = aiResponse.tratamientos as TreatmentDetail[]; // Format B
-                    }
-                    fetchedAiTreatments = parsed;
-                    setAiTreatments(parsed);
-                } catch (err) {
-                    // Non-blocking: log the failure but continue with manual treatments only
-                    console.warn('[ClinicSessionDialog] AI treatments call failed:', err);
-                    fetchedAiTreatments = [];
-                } finally {
-                    setIsFetchingAiTreatments(false);
-                }
-            }
-
-            // Merge manual treatments + AI treatments.
-            // Always include tratamientos in the payload (even as []) so the backend
-            // receives the field and can process accordingly.
             const mergedTreatments: TreatmentDetail[] = [
                 ...treatments.map(t => ({
                     numero_diente: t.numero_diente,
                     descripcion: t.descripcion,
                 })),
-                ...fetchedAiTreatments,
+                ...aiTreatments,
             ];
 
             const dataToSave: ClinicSessionFormData = {
@@ -351,6 +334,55 @@ export function ClinicSessionDialog({
 
     const handleRemoveTreatment = (index: number) => {
         setTreatments(treatments.filter((_, i) => i !== index));
+    };
+
+    const handleRemoveAiTreatment = (index: number) => {
+        setAiTreatments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleAddServiceTreatment = () => {
+        const svc = services.find(s => s.id === selectedServiceId);
+        if (!svc) return;
+        setAiTreatments(prev => [...prev, {
+            service_id: svc.id,
+            service_name: svc.name,
+            descripcion: svc.name,
+            quantity: 1,
+            numero_diente: null,
+            is_for_next_session: selectedSessionType === 'next',
+        }]);
+        setSelectedServiceId('');
+        setIsAddingManual(false);
+    };
+
+    const handleGenerateTreatments = async () => {
+        if (!form.procedimiento_realizado?.trim()) return;
+        setIsFetchingAiTreatments(true);
+        try {
+            const aiCall = api.post(API_ROUTES.AI.TREATMENTS, {
+                procedimiento: form.procedimiento_realizado,
+                proxima_sesion_clinica: form.plan_proxima_cita ?? '',
+            });
+            const aiTimeout = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('AI treatments timeout')), 15_000),
+            );
+            const aiResponse = await Promise.race([aiCall, aiTimeout]);
+            // Normalize: n8n may return { tratamientos: [...] } or [{ tratamientos: [...] }]
+            const responseData = Array.isArray(aiResponse) ? aiResponse[0] : aiResponse;
+            let parsed: TreatmentDetail[] = [];
+            if (Array.isArray(responseData?.tratamientos)) {
+                parsed = responseData.tratamientos as TreatmentDetail[];
+            } else if (Array.isArray(aiResponse) && aiResponse[0]?.service_id !== undefined) {
+                parsed = aiResponse as TreatmentDetail[];
+            }
+            setAiTreatments(parsed);
+            setAiGenerated(true);
+        } catch (err) {
+            console.warn('[ClinicSessionDialog] AI treatments call failed:', err);
+            toast({ title: t('aiTreatments.error'), variant: 'destructive' });
+        } finally {
+            setIsFetchingAiTreatments(false);
+        }
     };
 
     // File handlers
@@ -520,7 +552,7 @@ export function ClinicSessionDialog({
                                     </Select>
                                 </div>
 
-                                {/* Procedure */}
+                                {/* Procedure + current-session treatment badges */}
                                 <div className="space-y-2 md:col-span-2">
                                     <Label>{t('procedure')}</Label>
                                     <Textarea
@@ -529,22 +561,14 @@ export function ClinicSessionDialog({
                                         placeholder={t('procedurePlaceholder')}
                                         className="min-h-[80px] xl:min-h-[100px] resize-y"
                                     />
-                                    {/* AI loading indicator (shown under procedure while the call is in-flight) */}
-                                    {!existingSession && isFetchingAiTreatments && (
-                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                            <Sparkles className="h-3 w-3" />
-                                            <span>{t('aiTreatments.generating')}</span>
-                                        </div>
-                                    )}
-                                    {/* Current-session badges (is_for_next_session !== true) */}
-                                    {!existingSession && !isFetchingAiTreatments && aiTreatments.some(t => t.is_for_next_session !== true) && (
+                                    {!isFetchingAiTreatments && aiTreatments.some(tr => tr.is_for_next_session !== true) && (
                                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                                             {aiTreatments
-                                                .filter(t => t.is_for_next_session !== true)
-                                                .map((treatment, idx) => (
+                                                .map((treatment, originalIdx) => ({ treatment, originalIdx }))
+                                                .filter(({ treatment }) => treatment.is_for_next_session !== true)
+                                                .map(({ treatment, originalIdx }) => (
                                                     <span
-                                                        key={idx}
+                                                        key={originalIdx}
                                                         title={t('aiTreatments.currentSession')}
                                                         className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
                                                     >
@@ -553,13 +577,22 @@ export function ClinicSessionDialog({
                                                         {treatment.quantity && treatment.quantity > 1 && (
                                                             <span className="opacity-70">×{treatment.quantity}</span>
                                                         )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveAiTreatment(originalIdx)}
+                                                            className="ml-0.5 rounded-full p-0.5 hover:bg-amber-200 dark:hover:bg-amber-800/60 transition-colors"
+                                                            aria-label={t('aiTreatments.remove')}
+                                                        >
+                                                            <X className="h-2.5 w-2.5" />
+                                                        </button>
                                                     </span>
-                                                ))}
+                                                ))
+                                            }
                                         </div>
                                     )}
                                 </div>
 
-                                {/* Next Appointment Plan */}
+                                {/* Next Appointment Plan + next-session treatment badges */}
                                 <div className="space-y-2 md:col-span-2">
                                     <Label>{t('nextSessionPlan')}</Label>
                                     <Textarea
@@ -568,14 +601,14 @@ export function ClinicSessionDialog({
                                         placeholder={t('nextSessionPlanPlaceholder')}
                                         className="min-h-[60px] xl:min-h-[80px] resize-y"
                                     />
-                                    {/* Next-session badges (is_for_next_session === true) */}
-                                    {!existingSession && !isFetchingAiTreatments && aiTreatments.some(t => t.is_for_next_session === true) && (
+                                    {!isFetchingAiTreatments && aiTreatments.some(tr => tr.is_for_next_session === true) && (
                                         <div className="flex flex-wrap gap-1.5 pt-0.5">
                                             {aiTreatments
-                                                .filter(t => t.is_for_next_session === true)
-                                                .map((treatment, idx) => (
+                                                .map((treatment, originalIdx) => ({ treatment, originalIdx }))
+                                                .filter(({ treatment }) => treatment.is_for_next_session === true)
+                                                .map(({ treatment, originalIdx }) => (
                                                     <span
-                                                        key={idx}
+                                                        key={originalIdx}
                                                         title={t('aiTreatments.nextSession')}
                                                         className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                                                     >
@@ -584,11 +617,159 @@ export function ClinicSessionDialog({
                                                         {treatment.quantity && treatment.quantity > 1 && (
                                                             <span className="opacity-70">×{treatment.quantity}</span>
                                                         )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveAiTreatment(originalIdx)}
+                                                            className="ml-0.5 rounded-full p-0.5 hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-colors"
+                                                            aria-label={t('aiTreatments.remove')}
+                                                        >
+                                                            <X className="h-2.5 w-2.5" />
+                                                        </button>
                                                     </span>
-                                                ))}
+                                                ))
+                                            }
                                         </div>
                                     )}
                                 </div>
+
+                                {/* Treatment actions — generate with AI + add from catalog */}
+                                <div className="md:col-span-2 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={!form.procedimiento_realizado?.trim() || isFetchingAiTreatments}
+                                                onClick={handleGenerateTreatments}
+                                                className="h-7 px-2.5 text-xs gap-1.5"
+                                            >
+                                                {isFetchingAiTreatments ? (
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                ) : (
+                                                    <Sparkles className="h-3 w-3" />
+                                                )}
+                                                {isFetchingAiTreatments
+                                                    ? t('aiTreatments.generating')
+                                                    : aiGenerated
+                                                        ? t('aiTreatments.regenerate')
+                                                        : t('aiTreatments.generate')
+                                                }
+                                            </Button>
+                                            {!isAddingManual && (
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 px-2 text-xs gap-1"
+                                                    onClick={() => setIsAddingManual(true)}
+                                                >
+                                                    <Plus className="h-3 w-3" />
+                                                    {t('treatments.add')}
+                                                </Button>
+                                            )}
+                                        </div>
+                                        {isAddingManual && (
+                                            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/20 p-2">
+                                                {/* Service combobox with search */}
+                                                <Popover open={servicePopoverOpen} onOpenChange={setServicePopoverOpen}>
+                                                    <PopoverTrigger asChild>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            aria-expanded={servicePopoverOpen}
+                                                            className="h-7 text-xs flex-1 min-w-[180px] justify-between font-normal"
+                                                        >
+                                                            <span className="truncate">
+                                                                {selectedServiceId
+                                                                    ? services.find(s => s.id === selectedServiceId)?.name
+                                                                    : t('aiTreatments.selectService')}
+                                                            </span>
+                                                            <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-[280px] p-0" align="start">
+                                                        <Command>
+                                                            <CommandInput placeholder={t('aiTreatments.searchService')} className="h-8 text-xs" />
+                                                            <CommandList>
+                                                                {isLoadingServices ? (
+                                                                    <div className="flex items-center justify-center py-4">
+                                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <>
+                                                                        <CommandEmpty className="py-3 text-center text-xs text-muted-foreground">
+                                                                            {t('aiTreatments.noServices')}
+                                                                        </CommandEmpty>
+                                                                        <CommandGroup>
+                                                                            {services.map(svc => (
+                                                                                <CommandItem
+                                                                                    key={svc.id}
+                                                                                    value={svc.name}
+                                                                                    onSelect={() => {
+                                                                                        setSelectedServiceId(svc.id);
+                                                                                        setServicePopoverOpen(false);
+                                                                                    }}
+                                                                                    className="text-xs"
+                                                                                >
+                                                                                    <Check className={cn("mr-2 h-3 w-3 shrink-0", selectedServiceId === svc.id ? "opacity-100" : "opacity-0")} />
+                                                                                    {svc.name}
+                                                                                </CommandItem>
+                                                                            ))}
+                                                                        </CommandGroup>
+                                                                    </>
+                                                                )}
+                                                            </CommandList>
+                                                        </Command>
+                                                    </PopoverContent>
+                                                </Popover>
+                                                {/* Session type toggle */}
+                                                <div className="flex items-center gap-0.5 rounded-md border bg-background p-0.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedSessionType('current')}
+                                                        className={cn(
+                                                            "h-6 rounded px-2 text-xs transition-colors",
+                                                            selectedSessionType === 'current'
+                                                                ? "bg-amber-100 text-amber-700 font-medium dark:bg-amber-900/40 dark:text-amber-300"
+                                                                : "text-muted-foreground hover:text-foreground"
+                                                        )}
+                                                    >
+                                                        {t('aiTreatments.currentSession')}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedSessionType('next')}
+                                                        className={cn(
+                                                            "h-6 rounded px-2 text-xs transition-colors",
+                                                            selectedSessionType === 'next'
+                                                                ? "bg-blue-100 text-blue-700 font-medium dark:bg-blue-900/40 dark:text-blue-300"
+                                                                : "text-muted-foreground hover:text-foreground"
+                                                        )}
+                                                    >
+                                                        {t('aiTreatments.nextSession')}
+                                                    </button>
+                                                </div>
+                                                {/* Confirm */}
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddServiceTreatment}
+                                                    disabled={!selectedServiceId}
+                                                    className="inline-flex h-7 items-center justify-center rounded-md bg-foreground/10 hover:bg-foreground/20 transition-colors px-2 disabled:opacity-40"
+                                                >
+                                                    <Check className="h-3 w-3" />
+                                                </button>
+                                                {/* Cancel */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setIsAddingManual(false); setSelectedServiceId(''); setServicePopoverOpen(false); }}
+                                                    className="inline-flex h-7 items-center justify-center rounded-md hover:bg-destructive/10 transition-colors px-2 text-muted-foreground"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
 
                                 {/* Next Appointment Date */}
                                 {!hideNextAppointmentDate && (

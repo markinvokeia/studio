@@ -2701,7 +2701,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             Nueva sesión — Odontograma
                         </SheetTitle>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="flex-1 min-h-0 overflow-auto p-4">
                         {isOdontogramDialogOpen && (
                             <DentalRecordViewer
                                 patientId={userId}
@@ -2899,7 +2899,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             Odontograma
                         </SheetTitle>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-auto">
+                    <div className="flex-1 min-h-0 overflow-auto p-4">
                         {isOdontogramViewerOpen && (
                             <DentalRecordViewer
                                 patientId={userId}

@@ -5404,10 +5404,11 @@
   },
   "ClinicSessionDialog": {
     "treatments": {
+      "sectionTitle": "Treatments",
       "title": "Tooth Treatments",
       "toothNumber": "Tooth #",
       "description": "Description",
-      "add": "Add treatment",
+      "add": "Add",
       "noTreatments": "No treatments",
       "treatmentPlaceholder": "Treatment description..."
     },
@@ -5458,10 +5459,18 @@
       "missingInformation": "Information worth confirming"
     },
     "aiTreatments": {
+      "generate": "Generate with AI",
+      "regenerate": "Regenerate",
       "generating": "Analyzing treatments with AI...",
       "title": "AI-detected treatments",
       "currentSession": "Current session",
-      "nextSession": "Next session"
+      "nextSession": "Next session",
+      "remove": "Remove treatment",
+      "error": "Could not generate treatments. Please try again.",
+      "selectService": "Select a service...",
+      "searchService": "Search services...",
+      "noServices": "No services found.",
+      "emptyHint": "Generate with AI or add treatments manually."
     }
   },
   "VoiceAssistant": {

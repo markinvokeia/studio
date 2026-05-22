@@ -5383,10 +5383,11 @@
   },
   "ClinicSessionDialog": {
     "treatments": {
+      "sectionTitle": "Tratamientos",
       "title": "Tratamientos por diente",
       "toothNumber": "N° diente",
       "description": "Descripción",
-      "add": "Agregar tratamiento",
+      "add": "Añadir",
       "noTreatments": "Sin tratamientos",
       "treatmentPlaceholder": "Descripción del tratamiento..."
     },
@@ -5437,10 +5438,18 @@
       "missingInformation": "Información que conviene confirmar"
     },
     "aiTreatments": {
+      "generate": "Generar con IA",
+      "regenerate": "Regenerar",
       "generating": "Analizando tratamientos con IA...",
       "title": "Tratamientos detectados por IA",
       "currentSession": "Sesión actual",
-      "nextSession": "Próxima sesión"
+      "nextSession": "Próxima sesión",
+      "remove": "Quitar tratamiento",
+      "error": "No se pudieron generar los tratamientos. Intenta de nuevo.",
+      "selectService": "Seleccionar servicio...",
+      "searchService": "Buscar servicios...",
+      "noServices": "No se encontraron servicios.",
+      "emptyHint": "Genera con IA o añade tratamientos manualmente."
     }
   },
   "VoiceAssistant": {
