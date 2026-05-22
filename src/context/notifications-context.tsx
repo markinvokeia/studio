@@ -65,15 +65,18 @@ function saveNotifications(userId: string, notifications: UnifiedNotification[])
   } catch {}
 }
 
-function readApptStatuses(doctorId: string, dateKey: string): Record<string, string> {
-  if (typeof window === 'undefined') return {};
+// Returns null when no snapshot exists for today (first poll ever), or {} when initialized
+// but empty (doctor had no appointments at first poll). This distinction is critical:
+// hasPreviousSnapshot must be based on "did we poll before?" not "were there appointments?".
+function readApptStatuses(doctorId: string, dateKey: string): Record<string, string> | null {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(`${APPT_STATUSES_PREFIX}:${doctorId}:${dateKey}`);
-    if (!raw) return {};
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
     return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -389,16 +392,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       });
       const appointments = normalizeAppointmentsResponse(data);
       const dateKey = formatDate(new Date());
-      const previousStatuses = readApptStatuses(userId, dateKey);
+      const previousStatusesOrNull = readApptStatuses(userId, dateKey);
       const locallyUpdated = readLocallyUpdatedIds(userId);
       const locallyCreated = readLocallyCreatedIds(userId);
 
       const newStatuses: Record<string, string> = {};
       const changed: AppointmentStatusChangeNotification[] = [];
       const newAppts: NewAppointmentNotification[] = [];
-      // Only detect "new" appointments when we already had a previous snapshot.
-      // On the very first poll (empty previousStatuses) we just record baselines.
-      const hasPreviousSnapshot = Object.keys(previousStatuses).length > 0;
+      // null means this is the very first poll today (no snapshot written yet).
+      // An empty {} means we polled before but the doctor had no appointments then.
+      // Both cases must be distinguished: only {} (initialized) enables new-appt detection.
+      const hasPreviousSnapshot = previousStatusesOrNull !== null;
+      const previousStatuses = previousStatusesOrNull ?? {};
 
       for (const appt of appointments) {
         newStatuses[appt.id] = appt.status;
@@ -655,6 +660,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             : n.reminder.title,
         });
       });
+      // Mark all fired notifications as seen so they don't re-fire on page reload.
+      const novelIds = new Set(novel.map((n) => n.id));
+      setNotifications((ns) => ns.map((n) => novelIds.has(n.id) ? { ...n, seen: true } : n));
     } else {
       if (novel.length > 0) setAlertQueue((prev) => [...prev, ...novel]);
     }

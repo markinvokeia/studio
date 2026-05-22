@@ -511,6 +511,7 @@ export type Appointment = {
   services?: Service[];
   quote_id?: string; // ID del presupuesto asociado
   quote_doc_no?: string; // Número de documento del presupuesto (Doc No)
+  invoice_id?: string; // ID de la factura asociada
   // Treatment plan link — set when this appointment is linked to a treatment_seq_steps row
   treatment_seq_step_id?: number | null;
   // Cancellation metadata — populated when status='cancelled'.

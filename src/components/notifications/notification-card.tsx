@@ -156,10 +156,13 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
 
   const taken = notification.actions_taken ?? [];
   const hasNextPlan = Boolean(session?.plan_proxima_cita?.trim()) && !taken.includes('schedule');
+  // Usar los IDs del documento como fuente de verdad — taken solo como fallback
+  // en caso de que el dato aún no haya llegado desde el backend.
   const hasQuote = !!appointment.quote_id || taken.includes('quote');
-  const hasNoQuote = !hasQuote && !taken.includes('invoice');
+  const hasInvoice = !!appointment.invoice_id || taken.includes('invoice');
+  const hasNoQuote = !hasQuote && !hasInvoice;
   // La factura puede crearse sin presupuesto previo (para la sesión actual)
-  const hasInvoiceAction = !taken.includes('invoice');
+  const hasInvoiceAction = !hasInvoice;
 
   // Loading state independiente por botón
   const [loadingAction, setLoadingAction] = React.useState<'quote' | 'invoice' | 'schedule' | null>(null);
@@ -179,12 +182,20 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       const arr: any[] = Array.isArray(rawSessions)
         ? rawSessions
         : (rawSessions?.patient_sessions ?? rawSessions?.data ?? []);
-      // Buscar la sesión que corresponde a esta cita o la más reciente
+      // Buscar la sesión que corresponde a esta cita:
+      // 1º por appointment_id exacto
+      // 2º por fecha de sesión que coincida con la fecha de la cita (mismo día)
+      // 3º fallback a la sesión más reciente (puede ser otra cita del mismo paciente)
       const sorted = [...arr].sort(
         (a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''),
       );
+      const apptDatePrefix = appointment.date ? String(appointment.date).slice(0, 10) : null;
       const matched =
-        sorted.find((s) => String(s.appointment_id ?? '') === appointment.id) ?? sorted[0];
+        sorted.find((s) => String(s.appointment_id ?? '') === appointment.id) ??
+        (apptDatePrefix
+          ? sorted.find((s) => s.fecha_sesion && String(s.fecha_sesion).slice(0, 10) === apptDatePrefix)
+          : undefined) ??
+        sorted[0];
       // Normalizar para mapear service_catalog_id → service_id (string)
       return Array.isArray(matched?.tratamientos)
         ? matched.tratamientos.map(normalizeTratamiento)
@@ -197,7 +208,10 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
   /** Re-fetcha la sesión, filtra servicios IA y navega a /appointments */
   const goToAppointments = async (action: 'quote' | 'invoice' | 'schedule') => {
     setLoadingAction(action);
-    markSessionAction(notification.id, action);
+    // Para schedule no hay un documento que confirme la acción, así que se marca
+    // de inmediato. Para quote e invoice se marca solo tras el guardado exitoso
+    // del formulario (el deep-link en appointments/page.tsx lo hace vía notifId).
+    if (action === 'schedule') markSessionAction(notification.id, action);
     // Cerrar el panel inmediatamente — el trabajo async continúa en background.
     closePanel();
 
@@ -213,6 +227,11 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       if (appointment.doctorName) params.set('doctorName', appointment.doctorName);
       if (appointment.quote_id) params.set('quoteId', appointment.quote_id);
       if (appointment.calendar_source_id) params.set('calendarId', appointment.calendar_source_id);
+    } else {
+      // Pasar referencia a la notificación para que appointments/page.tsx pueda
+      // marcar la acción como completada solo si el guardado es exitoso.
+      params.set('notifId', notification.id);
+      if (appointment.id) params.set('appointmentId', appointment.id);
     }
 
     // Fetch treatments once and select the relevant subset per action.
