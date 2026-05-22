@@ -1848,6 +1848,7 @@ export default function AppointmentsPage() {
                     }}
                     onSave={handleSaveClinicSession}
                     userId={clinicSessionAppointment.patientId}
+                    patientName={clinicSessionAppointment.patientName}
                     appointmentId={clinicSessionAppointment.id}
                     quoteId={clinicSessionAppointment.quote_id}
                     serviceName={clinicSessionAppointment.services && clinicSessionAppointment.services.length > 0
@@ -1894,6 +1895,7 @@ export default function AppointmentsPage() {
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
+                onBillingSuccess={loadAppointments}
             />
             <ReminderPanel
                 open={isReminderPanelOpen}

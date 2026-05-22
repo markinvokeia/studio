@@ -6,13 +6,14 @@ import { NotificationsBell } from '@/components/notifications/notifications-bell
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
+import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import {
     Bell,
     ChevronLeft,
@@ -23,6 +24,7 @@ import {
     Volume2,
     VolumeX,
     X,
+    Zap,
 } from 'lucide-react';
 import { useStickyNotes } from '@/hooks/use-sticky-notes';
 import type { StickyNote } from '@/lib/types';
@@ -149,6 +151,7 @@ export function Header() {
     const { toast } = useToast();
 
     const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote, prependNote } = useStickyNotes();
+    const { open: openBillingWizard } = useBillingWizard();
 
     const [isExpanded, setIsExpanded] = React.useState(true);
     const [isChatOpen, setIsChatOpen] = React.useState(false);
@@ -451,6 +454,20 @@ export function Header() {
                             <TVDisplayWidget />
                         </PanelItem>
 
+                        {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
+                            <PanelItem label="Cobrar">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openBillingWizard({})}
+                                    className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                    title="Cobro Rápido"
+                                >
+                                    <Zap className="h-5 w-5" />
+                                </Button>
+                            </PanelItem>
+                        )}
+
                         <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
 
                         <div ref={alertsIconRef} className="w-full">
@@ -564,6 +581,18 @@ export function Header() {
                     )}>
                         <OpenCashSessionWidget />
                         <TVDisplayWidget />
+
+                        {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openBillingWizard({})}
+                                className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                title="Cobro Rápido"
+                            >
+                                <Zap className="h-5 w-5" />
+                            </Button>
+                        )}
 
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
                             <Link href={`/${locale}/alerts`} passHref>

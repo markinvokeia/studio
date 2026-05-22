@@ -17,6 +17,7 @@ import {
   StickyNote,
   Stethoscope,
   UserSquare,
+  Zap,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -41,6 +42,8 @@ import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 
 function initials(name?: string): string {
   if (!name) return '?';
@@ -145,6 +148,7 @@ interface AppointmentPanelProps {
   onCancel?: (appointment: Appointment) => void;
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
+  onBillingSuccess?: () => void;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
@@ -168,6 +172,7 @@ export function AppointmentPanel({
   onReschedule,
   onStatusChange,
   onRequestCustomCancellation,
+  onBillingSuccess,
 }: AppointmentPanelProps) {
   const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
@@ -184,7 +189,76 @@ export function AppointmentPanel({
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
+  const [isBillingLoading, setIsBillingLoading] = React.useState(false);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
+  const { open: openBillingWizard } = useBillingWizard();
+
+  const handleOpenBillingWizard = React.useCallback(async () => {
+    if (!appointment?.patientId) return;
+    setIsBillingLoading(true);
+    try {
+      // Fetch fresh billing state to avoid opening a freeform wizard when the
+      // appointment was already invoiced in a previous Cobro Rápido that the
+      // current UI hasn't reflected yet.
+      const fresh = await fetchAppointmentBillingState(
+        appointment.patientId,
+        appointment.id,
+        appointment.date,
+      );
+
+      const freshInvoiceId = fresh.invoice_id ?? appointment.invoice_id ?? null;
+      const freshQuoteId = fresh.quote_id ?? appointment.quote_id ?? null;
+
+      const firstUnpaidInvoice = quoteInvoices.find(
+        (inv) => inv.payment_status !== 'paid' && inv.type !== 'credit_note',
+      );
+      if (firstUnpaidInvoice) {
+        openBillingWizard({
+          invoiceId: firstUnpaidInvoice.id,
+          invoice: firstUnpaidInvoice,
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+        }, onBillingSuccess);
+      } else if (freshInvoiceId) {
+        openBillingWizard({
+          invoiceId: String(freshInvoiceId),
+          ...(fresh.invoice ? { invoice: fresh.invoice } : {}),
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+        }, onBillingSuccess);
+      } else if (freshQuoteId) {
+        openBillingWizard({
+          quoteId: String(freshQuoteId),
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+        }, onBillingSuccess);
+      } else {
+        const preloadedItems = (appointment.services || []).map((svc) => ({
+          tempId: svc.id,
+          service_id: svc.id,
+          service_name: svc.name,
+          unit_price: svc.price || 0,
+          quantity: 1,
+          total: svc.price || 0,
+        }));
+        openBillingWizard({
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+          preloadedItems: preloadedItems.length > 0 ? preloadedItems : undefined,
+        }, onBillingSuccess);
+      }
+    } finally {
+      setIsBillingLoading(false);
+    }
+  }, [appointment, quoteInvoices, openBillingWizard, onBillingSuccess]);
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
@@ -498,7 +572,7 @@ export function AppointmentPanel({
                 </section>
               )}
 
-              {(appointment.quote_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
+              {(appointment.quote_id || appointment.invoice_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
                 <section className="mt-6 border-t border-border pt-4">
                   <div className="mb-3 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
@@ -510,16 +584,30 @@ export function AppointmentPanel({
                     disabled={!appointment.quote_id}
                     className="flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/35 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <span className="flex-1">
-                      <span className="block font-mono text-xs font-semibold">
-                        {appointment.quote_doc_no || appointment.quote_id || t('noLinkedOrder')}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
+                    <span className="flex-1 space-y-1">
+                      {appointment.quote_id && (
+                        <span className="block font-mono text-xs font-semibold">
+                          {tColumns('quoteDocNo')}: {appointment.quote_doc_no || appointment.quote_id}
+                        </span>
+                      )}
+                      {appointment.invoice_id && !quoteOrder && invoiceCount === 0 && (
+                        <span className="block font-mono text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                          {t('linkedInvoice')}: #{appointment.invoice_id}
+                        </span>
+                      )}
+                      {!appointment.quote_id && !appointment.invoice_id && (
+                        <span className="block font-mono text-xs font-semibold">
+                          {t('noLinkedOrder')}
+                        </span>
+                      )}
+                      <span className="block text-xs text-muted-foreground">
                         {isLoadingQuoteInfo
                           ? t('linkedInvoice')
                           : invoiceCount > 0
                             ? `${t('linkedInvoice')} · ${invoiceCount}`
-                            : t('notInvoiced')}
+                            : appointment.invoice_id && invoiceCount === 0
+                              ? t('linkedInvoice')
+                              : t('notInvoiced')}
                       </span>
                     </span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
@@ -540,9 +628,22 @@ export function AppointmentPanel({
             />
           </div>
 
-          {(onReschedule || onEdit) && (
-            <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
-              <div className="flex items-center justify-end gap-3">
+          <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {appointment.patientId && (
+                <Button
+                  variant="default"
+                  className="gap-2"
+                  onClick={handleOpenBillingWizard}
+                  disabled={isBillingLoading}
+                >
+                  {isBillingLoading
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Zap className="h-4 w-4" />}
+                  Cobro Rápido
+                </Button>
+              )}
+              <div className="flex items-center gap-3 ml-auto">
                 {onReschedule && (
                   <Button
                     size="lg"
@@ -570,7 +671,7 @@ export function AppointmentPanel({
                 )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       </ResizableSheet>
 

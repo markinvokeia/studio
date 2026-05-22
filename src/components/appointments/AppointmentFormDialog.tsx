@@ -1491,6 +1491,7 @@ export function AppointmentFormDialog({
                     quoteId={appointment.quote?.id || editingAppointment?.quote_id}
                     appointmentId={editingAppointment?.id || pendingSaveResult?.result?.appointment_id || pendingSaveResult?.result?.id}
                     userId={appointment.user?.id || editingAppointment?.patientId || ''}
+                    patientName={appointment.user?.name || editingAppointment?.patientName}
                     onSave={handleSaveSession}
                     prefillData={{
                         doctor_id: appointment.doctor?.id || '',

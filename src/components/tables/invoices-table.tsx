@@ -1,7 +1,7 @@
 
 'use client';
 
-import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,7 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -283,15 +283,22 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const { hasPermission } = usePermissions();
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
   const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
-  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
+  const { open: openBillingWizard } = useBillingWizard();
 
   const handleAddPaymentClick = React.useCallback((invoice: Invoice) => {
-    setSelectedInvoiceForPayment(invoice);
-    setIsPaymentDialogOpen(true);
-  }, []);
+    openBillingWizard(
+      {
+        invoiceId: invoice.id,
+        invoice,
+        patientId: invoice.user_id,
+        patientName: invoice.user_name,
+        isSales,
+      },
+      () => { if (onRefresh) onRefresh(); },
+    );
+  }, [openBillingWizard, isSales, onRefresh]);
 
   const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
     try {
@@ -463,14 +470,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
           />
         </CardContent>
       </Card>
-
-      <InvoicePaymentDialog
-        isOpen={isPaymentDialogOpen}
-        onClose={() => { setIsPaymentDialogOpen(false); setSelectedInvoiceForPayment(null); }}
-        invoice={selectedInvoiceForPayment}
-        isSales={isSales}
-        onSuccess={() => { if (onRefresh) onRefresh(); }}
-      />
 
       <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <AlertDialogContent>

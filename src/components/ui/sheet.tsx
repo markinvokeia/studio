@@ -66,6 +66,8 @@ const SheetContent = React.forwardRef<
       ref={ref}
       className={cn(sheetVariants({ side }), className)}
       {...props}
+      onPointerDownOutside={(e) => e.preventDefault()}
+      onInteractOutside={(e) => e.preventDefault()}
     >
       {children}
       <SheetPrimitive.Close className={cn("absolute right-4 top-4", sheetWindowControlClassName)}>

@@ -31,6 +31,8 @@ interface QuoteItemsTableProps {
   rowSelection?: RowSelectionState;
   setRowSelection?: React.Dispatch<React.SetStateAction<RowSelectionState>>;
   extraButtons?: React.ReactNode;
+  /** Force card/list mode regardless of viewport width */
+  forceCardMode?: boolean;
 }
 
 const getColumns = (
@@ -158,12 +160,12 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = panelNarrow || viewportNarrow;
+  const isNarrow = forceCardMode || panelNarrow || viewportNarrow;
   const columns = getColumns(
     (key) => {
       try {
@@ -210,11 +212,22 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
             <DataCard
               isSelected={isSelected}
               title={item.service_name || String(item.id)}
-              subtitle={[
-                showToothNumber && item.tooth_number ? `${t('toothNumber')}: ${item.tooth_number}` : null,
-                `${t('quantity')}: ${item.quantity}`,
-                `${t('total')}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}`,
-              ].filter(Boolean).join(' · ')}
+              subtitle={`ID: ${item.id}`}
+              fields={[
+                ...(showToothNumber && item.tooth_number
+                  ? [{ label: t('toothNumber'), value: String(item.tooth_number) }]
+                  : []),
+                { label: t('quantity'), value: String(item.quantity) },
+                {
+                  label: t('unitPrice'),
+                  value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.unit_price || 0),
+                },
+                {
+                  label: t('total'),
+                  value: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0),
+                  primary: true,
+                },
+              ]}
               showArrow={!!onRowSelectionChange}
               onClick={() => onRowSelectionChange?.([item])}
             />
