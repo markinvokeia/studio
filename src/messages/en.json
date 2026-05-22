@@ -244,6 +244,7 @@
     "currentSessionServices": "Current session services",
     "nextSessionServices": "Next session services",
     "servicesPreloaded": "preloaded",
+    "actionCobroRapido": "Quick Billing",
     "actionCreateQuote": "Create quote",
     "actionScheduleNext": "Schedule next appointment",
     "actionGenerateInvoice": "Generate invoice",
@@ -1899,6 +1900,7 @@
     },
     "paymentDialog": {
       "add": "Add Payment",
+      "addClassic": "Add Payment",
       "title": "Add Payment",
       "description": "Add a payment for invoice #{invoiceId}",
       "amount": "Amount",
@@ -6425,5 +6427,24 @@
     "total_cobrado": "Total Collected",
     "total_gastos": "Total Expenses",
     "vs_periodo_anterior": "vs previous period"
+  },
+  "BillingWizard": {
+    "title": "Quick Billing",
+    "subtitle": "Billing and payment assistant",
+    "step1Title": "Treatment",
+    "step2Title": "Payment",
+    "step3Title": "Done",
+    "actions": {
+      "next": "Next",
+      "processing": "Creating invoice...",
+      "invoiceOnly": "Invoice only",
+      "invoiceAndPay": "Invoice and pay",
+      "printReceipt": "Print receipt",
+      "close": "Close"
+    },
+    "confirmation": {
+      "paymentTitle": "Payment recorded!",
+      "invoiceTitle": "Invoice created!"
+    }
   }
 }

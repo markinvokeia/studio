@@ -97,6 +97,7 @@ async function getAppointmentsForDoctor(
           : [],
         quote_id: a.quote_id || a.quoteId || undefined,
         quote_doc_no: a.quote_doc_no || a.quoteDocNo || undefined,
+        invoice_id: a.invoice_id != null ? String(a.invoice_id) : null,
       } as Appointment;
     }).filter((a): a is Appointment => a !== null);
   } catch {

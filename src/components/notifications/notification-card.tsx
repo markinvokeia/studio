@@ -15,6 +15,7 @@ import {
   Loader2,
   Stethoscope,
   X,
+  Zap,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -24,6 +25,8 @@ import { Button } from '@/components/ui/button';
 import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
 import { API_ROUTES } from '@/constants/routes';
 import { useNotifications } from '@/context/notifications-context';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { fetchAppointmentBillingState } from '@/services/billing-preflight';
 import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
@@ -107,6 +110,7 @@ function AppointmentStatusCard({ notification }: { notification: AppointmentStat
 
   const handleView = () => {
     closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
     router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
   };
 
@@ -149,6 +153,7 @@ function AppointmentStatusCard({ notification }: { notification: AppointmentStat
 
 function SessionCompletedCard({ notification }: { notification: SessionCompletedNotification }) {
   const { dismissNotification, closePanel, markSessionAction } = useNotifications();
+  const { open: openBillingWizard } = useBillingWizard();
   const t = useTranslations('Notifications');
   const locale = useLocale();
   const router = useRouter();
@@ -165,7 +170,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
   const hasInvoiceAction = !hasInvoice;
 
   // Loading state independiente por botón
-  const [loadingAction, setLoadingAction] = React.useState<'quote' | 'invoice' | 'schedule' | null>(null);
+  const [loadingAction, setLoadingAction] = React.useState<'quote' | 'invoice' | 'schedule' | 'billing' | null>(null);
 
   /**
    * Obtiene los tratamientos más frescos del backend.
@@ -205,6 +210,46 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     }
   }, [appointment.patientId, appointment.id]);
 
+  const handleCobroRapido = React.useCallback(async () => {
+    if (!appointment.patientId) return;
+    setLoadingAction('billing');
+    try {
+      // Fetch fresh billing state so we never open a freeform wizard for an
+      // appointment that was already invoiced since the notification was created.
+      const fresh = await fetchAppointmentBillingState(
+        appointment.patientId,
+        appointment.id,
+        appointment.date,
+      );
+
+      const freshInvoiceId = fresh.invoice_id ?? (appointment.invoice_id ? String(appointment.invoice_id) : null);
+      const freshQuoteId = fresh.quote_id ?? appointment.quote_id ?? null;
+
+      const preloadedItems = (appointment.services ?? []).map((svc) => ({
+        tempId: svc.id,
+        service_id: svc.id,
+        service_name: svc.name,
+        unit_price: svc.price || 0,
+        quantity: 1,
+        total: svc.price || 0,
+      }));
+
+      closePanel();
+      window.dispatchEvent(new Event('clinic:calendar:refresh'));
+      openBillingWizard({
+        patientId: appointment.patientId,
+        patientName: appointment.patientName,
+        isSales: true,
+        appointmentId: appointment.id,
+        ...(freshInvoiceId ? { invoiceId: freshInvoiceId } : {}),
+        ...(freshQuoteId && !freshInvoiceId ? { quoteId: freshQuoteId } : {}),
+        ...(!freshInvoiceId && !freshQuoteId && preloadedItems.length > 0 ? { preloadedItems } : {}),
+      });
+    } finally {
+      setLoadingAction(null);
+    }
+  }, [appointment, closePanel, openBillingWizard]);
+
   /** Re-fetcha la sesión, filtra servicios IA y navega a /appointments */
   const goToAppointments = async (action: 'quote' | 'invoice' | 'schedule') => {
     setLoadingAction(action);
@@ -214,6 +259,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     if (action === 'schedule') markSessionAction(notification.id, action);
     // Cerrar el panel inmediatamente — el trabajo async continúa en background.
     closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
 
     const params = new URLSearchParams({
       act: action,
@@ -365,9 +411,28 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
           )}
         </div>
 
-        {/* Quick actions — shown only when relevant */}
-        {(hasNoQuote || hasInvoiceAction || hasNextPlan) && (
-          <div className="mt-3 flex flex-col gap-1.5">
+        {/* Quick actions */}
+        <div className="mt-3 flex flex-col gap-1.5">
+          <Button
+            variant="default"
+            size="sm"
+            className="h-7 w-full justify-start gap-2 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white"
+            disabled={loadingAction !== null}
+            onClick={handleCobroRapido}
+          >
+            {loadingAction === 'billing'
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Zap className="h-3.5 w-3.5" />}
+            {t('actionCobroRapido')}
+            {(appointment.services?.length ?? 0) > 0 && loadingAction !== 'billing' && (
+              <span className="ml-auto text-[10px] text-emerald-100">
+                {appointment.services!.length} {t('servicesPreloaded')}
+              </span>
+            )}
+          </Button>
+
+          {(hasNoQuote || hasInvoiceAction || hasNextPlan) && (
+            <>
             {hasNoQuote && (
               <Button
                 variant="outline"
@@ -427,8 +492,9 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 )}
               </Button>
             )}
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </CardWrapper>
   );
@@ -450,6 +516,7 @@ function NewAppointmentCard({ notification }: { notification: NewAppointmentNoti
 
   const handleView = () => {
     closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
     router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
   };
 

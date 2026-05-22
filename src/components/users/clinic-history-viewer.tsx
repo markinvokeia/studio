@@ -206,6 +206,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                     })) : [],
                     quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
                     quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
+                    invoice_id: apiAppt.invoice_id || apiAppt.invoiceId || null,
                 } as Appointment;
             }).filter(Boolean) as Appointment[];
             setPatientAppointments(appointments);
@@ -266,6 +267,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             sessionPrefill={sessionPrefill}
                             onSessionCreated={onSessionCreated}
                             editSessionId={editSessionId}
+                            onRefreshAppointments={() => fetchPatientAppointments(userId)}
                         />
                     </div>
                 </ScrollArea>
@@ -1607,9 +1609,10 @@ interface TreatmentTimelineProps {
     createOdontogramTrigger?: number;
     onOdontogramTriggerConsumed?: () => void;
     sessionPrefill?: SessionPrefillData | null;
+    onRefreshAppointments?: () => void;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -1635,6 +1638,11 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     const { updateStatus } = useAppointmentStatus({
         onSuccess: () => { onRefreshAll?.(userId); },
     });
+
+    const handleBillingSuccess = React.useCallback(() => {
+        onRefreshAll?.(userId);
+        onRefreshAppointments?.();
+    }, [onRefreshAll, onRefreshAppointments, userId]);
 
     const handleApptStatusChange = React.useCallback(
         (appt: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => {
@@ -2268,6 +2276,16 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                                                 {t('sessionTypeAppointment')}
                                                             </Badge>
                                                             <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
+                                                            {appt.quote_doc_no && (
+                                                                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    {appt.quote_doc_no}
+                                                                </Badge>
+                                                            )}
+                                                            {appt.invoice_id && (
+                                                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    <FileText className="h-2.5 w-2.5 mr-0.5" />#{appt.invoice_id}
+                                                                </Badge>
+                                                            )}
                                                         </div>
                                                         <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
                                                         {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
@@ -2282,10 +2300,10 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                                 className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
                                                 onClick={() => {
                                                     setSelectedItemKey(isSelected ? null : key);
+                                                    setSessionDetailData(session);
                                                     if (session.tipo_sesion === 'odontograma') {
                                                         setIsOdontogramViewerOpen(true);
                                                     } else {
-                                                        setSessionDetailData(session);
                                                         setIsSessionDetailSheetOpen(true);
                                                     }
                                                 }}
@@ -2299,6 +2317,16 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                                             {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
                                                         </Badge>
                                                         <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
+                                                        {session.quote_doc_no && (
+                                                            <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                {session.quote_doc_no}
+                                                            </Badge>
+                                                        )}
+                                                        {session.invoice_id && (
+                                                            <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                     <p className="text-xs font-medium truncate mt-0.5">{session.procedimiento_realizado || t('noTitle')}</p>
                                                     {(session.nombre_doctor || session.doctor_name) && (
@@ -2730,6 +2758,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 isLoadingQuoteInfo={false}
                 onStatusChange={handleApptStatusChange}
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
+                onBillingSuccess={handleBillingSuccess}
             />
             <CancellationNoteDialog
                 open={!!pendingCancellation}
@@ -2867,13 +2896,14 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                     )}
                                 </div>
                             </ScrollArea>
-                            <div className="flex items-center gap-2 justify-end px-6 py-4 border-t shrink-0 bg-background">
+                            <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0 bg-background">
                                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
                                     onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                     {tPage('common.delete')}
                                 </Button>
-                                <Button size="sm" className="gap-1.5"
+                                <div className="flex-1" />
+                                <Button size="sm" variant="outline" className="gap-1.5"
                                     onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
                                     <Edit3 className="h-3.5 w-3.5" />
                                     {tPage('common.edit')}
@@ -2893,8 +2923,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 storageKey="odontogram-view-sheet-width"
             >
                 <div className="flex flex-col h-full">
-                    <div className="px-6 py-4 border-b shrink-0">
-                        <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                    <div className="px-6 py-4 border-b shrink-0 flex items-center gap-3">
+                        <SheetTitle className="flex items-center gap-2 text-base font-semibold flex-1">
                             <Smile className="h-4 w-4 text-purple-600 shrink-0" />
                             Odontograma
                         </SheetTitle>

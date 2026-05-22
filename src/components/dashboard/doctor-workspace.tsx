@@ -1536,6 +1536,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   autoNavigateToAppointmentSession={isOdontogramSession}
                   blockNewSession={isOdontogramSession}
                   appointmentId={selectedAppointment.id}
+                  hideBillingWizard
                 />
               </div>
             )}
@@ -1611,6 +1612,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           onOpenChange={handleClinicSessionOpenChange}
           onSave={handleSaveClinicSession}
           userId={selectedAppointment.patientId}
+          patientName={selectedAppointment.patientName}
           appointmentId={selectedAppointment.id}
           quoteId={selectedAppointment.quote_id}
           serviceName={selectedAppointment.services?.length

@@ -244,6 +244,7 @@
     "currentSessionServices": "Servicios sesión actual",
     "nextSessionServices": "Servicios próxima sesión",
     "servicesPreloaded": "precargados",
+    "actionCobroRapido": "Cobro Rápido",
     "actionCreateQuote": "Crear presupuesto",
     "actionScheduleNext": "Agendar próxima cita",
     "actionGenerateInvoice": "Generar factura",
@@ -1899,6 +1900,7 @@
     },
     "paymentDialog": {
       "add": "Agregar Pago",
+      "addClassic": "Agregar Pago",
       "title": "Agregar Pago",
       "description": "Agregar un pago para la factura #{invoiceId}",
       "amount": "Monto",
@@ -6404,5 +6406,24 @@
     "total_cobrado": "Total Cobrado",
     "total_gastos": "Total Gastos",
     "vs_periodo_anterior": "vs período anterior"
+  },
+  "BillingWizard": {
+    "title": "Cobro Rápido",
+    "subtitle": "Asistente de facturación y cobro",
+    "step1Title": "Tratamiento",
+    "step2Title": "Pago",
+    "step3Title": "Listo",
+    "actions": {
+      "next": "Siguiente",
+      "processing": "Generando factura...",
+      "invoiceOnly": "Solo facturar",
+      "invoiceAndPay": "Facturar y cobrar",
+      "printReceipt": "Imprimir recibo",
+      "close": "Cerrar"
+    },
+    "confirmation": {
+      "paymentTitle": "¡Cobro registrado!",
+      "invoiceTitle": "¡Factura creada!"
+    }
   }
 }

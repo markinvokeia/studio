@@ -38,6 +38,7 @@ interface ClinicSessionDialogProps {
     onOpenChange: (open: boolean) => void;
     onSave: (data: ClinicSessionFormData) => Promise<void>;
     userId: string;
+    patientName?: string;
     quoteId?: string;
     appointmentId?: string;
     defaultDate?: Date;
@@ -109,6 +110,7 @@ export function ClinicSessionDialog({
     onOpenChange,
     onSave,
     userId,
+    patientName,
     quoteId,
     appointmentId,
     defaultDate,

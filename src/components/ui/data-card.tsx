@@ -106,6 +106,18 @@ export function DataCard({
                 {subtitle}
               </span>
             )}
+            {fields && fields.length > 0 && (
+              <div className="flex flex-col gap-1 mt-1.5">
+                {fields.map((field, i) => (
+                  <div key={i} className="flex items-baseline justify-between gap-2 min-w-0">
+                    <span className="text-[10px] font-medium text-muted-foreground shrink-0">{field.label}</span>
+                    <span className={cn('truncate text-right', field.primary ? 'text-sm font-semibold text-foreground' : 'text-xs text-foreground')}>
+                      {field.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col gap-1">
