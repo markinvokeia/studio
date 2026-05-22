@@ -12,7 +12,8 @@
 > `src/components/billing-wizard/steps/step-confirmation.tsx`  
 > `src/components/billing-wizard/wizard-stepper.tsx`  
 > `src/services/billing-links.ts`  
-> `src/services/quote-financials.ts`
+> `src/services/quote-financials.ts`  
+> `src/services/billing-preflight.ts`
 
 ---
 
@@ -34,6 +35,8 @@
 14. [Comportamiento UX del Modal](#14-comportamiento-ux-del-modal)
 15. [Helpers y Servicios Internos](#15-helpers-y-servicios-internos)
 16. [Permisos](#16-permisos)
+17. [Panel de Detalles de Cita — Información Financiera](#17-panel-de-detalles-de-cita--información-financiera)
+18. [Corrección de Mapeo `invoice_id` en Citas](#18-corrección-de-mapeo-invoice_id-en-citas)
 
 ---
 
@@ -47,6 +50,7 @@ Dependiendo del contexto desde el que se abre, puede:
 - Cobrar una factura ya existente sin crear nada nuevo.
 - Seleccionar cuáles facturas cobrar cuando un presupuesto está completamente facturado pero tiene saldo pendiente.
 - Crear una factura libre (sin presupuesto previo) eligiendo servicios manualmente, con o sin paciente preseleccionado.
+- Pre-cargar automáticamente los servicios de una **cita** o de una **sesión clínica/odontograma** cuando se abre desde esos contextos.
 
 El wizard es **no-bloqueante para el panel que lo invoca**: cualquier hoja de detalles o panel abierto en background permanece abierto durante todo el flujo del wizard y vuelve a ser visible al cerrarlo, sin animaciones de cierre/apertura ni pérdida de estado.
 
@@ -73,6 +77,7 @@ src/
 │
 └── services/
     ├── billing-links.ts                  ← Vincula factura a cita/sesión (fire-and-forget)
+    ├── billing-preflight.ts              ← Verifica estado fresco de invoice_id/quote_id antes de abrir wizard
     └── quote-financials.ts               ← Calcula resumen financiero del presupuesto
 ```
 
@@ -103,7 +108,8 @@ export type BillingTriggerContext = {
   // Identificadores de documentos (definen el flujo)
   quoteId?: string;           // ID del presupuesto origen
   invoiceId?: string;         // ID de una factura ya existente
-  appointmentId?: string;     // Para vincular la nueva factura a una cita
+  appointmentId?: string;     // Para vincular la nueva factura a una cita (y auto-fetch servicios)
+  appointmentDate?: string;   // 'yyyy-MM-dd' — estrecha la ventana de fetch de servicios (±1 día vs ±180)
   sessionId?: string;         // Para vincular la nueva factura a una sesión clínica/odontograma
   sessionType?: 'clinica' | 'odontograma';  // Tipo de sesión (afecta el endpoint de vinculación)
 
@@ -240,6 +246,29 @@ function MiComponente() {
     () => refreshPatientData(),
   );
 
+  // Flujo C: desde una cita — auto-fetch de servicios de la cita
+  // El wizard buscará los servicios asociados a la cita y los pre-cargará en el editor
+  const cobrarDesdeCitaSinPresupuesto = () => open(
+    {
+      appointmentId: 'apt-789',
+      appointmentDate: '2026-05-22',   // opcional pero recomendado: estrecha la búsqueda
+      patientId: 'p1',
+      patientName: 'Ana García',
+    },
+    () => refreshAppointments(true),
+  );
+
+  // Flujo C: desde una sesión clínica — auto-fetch de tratamientos de la sesión
+  const cobrarDesdeSesionClinica = () => open(
+    {
+      sessionId: '100',
+      sessionType: 'clinica',
+      patientId: 'p1',
+      patientName: 'Ana García',
+    },
+    () => onRefreshAll?.(userId),
+  );
+
   // Flujo D: freeform sin paciente (abre selector de paciente primero)
   const cobrarDesdeWidget = () => open({});
 
@@ -339,9 +368,130 @@ Idéntico al 4.3 pero ubicado dentro del `ResizableSheet` de detalles de la fact
 
 ---
 
-### 4.5 Integraciones soportadas por el store pero sin botón UI implementado aún
+### 4.5 Panel de Detalles de Cita (`AppointmentPanel`)
 
-El store acepta `appointmentId`, `sessionId` y `sessionType`. El wizard los procesa correctamente para vincular la factura creada a la cita o sesión. La UI de entrada (botón en vistas de citas, notificaciones, sesiones clínicas) está pendiente de implementar.
+**Archivo:** `src/components/appointments/AppointmentPanel.tsx`
+
+El botón "Cobro Rápido" aparece en el footer del panel de detalles de una cita. Antes de abrir el wizard, la lógica realiza un preflight para determinar si la cita ya tiene factura o presupuesto asociado, y pasa el contexto más completo posible:
+
+```tsx
+const handleCobroRapido = async () => {
+  // Si la cita ya tiene invoice_id, abre directamente en Flujo A
+  if (appointment.invoice_id) {
+    openBillingWizard({
+      invoiceId: String(appointment.invoice_id),
+      patientId: appointment.patientId,
+      patientName: appointment.patientName,
+      appointmentId: appointment.id,
+      appointmentDate: appointment.date,
+    }, onSuccess);
+  // Si tiene quote_id, abre en Flujo B
+  } else if (appointment.quote_id) {
+    openBillingWizard({
+      quoteId: String(appointment.quote_id),
+      patientId: appointment.patientId,
+      patientName: appointment.patientName,
+      appointmentId: appointment.id,
+      appointmentDate: appointment.date,
+    }, onSuccess);
+  // Sin factura ni presupuesto: Flujo C con auto-fetch de servicios de la cita
+  } else {
+    openBillingWizard({
+      appointmentId: appointment.id,
+      appointmentDate: appointment.date,
+      patientId: appointment.patientId,
+      patientName: appointment.patientName,
+    }, onSuccess);
+  }
+};
+```
+
+**Contexto enviado:** varía según presencia de `invoice_id` / `quote_id` / ninguno  
+**Resultado:** Flujo A, B o C con auto-fetch de servicios  
+**Ver también:** §17 para la visualización de datos financieros en el mismo panel
+
+---
+
+### 4.6 Historial Clínico — Sesión Clínica
+
+**Archivo:** `src/components/users/clinic-history-viewer.tsx` — componente `TreatmentTimeline`
+
+El botón "Cobro Rápido" aparece en el footer del sheet de detalles de sesión clínica. Realiza un preflight fresco antes de abrir el wizard:
+
+```tsx
+const handleSessionCobroRapido = async (session: PatientSession) => {
+  setIsBillingLoading(true);
+  try {
+    // Verifica estado fresco desde el backend para evitar abrir con datos obsoletos
+    const fresh = await fetchSessionBillingState(userId, String(session.sesion_id));
+    const freshInvoiceId = fresh.invoice_id ?? session.invoice_id ?? null;
+    const freshQuoteId   = fresh.quote_id   ?? session.quote_id   ?? null;
+
+    const onSuccess = () => { onRefreshAll?.(userId); onRefreshAppointments?.(); };
+
+    if (freshInvoiceId) {
+      openBillingWizard({
+        invoiceId: String(freshInvoiceId),
+        patientId: userId,
+        patientName: userName,
+        isSales: true,
+        sessionId: String(session.sesion_id),
+        sessionType: 'clinica',
+      }, onSuccess);
+    } else if (freshQuoteId) {
+      openBillingWizard({
+        quoteId: String(freshQuoteId),
+        patientId: userId,
+        patientName: userName,
+        sessionId: String(session.sesion_id),
+        sessionType: 'clinica',
+      }, onSuccess);
+    } else {
+      // Sin documentos previos: Flujo C con auto-fetch de tratamientos de la sesión
+      openBillingWizard({
+        patientId: userId,
+        patientName: userName,
+        sessionId: String(session.sesion_id),
+        sessionType: 'clinica',
+      }, onSuccess);
+    }
+  } finally {
+    setIsBillingLoading(false);
+  }
+};
+```
+
+**Preflight service:** `fetchSessionBillingState` de `src/services/billing-preflight.ts` — hace un GET al endpoint de la sesión para obtener `invoice_id` / `quote_id` frescos en el momento de abrir, evitando que datos cacheados del timeline abran el wizard en el flujo incorrecto.
+
+---
+
+### 4.7 Historial Clínico — Sesión Odontograma
+
+**Archivo:** `src/components/users/clinic-history-viewer.tsx` — componente `TreatmentTimeline`
+
+El botón "Cobro Rápido" aparece en el header del sheet del visor de odontograma. Usa la misma función `handleSessionCobroRapido` (§4.6) pasando `sessionDetailData`:
+
+```tsx
+// En el header del OdontogramViewer sheet
+{sessionDetailData && (
+  <Button
+    size="sm"
+    variant="outline"
+    onClick={() => handleSessionCobroRapido(sessionDetailData)}
+    disabled={isBillingLoading}
+    className="text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+  >
+    {isBillingLoading
+      ? <Loader2 className="h-4 w-4 animate-spin" />
+      : <Zap className="h-4 w-4" />}
+    Cobro Rápido
+  </Button>
+)}
+```
+
+**Importante:** Al hacer clic en una sesión odontograma del timeline, se llama tanto `setIsOdontogramViewerOpen(true)` como `setSessionDetailData(session)`. Esto garantiza que `sessionDetailData` esté siempre disponible cuando se abre el visor, y por ende el botón tenga contexto de sesión.
+
+**Lógica idéntica a §4.6** con `sessionType: 'odontograma'` para que `billing-links.ts` use el endpoint correcto al vincular la factura.
 
 ---
 
@@ -655,10 +805,38 @@ En el paso de Pago, se pasan `invoice={selectedInvoices[0]}` e `invoices={select
 
 ### 8.1 Inicialización
 
+La inicialización del editor de ítems sigue este orden de prioridad:
+
 ```ts
-setEditableItems(context.preloadedItems || [])   // puede venir con ítems prellenados
-setFreeformCurrency(context.currency || 'UYU')   // moneda inicial UYU por default
+setFreeformCurrency(context.currency || 'UYU');
+
+if (context.preloadedItems && context.preloadedItems.length > 0) {
+  // 1. Ítems ya preparados por el caller (máxima prioridad)
+  setEditableItems(context.preloadedItems);
+
+} else if (context.appointmentId && context.patientId) {
+  // 2. Auto-fetch: busca servicios de la cita en el backend
+  setIsLoadingTreatment(true);
+  loadAppointmentItems(context.patientId, context.appointmentId, context.appointmentDate)
+    .then((items) => setEditableItems(items))
+    .finally(() => setIsLoadingTreatment(false));
+
+} else if (context.sessionId && context.patientId) {
+  // 3. Auto-fetch: busca tratamientos de la sesión clínica/odontograma
+  setIsLoadingTreatment(true);
+  loadSessionItems(context.patientId, context.sessionId)
+    .then((items) => setEditableItems(items))
+    .finally(() => setIsLoadingTreatment(false));
+
+} else {
+  // 4. Editor vacío — usuario agrega servicios manualmente
+  setEditableItems([]);
+}
 ```
+
+Mientras `isLoadingTreatment = true`, el paso de Servicios muestra un spinner (`Loader2`) en lugar del editor, y los botones de acción están deshabilitados.
+
+Ver §15.6 y §15.7 para la implementación de `loadAppointmentItems` y `loadSessionItems`.
 
 ### 8.2 Paso 0 — Editor de Servicios (`StepItemsEditor`)
 
@@ -681,7 +859,7 @@ setFreeformCurrency(context.currency || 'UYU')   // moneda inicial UYU por defau
 
 | Botón | Habilitado cuando |
 |-------|-------------------|
-| **Solo facturar** | `editableItems.length > 0` && todos con `service_id` válido && `effectivePatientId` existe |
+| **Solo facturar** | `editableItems.length > 0` && todos con `service_id` válido && `effectivePatientId` existe && `!isLoadingTreatment` |
 | **Facturar y Cobrar** | ídem |
 
 **Al presionar cualquier acción → `handleItemsEditorNext(action)`:**
@@ -1177,6 +1355,8 @@ if (context?.sessionId) {
 | `quoteId` + presupuesto con pendiente de facturar | **B estándar** | Tratamiento → Pago → Listo | Confirma presupuesto (si draft) + crea factura desde orden. |
 | `quoteId` + presupuesto completamente facturado + facturas sin pagar | **B selection mode** | Facturas → Pago → Listo | Ninguna. Selecciona facturas existentes. |
 | `patientId` (sin quoteId ni invoiceId) | **C — Freeform con paciente** | Servicios → Pago → Listo | Crea factura directa con ítems elegidos libremente. |
+| `patientId` + `appointmentId` (sin quoteId ni invoiceId) | **C — Freeform con paciente** | Servicios → Pago → Listo | Igual que C; pre-carga servicios de la cita automáticamente. |
+| `patientId` + `sessionId` (sin quoteId ni invoiceId) | **C — Freeform con paciente** | Servicios → Pago → Listo | Igual que C; pre-carga tratamientos de la sesión automáticamente. |
 | `{}` vacío o sin `patientId` | **D — Freeform sin paciente** | Paciente → Servicios → Pago → Listo | Igual que C + paciente seleccionado/creado on-the-fly. |
 | Cualquiera + `appointmentId` | El que corresponda | igual | Vincula la factura creada a la cita (fire-and-forget). |
 | Cualquiera + `sessionId` + `sessionType:'clinica'` | El que corresponda | igual | Vincula a sesión clínica (`CLINIC_SESSIONS_LINK_INVOICE`). |
@@ -1250,6 +1430,41 @@ setFreeformCurrency('UYU')
 setSelectedPatient(null)
 ```
 
+### 14.6 Refresco del Calendario por Notificaciones (`clinic:calendar:refresh`)
+
+Se implementó un sistema de refresco silencioso del calendario basado en eventos DOM personalizados. El objetivo es que si se está en la página del calendario y llega una notificación nueva (o se ejecuta una acción desde el panel de notificaciones), el calendario actualice sus citas sin recargar la página ni mostrar skeleton.
+
+#### Cómo se emite el evento
+
+**Notificaciones nuevas** (`src/context/notifications-context.tsx`):
+```ts
+// En el useEffect que detecta notificaciones novedosas
+if (typeof window !== 'undefined') {
+  window.dispatchEvent(new Event('clinic:calendar:refresh'));
+}
+```
+
+**Acciones desde `notification-card.tsx`** — se dispara después de `closePanel()` en:
+- `handleCobroRapido` — al abrir el wizard de cobro desde una notificación
+- `goToAppointments` — al navegar a la vista de citas
+- `AppointmentStatusCard.handleView` — al ver el detalle de una cita
+- `NewAppointmentCard.handleView` — al ver una cita nueva
+
+#### Cómo lo escucha el calendario
+
+```ts
+// src/app/[locale]/appointments/page.tsx
+React.useEffect(() => {
+  const handler = () => {
+    if (!isDataLoading) forceRefresh();
+  };
+  window.addEventListener('clinic:calendar:refresh', handler);
+  return () => window.removeEventListener('clinic:calendar:refresh', handler);
+}, [forceRefresh, isDataLoading]);
+```
+
+`forceRefresh()` ya implementa refresco silencioso en la página del calendario — actualiza los datos sin mostrar el skeleton de carga inicial.
+
 ---
 
 ## 15. Helpers y Servicios Internos
@@ -1307,6 +1522,113 @@ function distributePayment(invoices: Invoice[], total: number): InvoiceAllocatio
 
 Distribuye en orden del array, llenando cada factura hasta su pendiente antes de pasar a la siguiente. Umbral mínimo de 0.001 para evitar distribuciones de montos insignificantes.
 
+### 15.6 `loadAppointmentItems` (auto-fetch de servicios de cita)
+
+**Archivo:** `src/components/billing-wizard/billing-wizard-modal.tsx`
+
+```ts
+async function loadAppointmentItems(
+  patientId: string,
+  appointmentId: string,
+  appointmentDate?: string,   // 'yyyy-MM-dd' — si se conoce, estrecha la búsqueda
+): Promise<EditableItem[]> {
+  const base  = appointmentDate ? new Date(`${appointmentDate}T12:00:00`) : new Date();
+  const delta = appointmentDate ? 1 : 180;   // ±1 día si hay fecha, ±180 si no
+
+  const query = {
+    startingDateAndTime: format(addDays(base, -delta), 'yyyy-MM-dd HH:mm:ss'),
+    endingDateAndTime:   format(addDays(base,  delta), 'yyyy-MM-dd HH:mm:ss'),
+    user_id: patientId,
+  };
+
+  const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
+  // normaliza el array de respuesta igual que el mapper principal
+  const raw = Array.isArray(data) && data.length > 0 && 'json' in data[0]
+    ? data.map((d: any) => d.json)
+    : Array.isArray(data) ? data : [];
+
+  // Encuentra la cita por ID
+  const appt = raw.find((a: any) =>
+    String(a.appointment_id || a.appointmentId || a.id || '') === appointmentId
+  );
+  if (!appt) return [];
+
+  // Mapea services[] a EditableItem[]
+  const services = Array.isArray(appt.services) ? appt.services : [];
+  return services
+    .filter((s: any) => s.id && Number(s.price || s.unit_price || 0) > 0)
+    .map((s: any, i: number) => ({
+      tempId:       `appt-${appointmentId}-${i}`,
+      service_id:   String(s.id),
+      service_name: s.name || s.service_name || '',
+      unit_price:   Number(s.price || s.unit_price || 0),
+      quantity:     1,
+      total:        Number(s.price || s.unit_price || 0),
+    }));
+}
+```
+
+**Nota sobre `appointmentDate`:** El parámetro es opcional. Si el caller lo proporciona (como hace `AppointmentPanel` pasando `appointment.date`), la ventana de búsqueda se estrecha a ±1 día alrededor de esa fecha, lo que es más eficiente y confiable. Sin él, se usa una ventana de ±180 días centrada en el momento actual, que puede ser menos precisa si el paciente tiene muchas citas.
+
+### 15.7 `loadSessionItems` (auto-fetch de tratamientos de sesión)
+
+**Archivo:** `src/components/billing-wizard/billing-wizard-modal.tsx`
+
+```ts
+async function loadSessionItems(
+  patientId: string,
+  sessionId: string,
+): Promise<EditableItem[]> {
+  const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, {
+    user_id: patientId,
+  });
+
+  const raw = Array.isArray(data) ? data
+    : Array.isArray(data?.sessions) ? data.sessions
+    : Array.isArray(data?.data)     ? data.data
+    : [];
+
+  // Encuentra la sesión por sesion_id
+  const session = raw.find((s: any) =>
+    String(s.sesion_id || s.session_id || s.id || '') === sessionId
+  );
+  if (!session) return [];
+
+  // Mapea tratamientos[] a EditableItem[]
+  const tratamientos = Array.isArray(session.tratamientos) ? session.tratamientos : [];
+  return tratamientos
+    .filter((t: any) =>
+      (t.service_id || t.service_catalog_id) &&
+      Number(t.unit_price || t.price || 0) > 0
+    )
+    .map((t: any, i: number) => ({
+      tempId:       `sess-${sessionId}-${i}`,
+      service_id:   String(t.service_id || t.service_catalog_id),
+      service_name: t.service_name || t.name || '',
+      unit_price:   Number(t.unit_price || t.price || 0),
+      quantity:     Number(t.quantity || 1),
+      total:        Number(t.total || t.unit_price || t.price || 0),
+    }));
+}
+```
+
+### 15.8 `fetchSessionBillingState` (preflight de sesión)
+
+**Archivo:** `src/services/billing-preflight.ts`
+
+Consulta el backend para obtener el estado fresco de `invoice_id` y `quote_id` de una sesión antes de abrir el wizard. Evita que el componente use datos cacheados del timeline que podrían estar desactualizados.
+
+```ts
+async function fetchSessionBillingState(
+  userId: string,
+  sessionId: string,
+): Promise<{ invoice_id: string | null; quote_id: string | null }> {
+  // GET CLINIC_HISTORY.PATIENT_SESSIONS con { user_id }
+  // Encuentra la sesión por sesion_id
+  // Retorna { invoice_id, quote_id } frescos
+}
+```
+
 ---
 
 ## 16. Permisos
@@ -1317,9 +1639,129 @@ Distribuye en orden del array, llenando cada factura hasta su pendiente antes de
 | Botón "Cobrar" en tab Presupuestos | `canInvoiceQuote` (`INVOICES_INVOICE_ORDER`) OR `canCreatePayment` (`PAYMENTS_CREATE`) |
 | Botón "Cobrar" en tab Facturas | `SALES_PERMISSIONS.PAYMENTS_CREATE` (o `PURCHASES_PERMISSIONS.PAYMENTS_CREATE`) |
 | Botón "Cobrar" en sheet Facturas | ídem tab Facturas |
+| Botón "Cobro Rápido" en AppointmentPanel | `SALES_PERMISSIONS.INVOICES_CREATE` OR `SALES_PERMISSIONS.PAYMENTS_CREATE` |
+| Botón "Cobro Rápido" en sesión clínica | `SALES_PERMISSIONS.INVOICES_CREATE` OR `SALES_PERMISSIONS.PAYMENTS_CREATE` |
+| Botón "Cobro Rápido" en visor odontograma | `SALES_PERMISSIONS.INVOICES_CREATE` OR `SALES_PERMISSIONS.PAYMENTS_CREATE` |
 | Registrar pago (submit Step Payment) | Sesión de caja activa (si `is_historical = false`) |
 | Imprimir en Step Confirmation | Solo requiere que la API devuelva el blob (sin permiso adicional en UI) |
 | Enlace "Abrir sesión de caja" (no-session alert) | `CASHIER_PERMISSIONS.VIEW_MENU` |
+
+---
+
+## 17. Panel de Detalles de Cita — Información Financiera
+
+**Archivo:** `src/components/appointments/AppointmentPanel.tsx`
+
+El panel de detalles de una cita muestra una sección de información financiera cuando la cita tiene `quote_id` o `invoice_id` asociado. Esta visualización está disponible en todos los lugares donde se usa `AppointmentPanel`: el calendario principal, el listado de citas, y el timeline del historial clínico del paciente.
+
+### 17.1 Rutas de datos
+
+Se implementaron dos rutas paralelas para cargar la información financiera:
+
+**Ruta A — Vía presupuesto** (cuando `appointment.quote_id` existe):
+- El componente ya cargaba `quoteInvoices` a través de `fetchQuoteInvoicesForFinancials`
+- Para cada factura del presupuesto, se carga la lista de pagos vía `SALES.INVOICE_PAYMENTS`
+
+**Ruta B — Vía `invoice_id` directo** (cuando `appointment.invoice_id` existe pero `quoteInvoices.length === 0`):
+```ts
+// useEffect para factura directa (sin presupuesto)
+React.useEffect(() => {
+  if (!appointment?.invoice_id || quoteInvoices.length > 0) return;
+
+  setIsLoadingPayments(true);
+  api.get(API_ROUTES.USER_INVOICES, { user_id: appointment.patientId })
+    .then((data: any) => {
+      const arr = Array.isArray(data) ? data : (data?.invoices ?? data?.data ?? []);
+      const found = arr.find((inv: any) =>
+        String(inv.id ?? inv.invoice_id ?? '') === String(appointment.invoice_id)
+      );
+      if (!found) return;
+
+      const mapped: Invoice = { /* mapeo de campos */ };
+      setDirectInvoice(mapped);
+
+      // Carga pagos de la factura directa
+      return api.get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: appointment.invoice_id });
+    })
+    .then((paymentsData: any) => {
+      if (!paymentsData) return;
+      const arr = /* normaliza array */;
+      setPaymentsMap(prev => ({
+        ...prev,
+        [String(appointment.invoice_id)]: arr,
+      }));
+    })
+    .finally(() => setIsLoadingPayments(false));
+}, [appointment?.invoice_id, quoteInvoices.length, appointment?.patientId]);
+```
+
+### 17.2 Estado local del componente
+
+```ts
+const [paymentsMap, setPaymentsMap] = React.useState<Record<string, any[]>>({});
+// keyed by invoice ID → array de pagos
+
+const [directInvoice, setDirectInvoice] = React.useState<Invoice | null>(null);
+// factura cargada por invoice_id directo (cuando no hay quote_id)
+
+const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
+```
+
+### 17.3 Qué muestra la sección financiera
+
+**Cuando hay facturas** (vía presupuesto o directa):
+
+Por cada factura se muestra una tarjeta con:
+- **Número de factura** (`doc_no`)
+- **Badge de estado de pago:**
+  - Verde "Pagado" si `payment_status === 'paid'`
+  - Ámbar "Pendiente: $X" con el monto pendiente si no está pagada
+- **Total de la factura**
+- **Lista de pagos** (si `paymentsMap[invoiceId]` tiene entradas):
+  - Ícono `CreditCard`
+  - Método de pago
+  - Número de documento del pago (`doc_no` / `payment_doc_no`)
+  - Fecha formateada (`dd/MM/yyyy`)
+  - Monto del pago
+
+Si `isLoadingPayments = true`, se muestra un skeleton mientras se cargan los pagos.
+
+---
+
+## 18. Corrección de Mapeo `invoice_id` en Citas
+
+### 18.1 El problema
+
+El tipo `Appointment` en `src/lib/types.ts:514` tiene el campo:
+```ts
+invoice_id?: string | null;
+```
+
+Sin embargo, la API retorna `invoice_id` como número (e.g., `invoice_id: 462`). Este campo nunca fue incluido en los 5 mappers que convierten respuestas de API a objetos `Appointment`, por lo que siempre llegaba como `undefined` al componente — aunque el backend lo enviara correctamente.
+
+### 18.2 Archivos corregidos
+
+Se añadió la línea de mapeo `invoice_id: apiAppt.invoice_id != null ? String(apiAppt.invoice_id) : null` en los siguientes mappers:
+
+| Archivo | Función/contexto |
+|---|---|
+| `src/app/[locale]/appointments/page.tsx` | `getAppointments()` — mapper del calendario principal |
+| `src/context/notifications-context.tsx` | Mapper de citas en el contexto de notificaciones |
+| `src/components/users/user-appointments.tsx` | Mapper del tab Citas del perfil de paciente |
+| `src/app/[locale]/patients/page.tsx` | Mapper de citas en la página de pacientes |
+| `src/components/appointments/DoctorAppointments.tsx` | Mapper de la vista de citas del doctor |
+
+### 18.3 Patrón de mapeo
+
+```ts
+// Antes (campo ausente — siempre undefined):
+// (no había línea)
+
+// Después (conversión de número a string, null si no existe):
+invoice_id: a.invoice_id != null ? String(a.invoice_id) : null,
+```
+
+El campo se convierte a `string` porque `Appointment.invoice_id` es de tipo `string | null`, mientras que la API lo devuelve como `number`.
 
 ---
 

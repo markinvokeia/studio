@@ -1149,6 +1149,7 @@ export default function UsersPage() {
           : (serviceId ? [{ id: serviceId, name: serviceName ?? '' } as any] : []),
         quote_id: raw.quote_id,
         quote_doc_no: raw.quote_doc_no,
+        invoice_id: raw.invoice_id != null ? String(raw.invoice_id) : null,
       };
       setEditingAppointmentForPlan(appt);
       setIsAppointmentDialogOpen(true);

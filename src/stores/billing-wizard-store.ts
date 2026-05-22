@@ -5,6 +5,7 @@ export type BillingTriggerContext = {
   quoteId?: string;
   invoiceId?: string;
   appointmentId?: string;
+  appointmentDate?: string; // 'yyyy-MM-dd' — optional, narrows the fetch window
   sessionId?: string;
   sessionType?: 'clinica' | 'odontograma';
   patientId?: string;

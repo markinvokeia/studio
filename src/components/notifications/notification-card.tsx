@@ -110,6 +110,7 @@ function AppointmentStatusCard({ notification }: { notification: AppointmentStat
 
   const handleView = () => {
     closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
     router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
   };
 
@@ -223,6 +224,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       }));
 
       closePanel();
+      window.dispatchEvent(new Event('clinic:calendar:refresh'));
       openBillingWizard({
         patientId: appointment.patientId,
         patientName: appointment.patientName,
@@ -243,6 +245,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     markSessionAction(notification.id, action);
     // Cerrar el panel inmediatamente — el trabajo async continúa en background.
     closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
 
     const params = new URLSearchParams({
       act: action,
@@ -494,6 +497,7 @@ function NewAppointmentCard({ notification }: { notification: NewAppointmentNoti
 
   const handleView = () => {
     closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
     router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
   };
 

@@ -2300,10 +2300,10 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                                 className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
                                                 onClick={() => {
                                                     setSelectedItemKey(isSelected ? null : key);
+                                                    setSessionDetailData(session);
                                                     if (session.tipo_sesion === 'odontograma') {
                                                         setIsOdontogramViewerOpen(true);
                                                     } else {
-                                                        setSessionDetailData(session);
                                                         setIsSessionDetailSheetOpen(true);
                                                     }
                                                 }}
@@ -2896,13 +2896,14 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                     )}
                                 </div>
                             </ScrollArea>
-                            <div className="flex items-center gap-2 justify-end px-6 py-4 border-t shrink-0 bg-background">
+                            <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0 bg-background">
                                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
                                     onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
                                     <Trash2 className="h-3.5 w-3.5" />
                                     {tPage('common.delete')}
                                 </Button>
-                                <Button size="sm" className="gap-1.5"
+                                <div className="flex-1" />
+                                <Button size="sm" variant="outline" className="gap-1.5"
                                     onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
                                     <Edit3 className="h-3.5 w-3.5" />
                                     {tPage('common.edit')}
@@ -2922,8 +2923,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 storageKey="odontogram-view-sheet-width"
             >
                 <div className="flex flex-col h-full">
-                    <div className="px-6 py-4 border-b shrink-0">
-                        <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                    <div className="px-6 py-4 border-b shrink-0 flex items-center gap-3">
+                        <SheetTitle className="flex items-center gap-2 text-base font-semibold flex-1">
                             <Smile className="h-4 w-4 text-purple-600 shrink-0" />
                             Odontograma
                         </SheetTitle>

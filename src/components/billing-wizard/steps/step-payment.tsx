@@ -409,6 +409,30 @@ export function StepPayment({
     }
   };
 
+  if (pendingAmount <= 0) {
+    return (
+      <div className="flex flex-col gap-3">
+        <div className="rounded-lg border px-4 py-3 text-sm space-y-1 bg-muted/30">
+          {isMultiInvoice ? (
+            <div className="flex justify-between text-muted-foreground">
+              <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
+              <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Factura</span>
+              <span className="font-medium">#{invoice.doc_no || invoice.id}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-300">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>Ya ha sido completamente facturado y pagado.</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <Form {...form}>
@@ -678,14 +702,6 @@ export function StepPayment({
           </div>
         </form>
       </Form>
-
-      {/* Fully paid banner */}
-      {pendingAmount <= 0 && (
-        <div className="flex items-center gap-2 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-300">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>Ya ha sido completamente facturado y pagado.</span>
-        </div>
-      )}
 
       {/* No session alert */}
       <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>

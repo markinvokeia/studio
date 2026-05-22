@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { addDays, format } from 'date-fns';
 import { Loader2, Zap } from 'lucide-react';
 
 import {
@@ -239,6 +240,74 @@ async function createDirectInvoice(
   };
 }
 
+async function loadAppointmentItems(
+  patientId: string,
+  appointmentId: string,
+  appointmentDate?: string,
+): Promise<EditableItem[]> {
+  try {
+    const fmt = (d: Date) => format(d, 'yyyy-MM-dd HH:mm:ss');
+    const base = appointmentDate ? new Date(`${appointmentDate}T12:00:00`) : new Date();
+    const delta = appointmentDate ? 1 : 180;
+    const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
+      user_id: patientId,
+      startingDateAndTime: fmt(addDays(base, -delta)),
+      endingDateAndTime: fmt(addDays(base, delta)),
+    });
+    let raw: any[] = Array.isArray(data) ? data : [];
+    if (raw.length > 0 && 'json' in (raw[0] as Record<string, unknown>)) {
+      raw = raw.map((d: any) => d.json);
+    }
+    const appt = raw.find(
+      (a: any) => String(a.appointment_id ?? a.appointmentId ?? a.id) === String(appointmentId),
+    );
+    if (!appt) return [];
+    const services: any[] = Array.isArray(appt.services) ? appt.services : [];
+    return services
+      .filter((s: any) => s.id && Number(s.price || s.unit_price || 0) > 0)
+      .map((s: any) => {
+        const price = Number(s.price || s.unit_price || 0);
+        return {
+          tempId: `appt-svc-${s.id}`,
+          service_id: String(s.id),
+          service_name: s.name || '',
+          unit_price: price,
+          quantity: 1,
+          total: price,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+async function loadSessionItems(patientId: string, sessionId: string): Promise<EditableItem[]> {
+  try {
+    const data = await api.get(API_ROUTES.CLINIC_HISTORY.PATIENT_SESSIONS, { user_id: patientId });
+    const raw: any[] = Array.isArray(data) ? data : (data?.patient_sessions ?? data?.data ?? []);
+    const session = raw.find((s: any) => String(s.sesion_id) === String(sessionId));
+    if (!session) return [];
+    const tratamientos: any[] = Array.isArray(session.tratamientos) ? session.tratamientos : [];
+    return tratamientos
+      .filter((t: any) => (t.service_id || t.service_catalog_id) && Number(t.unit_price || t.precio || 0) > 0)
+      .map((t: any, i: number) => {
+        const svcId = String(t.service_id || t.service_catalog_id || '');
+        const price = Number(t.unit_price || t.precio || 0);
+        const qty = Number(t.quantity || t.cantidad || 1);
+        return {
+          tempId: `sess-${sessionId}-${i}`,
+          service_id: svcId,
+          service_name: t.service_name || t.descripcion || '',
+          unit_price: price,
+          quantity: qty,
+          total: price * qty,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
 async function fetchInvoicePaymentsForConfirmation(
   invoiceId: string,
   isSales: boolean,
@@ -437,9 +506,25 @@ export function BillingWizardModal() {
         })
         .finally(() => setIsLoadingTreatment(false));
     } else {
-      // Freeform flow: start with preloaded items if provided
-      setEditableItems(context.preloadedItems || []);
       setFreeformCurrency(context.currency || 'UYU');
+      if (context.preloadedItems && context.preloadedItems.length > 0) {
+        // Caller already prepared items (e.g. AppointmentPanel) — use them directly
+        setEditableItems(context.preloadedItems);
+      } else if (context.appointmentId && context.patientId) {
+        // Auto-fetch services from the appointment
+        setIsLoadingTreatment(true);
+        loadAppointmentItems(context.patientId, context.appointmentId, context.appointmentDate)
+          .then((items) => setEditableItems(items))
+          .finally(() => setIsLoadingTreatment(false));
+      } else if (context.sessionId && context.patientId) {
+        // Auto-fetch tratamientos from the clinic/odontogram session
+        setIsLoadingTreatment(true);
+        loadSessionItems(context.patientId, context.sessionId)
+          .then((items) => setEditableItems(items))
+          .finally(() => setIsLoadingTreatment(false));
+      } else {
+        setEditableItems([]);
+      }
     }
   }, [isOpen, context, startFromInvoice, isSales]);
 
@@ -710,6 +795,13 @@ export function BillingWizardModal() {
         );
       }
       if (currentStep === itemsStep) {
+        if (isLoadingTreatment) {
+          return (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          );
+        }
         return (
           <StepItemsEditor
             items={editableItems}
@@ -905,7 +997,7 @@ export function BillingWizardModal() {
                 <button
                   type="button"
                   onClick={() => handleItemsEditorNext('invoice-only')}
-                  disabled={isProcessing || editableItems.length === 0 || !effectivePatientId}
+                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId}
                   className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -914,7 +1006,7 @@ export function BillingWizardModal() {
                 <button
                   type="button"
                   onClick={() => handleItemsEditorNext('invoice-and-pay')}
-                  disabled={isProcessing || editableItems.length === 0 || !effectivePatientId}
+                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId}
                   className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}

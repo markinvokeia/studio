@@ -244,6 +244,7 @@ function normalizeAppointmentsResponse(data: unknown): Appointment[] {
           : [],
         quote_id: a.quote_id || a.quoteId,
         quote_doc_no: a.quote_doc_no || a.quoteDocNo,
+        invoice_id: a.invoice_id != null ? String(a.invoice_id) : null,
       } as Appointment;
     })
     .filter((a): a is Appointment => a !== null)
@@ -619,6 +620,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id) && !n.seen);
     if (novel.length === 0) return;
     novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
+    // Signal the calendar page to silently refresh — new notifications often
+    // mean appointment state changed (new booking, status update, session done).
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    }
 
     const newAppts = novel.filter((n): n is NewAppointmentNotification => n.type === 'new_appointment');
     const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');

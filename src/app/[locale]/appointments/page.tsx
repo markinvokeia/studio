@@ -340,7 +340,8 @@ async function getAppointments(
                     is_active: true
                 } as Service)) : [],
                 quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
-                quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined
+                quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
+                invoice_id: apiAppt.invoice_id != null ? String(apiAppt.invoice_id) : null,
             };
 
             return appointment;
@@ -1151,6 +1152,15 @@ export default function AppointmentsPage() {
             loadAppointments();
         }
     }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
+
+    // Silent calendar refresh when the notification system detects new events
+    // (new appointments, status changes, completed sessions) or after a
+    // notification action is taken from the panel while on this page.
+    React.useEffect(() => {
+        const handler = () => { if (!isDataLoading) forceRefresh(); };
+        window.addEventListener('clinic:calendar:refresh', handler);
+        return () => window.removeEventListener('clinic:calendar:refresh', handler);
+    }, [forceRefresh, isDataLoading]);
 
     // Moved searches to AppointmentFormDialog
 
