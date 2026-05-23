@@ -5442,6 +5442,7 @@
     "aiTreatments": {
       "generate": "Generar con IA",
       "regenerate": "Regenerar",
+      "addTreatment": "Agregar tratamiento",
       "generating": "Analizando tratamientos con IA...",
       "title": "Tratamientos detectados por IA",
       "currentSession": "Sesión actual",
@@ -5452,7 +5453,15 @@
       "searchService": "Buscar servicios...",
       "noServices": "No se encontraron servicios.",
       "emptyHint": "Genera con IA o añade tratamientos manualmente."
-    }
+    },
+    "patientLabel": "Paciente",
+    "quoteLabel": "Presupuesto",
+    "newQuote": "Nuevo",
+    "selectQuote": "Seleccionar presupuesto",
+    "loadingQuotes": "Cargando presupuestos...",
+    "noQuote": "Sin presupuesto",
+    "noQuotes": "No hay presupuestos disponibles",
+    "searchQuotePlaceholder": "Buscar presupuesto..."
   },
   "VoiceAssistant": {
     "clickToSpeak": "Haz clic para hablar",

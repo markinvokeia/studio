@@ -5463,6 +5463,7 @@
     "aiTreatments": {
       "generate": "Generate with AI",
       "regenerate": "Regenerate",
+      "addTreatment": "Add treatment",
       "generating": "Analyzing treatments with AI...",
       "title": "AI-detected treatments",
       "currentSession": "Current session",
@@ -5473,7 +5474,15 @@
       "searchService": "Search services...",
       "noServices": "No services found.",
       "emptyHint": "Generate with AI or add treatments manually."
-    }
+    },
+    "patientLabel": "Patient",
+    "quoteLabel": "Quote",
+    "newQuote": "New",
+    "selectQuote": "Select a quote",
+    "loadingQuotes": "Loading quotes...",
+    "noQuote": "No quote",
+    "noQuotes": "No quotes available",
+    "searchQuotePlaceholder": "Search quote..."
   },
   "VoiceAssistant": {
     "clickToSpeak": "Click to speak",

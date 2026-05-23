@@ -2,7 +2,6 @@
 
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
-import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,7 +49,7 @@ import { useAppointmentStatus } from '@/hooks/use-appointment-status';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, Quote, SessionPrefillData } from '@/lib/types';
+import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { addMonths, format, isBefore, isValid, parseISO } from 'date-fns';
@@ -69,7 +68,6 @@ import {
     Edit3,
     Eye,
     File,
-    FilePlus,
     FileText,
     FolderArchive,
     GlassWater,
@@ -92,6 +90,7 @@ import {
     ZoomOut,
 } from 'lucide-react';
 import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '@/constants/files';
+import { ClinicSessionDialog, type ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import * as React from 'react';
@@ -1702,32 +1701,30 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         }
     }, [editSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Quote selection states
-    const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
-    const [isLoadingQuotes, setIsLoadingQuotes] = React.useState(false);
-    const [isQuoteSearchOpen, setIsQuoteSearchOpen] = React.useState(false);
-    const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
-    const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
+    // Prefill state for ClinicSessionDialog
+    const [sessionPrefillData, setSessionPrefillData] = React.useState<{
+        doctor_id?: string; doctor_name?: string;
+        procedimiento_realizado?: string; plan_proxima_cita?: string;
+        fecha_proxima_cita?: string; quote_id?: string;
+    } | undefined>(undefined);
+    const [sessionPrefillTreatments, setSessionPrefillTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
+    const [sessionStepId, setSessionStepId] = React.useState('');
 
     React.useEffect(() => {
         if (createTrigger > 0) {
             setEditingSession(null);
-            if (sessionPrefill) {
-                setSessionForm({
-                    doctor_id: sessionPrefill.doctor_id ?? '',
-                    doctor_name: sessionPrefill.doctor_name ?? '',
-                    fecha_sesion: sessionPrefill.scheduled_date ?? new Date().toISOString().split('T')[0],
-                    procedimiento_realizado: sessionPrefill.step_name
-                        ? `${sessionPrefill.step_number ? `Paso ${sessionPrefill.step_number}: ` : ''}${sessionPrefill.step_name}`
-                        : '',
-                    plan_proxima_cita: sessionPrefill.notes ?? '',
-                    fecha_proxima_cita: '',
-                    quote_id: '',
-                    appointment_id: sessionPrefill.appointment_id ?? '',
-                    step_id: sessionPrefill.step_id ?? '',
-                    tipo_sesion: 'clinica',
-                });
-            }
+            setSessionPrefillData({
+                doctor_id: sessionPrefill?.doctor_id || '',
+                doctor_name: sessionPrefill?.doctor_name || '',
+                procedimiento_realizado: sessionPrefill?.step_name
+                    ? `${sessionPrefill.step_number ? `Paso ${sessionPrefill.step_number}: ` : ''}${sessionPrefill.step_name}`
+                    : '',
+                plan_proxima_cita: sessionPrefill?.notes ?? '',
+                fecha_proxima_cita: '',
+                quote_id: '',
+            });
+            setSessionPrefillTreatments([]);
+            setSessionStepId(sessionPrefill?.step_id || '');
             onFetchDoctors();
             setIsSessionDialogOpen(true);
             onTriggerConsumed?.();
@@ -1740,28 +1737,6 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             onOdontogramTriggerConsumed?.();
         }
     }, [createOdontogramTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Form states for session dialog
-    const [sessionForm, setSessionForm] = React.useState({
-        doctor_id: '',
-        doctor_name: '',
-        fecha_sesion: new Date().toISOString().split('T')[0],
-        procedimiento_realizado: '',
-        plan_proxima_cita: '',
-        fecha_proxima_cita: '',
-        quote_id: '',
-        appointment_id: '',
-        step_id: '',
-        tipo_sesion: 'clinica' as 'clinica' | 'odontograma',
-    });
-    const [sessionTreatments, setSessionTreatments] = React.useState<{ numero_diente: string, descripcion: string }[]>([]);
-
-    // Attachment states
-    const [attachedFiles, setAttachedFiles] = React.useState<File[]>([]);
-    const [isDragOverSession, setIsDragOverSession] = React.useState(false);
-    const [existingAttachments, setExistingAttachments] = React.useState<any[]>([]);
-    const [deletedAttachmentIds, setDeletedAttachmentIds] = React.useState<string[]>([]);
-    const [sessionDoctorError, setSessionDoctorError] = React.useState(false);
 
     // Attachment viewer state
     const [viewingAttachment, setViewingAttachment] = React.useState<{ id: string; name: string; mimeType?: string } | null>(null);
@@ -1835,99 +1810,31 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         }
     }, [sessions]);
 
-    const handleAddSession = (tipo: 'clinica' | 'odontograma' = 'clinica') => {
+    const handleAddSession = (_tipo: 'clinica' | 'odontograma' = 'clinica') => {
         const lastSession = sessions.length > 0 ? sessions[0] : null;
         setEditingSession(null);
-        setSessionForm({
+        setSessionPrefillData({
             doctor_id: '',
             doctor_name: '',
-            fecha_sesion: new Date().toISOString().split('T')[0],
             procedimiento_realizado: parsePlanProximaCita(lastSession?.plan_proxima_cita) || '',
             plan_proxima_cita: '',
             fecha_proxima_cita: '',
             quote_id: '',
-            appointment_id: '',
-            step_id: '',
-            tipo_sesion: tipo,
         });
-        setSessionTreatments([]);
-        setAttachedFiles([]);
-        setExistingAttachments([]);
-        setDeletedAttachmentIds([]);
-        setSessionDoctorError(false);
+        setSessionPrefillTreatments([]);
+        setSessionStepId('');
         onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
 
     const handleEditSession = (session: PatientSession) => {
         setEditingSession(session);
-        setSessionForm({
-            doctor_id: (session as any).doctor_id || '',
-            doctor_name: session.doctor_name || '',
-            fecha_sesion: session.fecha_sesion ? session.fecha_sesion.split('T')[0] : new Date().toISOString().split('T')[0],
-            procedimiento_realizado: session.procedimiento_realizado || '',
-            plan_proxima_cita: session.plan_proxima_cita || '',
-            fecha_proxima_cita: (session as any).fecha_proxima_cita || '',
-            quote_id: (session as any).quote_id || '',
-            appointment_id: (session as any).appointment_id || '',
-            step_id: '',
-            tipo_sesion: session.tipo_sesion ?? 'clinica',
-        });
-        setSessionTreatments((session.tratamientos || []).map(t => ({
-            numero_diente: t.numero_diente ? String(t.numero_diente) : '',
-            descripcion: t.descripcion || ''
-        })));
-        // Load existing attachments
-        setExistingAttachments(session.archivos_adjuntos || []);
-        setAttachedFiles([]);
-        setDeletedAttachmentIds([]);
-        setSessionDoctorError(false);
+        setSessionPrefillData(undefined);
+        setSessionPrefillTreatments([]);
+        setSessionStepId('');
         onFetchDoctors();
         setIsSessionDialogOpen(true);
     };
-
-    // Load user quotes when dialog opens
-    React.useEffect(() => {
-        const loadUserQuotes = async () => {
-            if (isSessionDialogOpen && userId) {
-                setIsLoadingQuotes(true);
-                try {
-                    const data = await api.get(API_ROUTES.USER_QUOTES, { user_id: userId });
-                    const raw = Array.isArray(data) ? data : (data.user_quotes || data.data || data.result || []);
-                    const quotes: Quote[] = raw.map((q: any) => ({
-                        id: q.id ? String(q.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
-                        doc_no: q.doc_no || 'N/A',
-                        user_id: q.user_id || userId,
-                        total: q.total || 0,
-                        status: q.status || 'draft',
-                        payment_status: q.payment_status || 'unpaid',
-                        billing_status: q.billing_status || 'not invoiced',
-                        currency: q.currency || 'USD',
-                        exchange_rate: q.exchange_rate || 1,
-                        notes: q.notes || '',
-                        createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
-                    }));
-                    setUserQuotes(quotes);
-                } catch (error) {
-                    console.error('Failed to load user quotes:', error);
-                    setUserQuotes([]);
-                } finally {
-                    setIsLoadingQuotes(false);
-                }
-            }
-        };
-        loadUserQuotes();
-    }, [isSessionDialogOpen, userId]);
-
-    // Set selected quote when editing existing session
-    React.useEffect(() => {
-        if (editingSession && sessionForm.quote_id && userQuotes.length > 0) {
-            const quote = userQuotes.find(q => q.id === String(sessionForm.quote_id));
-            if (quote) {
-                setSelectedQuote(quote);
-            }
-        }
-    }, [editingSession, sessionForm.quote_id, userQuotes]);
 
     const handleDeleteSession = (session: PatientSession) => {
         setDeletingSession(session);
@@ -1945,82 +1852,44 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         }
     };
 
-    const handleSaveSession = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!sessionForm.doctor_id) {
-            setSessionDoctorError(true);
-            toast({ title: tDialog('toast.error'), description: tDialog('doctorRequired'), variant: 'destructive' });
-            return;
-        }
-
-        try {
-            const dataToSave = {
-                ...sessionForm,
-                tratamientos: sessionTreatments.length > 0 ? sessionTreatments.map(t => ({
-                    numero_diente: t.numero_diente ? parseInt(t.numero_diente, 10) : null,
-                    descripcion: t.descripcion,
-                })) : undefined,
-            };
-
-            if (editingSession?.sesion_id) {
-                await onUpdateSession(editingSession.sesion_id, userId, dataToSave, attachedFiles, deletedAttachmentIds, existingAttachments);
-            } else {
-                const newSesionId = await onCreateSession(userId, dataToSave, attachedFiles);
-                if (newSesionId && onSessionCreated) {
-                    onSessionCreated(newSesionId, (dataToSave as any).step_id);
-                }
-            }
-            toast({ title: t('toast.success'), description: t('toast.saveSuccess') });
-            setIsSessionDialogOpen(false);
-            onRefreshAll(userId);
-        } catch (error) {
-            toast({ title: t('toast.error'), variant: 'destructive' });
-        }
-    };
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const files = Array.from(e.target.files || []);
-            const validFiles: File[] = [];
-            const errors: string[] = [];
-
-            for (const file of files) {
-                if (file.size > MAX_FILE_SIZE) {
-                    errors.push(`${file.name}: El archivo excede el límite de ${MAX_FILE_SIZE / (1024 * 1024)}MB`);
-                } else if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-                    errors.push(`${file.name}: Tipo de archivo no permitido`);
-                } else {
-                    validFiles.push(file);
-                }
-            }
-
-            if (errors.length > 0) {
-                toast({
-                    title: tDialog('fileUploadError') || 'Error al subir archivos',
-                    description: errors.join('\n'),
-                    variant: 'destructive',
-                });
-            }
-
-            if (validFiles.length > 0) {
-                setAttachedFiles(prev => [...prev, ...validFiles]);
+    const handleSaveViaDialog = async (data: ClinicSessionFormData) => {
+        if (editingSession?.sesion_id) {
+            const existingAtts = editingSession.archivos_adjuntos || [];
+            const keptAtts = existingAtts.filter(a => !data.deletedAttachmentIds?.includes(String(a.id)));
+            await onUpdateSession(
+                editingSession.sesion_id,
+                userId,
+                {
+                    doctor_id: data.doctor_id,
+                    doctor_name: data.doctor_name,
+                    fecha_sesion: data.fecha_sesion,
+                    procedimiento_realizado: data.procedimiento_realizado,
+                    plan_proxima_cita: data.plan_proxima_cita || '',
+                    fecha_proxima_cita: data.fecha_proxima_cita || '',
+                    quote_id: data.quote_id,
+                    tratamientos: data.tratamientos,
+                },
+                data.archivos_adjuntos,
+                data.deletedAttachmentIds,
+                keptAtts,
+            );
+        } else {
+            const newSesionId = await onCreateSession(userId, {
+                doctor_id: data.doctor_id,
+                doctor_name: data.doctor_name,
+                fecha_sesion: data.fecha_sesion,
+                procedimiento_realizado: data.procedimiento_realizado,
+                plan_proxima_cita: data.plan_proxima_cita || '',
+                fecha_proxima_cita: data.fecha_proxima_cita || '',
+                quote_id: data.quote_id,
+                step_id: sessionStepId,
+                tratamientos: data.tratamientos,
+            }, data.archivos_adjuntos);
+            if (newSesionId && onSessionCreated) {
+                onSessionCreated(newSesionId, sessionStepId);
             }
         }
-    };
-
-    const handleRemoveNewFile = (index: number) => {
-        setAttachedFiles(prev => prev.filter((_, i) => i !== index));
-    };
-
-    const handleDeleteExistingAttachment = (attachmentId: string) => {
-        setDeletedAttachmentIds(prev => [...prev, attachmentId]);
-        setExistingAttachments(prev => prev.filter((a: any) => a.id !== attachmentId));
-    };
-
-    const handleUndoDeleteAttachment = (attachment: any) => {
-        setDeletedAttachmentIds(prev => prev.filter(id => id !== attachment.id));
-        setExistingAttachments(prev => [...prev, attachment]);
+        onRefreshAll(userId);
     };
 
     const formatDate = (dateString: string | null | undefined) => {
@@ -2345,354 +2214,21 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             </div>
 
 
-            {/* Session Dialog */}
-            <Dialog open={isSessionDialogOpen} onOpenChange={setIsSessionDialogOpen}>
-                <DialogContent
-                    maxWidth="4xl"
-                    showMaximize
-                    maximizeLabel={tPage('viewer.maximize')}
-                    restoreLabel={tPage('viewer.restore')}
-                    className="h-full max-h-[90vh] max-w-[95vw] p-0"
-                >
-                    <DialogHeader className="border-b px-6 py-4">
-                        <DialogTitle>{editingSession ? tDialog('editTitle') : tDialog('createTitle')}</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={handleSaveSession} className="flex min-h-0 flex-1 flex-col">
-                        <div className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain px-6 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-                            <div className="space-y-6 xl:flex xl:flex-row xl:gap-6 xl:space-y-0">
-                                {/* Left Column: General Info */}
-                                <div className="grid content-start gap-4 md:grid-cols-2 xl:flex-1">
-                                    <div className="space-y-2 md:col-span-2">
-                                        <Label>{tDialog('patient')}</Label>
-                                        <Input
-                                            value={userName || tDialog('unknownPatient')}
-                                            readOnly
-                                            disabled
-                                            className="bg-muted text-muted-foreground cursor-not-allowed"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                            <Label>{tDialog('date')}</Label>
-                                            <DatePickerInput
-                                                value={sessionForm.fecha_sesion}
-                                                onChange={(value) => setSessionForm({ ...sessionForm, fecha_sesion: value })}
-                                            />
-                                    </div>
-                                    <div className="space-y-2">
-                                            <Label>{tDialog('doctor')}</Label>
-                                            <Select
-                                                value={sessionForm.doctor_id}
-                                                onValueChange={(value) => {
-                                                    const selectedDoc = doctors.find(d => d.id === value);
-                                                    setSessionForm({
-                                                        ...sessionForm,
-                                                        doctor_id: value,
-                                                        doctor_name: selectedDoc?.name || ''
-                                                    });
-                                                    setSessionDoctorError(false);
-                                                }}
-                                            >
-                                                <SelectTrigger className={cn("w-full", sessionDoctorError && "border-destructive")}>
-                                                    <SelectValue placeholder={tDialog('selectDoctor')} />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {doctors.map((doc) => (
-                                                        <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                    </div>
-
-                                    {/* Quote Selection */}
-                                    <div className="space-y-2 md:col-span-2">
-                                        <div className="flex items-center justify-between">
-                                            <Label className="flex items-center gap-1">
-                                                <Link2 className="h-3.5 w-3.5" />
-                                                {tDialog('quote')}
-                                            </Label>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 px-2 text-xs"
-                                                onClick={() => setIsQuickQuoteOpen(true)}
-                                            >
-                                                <FilePlus className="h-3 w-3 mr-1" />
-                                                {tDialog('newQuote')}
-                                            </Button>
-                                        </div>
-                                        <Popover open={isQuoteSearchOpen} onOpenChange={setIsQuoteSearchOpen}>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    className="w-full justify-start h-10"
-                                                    disabled={isLoadingQuotes}
-                                                >
-                                                    {isLoadingQuotes ? (
-                                                        tDialog('loadingQuotes')
-                                                    ) : selectedQuote ? (
-                                                        <span className="flex items-center gap-2 text-sm">
-                                                            <span className="font-medium">{selectedQuote.doc_no}</span>
-                                                            <span className="text-muted-foreground">
-                                                                {selectedQuote.createdAt && isValid(parseISO(selectedQuote.createdAt)) ? format(parseISO(selectedQuote.createdAt), 'dd/MM/yyyy') : ''}
-                                                            </span>
-                                                            <span className="text-muted-foreground">
-                                                                ({new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedQuote.currency || 'USD' }).format(selectedQuote.total)})
-                                                            </span>
-                                                        </span>
-                                                    ) : (
-                                                        tDialog('selectQuote')
-                                                    )}
-                                                    <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                                <Command>
-                                                    <CommandInput placeholder={tDialog('searchQuotePlaceholder')} />
-                                                    <CommandList>
-                                                        <CommandEmpty>{tDialog('noQuotes')}</CommandEmpty>
-                                                        <CommandGroup>
-                                                            <CommandItem
-                                                                onSelect={() => {
-                                                                    setSelectedQuote(null);
-                                                                    setSessionForm(prev => ({ ...prev, quote_id: '' }));
-                                                                    setIsQuoteSearchOpen(false);
-                                                                }}
-                                                            >
-                                                                <Check className={cn("mr-2 h-4 w-4", !selectedQuote ? "opacity-100" : "opacity-0")} />
-                                                                {tDialog('noQuote')}
-                                                            </CommandItem>
-                                                            {userQuotes.map(quote => (
-                                                                <CommandItem
-                                                                    key={quote.id}
-                                                                    value={quote.doc_no}
-                                                                    onSelect={() => {
-                                                                        setSelectedQuote(quote);
-                                                                        setSessionForm(prev => ({ ...prev, quote_id: quote.id }));
-                                                                        setIsQuoteSearchOpen(false);
-                                                                    }}
-                                                                >
-                                                                    <Check className={cn("mr-2 h-4 w-4", selectedQuote?.id === quote.id ? "opacity-100" : "opacity-0")} />
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-medium">{quote.doc_no}</span>
-                                                                        <span className="text-xs text-muted-foreground">
-                                                                            {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)}
-                                                                        </span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            ))}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-
-                                    <div className="space-y-2 md:col-span-2">
-                                        <Label>{tDialog('procedure')}</Label>
-                                        <Textarea
-                                            value={sessionForm.procedimiento_realizado}
-                                            onChange={(e) => setSessionForm({ ...sessionForm, procedimiento_realizado: e.target.value })}
-                                            placeholder={tDialog('procedurePlaceholder')}
-                                            className="min-h-[80px] resize-y xl:min-h-[260px]"
-                                        />
-                                    </div>
-                                    <div className="space-y-2 md:col-span-2">
-                                        <Label>{tDialog('nextSessionPlan')}</Label>
-                                        <Textarea
-                                            value={sessionForm.plan_proxima_cita}
-                                            onChange={(e) => setSessionForm({ ...sessionForm, plan_proxima_cita: e.target.value })}
-                                            placeholder={tDialog('nextSessionPlanPlaceholder')}
-                                            className="min-h-[60px] resize-y xl:min-h-[160px]"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>{tDialog('nextSessionDate')}</Label>
-                                        <DatePickerInput
-                                            value={sessionForm.fecha_proxima_cita}
-                                            onChange={(value) => setSessionForm({ ...sessionForm, fecha_proxima_cita: value })}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Right Column: Treatments & Attachments */}
-                                <div className="flex flex-col gap-4 xl:w-[340px] xl:flex-shrink-0">
-                                    <Card className="flex flex-col shadow-none border bg-muted/5">
-                                        <CardHeader className="py-2 px-3 flex flex-row items-center justify-between space-y-0">
-                                            <CardTitle className="text-sm font-bold">{tDialog('treatments') || 'Trabajos'}</CardTitle>
-                                            <Button type="button" variant="ghost" size="sm" onClick={() => setSessionTreatments([...sessionTreatments, { numero_diente: '', descripcion: '' }])} className="h-7 px-2 text-xs">
-                                                <Plus className="h-3 w-3 mr-1" />
-                                                {tDialog('addTreatment') || 'Añadir'}
-                                            </Button>
-                                        </CardHeader>
-                                        <CardContent className="flex-1 p-2 pt-0">
-                                            <div className="min-h-[120px] max-h-[300px] overflow-y-auto pr-2 space-y-2 xl:min-h-[180px] xl:max-h-[400px]">
-                                                {sessionTreatments.length === 0 ? (
-                                                    <div className="flex min-h-[100px] items-center justify-center py-4 text-xs text-muted-foreground italic border border-dashed rounded-md xl:min-h-[160px]">
-                                                        No treatments added yet.
-                                                    </div>
-                                                ) : sessionTreatments.map((treatment, index) => (
-                                                    <div key={index} className="flex gap-2 items-start p-2 bg-background border rounded-md">
-                                                        <Input
-                                                            type="number"
-                                                            placeholder={tDialog('tooth') || 'Diente'}
-                                                            value={treatment.numero_diente}
-                                                            onChange={(e) => {
-                                                                const newTreatments = [...sessionTreatments];
-                                                                newTreatments[index].numero_diente = e.target.value;
-                                                                setSessionTreatments(newTreatments);
-                                                            }}
-                                                            className="h-7 text-xs px-2 w-16"
-                                                        />
-                                                        <Textarea
-                                                            placeholder={tDialog('treatmentPlaceholder') || 'Descripción...'}
-                                                            value={treatment.descripcion}
-                                                            onChange={(e) => {
-                                                                const newTreatments = [...sessionTreatments];
-                                                                newTreatments[index].descripcion = e.target.value;
-                                                                setSessionTreatments(newTreatments);
-                                                            }}
-                                                            className="min-h-[28px] h-7 text-xs p-1 flex-1 resize-none"
-                                                        />
-                                                        <Button
-                                                            type="button"
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="h-7 w-7 text-destructive"
-                                                            onClick={() => setSessionTreatments(sessionTreatments.filter((_, i) => i !== index))}
-                                                        >
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </Button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Attachments Section */}
-                                    <Card className="flex flex-col shadow-none border bg-muted/5 xl:flex-[1.15]">
-                                        <CardHeader className="py-2 px-3">
-                                            <CardTitle className="text-sm font-bold">{tDialog('attachments')}</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="flex flex-1 flex-col p-3">
-                                            {/* Drag and Drop Area */}
-                                            <div
-                                                className={cn(
-                                                    "border-2 border-dashed rounded-lg p-4 transition-colors shrink-0",
-                                                    isDragOverSession ? "border-primary bg-primary/10" : "border-muted-foreground/25"
-                                                )}
-                                                onDragOver={(e) => { e.preventDefault(); setIsDragOverSession(true); }}
-                                                onDragLeave={() => setIsDragOverSession(false)}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    setIsDragOverSession(false);
-                                                    if (e.dataTransfer.files?.length) {
-                                                        setAttachedFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
-                                                    }
-                                                }}
-                                            >
-                                                <div className="flex flex-col items-center text-center">
-                                                    <Upload className="w-6 h-6 text-muted-foreground mb-2" />
-                                                    <p className="text-xs text-muted-foreground mb-2">{tDialog('dragDropFiles')}</p>
-                                                    <Input
-                                                        type="file"
-                                                        multiple
-                                                        className="hidden"
-                                                        id="session-file-upload"
-                                                        onChange={handleFileChange}
-                                                    />
-                                                    <Label htmlFor="session-file-upload" className="cursor-pointer text-xs font-semibold text-primary hover:underline">
-                                                        {tDialog('browseFiles')}
-                                                    </Label>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 overflow-hidden">
-                                                {existingAttachments.length > 0 && (
-                                                    <div className="min-h-0 flex-1 space-y-2">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('existingAttachments')}</Label>
-                                                        <div className="max-h-full overflow-y-auto">
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {existingAttachments.map((attachment: any, idx: number) => (
-                                                                    <div key={idx} className="flex items-center gap-1 bg-muted rounded-md px-2 py-1 text-xs group">
-                                                                        <button
-                                                                            type="button"
-                                                                            className="flex items-center gap-1 hover:text-primary cursor-pointer"
-                                                                            onClick={() => handleViewDialogAttachment(attachment, editingSession?.sesion_id || 0)}
-                                                                        >
-                                                                            <File className="w-3 h-3" />
-                                                                            <span className="truncate max-w-[160px]">{attachment.file_name || attachment.nombre || attachment.name || 'File'}</span>
-                                                                            <Eye className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
-                                                                        </button>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-4 w-4 text-destructive"
-                                                                            onClick={() => handleDeleteExistingAttachment(attachment.id)}
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {attachedFiles.length > 0 && (
-                                                    <div className="min-h-0 flex-1 space-y-2">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">{tDialog('newAttachments')}</Label>
-                                                        <div className="max-h-full overflow-y-auto">
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {attachedFiles.map((file, idx) => (
-                                                                    <div key={idx} className="flex items-center gap-1 bg-primary/10 rounded-md px-2 py-1 text-xs">
-                                                                        <File className="w-3 h-3" />
-                                                                        <span className="truncate max-w-[160px]">{file.name}</span>
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="icon"
-                                                                            className="h-4 w-4"
-                                                                            onClick={() => handleRemoveNewFile(idx)}
-                                                                        >
-                                                                            <X className="h-3 w-3" />
-                                                                        </Button>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            </div>
-                        </div>
-                        <DialogFooter className="mt-auto border-t bg-background px-6 py-3 shadow-[0_-1px_0_hsl(var(--border))] gap-2 sm:justify-end">
-                            <Button type="button" variant="outline" onClick={() => setIsSessionDialogOpen(false)}>
-                                {tDialog('cancel')}
-                            </Button>
-                            <Button type="submit" disabled={isSubmittingSession} className="px-8">
-                                {isSubmittingSession && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {tDialog('save')}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-
-                {/* Quick Quote Dialog */}
-                <QuoteFormDialog
-                    open={isQuickQuoteOpen}
-                    onOpenChange={setIsQuickQuoteOpen}
-                    initialData={{ user: { id: userId, name: userName || '', email: '', phone_number: '', is_active: true, avatar: '' } }}
-                    onQuoteCreated={(newQuote) => {
-                        setUserQuotes(prev => [newQuote, ...prev]);
-                        setSelectedQuote(newQuote);
-                        setSessionForm(prev => ({ ...prev, quote_id: newQuote.id }));
-                    }}
-                />
-            </Dialog>
+            {/* Session Dialog — unified ClinicSessionDialog */}
+            <ClinicSessionDialog
+                open={isSessionDialogOpen}
+                onOpenChange={setIsSessionDialogOpen}
+                onSave={handleSaveViaDialog}
+                userId={userId}
+                patientName={userName}
+                showPatient
+                showQuoteSelector
+                showAttachments
+                quoteId={sessionPrefillData?.quote_id || (editingSession as any)?.quote_id}
+                existingSession={editingSession ?? undefined}
+                prefillData={sessionPrefillData}
+                prefillTreatments={sessionPrefillTreatments.length > 0 ? sessionPrefillTreatments : undefined}
+            />
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>

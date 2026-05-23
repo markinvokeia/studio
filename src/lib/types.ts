@@ -702,6 +702,8 @@ export type TreatmentDetail = {
   unit_price?: number;
   quantity?: number;
   is_for_next_session?: boolean;
+  /** Frontend-only flag — stripped before sending to backend. True when added manually from catalog. */
+  is_manual?: boolean;
 };
 
 /**
