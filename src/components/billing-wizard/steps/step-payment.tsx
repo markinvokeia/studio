@@ -5,7 +5,7 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, CheckCircle2, Plus, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Box, CalendarIcon, CheckCircle2, CreditCard, Loader2, Plus, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 
@@ -20,20 +20,22 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import type { Invoice, PaymentMethod } from '@/lib/types';
+import type { Credit, Invoice, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 
@@ -84,6 +86,8 @@ export interface PaymentResult {
   totalPaid?: number;
   currency?: string;
   remainingAfterPayment?: number;
+  appliedCredits?: Array<{ source_id: string; amount: number; currency: string; type: string }>;
+  creditsTotal?: number;
 }
 
 interface InvoiceAllocation {
@@ -104,6 +108,8 @@ interface StepPaymentProps {
   paymentOnly?: boolean;
   /** When true, shows a "Factura creada" indicator on the invoice summary */
   invoiceJustCreated?: boolean;
+  /** Called when the internal credit sub-step changes (0 = credit selection, 1 = payment form) */
+  onSubStepChange?: (subStep: 0 | 1) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -146,6 +152,7 @@ export function StepPayment({
   setIsSubmitting,
   paymentOnly = false,
   invoiceJustCreated = false,
+  onSubStepChange,
 }: StepPaymentProps) {
   const isMultiInvoice = !!invoices && invoices.length > 0;
   const t = useTranslations('InvoicesPage');
@@ -160,6 +167,14 @@ export function StepPayment({
   const [error, setError] = React.useState<string | null>(null);
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
 
+  // ── Credit state ──
+  const [userCredits, setUserCredits] = React.useState<Credit[]>([]);
+  const [appliedCredits, setAppliedCredits] = React.useState<Map<string, number>>(new Map());
+  const [creditSubStep, setCreditSubStep] = React.useState<0 | 1>(1);
+  const [isLoadingCredits, setIsLoadingCredits] = React.useState(true);
+  const [creditSubmitError, setCreditSubmitError] = React.useState<string | null>(null);
+  const [creditCapWarning, setCreditCapWarning] = React.useState(false);
+
   const sessionExchangeRate = React.useMemo<number>(() => {
     const rate = activeCashSession?.data?.opening_details?.date_rate;
     return rate && Number(rate) > 0 ? Number(rate) : 1;
@@ -170,6 +185,17 @@ export function StepPayment({
   const pendingAmount = isMultiInvoice
     ? invoices!.reduce((sum, inv) => sum + Math.max(0, (inv.total || 0) - (inv.paid_amount || 0)), 0)
     : Math.max(0, (invoice.total || 0) - paidAmount);
+
+  // ── Credits total (converted to invoice currency) ──
+  const creditsTotalConverted = React.useMemo(() => {
+    return Array.from(appliedCredits.entries()).reduce((sum, [id, amount]) => {
+      const credit = userCredits.find((c) => c.source_id === id);
+      if (!credit) return sum;
+      return sum + calcEquivalent(amount, credit.currency, invoiceCurrency, sessionExchangeRate);
+    }, 0);
+  }, [appliedCredits, userCredits, invoiceCurrency, sessionExchangeRate]);
+
+  const pendingAmountAfterCredits = Math.max(0, pendingAmount - creditsTotalConverted);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -201,11 +227,12 @@ export function StepPayment({
     form.setValue('exchange_rate', sessionExchangeRate);
   }, [sessionExchangeRate, form]);
 
-  // When fresh invoice data arrives (paid_amount updated), reset the first
-  // entry's amount to the recalculated pendingAmount so the field stays in sync.
+  // When transitioning to sub-step 1 or when credits change, sync entries[0].amount
   React.useEffect(() => {
-    form.setValue('entries.0.amount', pendingAmount);
-  }, [pendingAmount]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (creditSubStep === 1) {
+      form.setValue('entries.0.amount', pendingAmountAfterCredits);
+    }
+  }, [pendingAmountAfterCredits, creditSubStep]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch payment methods
   React.useEffect(() => {
@@ -214,6 +241,37 @@ export function StepPayment({
       setPaymentMethods(raw.map((m: any) => ({ ...m, id: String(m.id) })));
     }).catch(() => {});
   }, []);
+
+  // Fetch user credits (skip for credit_note type invoices)
+  React.useEffect(() => {
+    const userId = invoice.user_id;
+    if (!userId || invoice.type === 'credit_note') {
+      setIsLoadingCredits(false);
+      setCreditSubStep(1);
+      onSubStepChange?.(1);
+      return;
+    }
+    setIsLoadingCredits(true);
+    api.get(API_ROUTES.USER_CREDIT, { user_id: userId })
+      .then((data: any) => {
+        const valid: Credit[] = Array.isArray(data)
+          ? data.filter((c: any) => c?.source_id && c?.available_balance !== undefined && Number(c.available_balance) > 0)
+          : [];
+        setUserCredits(valid);
+        if (valid.length > 0) {
+          setCreditSubStep(0);
+          onSubStepChange?.(0);
+        } else {
+          setCreditSubStep(1);
+          onSubStepChange?.(1);
+        }
+      })
+      .catch(() => {
+        setCreditSubStep(1);
+        onSubStepChange?.(1);
+      })
+      .finally(() => setIsLoadingCredits(false));
+  }, [invoice.user_id, invoice.type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Whether any entry uses a different currency than the invoice
   const hasCrossCurrency = React.useMemo(
@@ -232,7 +290,7 @@ export function StepPayment({
 
   const remainingAfterPayment = Math.max(
     0,
-    Math.round((pendingAmount - totalInInvoiceCurrency) * 100) / 100,
+    Math.round((pendingAmountAfterCredits - totalInInvoiceCurrency) * 100) / 100,
   );
 
   const invoiceDistribution = React.useMemo(() => {
@@ -249,6 +307,112 @@ export function StepPayment({
     });
   };
 
+  // Build the credit_payment array for the API payload
+  const buildCreditPayload = () =>
+    Array.from(appliedCredits.entries()).map(([id, amount]) => {
+      const credit = userCredits.find((c) => c.source_id === id);
+      return {
+        source_id: id,
+        amount,
+        type: credit?.type || 'prepaid',
+        currency: credit?.currency || invoiceCurrency,
+        exchange_rate: credit?.currency === invoiceCurrency ? 1 : sessionExchangeRate,
+      };
+    });
+
+  // Submit when credits cover 100% of pending (no cash payment needed)
+  const handleCreditOnlySubmit = async () => {
+    const isHistorical = form.getValues('is_historical') || false;
+    let sessionId: string | null = null;
+    if (!isHistorical) {
+      const sessionValidation = await validateActiveSession();
+      if (!sessionValidation.isValid) {
+        setIsNoSessionAlertOpen(true);
+        return;
+      }
+      sessionId = sessionValidation.sessionId || null;
+    }
+
+    setCreditSubmitError(null);
+    setIsSubmitting(true);
+
+    const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT;
+    const createdPayments: CreatedPayment[] = [];
+
+    try {
+      const payload = {
+        cash_session_id: sessionId,
+        user,
+        client_user: {
+          id: invoice.user_id,
+          name: invoice.user_name || '',
+          email: invoice.userEmail || '',
+        },
+        credit_payment: buildCreditPayload(),
+        query: {
+          invoice_id: parseInt(invoice.id, 10),
+          payment_date: toLocalISOString(new Date()),
+          amount: 0,
+          converted_amount: 0,
+          method: 'Credit',
+          payment_method_id: '',
+          status: 'completed',
+          user_id: invoice.user_id,
+          invoice_currency: invoiceCurrency,
+          payment_currency: invoiceCurrency,
+          exchange_rate: 1,
+          is_sales: isSales,
+          total_paid: creditsTotalConverted,
+          notes: '',
+          is_historical: isHistorical,
+        },
+      };
+
+      const response = await api.post(endpoint, payload);
+      if (response?.error || (response?.code && response.code >= 400)) {
+        throw new Error(response.message || 'Error al registrar el pago con créditos');
+      }
+      const rawPayment = extractRawPayment(response);
+      createdPayments.push({
+        docNo: rawPayment?.doc_no || rawPayment?.payment_doc_no,
+        transactionId: rawPayment?.transaction_id != null ? String(rawPayment.transaction_id) : (rawPayment?.id != null ? String(rawPayment.id) : undefined),
+        transactionType: rawPayment?.transaction_type || 'credit_note_allocation',
+        methodName: 'Crédito',
+        amount: creditsTotalConverted,
+        currency: invoiceCurrency,
+        date: toLocalISOString(new Date()),
+      });
+
+      if (!isHistorical) await checkActiveSession();
+      onPaymentSuccess({
+        payments: createdPayments,
+        invoiceDocNo: invoice.doc_no || invoice.invoice_doc_no,
+        invoiceId: invoice.id,
+        totalPaid: creditsTotalConverted,
+        remainingAfterPayment: Math.max(0, pendingAmount - creditsTotalConverted),
+        currency: invoiceCurrency,
+        appliedCredits: buildCreditPayload(),
+        creditsTotal: creditsTotalConverted,
+      });
+    } catch (err) {
+      setCreditSubmitError(err instanceof Error ? err.message : 'Error al registrar el pago con créditos');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Advance from credit sub-step 0 to payment form sub-step 1
+  const goToPaymentSubStep = () => {
+    // If credits cover 100%, submit directly without showing the form
+    if (pendingAmountAfterCredits <= 0 && appliedCredits.size > 0) {
+      handleCreditOnlySubmit();
+      return;
+    }
+    form.setValue('entries.0.amount', pendingAmountAfterCredits);
+    setCreditSubStep(1);
+    onSubStepChange?.(1);
+  };
+
   const handleSubmitPayments = async (values: FormValues) => {
     let sessionId: string | null = null;
 
@@ -263,6 +427,7 @@ export function StepPayment({
 
     const rate = values.exchange_rate || sessionExchangeRate || 1;
     const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT;
+    const creditPayload = buildCreditPayload();
 
     setError(null);
     setIsSubmitting(true);
@@ -271,15 +436,22 @@ export function StepPayment({
 
     try {
       if (isMultiInvoice) {
-        // Distribute total across selected invoices; use first entry's method for all
-        const totalConverted = values.entries.reduce((sum, entry) => {
+        // Distribute total cash across selected invoices; credits go with the first invoice only
+        const totalCashConverted = values.entries.reduce((sum, entry) => {
           return sum + calcEquivalent(Number(entry.amount), entry.payment_currency, invoiceCurrency, rate);
         }, 0);
-        const distribution = distributePayment(invoices!, totalConverted);
+        const distribution = distributePayment(invoices!, totalCashConverted);
         const firstEntry = values.entries[0];
         const selectedMethod = paymentMethods.find((pm) => pm.id === firstEntry.method);
 
-        for (const { invoice: inv, amount: allocatedAmount } of distribution) {
+        for (let i = 0; i < distribution.length; i++) {
+          const { invoice: inv, amount: allocatedAmount } = distribution[i];
+          const isFirst = i === 0;
+          // Credits go with the first invoice only; total_paid includes credits for that invoice
+          const totalPaidForInvoice = isFirst
+            ? allocatedAmount + creditsTotalConverted
+            : allocatedAmount;
+
           const payload = {
             cash_session_id: sessionId,
             user,
@@ -288,7 +460,7 @@ export function StepPayment({
               name: inv.user_name || '',
               email: inv.userEmail || '',
             },
-            credit_payment: [],
+            credit_payment: isFirst ? creditPayload : [],
             query: {
               invoice_id: parseInt(inv.id, 10),
               payment_date: toLocalISOString(firstEntry.created_at),
@@ -302,7 +474,7 @@ export function StepPayment({
               payment_currency: inv.currency || invoiceCurrency,
               exchange_rate: 1,
               is_sales: isSales,
-              total_paid: allocatedAmount,
+              total_paid: totalPaidForInvoice,
               notes: values.notes || '',
               is_historical: values.is_historical || false,
             },
@@ -326,17 +498,22 @@ export function StepPayment({
 
         if (!values.is_historical) await checkActiveSession();
         const multiPaid = distribution.reduce((s, d) => s + d.amount, 0);
+        const totalWithCredits = multiPaid + creditsTotalConverted;
         onPaymentSuccess({
           payments: createdPayments,
           invoiceDocNo: invoices![0].doc_no || invoices![0].invoice_doc_no,
           invoiceId: invoices![0].id,
-          totalPaid: multiPaid,
-          remainingAfterPayment: Math.max(0, Math.round((pendingAmount - multiPaid) * 100) / 100),
+          totalPaid: totalWithCredits,
+          remainingAfterPayment: Math.max(0, Math.round((pendingAmount - totalWithCredits) * 100) / 100),
           currency: invoiceCurrency,
+          appliedCredits: creditPayload,
+          creditsTotal: creditsTotalConverted,
         });
       } else {
-        // Single invoice: one POST per payment entry
-        for (const entry of values.entries) {
+        // Single invoice: one POST per payment entry, credits on first entry
+        for (let i = 0; i < values.entries.length; i++) {
+          const entry = values.entries[i];
+          const isFirst = i === 0;
           const selectedMethod = paymentMethods.find((pm) => pm.id === entry.method);
           const convertedAmount = calcEquivalent(
             Number(entry.amount),
@@ -353,7 +530,7 @@ export function StepPayment({
               name: invoice.user_name || '',
               email: invoice.userEmail || '',
             },
-            credit_payment: [],
+            credit_payment: isFirst ? creditPayload : [],
             query: {
               invoice_id: parseInt(invoice.id, 10),
               payment_date: toLocalISOString(entry.created_at),
@@ -367,7 +544,7 @@ export function StepPayment({
               payment_currency: entry.payment_currency,
               exchange_rate: entry.payment_currency !== invoiceCurrency ? rate : 1,
               is_sales: isSales,
-              total_paid: convertedAmount,
+              total_paid: isFirst ? convertedAmount + creditsTotalConverted : convertedAmount,
               notes: values.notes || '',
               is_historical: values.is_historical || false,
             },
@@ -390,16 +567,19 @@ export function StepPayment({
         }
 
         if (!values.is_historical) await checkActiveSession();
-        const paidTotal = (watchedEntries || []).reduce((sum, entry) => {
+        const cashPaidTotal = (watchedEntries || []).reduce((sum, entry) => {
           return sum + calcEquivalent(Number(entry.amount) || 0, entry.payment_currency || invoiceCurrency, invoiceCurrency, values.exchange_rate || sessionExchangeRate || 1);
         }, 0);
+        const totalWithCredits = cashPaidTotal + creditsTotalConverted;
         onPaymentSuccess({
           payments: createdPayments,
           invoiceDocNo: invoice.doc_no || invoice.invoice_doc_no,
           invoiceId: invoice.id,
-          totalPaid: paidTotal,
-          remainingAfterPayment: Math.max(0, Math.round((pendingAmount - paidTotal) * 100) / 100),
+          totalPaid: totalWithCredits,
+          remainingAfterPayment: Math.max(0, Math.round((pendingAmount - totalWithCredits) * 100) / 100),
           currency: invoiceCurrency,
+          appliedCredits: creditPayload,
+          creditsTotal: creditsTotalConverted,
         });
       }
     } catch (err) {
@@ -409,6 +589,7 @@ export function StepPayment({
     }
   };
 
+  // ── Already fully paid (before wizard opened) ──
   if (pendingAmount <= 0) {
     return (
       <div className="flex flex-col gap-3">
@@ -433,8 +614,241 @@ export function StepPayment({
     );
   }
 
+  // ── Loading credits ──
+  if (isLoadingCredits) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // ── Sub-step 0: Credit selection ──
+  // Max amount that can be applied from a specific credit without total exceeding pendingAmount.
+  // Sums all OTHER applied credits first, then the remaining room is capped at the credit's own balance.
+  const getMaxApplicable = (creditId: string, creditCurrency: string, creditMaxBalance: number): number => {
+    const otherTotal = Array.from(appliedCredits.entries()).reduce((sum, [id, amount]) => {
+      if (id === creditId) return sum;
+      const c = userCredits.find((uc) => uc.source_id === id);
+      if (!c) return sum;
+      return sum + calcEquivalent(amount, c.currency, invoiceCurrency, sessionExchangeRate);
+    }, 0);
+    const remainingInInvoiceCurrency = Math.max(0, pendingAmount - otherTotal);
+    const remainingInCreditCurrency = calcEquivalent(remainingInInvoiceCurrency, invoiceCurrency, creditCurrency, sessionExchangeRate);
+    return Math.min(creditMaxBalance, remainingInCreditCurrency);
+  };
+
+  if (creditSubStep === 0) {
+    const allCoversCost = pendingAmountAfterCredits <= 0 && appliedCredits.size > 0;
+
+    return (
+      <div className="space-y-4">
+        {creditSubmitError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{creditSubmitError}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Invoice summary */}
+        <div className="rounded-lg border px-4 py-3 text-sm space-y-1 bg-muted/30">
+          {isMultiInvoice ? (
+            <div className="flex justify-between text-muted-foreground">
+              <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
+              <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
+            </div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <span className={cn('flex items-center gap-1.5', invoiceJustCreated ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
+                {invoiceJustCreated && <CheckCircle2 className="h-3.5 w-3.5" />}
+                {invoiceJustCreated ? 'Factura creada' : 'Factura'}
+              </span>
+              <span className="font-medium">#{invoice.doc_no || 'NUEVA'}</span>
+            </div>
+          )}
+          <div className="flex justify-between font-semibold">
+            <span>Pendiente de cobro</span>
+            <span className="tabular-nums text-primary">{fmtCurrency(pendingAmount, invoiceCurrency)}</span>
+          </div>
+        </div>
+
+        {/* Credits list */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <h4 className="text-sm font-semibold">Créditos disponibles</h4>
+          </div>
+          <ScrollArea className="max-h-52">
+            <div className="space-y-2 pr-1">
+              {userCredits.map((credit) => {
+                const isChecked = appliedCredits.has(credit.source_id);
+                const maxAmount = Number(credit.available_balance) || 0;
+                const currentAmount = appliedCredits.get(credit.source_id) || 0;
+
+                return (
+                  <div key={credit.source_id} className="flex items-center gap-3 rounded-md border p-3">
+                    <Checkbox
+                      id={`credit-${credit.source_id}`}
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        const next = new Map(appliedCredits);
+                        if (checked) {
+                          next.set(credit.source_id, getMaxApplicable(credit.source_id, credit.currency, maxAmount));
+                        } else {
+                          next.delete(credit.source_id);
+                          setCreditCapWarning(false);
+                        }
+                        setAppliedCredits(next);
+                      }}
+                    />
+                    <Label htmlFor={`credit-${credit.source_id}`} className="flex-1 text-xs cursor-pointer">
+                      <span className="font-medium">
+                        {credit.type === 'credit_note' ? 'Nota de crédito' : 'Referencia de pago'}
+                      </span>{' '}
+                      <span className="text-muted-foreground">#{credit.source_id} ({credit.currency})</span>
+                    </Label>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <FormattedNumberInput
+                        value={currentAmount}
+                        onChange={(val) => {
+                          if (!isChecked) return;
+                          const next = new Map(appliedCredits);
+                          const maxApplicable = getMaxApplicable(credit.source_id, credit.currency, maxAmount);
+                          const entered = Number(val) || 0;
+                          if (entered > maxApplicable) setCreditCapWarning(true);
+                          next.set(credit.source_id, Math.min(entered, maxApplicable));
+                          setAppliedCredits(next);
+                        }}
+                        disabled={!isChecked}
+                        placeholder="0.00"
+                        className="h-7 w-24 text-xs"
+                      />
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        / {fmtCurrency(maxAmount, credit.currency)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
+
+        {/* Credits summary */}
+        {appliedCredits.size > 0 && (
+          <div className="rounded-md bg-muted px-3 py-2.5 text-sm space-y-1">
+            {Array.from(appliedCredits.entries()).map(([id, amount]) => {
+              const credit = userCredits.find((c) => c.source_id === id);
+              if (!amount) return null;
+              const converted = calcEquivalent(amount, credit?.currency || invoiceCurrency, invoiceCurrency, sessionExchangeRate);
+              return (
+                <div key={id} className="flex justify-between text-xs text-muted-foreground">
+                  <span>#{id} ({credit?.currency})</span>
+                  <div className="text-right">
+                    <span>{fmtCurrency(amount, credit?.currency || invoiceCurrency)}</span>
+                    {credit?.currency !== invoiceCurrency && (
+                      <span className="ml-1 text-muted-foreground">≈ {fmtCurrency(converted, invoiceCurrency)}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            <div className="border-t pt-1 flex justify-between font-semibold">
+              <span>Total créditos a aplicar</span>
+              <span className="tabular-nums text-emerald-600">{fmtCurrency(creditsTotalConverted, invoiceCurrency)}</span>
+            </div>
+            <div className="flex justify-between font-semibold">
+              <span>Pendiente a pagar</span>
+              <span className={cn('tabular-nums', allCoversCost ? 'text-emerald-600' : 'text-primary')}>
+                {fmtCurrency(pendingAmountAfterCredits, invoiceCurrency)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Cap warning */}
+        {creditCapWarning && (
+          <Alert variant="default" className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <AlertDescription className="text-amber-700 dark:text-amber-300 text-xs">
+              El monto fue ajustado al máximo necesario para cubrir el saldo pendiente.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Sub-step navigation buttons */}
+        <div className="flex gap-2 justify-end pt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isSubmitting}
+            onClick={() => {
+              setAppliedCredits(new Map());
+              setCreditCapWarning(false);
+              form.setValue('entries.0.amount', pendingAmount);
+              setCreditSubStep(1);
+              onSubStepChange?.(1);
+            }}
+          >
+            Omitir créditos
+          </Button>
+          <Button
+            size="sm"
+            disabled={isSubmitting}
+            onClick={goToPaymentSubStep}
+          >
+            {isSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />}
+            {allCoversCost ? 'Cobrar con créditos' : 'Siguiente →'}
+          </Button>
+        </div>
+
+        {/* No session alert (reused here too) */}
+        <AlertDialog open={isNoSessionAlertOpen} onOpenChange={setIsNoSessionAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex items-start gap-3">
+                <div className="header-icon-circle mt-0.5">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div className="flex flex-col text-left">
+                  <AlertDialogTitle>{t('noSessionDialog.title')}</AlertDialogTitle>
+                  <AlertDialogDescription>{t('noSessionDialog.description')}</AlertDialogDescription>
+                </div>
+              </div>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              {canAccessCashier && (
+                <Link href={`/${locale}/cashier`} passHref>
+                  <Button>
+                    <Box className="mr-2 h-4 w-4" />
+                    Abrir sesión de caja
+                  </Button>
+                </Link>
+              )}
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
+
+  // ── Sub-step 1: Payment form ──
   return (
     <>
+      {/* Back to credit selection */}
+      {userCredits.length > 0 && (
+        <button
+          type="button"
+          onClick={() => { setCreditSubStep(0); onSubStepChange?.(0); }}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          Volver a créditos
+        </button>
+      )}
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmitPayments)} id="billing-payment-form" className="space-y-4">
           {error && (
@@ -445,7 +859,7 @@ export function StepPayment({
             </Alert>
           )}
 
-          {/* Invoice summary */}
+          {/* Invoice summary + applied credits banner */}
           <div className={cn(
             'rounded-lg border px-4 py-3 text-sm space-y-1',
             invoiceJustCreated
@@ -453,14 +867,10 @@ export function StepPayment({
               : 'bg-muted/30',
           )}>
             {isMultiInvoice ? (
-              <>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
-                  <span className="font-medium">
-                    {invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}
-                  </span>
-                </div>
-              </>
+              <div className="flex justify-between text-muted-foreground">
+                <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
+                <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
+              </div>
             ) : (
               <div className="flex justify-between items-center">
                 <span className={cn('flex items-center gap-1.5', invoiceJustCreated ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
@@ -470,10 +880,20 @@ export function StepPayment({
                 <span className="font-medium">#{invoice.doc_no || 'NUEVA'}</span>
               </div>
             )}
+            {/* Show applied credits deduction */}
+            {creditsTotalConverted > 0 && (
+              <div className="flex justify-between text-xs text-emerald-700 dark:text-emerald-400">
+                <span className="flex items-center gap-1">
+                  <CreditCard className="h-3 w-3" />
+                  Créditos aplicados
+                </span>
+                <span className="tabular-nums">− {fmtCurrency(creditsTotalConverted, invoiceCurrency)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-semibold">
               <span>Pendiente de cobro</span>
               <span className="tabular-nums text-primary">
-                {fmtCurrency(pendingAmount, invoiceCurrency)}
+                {fmtCurrency(pendingAmountAfterCredits, invoiceCurrency)}
               </span>
             </div>
           </div>
@@ -724,7 +1144,6 @@ export function StepPayment({
                 <Button>
                   <Box className="mr-2 h-4 w-4" />
                   Abrir sesión de caja
-                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
             )}
