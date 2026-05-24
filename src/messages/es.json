@@ -1660,7 +1660,9 @@
         "nextSessionBadge": "Próxima sesión"
       },
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí..."
+      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "patientConfirmed": "Confirmado por el paciente",
+      "patientConfirmedNote": "Al seleccionar esta opción se creará el presupuesto confirmado. Desmarcar para crear en estado Borrador y confirmar o rechazar luego."
     },
     "quickQuote": {
       "title": "Crear Presupuesto Rápido",

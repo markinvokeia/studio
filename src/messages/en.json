@@ -1660,7 +1660,9 @@
         "nextSessionBadge": "Next session"
       },
       "notes": "Notes",
-      "notesPlaceholder": "Add any additional notes here..."
+      "notesPlaceholder": "Add any additional notes here...",
+      "patientConfirmed": "Confirmed by patient",
+      "patientConfirmedNote": "Checking this option will create the quote as confirmed. Leave unchecked to create it as a draft and confirm or reject it later."
     },
     "quickQuote": {
       "title": "Quick Create Quote",

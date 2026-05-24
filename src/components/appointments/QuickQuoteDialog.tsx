@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
@@ -53,6 +54,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
   const [createdAt, setCreatedAt] = React.useState<string>(formatDate(new Date()));
   const [notes, setNotes] = React.useState('');
+  const [patientConfirmed, setPatientConfirmed] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Reset form on open
@@ -63,6 +65,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       setExchangeRate(1);
       setCreatedAt(formatDate(new Date()));
       setNotes('');
+      setPatientConfirmed(false);
     }
   }, [open]);
 
@@ -150,20 +153,32 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       };
 
       const response = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, payload);
-      
+
       if (Array.isArray(response) && response[0]?.code >= 400) {
         throw new Error(response[0]?.message || 'Error creating quote');
       }
 
-      // Access quote data from response[0].data (new backend format)
       const quoteData = Array.isArray(response) ? response[0].data : response.data;
+      const quoteId = String(quoteData.id);
+
+      if (patientConfirmed) {
+        const confirmResponse = await api.post(API_ROUTES.SALES.QUOTE_CONFIRM, {
+          quote_number: quoteId,
+          confirm_reject: 'confirm',
+          is_sales: true,
+          notes: '',
+        });
+        if (Array.isArray(confirmResponse) && confirmResponse[0]?.code >= 400) {
+          throw new Error(confirmResponse[0]?.message || 'Error confirming quote');
+        }
+      }
 
       const newQuote: Quote = {
-        id: String(quoteData.id),
+        id: quoteId,
         doc_no: quoteData.doc_no || 'N/A',
         user_id: quoteData.user_id,
         total: parseFloat(quoteData.total) || 0,
-        status: quoteData.status || 'draft',
+        status: patientConfirmed ? 'confirmed' : (quoteData.status || 'draft'),
         payment_status: quoteData.payment_status || 'unpaid',
         billing_status: quoteData.billing_status || 'not invoiced',
         currency: quoteData.currency || 'USD',
@@ -350,6 +365,24 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
                 placeholder={t('QuotesPage.quickQuote.notesPlaceholder')}
                 rows={2}
               />
+            </div>
+
+            {/* Patient confirmed flag */}
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
+              <Checkbox
+                id="quick_patient_confirmed"
+                checked={patientConfirmed}
+                onCheckedChange={(checked) => setPatientConfirmed(!!checked)}
+                className="mt-0.5"
+              />
+              <div className="flex flex-col gap-0.5">
+                <label htmlFor="quick_patient_confirmed" className="text-sm font-medium cursor-pointer leading-none">
+                  {t('QuotesPage.quoteDialog.patientConfirmed')}
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  {t('QuotesPage.quoteDialog.patientConfirmedNote')}
+                </p>
+              </div>
             </div>
           </div>
         </DialogBody>

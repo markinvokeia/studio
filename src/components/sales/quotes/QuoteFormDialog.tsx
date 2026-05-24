@@ -3,6 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
@@ -53,6 +54,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    patient_confirmed: z.boolean().default(false),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
@@ -162,6 +164,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 exchange_rate: 1,
                 created_at: new Date(),
                 notes: '',
+                patient_confirmed: false,
                 items: preloadedItems,
             },
             {
@@ -230,31 +233,44 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
 
             const payload = {
                 ...values,
+                status: 'draft',
                 billing_status: normalizeBilling(values.billing_status),
                 created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit,
             };
             const response = await upsertQuote(payload as any, isSales, t);
+            const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
+            const quoteId = quoteData?.id ? String(quoteData.id) : null;
+
+            if (values.patient_confirmed && quoteId) {
+                const confirmResponse = await api.post(API_ROUTES.SALES.QUOTE_CONFIRM, {
+                    quote_number: quoteId,
+                    confirm_reject: 'confirm',
+                    is_sales: isSales,
+                    notes: '',
+                });
+                if (Array.isArray(confirmResponse) && confirmResponse[0]?.code >= 400) {
+                    throw new Error(confirmResponse[0]?.message || t('toast.quoteError'));
+                }
+            }
+
             toast({ title: t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             onOpenChange(false);
             onSaveSuccess?.();
-            if (onQuoteCreated) {
-                const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
-                if (quoteData) {
-                    onQuoteCreated({
-                        id: String(quoteData.id),
-                        doc_no: quoteData.doc_no || 'N/A',
-                        user_id: quoteData.user_id,
-                        total: parseFloat(quoteData.total) || 0,
-                        status: quoteData.status || 'draft',
-                        payment_status: quoteData.payment_status || 'unpaid',
-                        billing_status: quoteData.billing_status || 'not invoiced',
-                        currency: quoteData.currency || 'USD',
-                        exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
-                        notes: quoteData.notes || '',
-                        createdAt: quoteData.created_at || new Date().toISOString(),
-                    });
-                }
+            if (onQuoteCreated && quoteData) {
+                onQuoteCreated({
+                    id: quoteId!,
+                    doc_no: quoteData.doc_no || 'N/A',
+                    user_id: quoteData.user_id,
+                    total: parseFloat(quoteData.total) || 0,
+                    status: values.patient_confirmed ? 'confirmed' : (quoteData.status || 'draft'),
+                    payment_status: quoteData.payment_status || 'unpaid',
+                    billing_status: quoteData.billing_status || 'not invoiced',
+                    currency: quoteData.currency || 'USD',
+                    exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
+                    notes: quoteData.notes || '',
+                    createdAt: quoteData.created_at || new Date().toISOString(),
+                });
             }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.quoteError'));
@@ -656,6 +672,30 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
+                                )}
+                            />
+
+                            {/* Patient confirmed flag */}
+                            <FormField
+                                control={form.control}
+                                name="patient_confirmed"
+                                render={({ field }) => (
+                                    <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
+                                        <Checkbox
+                                            id="patient_confirmed"
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            className="mt-0.5"
+                                        />
+                                        <div className="flex flex-col gap-0.5">
+                                            <label htmlFor="patient_confirmed" className="text-sm font-medium cursor-pointer leading-none">
+                                                {t('quoteDialog.patientConfirmed')}
+                                            </label>
+                                            <p className="text-xs text-muted-foreground">
+                                                {t('quoteDialog.patientConfirmedNote')}
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
                             />
                         </DialogBody>
