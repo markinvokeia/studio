@@ -21,6 +21,8 @@ interface StepConfirmationProps {
   totalPaid?: number;
   pendingAfter?: number;
   currency?: string;
+  appliedCredits?: Array<{ source_id: string; amount: number; currency: string; type: string }>;
+  creditsTotal?: number;
   isSales: boolean;
   onClose: () => void;
 }
@@ -49,6 +51,8 @@ export function StepConfirmation({
   totalPaid,
   pendingAfter,
   currency = 'USD',
+  appliedCredits,
+  creditsTotal,
   isSales,
   onClose,
 }: StepConfirmationProps) {
@@ -172,7 +176,7 @@ export function StepConfirmation({
 
         {/* Payment rows */}
         {payments.map((p, i) => (
-          p.docNo && (
+          (p.docNo || p.transactionId) && (
             <div
               key={i}
               className={`flex justify-between items-start gap-3 px-4 py-2.5 ${p.isNew ? 'bg-emerald-50 dark:bg-emerald-950/20' : ''}`}
@@ -190,9 +194,11 @@ export function StepConfirmation({
               {/* Right: two-line detail + print icon */}
               <div className="flex items-start gap-2 min-w-0 ml-auto">
                 <div className="flex flex-col items-end gap-0.5 min-w-0">
-                  {/* Top line: doc no + amount + currency */}
+                  {/* Top line: doc no (or transaction ref) + amount + currency */}
                   <div className="flex items-center gap-1.5 font-medium">
-                    <span className="truncate">#{p.docNo}</span>
+                    <span className="truncate">
+                      {p.docNo ? `#${p.docNo}` : `Ref. #${p.transactionId}`}
+                    </span>
                     {p.amount != null && p.currency && (
                       <>
                         <span className="text-muted-foreground">·</span>
@@ -226,6 +232,30 @@ export function StepConfirmation({
             </div>
           )
         ))}
+
+        {/* Applied credits */}
+        {appliedCredits && appliedCredits.length > 0 && (
+          <>
+            {appliedCredits.map((c) => (
+              <div key={c.source_id} className="flex justify-between items-center px-4 py-2.5 text-sm">
+                <span className="text-muted-foreground shrink-0">
+                  {c.type === 'credit_note' ? 'Nota de crédito' : 'Referencia de pago'} #{c.source_id}
+                </span>
+                <span className="tabular-nums font-medium text-emerald-600">
+                  − {new Intl.NumberFormat('es-UY', { style: 'currency', currency: c.currency }).format(c.amount)}
+                </span>
+              </div>
+            ))}
+            {creditsTotal !== undefined && creditsTotal > 0 && (
+              <div className="flex justify-between px-4 py-2.5 text-sm font-semibold">
+                <span>Total créditos aplicados</span>
+                <span className="tabular-nums text-emerald-600">
+                  − {new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(creditsTotal)}
+                </span>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Totals */}
         {total !== undefined && (

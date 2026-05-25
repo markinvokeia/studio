@@ -383,6 +383,7 @@ export function BillingWizardModal() {
   const [currentStep, setCurrentStep] = React.useState(0);
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [isPaymentSubmitting, setIsPaymentSubmitting] = React.useState(false);
+  const [paymentSubStep, setPaymentSubStep] = React.useState<0 | 1>(0);
   const [error, setError] = React.useState<string | null>(null);
 
   // Data loaded for treatment step
@@ -440,6 +441,8 @@ export function BillingWizardModal() {
     totalPaid?: number;
     pendingAfter?: number;
     currency?: string;
+    appliedCredits?: Array<{ source_id: string; amount: number; currency: string; type: string }>;
+    creditsTotal?: number;
   } | null>(null);
 
   // Reset state when modal opens/closes
@@ -459,6 +462,7 @@ export function BillingWizardModal() {
       setEditableItems([]);
       setFreeformCurrency('UYU');
       setSelectedPatient(null);
+      setPaymentSubStep(0);
       return;
     }
 
@@ -686,6 +690,8 @@ export function BillingWizardModal() {
           totalPaid: result.totalPaid,
           pendingAfter: result.remainingAfterPayment,
           currency: result.currency || selectedInvoices[0]?.currency,
+          appliedCredits: result.appliedCredits,
+          creditsTotal: result.creditsTotal,
         });
       } else {
         setConfirmationData({
@@ -696,6 +702,8 @@ export function BillingWizardModal() {
           totalPaid: result.totalPaid,
           pendingAfter: result.remainingAfterPayment,
           currency: targetCurrency,
+          appliedCredits: result.appliedCredits,
+          creditsTotal: result.creditsTotal,
         });
       }
       setCurrentStep(steps.length - 1);
@@ -749,7 +757,7 @@ export function BillingWizardModal() {
             isSubmitting={isPaymentSubmitting}
             setIsSubmitting={setIsPaymentSubmitting}
             paymentOnly
-
+            onSubStepChange={setPaymentSubStep}
           />
         );
       }
@@ -777,7 +785,7 @@ export function BillingWizardModal() {
             onSkipPayment={handleSkipPayment}
             isSubmitting={isPaymentSubmitting}
             setIsSubmitting={setIsPaymentSubmitting}
-
+            onSubStepChange={setPaymentSubStep}
           />
         );
       }
@@ -823,7 +831,7 @@ export function BillingWizardModal() {
             setIsSubmitting={setIsPaymentSubmitting}
             paymentOnly
             invoiceJustCreated
-
+            onSubStepChange={setPaymentSubStep}
           />
         );
       }
@@ -850,7 +858,7 @@ export function BillingWizardModal() {
             onSkipPayment={handleSkipPayment}
             isSubmitting={isPaymentSubmitting}
             setIsSubmitting={setIsPaymentSubmitting}
-
+            onSubStepChange={setPaymentSubStep}
           />
         );
       }
@@ -869,6 +877,8 @@ export function BillingWizardModal() {
           totalPaid={confirmationData?.totalPaid}
           pendingAfter={confirmationData?.pendingAfter}
           currency={confirmationData?.currency}
+          appliedCredits={confirmationData?.appliedCredits}
+          creditsTotal={confirmationData?.creditsTotal}
           isSales={isSales}
           onClose={handleClose}
         />
@@ -1016,7 +1026,7 @@ export function BillingWizardModal() {
             )}
 
             {/* Payment step — fully paid: just navigate to confirmation */}
-            {isPaymentStep && isPaymentFullyPaid && (
+            {isPaymentStep && isPaymentFullyPaid && paymentSubStep === 1 && (
               <button
                 type="button"
                 onClick={() => handleSkipPayment(resolvedInvoice?.doc_no || resolvedInvoice?.invoice_doc_no || selectedInvoices[0]?.doc_no)}
@@ -1027,7 +1037,7 @@ export function BillingWizardModal() {
             )}
 
             {/* Payment step — has pending: Solo facturar (when applicable) + Cobrar */}
-            {isPaymentStep && !isPaymentFullyPaid && (
+            {isPaymentStep && !isPaymentFullyPaid && paymentSubStep === 1 && (
               <>
                 {!isPaymentOnly && !isInvoiceSelectionMode && (
                   <button

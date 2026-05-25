@@ -23,11 +23,11 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
-import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { isPaymentEditable, mapApiPaymentToPayment } from '@/services/payments-service';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { ChevronDown, Eye, Pencil, Printer, Send } from 'lucide-react';
+import { ChevronDown, Eye, Loader2, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -167,6 +167,15 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   // Allocations
   const [allocations, setAllocations] = React.useState<PaymentAllocation[]>([]);
   const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
+
+  // Prepaid credit balance
+  const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+  const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
+  const prepaidUsed = React.useMemo(
+    () => allocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
+    [allocations],
+  );
+  const prepaidAvailable = Math.max(0, prepaidTotal - prepaidUsed);
 
   // Email dialog
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
@@ -547,12 +556,10 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
 
             {/* Actions */}
             <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
-              {/* Acción principal */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                 <Printer className="h-3.5 w-3.5" />
                 Imprimir
               </Button>
-              {/* Acciones secundarias */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
                 <Send className="h-3.5 w-3.5" />
                 Enviar
@@ -565,7 +572,42 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               )}
             </div>
 
-            {/* Allocations (only for pre-payments) */}
+            {/* Credit balance — prepaid payments only */}
+            {!selectedPayment.invoice_id && (
+              <div className="px-6 py-3 border-b">
+                {isLoadingAllocations ? (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>Calculando saldo disponible...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-5">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Total prepago</span>
+                      <span className="text-sm font-semibold tabular-nums">
+                        {new Intl.NumberFormat('es-UY', { style: 'currency', currency: prepaidCurrency }).format(prepaidTotal)}
+                      </span>
+                    </div>
+                    <div className="w-px h-8 bg-border" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Utilizado</span>
+                      <span className="text-sm font-medium tabular-nums text-amber-600 dark:text-amber-400">
+                        {new Intl.NumberFormat('es-UY', { style: 'currency', currency: prepaidCurrency }).format(prepaidUsed)}
+                      </span>
+                    </div>
+                    <div className="w-px h-8 bg-border" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Disponible</span>
+                      <span className={cn('text-sm font-semibold tabular-nums', prepaidAvailable > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
+                        {new Intl.NumberFormat('es-UY', { style: 'currency', currency: prepaidCurrency }).format(prepaidAvailable)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Allocations table — prepaid payments only */}
             {!selectedPayment.invoice_id && (
               <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
                 <p className="text-sm font-semibold mb-2">Asignaciones</p>
@@ -574,6 +616,30 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                     allocations={allocations}
                     isLoading={isLoadingAllocations}
                   />
+                </div>
+              </div>
+            )}
+
+            {/* Related documents — non-prepaid payments */}
+            {selectedPayment.invoice_id && (
+              <div className="flex-1 flex flex-col overflow-hidden px-4 py-4">
+                <p className="text-sm font-semibold mb-2">Documentos relacionados</p>
+                <div className="rounded-lg border divide-y text-sm">
+                  {selectedPayment.invoice_doc_no && (
+                    <div className="flex justify-between items-center px-4 py-2.5">
+                      <span className="text-muted-foreground">Factura</span>
+                      <span className="font-medium">#{selectedPayment.invoice_doc_no}</span>
+                    </div>
+                  )}
+                  {selectedPayment.payment_doc_no && (
+                    <div className="flex justify-between items-center px-4 py-2.5">
+                      <span className="text-muted-foreground">Pago origen</span>
+                      <span className="font-medium">#{selectedPayment.payment_doc_no}</span>
+                    </div>
+                  )}
+                  {!selectedPayment.invoice_doc_no && !selectedPayment.payment_doc_no && (
+                    <div className="px-4 py-2.5 text-muted-foreground">Sin documentos relacionados</div>
+                  )}
                 </div>
               </div>
             )}

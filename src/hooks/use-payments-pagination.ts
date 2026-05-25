@@ -3,7 +3,7 @@
 import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentListResponse, PaymentSearchParams } from '@/services/payments-service';
 import { PaginationState } from '@tanstack/react-table';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UsePaymentsPaginationOptions {
   fetchFunction: (params: PaymentSearchParams) => Promise<PaymentListResponse>;
@@ -36,6 +36,12 @@ export function usePaymentsPagination({
   });
   const [totalPages, setTotalPages] = useState(0);
 
+  // Keep a ref in sync with the latest pagination so loadPayments never needs
+  // pagination in its own deps (avoiding cascading function recreations on every
+  // page-state change).
+  const paginationRef = useRef(pagination);
+  paginationRef.current = pagination;
+
   const loadPayments = useCallback(async (
     pageIndex?: number,
     pageSize?: number,
@@ -43,8 +49,8 @@ export function usePaymentsPagination({
   ) => {
     setIsLoading(true);
     try {
-      const currentPage = (pageIndex !== undefined ? pageIndex : pagination.pageIndex) + 1;
-      const currentPageSize = pageSize !== undefined ? pageSize : pagination.pageSize;
+      const currentPage = (pageIndex !== undefined ? pageIndex : paginationRef.current.pageIndex) + 1;
+      const currentPageSize = pageSize !== undefined ? pageSize : paginationRef.current.pageSize;
       const currentSearch = search || '';
 
       const result = await fetchFunction({
@@ -73,13 +79,13 @@ export function usePaymentsPagination({
     } finally {
       setIsLoading(false);
     }
-  }, [fetchFunction, pagination.pageIndex, pagination.pageSize, toast, onError]);
+  }, [fetchFunction, toast, onError]);
 
   const handlePaginationChange = useCallback((updater: any) => {
-    const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
+    const newPagination = typeof updater === 'function' ? updater(paginationRef.current) : updater;
     setPagination(newPagination);
     loadPayments(newPagination.pageIndex, newPagination.pageSize);
-  }, [loadPayments, pagination]);
+  }, [loadPayments]);
 
   const refreshPayments = useCallback(async () => {
     await loadPayments();
@@ -87,6 +93,7 @@ export function usePaymentsPagination({
 
   useEffect(() => {
     loadPayments(0, initialPageSize, '');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

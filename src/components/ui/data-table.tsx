@@ -178,13 +178,19 @@ export function DataTable<TData, TValue>({
   }, [data.length]);
 
   // Programmatic printMode: expand/restore for the print button flow.
-  const savedPrintSizeRef = React.useRef<number>(10);
+  // null = not currently in print mode; a number = saved size to restore after print.
+  const savedPrintSizeRef = React.useRef<number | null>(null);
   React.useEffect(() => {
     if (printMode) {
-      savedPrintSizeRef.current = table.getState().pagination.pageSize;
+      if (savedPrintSizeRef.current === null) {
+        savedPrintSizeRef.current = table.getState().pagination.pageSize;
+      }
       table.setPageSize(data.length || 99999);
-    } else {
+    } else if (savedPrintSizeRef.current !== null) {
+      // Only restore when we actually saved a size (i.e. were previously in print mode).
+      // This prevents calling setPageSize on every data load while printMode stays false.
       table.setPageSize(savedPrintSizeRef.current);
+      savedPrintSizeRef.current = null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printMode, data.length]);
