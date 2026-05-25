@@ -259,8 +259,9 @@ async function getAppointments(
             const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
             const calendar = calendars.find(c => String(c.id) === calendarSourceId);
 
-            const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
-            const doctor = doctors.find(d => String(d.id) === String(doctorId) || (apiAppt.doctor_email && d.email === apiAppt.doctor_email) || (apiAppt.doctorEmail && d.email === apiAppt.doctorEmail) || (apiAppt.doctoremail && d.email === apiAppt.doctoremail));
+            const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid || apiAppt.assignee_id;
+            const doctorEmail = apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || apiAppt.assignee_email;
+            const doctor = doctors.find(d => String(d.id) === String(doctorId) || (doctorEmail && d.email === doctorEmail));
 
             // Try to find a service match from summary or from the services array if it exists
             const apiApptServices = Array.isArray(apiAppt.services) ? apiAppt.services : [];
@@ -292,9 +293,9 @@ async function getAppointments(
                     (!isWhite(cColor) ? cColor : null);
             }
 
-            const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid;
-            const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
-            const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || doctor?.name || 'Doctor';
+            const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid || apiAppt.user_id || apiAppt.userid;
+            const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || apiAppt.user_name || apiAppt.username || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
+            const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || apiAppt.assignee_name || doctor?.name || 'Doctor';
 
             const endNode = apiAppt.end_time || apiAppt.end;
             const rawEndDateTimeStr = typeof endNode === 'string' ? endNode : (endNode?.dateTime);
@@ -308,11 +309,11 @@ async function getAppointments(
                 id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id || ''),
                 patientId: String(patientId || ''),
                 patientName: patientName,
-                patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail,
-                patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone,
+                patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail || apiAppt.user_email,
+                patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone || apiAppt.user_phone || apiAppt.phone_number,
                 doctorId: String(doctorId || ''),
                 doctorName: doctorName,
-                doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || doctor?.email || '',
+                doctorEmail: doctorEmail || doctor?.email || '',
                 summary: apiAppt.summary || t('createDialog.none'),
                 service_name: apiAppt.summary || t('createDialog.none'),
                 description: apiAppt.description || '',

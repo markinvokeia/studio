@@ -31,6 +31,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { cn, formatDate } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { getSalesServices } from '@/services/services';
+import { ensureDoctorOption } from '@/services/doctors';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 
 interface ClinicSessionDialogProps {
@@ -197,6 +198,12 @@ export function ClinicSessionDialog({
         appointment_id: appointmentId,
     });
 
+    const doctorOptions = React.useMemo(() => {
+        if (!form.doctor_id || !form.doctor_name) return doctors;
+        if (doctors.some((doctor) => doctor.id === form.doctor_id)) return doctors;
+        return [{ id: form.doctor_id, name: form.doctor_name }, ...doctors];
+    }, [doctors, form.doctor_id, form.doctor_name]);
+
     // Fetch doctors and services catalog when dialog opens
     React.useEffect(() => {
         if (open) {
@@ -340,7 +347,36 @@ export function ClinicSessionDialog({
         setIsLoadingDoctors(true);
         try {
             const data = await api.get(API_ROUTES.USERS_DOCTORS);
-            setDoctors(data.map((doc: any) => ({ id: String(doc.id), name: doc.name })));
+            const rawDoctors = Array.isArray(data)
+                ? data
+                : (data?.doctors || data?.data || data?.result || []);
+            let nextDoctors: Doctor[] = rawDoctors.map((doc: any) => ({
+                id: String(doc.id),
+                name: doc.name ?? doc.nombre ?? '',
+            }));
+
+            const currentDoctorId = existingSession?.doctor_id
+                ? String(existingSession.doctor_id)
+                : (prefillData?.doctor_id || form.doctor_id || '');
+            const currentDoctorName = existingSession?.doctor_name
+                || existingSession?.nombre_doctor
+                || prefillData?.doctor_name
+                || form.doctor_name
+                || '';
+
+            nextDoctors = await ensureDoctorOption(nextDoctors, currentDoctorId, currentDoctorName);
+            setDoctors(nextDoctors);
+
+            if (currentDoctorId) {
+                const resolvedDoctor = nextDoctors.find((doctor) => doctor.id === currentDoctorId);
+                if (resolvedDoctor?.name && form.doctor_name !== resolvedDoctor.name) {
+                    setForm((prev) => ({
+                        ...prev,
+                        doctor_id: prev.doctor_id || resolvedDoctor.id,
+                        doctor_name: resolvedDoctor.name,
+                    }));
+                }
+            }
         } catch (error) {
             console.error("Failed to fetch doctors:", error);
             setDoctors([]);
@@ -711,7 +747,7 @@ export function ClinicSessionDialog({
                                         value={form.doctor_id}
                                         onValueChange={(value) => {
                                             if (lockDoctor) return;
-                                            const selectedDoc = doctors.find(d => d.id === value);
+                                            const selectedDoc = doctorOptions.find(d => d.id === value);
                                             setForm({
                                                 ...form,
                                                 doctor_id: value,
@@ -730,7 +766,7 @@ export function ClinicSessionDialog({
                                                     <Loader2 className="h-4 w-4 animate-spin" />
                                                 </div>
                                             ) : (
-                                                doctors.map((doc) => (
+                                                doctorOptions.map((doc) => (
                                                     <SelectItem key={doc.id} value={doc.id}>{doc.name}</SelectItem>
                                                 ))
                                             )}

@@ -940,12 +940,12 @@ export function AppointmentFormDialog({
             || editingAppointment?.id;
         const quoteId = appointment.quote?.id || editingAppointment?.quote_id;
 
-        const { archivos_adjuntos: sessionFiles, deletedAttachmentIds, tratamientos, ...scalarSessionData } = sessionData as any;
+        const { archivos_adjuntos: sessionFiles, deletedAttachmentIds, tratamientos, appointment_id: _appointmentId, quote_id: _quoteId, ...scalarSessionData } = sessionData as any;
         const payload = new FormData();
         Object.entries(scalarSessionData).forEach(([k, v]) => {
             if (v !== undefined && v !== null) payload.append(k, String(v));
         });
-        payload.append('patient_id', patientId);
+        payload.append('paciente_id', patientId);
         if (appointmentId) payload.append('appointment_id', String(appointmentId));
         if (quoteId) payload.append('quote_id', String(quoteId));
         if (tratamientos && tratamientos.length > 0) {

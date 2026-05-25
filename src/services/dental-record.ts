@@ -1,6 +1,8 @@
 import { API_ROUTES } from '@/constants/routes';
 import type { OdontogramSnapshot, OdontogramState } from '@/lib/types';
 import { api } from '@/services/api';
+export { fetchDoctorById, fetchDoctors } from '@/services/doctors';
+export type { DoctorOption } from '@/services/doctors';
 
 // ──── Periodontogram (localStorage mock — unchanged) ────
 import type { DentalRecordSession } from '@/lib/types';
@@ -42,20 +44,6 @@ export function createSession(patientId: string, label?: string): DentalRecordSe
 export function deleteSession(patientId: string, sessionId: string): void {
   const sessions = getSessions(patientId).filter((s) => s.id !== sessionId);
   localStorage.setItem(PERIO_STORAGE_KEY(patientId), JSON.stringify(sessions));
-}
-
-// ──── Doctors ────
-
-export type DoctorOption = { id: string; name: string };
-
-export async function fetchDoctors(): Promise<DoctorOption[]> {
-  try {
-    const data = await api.get(API_ROUTES.USERS_DOCTORS);
-    const list: any[] = Array.isArray(data) ? data : [];
-    return list.map((d: any) => ({ id: String(d.id), name: d.name ?? d.nombre ?? '' }));
-  } catch {
-    return [];
-  }
 }
 
 // ──── Odontogram (real API) ────

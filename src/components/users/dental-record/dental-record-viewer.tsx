@@ -15,6 +15,7 @@ import type {
   ToothPerioData,
 } from '@/lib/types';
 import { upsertOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
+import { ensureDoctorOption } from '@/services/doctors';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
@@ -233,10 +234,11 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     Promise.all([
       fetchOdontograms(patientId),
       fetchDoctors(),
-    ]).then(([snapshots, docs]) => {
+    ]).then(async ([snapshots, docs]) => {
+      const nextDoctors = await ensureDoctorOption(docs, doctorId, doctorName);
       setHistory(snapshots);
       setHistoryIndex(snapshots.length - 1);
-      setDoctors(docs);
+      setDoctors(nextDoctors);
       setIsLoading(false);
 
       if (autoNavigateToAppointmentSession && appointmentId) {
@@ -1100,7 +1102,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
           onSave={handleSave}
           onCancel={handleCancelEditing}
           lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
-          lockDoctorName={doctorName ?? (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
+          lockDoctorName={doctorName || (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
           isEdit={!!editingSessionId}
         />
       )}
