@@ -29,6 +29,44 @@
   animation: bell-ring 1s ease-in-out infinite;
 }
 
+@keyframes tab-alert-glow {
+  0%, 100% { background-color: rgba(255, 255, 255, 0.08); }
+  20%       { background-color: rgba(249, 115, 22, 0.35); }  /* orange */
+  45%       { background-color: rgba(239, 68,  68, 0.35); }  /* red    */
+  70%       { background-color: rgba(99,  102, 241, 0.3); }  /* indigo */
+}
+
+.animate-tab-alert {
+  animation: tab-alert-glow 5s ease-in-out infinite;
+}
+
+@keyframes peek-icon-float {
+  0%, 100% { transform: translateY(2px); opacity: 0.5; }
+  50%       { transform: translateY(-1px); opacity: 1; }
+}
+
+.animate-peek-icon {
+  animation: peek-icon-float 2.5s ease-in-out infinite;
+}
+
+@keyframes panel-hint-in {
+  from { opacity: 0; transform: translateX(0.75rem); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes panel-hint-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(0.75rem); }
+}
+.panel-hint-enter { animation: panel-hint-in  0.25s ease-out forwards; }
+.panel-hint-exit  { animation: panel-hint-out 0.25s ease-in  forwards; }
+
+/* Widget panel pushes page content on sm+ screens */
+@media (min-width: 640px) {
+  html.widget-panel-open .widget-content-area {
+    margin-right: 3.5rem; /* w-14 */
+  }
+}
+
 @layer base {
 
   html,

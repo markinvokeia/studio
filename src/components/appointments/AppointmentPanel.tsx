@@ -7,6 +7,7 @@ import {
   Calendar as CalendarIcon,
   CalendarSync,
   Clock,
+  CreditCard,
   Edit,
   FileText,
   HeartPulse,
@@ -17,6 +18,7 @@ import {
   StickyNote,
   Stethoscope,
   UserSquare,
+  Zap,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -41,6 +43,10 @@ import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet
 import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { fetchAppointmentBillingState } from '@/services/billing-preflight';
+import { api } from '@/services/api';
+import { API_ROUTES } from '@/constants/routes';
 
 function initials(name?: string): string {
   if (!name) return '?';
@@ -145,6 +151,7 @@ interface AppointmentPanelProps {
   onCancel?: (appointment: Appointment) => void;
   onOpenClinicSession?: (appointment: Appointment) => void;
   onReschedule?: (appointment: Appointment) => void;
+  onBillingSuccess?: () => void;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
@@ -168,6 +175,7 @@ export function AppointmentPanel({
   onReschedule,
   onStatusChange,
   onRequestCustomCancellation,
+  onBillingSuccess,
 }: AppointmentPanelProps) {
   const locale = useLocale();
   const t = useTranslations('AppointmentsPage');
@@ -184,7 +192,159 @@ export function AppointmentPanel({
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
+  const [isBillingLoading, setIsBillingLoading] = React.useState(false);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
+  const { open: openBillingWizard } = useBillingWizard();
+
+  // ── Invoice payments ───────────────────────────────────────────────────────
+  const [paymentsMap, setPaymentsMap] = React.useState<Record<string, any[]>>({});
+  const [directInvoice, setDirectInvoice] = React.useState<Invoice | null>(null);
+  const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
+
+  // Load payments for each invoice in quoteInvoices
+  React.useEffect(() => {
+    if (quoteInvoices.length === 0) {
+      setPaymentsMap({});
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingPayments(true);
+    Promise.all(
+      quoteInvoices.map((inv) =>
+        api
+          .get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: inv.id })
+          .then((data: any) => {
+            const raw: any[] = Array.isArray(data) ? data : (data?.payments ?? data?.data ?? []);
+            return { id: inv.id, payments: raw };
+          })
+          .catch(() => ({ id: inv.id, payments: [] })),
+      ),
+    ).then((results) => {
+      if (cancelled) return;
+      const map: Record<string, any[]> = {};
+      results.forEach((r) => { map[r.id] = r.payments; });
+      setPaymentsMap(map);
+    }).finally(() => { if (!cancelled) setIsLoadingPayments(false); });
+    return () => { cancelled = true; };
+  }, [quoteInvoices]);
+
+  // When there is only invoice_id (no quote), load the invoice directly
+  React.useEffect(() => {
+    if (!appointment?.invoice_id || quoteInvoices.length > 0 || !appointment?.patientId) {
+      setDirectInvoice(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingPayments(true);
+    api
+      .get(API_ROUTES.USER_INVOICES, { user_id: appointment.patientId })
+      .then((data: any) => {
+        if (cancelled) return;
+        const raw: any[] = Array.isArray(data) ? data : (data?.invoices ?? data?.data ?? []);
+        const found = raw.find((inv: any) => String(inv.id) === String(appointment.invoice_id));
+        if (!found) return;
+        const inv: Invoice = {
+          id: String(found.id),
+          invoice_ref: found.invoice_ref || '',
+          doc_no: found.doc_no || found.invoice_doc_no || '',
+          invoice_doc_no: found.invoice_doc_no || found.doc_no || '',
+          order_id: String(found.order_id || ''),
+          quote_id: String(found.quote_id || ''),
+          user_id: String(found.user_id || ''),
+          user_name: found.user_name || '',
+          total: Number(found.total || 0),
+          currency: found.currency || 'USD',
+          status: found.status || 'draft',
+          payment_status: found.payment_state || found.payment_status || 'unpaid',
+          paid_amount: Number(found.paid_amount || 0),
+          type: found.type || 'invoice',
+          createdAt: found.created_at || found.createdAt || '',
+          updatedAt: found.updated_at || found.updatedAt || '',
+        };
+        setDirectInvoice(inv);
+        // Load its payments
+        return api
+          .get(API_ROUTES.SALES.INVOICE_PAYMENTS, { invoice_id: inv.id })
+          .then((pd: any) => {
+            if (cancelled) return;
+            const payments: any[] = Array.isArray(pd) ? pd : (pd?.payments ?? pd?.data ?? []);
+            setPaymentsMap({ [inv.id]: payments });
+          })
+          .catch(() => {});
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIsLoadingPayments(false); });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appointment?.invoice_id, appointment?.patientId, quoteInvoices.length]);
+
+  const handleOpenBillingWizard = React.useCallback(async () => {
+    if (!appointment?.patientId) return;
+    setIsBillingLoading(true);
+    try {
+      // Fetch fresh billing state to avoid opening a freeform wizard when the
+      // appointment was already invoiced in a previous Cobro Rápido that the
+      // current UI hasn't reflected yet.
+      const fresh = await fetchAppointmentBillingState(
+        appointment.patientId,
+        appointment.id,
+        appointment.date,
+      );
+
+      const freshInvoiceId = fresh.invoice_id ?? appointment.invoice_id ?? null;
+      const freshQuoteId = fresh.quote_id ?? appointment.quote_id ?? null;
+
+      const firstUnpaidInvoice = quoteInvoices.find(
+        (inv) => inv.payment_status !== 'paid' && inv.type !== 'credit_note',
+      );
+      if (firstUnpaidInvoice) {
+        openBillingWizard({
+          invoiceId: firstUnpaidInvoice.id,
+          invoice: firstUnpaidInvoice,
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+        }, onBillingSuccess);
+      } else if (freshInvoiceId) {
+        openBillingWizard({
+          invoiceId: String(freshInvoiceId),
+          ...(fresh.invoice ? { invoice: fresh.invoice } : {}),
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+        }, onBillingSuccess);
+      } else if (freshQuoteId) {
+        openBillingWizard({
+          quoteId: String(freshQuoteId),
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+        }, onBillingSuccess);
+      } else {
+        const preloadedItems = (appointment.services || []).map((svc) => ({
+          tempId: svc.id,
+          service_id: svc.id,
+          service_name: svc.name,
+          unit_price: svc.price || 0,
+          quantity: 1,
+          total: svc.price || 0,
+        }));
+        openBillingWizard({
+          patientId: appointment.patientId,
+          patientName: appointment.patientName,
+          isSales: true,
+          appointmentId: appointment.id,
+          appointmentDate: appointment.date,
+          preloadedItems: preloadedItems.length > 0 ? preloadedItems : undefined,
+        }, onBillingSuccess);
+      }
+    } finally {
+      setIsBillingLoading(false);
+    }
+  }, [appointment, quoteInvoices, openBillingWizard, onBillingSuccess]);
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
@@ -498,32 +658,110 @@ export function AppointmentPanel({
                 </section>
               )}
 
-              {(appointment.quote_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
-                <section className="mt-6 border-t border-border pt-4">
-                  <div className="mb-3 flex items-center gap-2">
+              {(appointment.quote_id || appointment.invoice_id || quoteOrder || invoiceCount > 0 || isLoadingQuoteInfo) && (
+                <section className="mt-6 border-t border-border pt-4 space-y-3">
+                  <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                     <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => appointment.quote_id && setIsQuoteSheetOpen(true)}
-                    disabled={!appointment.quote_id}
-                    className="flex w-full items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:bg-muted/35 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <span className="flex-1">
-                      <span className="block font-mono text-xs font-semibold">
-                        {appointment.quote_doc_no || appointment.quote_id || t('noLinkedOrder')}
+
+                  {/* Quote row */}
+                  {appointment.quote_id && (
+                    <button
+                      type="button"
+                      onClick={() => setIsQuoteSheetOpen(true)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3 text-left transition-colors hover:bg-muted/35"
+                    >
+                      <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-mono text-xs font-semibold">
+                          {appointment.quote_doc_no || appointment.quote_id}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {isLoadingQuoteInfo ? '…' : invoiceCount > 0 ? `${t('linkedInvoice')} · ${invoiceCount}` : t('notInvoiced')}
+                        </span>
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {isLoadingQuoteInfo
-                          ? t('linkedInvoice')
-                          : invoiceCount > 0
-                            ? `${t('linkedInvoice')} · ${invoiceCount}`
-                            : t('notInvoiced')}
-                      </span>
-                    </span>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </button>
+                  )}
+
+                  {/* Invoice cards — from quote or direct */}
+                  {(() => {
+                    const invoicesToShow: Invoice[] = quoteInvoices.length > 0
+                      ? quoteInvoices
+                      : directInvoice
+                        ? [directInvoice]
+                        : [];
+                    if (isLoadingQuoteInfo || (isLoadingPayments && invoicesToShow.length === 0)) {
+                      return <div className="h-8 rounded-lg bg-muted/50 animate-pulse" />;
+                    }
+                    return invoicesToShow.map((inv) => {
+                      const payments: any[] = paymentsMap[inv.id] ?? [];
+                      const isPaid = inv.payment_status === 'paid';
+                      const pendingAmt = Math.max(0, (inv.total || 0) - (inv.paid_amount || 0));
+                      return (
+                        <div key={inv.id} className="rounded-xl border border-border overflow-hidden">
+                          {/* Invoice header */}
+                          <div className="flex items-center gap-3 px-4 py-3 bg-muted/30">
+                            <CreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-mono text-xs font-semibold truncate">
+                                  {inv.doc_no || inv.invoice_doc_no || `#${inv.id}`}
+                                </span>
+                                <span className={cn(
+                                  'text-xs font-medium px-1.5 py-0.5 rounded-full',
+                                  isPaid
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400',
+                                )}>
+                                  {isPaid ? 'Pagado' : pendingAmt > 0 ? `Pendiente ${inv.currency} ${pendingAmt.toLocaleString()}` : 'Sin pagar'}
+                                </span>
+                              </div>
+                              <span className="block text-xs text-muted-foreground mt-0.5">
+                                Total: {inv.currency} {(inv.total || 0).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          {/* Payments list */}
+                          {payments.length > 0 && (
+                            <div className="divide-y divide-border/50 border-t border-border/50">
+                              {payments.map((p: any, i: number) => {
+                                const amt = Math.abs(Number(p.amount_applied ?? p.amount ?? 0));
+                                const cur = p.invoice_currency || p.source_currency || p.currency || inv.currency;
+                                const method = p.payment_method_name || p.method || p.payment_method || '';
+                                const date = p.payment_date || p.created_at || '';
+                                const docNo = p.doc_no || p.payment_doc_no || '';
+                                return (
+                                  <div key={i} className="flex items-center gap-2 px-4 py-2 text-xs">
+                                    <CreditCard className="h-3 w-3 text-muted-foreground shrink-0" />
+                                    <span className="flex-1 truncate text-muted-foreground">
+                                      {method && <span className="font-medium text-foreground">{method}</span>}
+                                      {docNo && <span className="font-mono ml-1 opacity-70">· {docNo}</span>}
+                                      {date && <span className="ml-1 opacity-60">· {format(new Date(date), 'dd/MM/yy')}</span>}
+                                    </span>
+                                    <span className="font-semibold text-foreground shrink-0">
+                                      {cur} {amt.toLocaleString()}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {payments.length === 0 && !isLoadingPayments && (
+                            <div className="px-4 py-2 text-xs text-muted-foreground border-t border-border/50">
+                              Sin pagos registrados
+                            </div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+
+                  {/* No financial info at all */}
+                  {!appointment.quote_id && !appointment.invoice_id && !directInvoice && !isLoadingQuoteInfo && (
+                    <p className="text-xs text-muted-foreground">{t('notInvoiced')}</p>
+                  )}
                 </section>
               )}
             </div>
@@ -540,9 +778,22 @@ export function AppointmentPanel({
             />
           </div>
 
-          {(onReschedule || onEdit) && (
-            <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
-              <div className="flex items-center justify-end gap-3">
+          <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              {appointment.patientId && (
+                <Button
+                  variant="default"
+                  className="gap-2"
+                  onClick={handleOpenBillingWizard}
+                  disabled={isBillingLoading}
+                >
+                  {isBillingLoading
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Zap className="h-4 w-4" />}
+                  Cobro Rápido
+                </Button>
+              )}
+              <div className="flex items-center gap-3 ml-auto">
                 {onReschedule && (
                   <Button
                     size="lg"
@@ -570,7 +821,7 @@ export function AppointmentPanel({
                 )}
               </div>
             </div>
-          )}
+          </div>
         </div>
       </ResizableSheet>
 

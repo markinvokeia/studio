@@ -241,6 +241,10 @@
     "procedure": "Procedure",
     "nextPlan": "Next plan",
     "treatmentCount": "{count} treatment(s) applied",
+    "currentSessionServices": "Current session services",
+    "nextSessionServices": "Next session services",
+    "servicesPreloaded": "preloaded",
+    "actionCobroRapido": "Quick Billing",
     "actionCreateQuote": "Create quote",
     "actionScheduleNext": "Schedule next appointment",
     "actionGenerateInvoice": "Generate invoice",
@@ -331,7 +335,7 @@
       "title": "Active Cash Session",
       "description": "Session for {user} at {cashPoint} is currently open.",
       "button": "Go to Cashier",
-      "tooltip": "View your active cash session"
+      "tooltip": "View active session"
     },
     "title": "No Active Cash Session",
     "description": "You do not have an active cash session. Please open one to start recording transactions.",
@@ -1651,10 +1655,14 @@
         "total": "Total",
         "selectService": "Select Service",
         "toothNumber": "Tooth Number",
-        "empty": "No items added yet."
+        "empty": "No items added yet.",
+        "currentSessionBadge": "Current session",
+        "nextSessionBadge": "Next session"
       },
       "notes": "Notes",
-      "notesPlaceholder": "Add any additional notes here..."
+      "notesPlaceholder": "Add any additional notes here...",
+      "patientConfirmed": "Confirmed by patient",
+      "patientConfirmedNote": "Checking this option will create the quote as confirmed. Leave unchecked to create it as a draft and confirm or reject it later."
     },
     "quickQuote": {
       "title": "Quick Create Quote",
@@ -1894,6 +1902,7 @@
     },
     "paymentDialog": {
       "add": "Add Payment",
+      "addClassic": "Add Payment",
       "title": "Add Payment",
       "description": "Add a payment for invoice #{invoiceId}",
       "amount": "Amount",
@@ -2186,7 +2195,8 @@
         "quantity": "Quantity",
         "unitPrice": "Unit Price",
         "notInList": "Not in list"
-      }
+      },
+      "addItem": "Add Item"
     },
     "common": {
       "closeDetails": "Close details"
@@ -3539,13 +3549,17 @@
         "phoneInvalid": "Invalid phone number",
         "identityInvalid": "Identity document must be a number.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
-        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later."
       },
       "editSave": "Save",
       "serverError": "Server error, please try again later.",
       "errorTitle": "Error",
       "createSuccessTitle": "User created",
-      "createSuccessDescription": "The user has been created successfully"
+      "createSuccessDescription": "The user has been created successfully",
+      "editSuccessTitle": "User updated",
+      "editSuccessDescription": "The user has been updated successfully"
     },
     "setInitialPassword": "Set Initial Password",
     "tabs": {
@@ -3556,7 +3570,7 @@
       "logs": "Logs",
       "history": "Clinic History",
       "notes": "Notes",
-      "details": "Detalles"
+      "details": "Details"
     },
     "detailsFor": "Details for {name}",
     "close": "Close details",
@@ -4283,7 +4297,7 @@
         "items": "Quote Items",
         "addItem": "Add Item",
         "cancel": "Cancel",
-        "save": "Save changes"
+        "save": "Save"
       },
       "confirmAction": {
         "confirmTitle": "Confirm Quote",
@@ -4315,7 +4329,7 @@
         "toothNumber": "Tooth #",
         "toothNumberOptional": "Tooth # (optional)",
         "cancel": "Cancel",
-        "save": "Save changes",
+        "save": "Save",
         "add": "Add"
       },
       "deleteItem": {
@@ -4533,6 +4547,12 @@
         "colorInvalid": "Invalid color."
       }
     }
+  },
+  "AlertsWidget": {
+    "title": "Pending alerts",
+    "empty": "No pending alerts",
+    "viewAll": "View alerts",
+    "defaultCategory": "General"
   },
   "AlertsCenterPage": {
     "title": "Alerts Center",
@@ -5388,10 +5408,11 @@
   },
   "ClinicSessionDialog": {
     "treatments": {
+      "sectionTitle": "Treatments",
       "title": "Tooth Treatments",
       "toothNumber": "Tooth #",
       "description": "Description",
-      "add": "Add treatment",
+      "add": "Add",
       "noTreatments": "No treatments",
       "treatmentPlaceholder": "Treatment description..."
     },
@@ -5440,7 +5461,30 @@
       "applySuccess": "AI completed the clinical session fields.",
       "applyError": "Could not structure the dictation with AI.",
       "missingInformation": "Information worth confirming"
-    }
+    },
+    "aiTreatments": {
+      "generate": "Generate with AI",
+      "regenerate": "Regenerate",
+      "addTreatment": "Add treatment",
+      "generating": "Analyzing treatments with AI...",
+      "title": "AI-detected treatments",
+      "currentSession": "Current session",
+      "nextSession": "Next session",
+      "remove": "Remove treatment",
+      "error": "Could not generate treatments. Please try again.",
+      "selectService": "Select a service...",
+      "searchService": "Search services...",
+      "noServices": "No services found.",
+      "emptyHint": "Generate with AI or add treatments manually."
+    },
+    "patientLabel": "Patient",
+    "quoteLabel": "Quote",
+    "newQuote": "New",
+    "selectQuote": "Select a quote",
+    "loadingQuotes": "Loading quotes...",
+    "noQuote": "No quote",
+    "noQuotes": "No quotes available",
+    "searchQuotePlaceholder": "Search quote..."
   },
   "VoiceAssistant": {
     "clickToSpeak": "Click to speak",
@@ -6394,5 +6438,24 @@
     "total_cobrado": "Total Collected",
     "total_gastos": "Total Expenses",
     "vs_periodo_anterior": "vs previous period"
+  },
+  "BillingWizard": {
+    "title": "Quick Billing",
+    "subtitle": "Billing and payment assistant",
+    "step1Title": "Treatment",
+    "step2Title": "Payment",
+    "step3Title": "Done",
+    "actions": {
+      "next": "Next",
+      "processing": "Creating invoice...",
+      "invoiceOnly": "Invoice only",
+      "invoiceAndPay": "Invoice and pay",
+      "printReceipt": "Print receipt",
+      "close": "Close"
+    },
+    "confirmation": {
+      "paymentTitle": "Payment recorded!",
+      "invoiceTitle": "Invoice created!"
+    }
   }
 }

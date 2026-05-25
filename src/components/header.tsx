@@ -6,32 +6,25 @@ import { NotificationsBell } from '@/components/notifications/notifications-bell
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { GLOBAL_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
+import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
+import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import {
     Bell,
-    Check,
     ChevronLeft,
     ChevronRight,
-    Globe,
-    LifeBuoy,
+    Inbox,
     MessageSquare,
     StickyNote as StickyNoteIcon,
     Volume2,
     VolumeX,
     X,
+    Zap,
 } from 'lucide-react';
 import { useStickyNotes } from '@/hooks/use-sticky-notes';
 import type { StickyNote } from '@/lib/types';
@@ -40,11 +33,8 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
+import { AlertsWidget } from './alerts-widget';
 import { ExchangeRate } from './exchange-rate';
-import { TelegramIcon } from './icons/telegram-icon';
-import { UsFlagIcon } from './icons/us-flag-icon';
-import { UyFlagIcon } from './icons/uy-flag-icon';
-import { WhatsAppIcon } from './icons/whatsapp-icon';
 import { StickyNotesOverlay } from './sticky-notes-overlay';
 import { VoiceAssistant } from './voice-assistant';
 import { VoiceChat, type ChatMessage } from './voice-chat';
@@ -57,18 +47,16 @@ const CHAT_WEBHOOK_URL =
 
 // ── TTS ───────────────────────────────────────────────────────────────────────
 
-// Preferred voice names (ordered by preference). Chrome ships these on most platforms.
 const PREFERRED_VOICE_NAMES = [
-    'Google español',          // Chrome – es-ES, high quality
-    'Microsoft Sabina',        // Windows – es-MX
-    'Microsoft Helena',        // Windows – es-ES
-    'Paulina',                 // macOS – es-MX
-    'Monica',                  // macOS – es-ES
-    'Jorge',                   // macOS – es-ES (male fallback)
-    'Diego',                   // macOS – es-AR
+    'Google español',
+    'Microsoft Sabina',
+    'Microsoft Helena',
+    'Paulina',
+    'Monica',
+    'Jorge',
+    'Diego',
 ];
 
-/** Resolves the best Spanish voice available, waiting for voices to load if needed. */
 function pickSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
     return new Promise((resolve) => {
         const synth = window.speechSynthesis;
@@ -76,29 +64,23 @@ function pickSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
         const find = () => {
             const voices = synth.getVoices();
             if (voices.length === 0) return null;
-
-            // 1. Try preferred names in order
             for (const name of PREFERRED_VOICE_NAMES) {
                 const v = voices.find((v) => v.name.includes(name));
                 if (v) return v;
             }
-            // 2. Any local Spanish voice
             const local = voices.find((v) => v.lang.startsWith('es') && v.localService);
             if (local) return local;
-            // 3. Any Spanish voice
             return voices.find((v) => v.lang.startsWith('es')) ?? null;
         };
 
         const result = find();
         if (result) { resolve(result); return; }
 
-        // Voices not loaded yet — wait for the event (fires once in Chrome)
         const onLoaded = () => {
             synth.removeEventListener('voiceschanged', onLoaded);
             resolve(find());
         };
         synth.addEventListener('voiceschanged', onLoaded);
-        // Safety timeout: resolve with null if event never fires
         setTimeout(() => { synth.removeEventListener('voiceschanged', onLoaded); resolve(null); }, 2000);
     });
 }
@@ -118,7 +100,7 @@ async function speakText(text: string, enabled: boolean) {
     window.speechSynthesis.speak(utterance);
 }
 
-// ── Deep-link helper (needs Suspense boundary because of useSearchParams) ─────
+// ── Deep-link helper ──────────────────────────────────────────────────────────
 
 function StickyNotesDeepLink({ onOpen }: { onOpen: () => void }) {
     const searchParams = useSearchParams();
@@ -128,61 +110,206 @@ function StickyNotesDeepLink({ onOpen }: { onOpen: () => void }) {
     return null;
 }
 
+// ── Panel item: icon + label ──────────────────────────────────────────────────
+
+function PanelItem({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex flex-col items-center gap-1 w-full px-1">
+            {children}
+            <span className="text-[7.5px] font-medium text-muted-foreground leading-none text-center tracking-tight select-none">
+                {label}
+            </span>
+        </div>
+    );
+}
+
+const PANEL_SEEN_KEY = 'widget-panel-seen';
+
+// ── Peek icon for collapsed state ─────────────────────────────────────────────
+
+type PeekItem = 'alerts' | 'inbox' | 'notes';
+
+const PEEK_ICON: Record<PeekItem, React.ReactNode> = {
+    alerts: <Bell className="h-3.5 w-3.5 text-red-500" />,
+    inbox: <Inbox className="h-3.5 w-3.5 text-primary" />,
+    notes: <StickyNoteIcon className="h-3.5 w-3.5 text-yellow-500" />,
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function Header() {
     const pathname = usePathname();
-    const t = useTranslations('Header');
     const tFloating = useTranslations('FloatingActions');
     const tChat = useTranslations('VoiceChat');
+    const tStickyNotes = useTranslations('StickyNotes');
     const locale = useLocale();
     const router = useRouter();
     const { activeCashSession, user } = useAuth();
-    const { pendingCount } = useAlertNotifications();
+    const { pendingCount: alertCount, highestPriority } = useAlertNotifications();
+    const { pendingCount: inboxCount, notifications } = useNotifications();
     const { hasPermission } = usePermissions();
     const { toast } = useToast();
 
-    const tStickyNotes = useTranslations('StickyNotes');
     const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote, prependNote } = useStickyNotes();
+    const { open: openBillingWizard } = useBillingWizard();
 
-    const [isExpanded, setIsExpanded] = React.useState(false);
+    const [isExpanded, setIsExpanded] = React.useState(true);
     const [isChatOpen, setIsChatOpen] = React.useState(false);
     const [isChatMinimized, setIsChatMinimized] = React.useState(false);
     const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
     const [isSending, setIsSending] = React.useState(false);
-    const [ttsEnabled, setTtsEnabled] = React.useState(true);
+    const [ttsEnabled, setTtsEnabled] = React.useState(false);
     const [isClient, setIsClient] = React.useState(false);
     const [isStickyNotesOpen, setIsStickyNotesOpen] = React.useState(false);
+    const [peekItem, setPeekItem] = React.useState<PeekItem | null>(null);
+    const [shouldPulse, setShouldPulse] = React.useState(false);
+
+    const [panelHint, setPanelHint] = React.useState<{
+        label: string;
+        colorClass: string;
+        iconEl: React.ReactNode;
+        top: number;
+    } | null>(null);
+    const [panelHintLeaving, setPanelHintLeaving] = React.useState(false);
 
     const sessionId = React.useRef(`sid-${Date.now()}`);
+    // Tracks count at the previous render (to detect increases)
+    const prevCountsRef = React.useRef({ alerts: 0, inbox: 0, notes: 0 });
+    // Tracks what the user last saw when they opened the panel (persisted)
+    const lastSeenRef = React.useRef({ alerts: 0, inbox: 0 });
+    const panelHintTimerRef = React.useRef<ReturnType<typeof setTimeout>[]>([]);
+    const hintInitializedRef = React.useRef(false);
+    const prevHintCountsRef = React.useRef({ alerts: 0, inbox: 0, notes: 0 });
+    const toggleBtnRef = React.useRef<HTMLButtonElement>(null);
+    const alertsIconRef = React.useRef<HTMLDivElement>(null);
+    const inboxIconRef = React.useRef<HTMLDivElement>(null);
+    const notesIconRef = React.useRef<HTMLDivElement>(null);
+    const isExpandedRef = React.useRef(isExpanded);
+
+    React.useEffect(() => { setIsClient(true); }, []);
 
     React.useEffect(() => {
-        setIsClient(true);
+        isExpandedRef.current = isExpanded;
+        document.documentElement.classList.toggle('widget-panel-open', isExpanded);
+        return () => document.documentElement.classList.remove('widget-panel-open');
+    }, [isExpanded]);
+    React.useEffect(() => { fetchNotes(); }, [fetchNotes]);
+    React.useEffect(() => { if (isStickyNotesOpen) fetchNotes(); }, [isStickyNotesOpen, fetchNotes]);
+
+    // Read persisted last-seen counts on mount and compute initial pulse state
+    React.useEffect(() => {
+        try {
+            const stored = JSON.parse(localStorage.getItem(PANEL_SEEN_KEY) || '{}');
+            lastSeenRef.current = { alerts: stored.alerts ?? 0, inbox: stored.inbox ?? 0 };
+        } catch { /* ignore */ }
     }, []);
 
+    // Unified effect: detect new items while collapsed, save seen counts while open
     React.useEffect(() => {
-        fetchNotes();
-    }, [fetchNotes]);
+        const prev = prevCountsRef.current;
+
+        if (isExpanded) {
+            // Panel is visible — mark everything as seen and stop pulsing
+            lastSeenRef.current = { alerts: alertCount, inbox: inboxCount };
+            try { localStorage.setItem(PANEL_SEEN_KEY, JSON.stringify(lastSeenRef.current)); } catch { /* ignore */ }
+            setShouldPulse(false);
+            setPeekItem(null);
+        } else {
+            // Panel is collapsed — fire peek/pulse only on increases
+            if (alertCount > prev.alerts) {
+                setShouldPulse(true);
+                setPeekItem('alerts');
+            } else if (inboxCount > prev.inbox) {
+                setShouldPulse(true);
+                setPeekItem('inbox');
+            } else if (notes.length > prev.notes) {
+                setPeekItem('notes');
+            }
+        }
+
+        prevCountsRef.current = { alerts: alertCount, inbox: inboxCount, notes: notes.length };
+    }, [alertCount, inboxCount, notes.length, isExpanded]);
+
+    // Show floating hint when a new notification arrives while the panel is expanded
+    React.useEffect(() => {
+        // Skip first render — don't hint for pre-existing notifications
+        if (!hintInitializedRef.current) {
+            hintInitializedRef.current = true;
+            prevHintCountsRef.current = { alerts: alertCount, inbox: inboxCount, notes: notes.length };
+            return;
+        }
+
+        const prev = prevHintCountsRef.current;
+        prevHintCountsRef.current = { alerts: alertCount, inbox: inboxCount, notes: notes.length };
+
+        const triggerHint = (
+            label: string,
+            colorClass: string,
+            iconEl: React.ReactNode,
+            iconRef: React.RefObject<HTMLDivElement | null>,
+        ) => {
+            panelHintTimerRef.current.forEach(clearTimeout);
+            panelHintTimerRef.current = [];
+            setPanelHintLeaving(false);
+            // When expanded use the specific icon ref; when collapsed use the toggle tab ref
+            const sourceEl = isExpandedRef.current ? iconRef.current : toggleBtnRef.current;
+            const rect = sourceEl?.getBoundingClientRect();
+            const top = rect ? rect.top + rect.height / 2 : 32;
+            setPanelHint({ label, colorClass, iconEl, top });
+            panelHintTimerRef.current.push(
+                setTimeout(() => setPanelHintLeaving(true), 4700),
+                setTimeout(() => { setPanelHint(null); setPanelHintLeaving(false); }, 5000),
+            );
+        };
+
+        if (alertCount > prev.alerts) {
+            const pl: Record<string, string> = { CRITICAL: 'crítica', HIGH: 'alta', MEDIUM: 'media', LOW: 'baja' };
+            triggerHint(
+                `Nueva alerta · prioridad ${pl[highestPriority] ?? highestPriority}`,
+                'bg-card border-red-400 text-red-700 dark:text-red-300 shadow-lg',
+                <Bell className="h-3.5 w-3.5 text-red-500 shrink-0" />,
+                alertsIconRef,
+            );
+        } else if (inboxCount > prev.inbox) {
+            const latest = notifications.find((n) => !n.seen);
+            let label = 'Nueva notificación';
+            if (latest) {
+                if (latest.type === 'new_appointment') label = `Nuevo turno · ${latest.appointment.patientName}`;
+                else if (latest.type === 'appointment_status_change') label = `${latest.appointment.patientName} · estado actualizado`;
+                else if (latest.type === 'session_completed') label = `Sesión completada · ${latest.appointment.patientName}`;
+                else if (latest.type === 'reminder') label = latest.reminder.title;
+            }
+            triggerHint(
+                label,
+                'bg-card border-primary/60 text-foreground shadow-lg',
+                <Inbox className="h-3.5 w-3.5 text-primary shrink-0" />,
+                inboxIconRef,
+            );
+        } else if (notes.length > prev.notes) {
+            const note = notes[0];
+            const raw = note?.text ?? 'Nueva nota';
+            const label = raw.length > 40 ? raw.slice(0, 40) + '…' : raw;
+            triggerHint(
+                label,
+                'bg-card border-yellow-400 text-foreground shadow-lg',
+                <StickyNoteIcon className="h-3.5 w-3.5 text-yellow-500 shrink-0" />,
+                notesIconRef,
+            );
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [alertCount, inboxCount, notes.length]);
 
     React.useEffect(() => {
-        if (isStickyNotesOpen) fetchNotes();
-    }, [isStickyNotesOpen, fetchNotes]);
+        return () => { panelHintTimerRef.current.forEach(clearTimeout); };
+    }, []);
 
     const openChatPanel = React.useCallback(() => {
         setIsChatOpen(true);
         setIsChatMinimized(false);
     }, []);
 
-    const openStickyNotes = React.useCallback(() => {
-        setIsStickyNotesOpen(true);
-    }, []);
-
-    const closeChatPanel = React.useCallback(() => {
-        setIsChatOpen(false);
-        setIsChatMinimized(false);
-    }, []);
-
-    // ── Send a message (text or voice) to the webhook ─────────────────────────
+    const openStickyNotes = React.useCallback(() => { setIsStickyNotesOpen(true); }, []);
+    const closeChatPanel = React.useCallback(() => { setIsChatOpen(false); setIsChatMinimized(false); }, []);
 
     const sendToWebhook = React.useCallback(
         async (chatInput: string, audioBlob?: Blob) => {
@@ -225,12 +352,8 @@ export function Header() {
                         (data.message as string) ??
                         (data.response as string) ??
                         '';
-                    if (typeof data.redirect === 'string' && data.redirect) {
-                        redirect = data.redirect;
-                    }
-                    if (data.openStickyNotes === true) {
-                        setIsStickyNotesOpen(true);
-                    }
+                    if (typeof data.redirect === 'string' && data.redirect) redirect = data.redirect;
+                    if (data.openStickyNotes === true) setIsStickyNotesOpen(true);
                     if (data.note && typeof (data.note as Record<string, unknown>).id === 'string') {
                         prependNote(data.note as StickyNote);
                     }
@@ -241,12 +364,7 @@ export function Header() {
                 if (reply) {
                     setChatMessages((prev) => [
                         ...prev,
-                        {
-                            id: `${Date.now()}-ai`,
-                            role: 'assistant',
-                            content: reply,
-                            timestamp: new Date(),
-                        },
+                        { id: `${Date.now()}-ai`, role: 'assistant', content: reply, timestamp: new Date() },
                     ]);
                     speakText(reply, ttsEnabled);
                     if (redirect) router.push(`/${locale}${redirect}`);
@@ -260,198 +378,238 @@ export function Header() {
         [tChat, toast, ttsEnabled, locale, router, user, prependNote],
     );
 
-    // ── VoiceAssistant callback ───────────────────────────────────────────────
-
     const handleAudioReady = React.useCallback(
         (blob: Blob) => {
             openChatPanel();
             setChatMessages((prev) => [
                 ...prev,
-                {
-                    id: `${Date.now()}-user`,
-                    role: 'user',
-                    content: tChat('voiceMessage'),
-                    isVoice: true,
-                    timestamp: new Date(),
-                },
+                { id: `${Date.now()}-user`, role: 'user', content: tChat('voiceMessage'), isVoice: true, timestamp: new Date() },
             ]);
             sendToWebhook(tChat('voiceMessage'), blob);
         },
         [openChatPanel, sendToWebhook, tChat],
     );
 
-    // ── Text chat callback ────────────────────────────────────────────────────
-
     const handleSendText = React.useCallback(
         (text: string) => {
             setChatMessages((prev) => [
                 ...prev,
-                {
-                    id: `${Date.now()}-user`,
-                    role: 'user',
-                    content: text,
-                    timestamp: new Date(),
-                },
+                { id: `${Date.now()}-user`, role: 'user', content: text, timestamp: new Date() },
             ]);
             sendToWebhook(text);
         },
         [sendToWebhook],
     );
 
-    // ── Mobile: track viewport ────────────────────────────────────────────────
-    const [isMobile, setIsMobile] = React.useState(false);
-    React.useEffect(() => {
-        const mq = window.matchMedia('(max-width: 639px)');
-        const update = () => setIsMobile(mq.matches);
-        update();
-        mq.addEventListener('change', update);
-        return () => mq.removeEventListener('change', update);
-    }, []);
-
-    // ── Locale switcher ───────────────────────────────────────────────────────
-
-    const onSelectLocale = (newLocale: string) => {
-        const searchParams = new URLSearchParams(window.location.search);
-        const newPathname = pathname.replace(`/${locale}`, `/${newLocale}`);
-        router.replace(`${newPathname}?${searchParams.toString()}`);
-    };
-
-    // ── Help menu ─────────────────────────────────────────────────────────────
-
-    const HelpMenu = () => (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                    <LifeBuoy className="h-5 w-5 text-muted-foreground" />
-                    <span className="sr-only">{tFloating('openMenu')}</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2">
-                <DropdownMenuLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {tFloating('chatbotTitle')}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                    <Link
-                        href="https://wa.me/59894024661"
-                        target="_blank"
-                        className="flex items-center w-full"
-                    >
-                        <WhatsAppIcon className="mr-2 h-4 w-4 text-green-500" />
-                        <span>WhatsApp</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                    <Link
-                        href="https://t.me/InvokIA_bot"
-                        target="_blank"
-                        className="flex items-center w-full"
-                    >
-                        <TelegramIcon className="mr-2 h-4 w-4 text-blue-500" />
-                        <span>Telegram</span>
-                    </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={openChatPanel}>
-                    <MessageSquare className="mr-2 h-4 w-4 text-purple-500" />
-                    <span>{tFloating('openChat')}</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
-    );
-
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
         <>
-            {/* ── Floating widget ─────────────────────────────────────────── */}
-            {/* Desktop: top-right pill | Mobile: right-edge vertical column */}
+            {/* ── Desktop widget: Google-style vertical right panel ─────── */}
+            <div className="hidden sm:block">
+                {!isExpanded ? (
+                    /* Collapsed tab — fixed to top-right corner */
+                    <button
+                        ref={toggleBtnRef}
+                        type="button"
+                        onClick={() => { setIsExpanded(true); setShouldPulse(false); setPeekItem(null); }}
+                        className={cn(
+                            'fixed top-3 right-0 z-[50]',
+                            'flex flex-col items-center gap-1 pt-2 pb-1.5 min-h-14 w-6 rounded-l-xl',
+                            'bg-[hsl(var(--floating-header-bg)/0.92)] backdrop-blur-md',
+                            'border border-r-0 border-border shadow-lg',
+                            'hover:bg-[hsl(var(--floating-header-bg))] hover:w-7 transition-all duration-200',
+                            shouldPulse && 'animate-tab-alert',
+                        )}
+                        aria-label={tFloating('openMenu')}
+                    >
+                        <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        {peekItem && (
+                            <div className="animate-peek-icon shrink-0">
+                                {PEEK_ICON[peekItem]}
+                            </div>
+                        )}
+                    </button>
+                ) : (
+                    /* Expanded: vertical strip */
+                    <div className="fixed inset-y-0 right-0 z-[50] flex flex-col items-center gap-2 pt-3 pb-3 w-14 bg-[hsl(var(--floating-header-bg)/0.97)] backdrop-blur-md border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+
+                        <Button
+                            ref={toggleBtnRef}
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setIsExpanded(false)}
+                            className="rounded-xl h-9 w-9 bg-muted/60 hover:bg-muted text-muted-foreground shrink-0"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+
+                        {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
+                            <PanelItem label="Caja">
+                                <OpenCashSessionWidget />
+                            </PanelItem>
+                        )}
+
+                        <PanelItem label="TV">
+                            <TVDisplayWidget />
+                        </PanelItem>
+
+                        {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
+                            <PanelItem label="Cobrar">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => openBillingWizard({})}
+                                    className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                    title="Cobro Rápido"
+                                >
+                                    <Zap className="h-5 w-5" />
+                                </Button>
+                            </PanelItem>
+                        )}
+
+                        <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
+
+                        <div ref={alertsIconRef} className="w-full">
+                            <PanelItem label="Alertas">
+                                <AlertsWidget />
+                            </PanelItem>
+                        </div>
+
+                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
+                            <PanelItem label="Cambio">
+                                <ExchangeRate activeCashSession={activeCashSession} />
+                            </PanelItem>
+                        )}
+
+                        <div ref={inboxIconRef} className="w-full">
+                            <PanelItem label="Inbox">
+                                <NotificationsBell variant="round" />
+                            </PanelItem>
+                        </div>
+
+                        {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
+                            <div ref={notesIconRef} className="w-full">
+                            <PanelItem label="Notas">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setIsStickyNotesOpen(true)}
+                                        className={cn(
+                                            'relative rounded-xl h-10 w-10',
+                                            notes.length > 0
+                                                ? 'bg-yellow-400/20 text-yellow-500'
+                                                : 'bg-muted/60 text-muted-foreground',
+                                        )}
+                                        title={tStickyNotes('openNotes')}
+                                    >
+                                        <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
+                                        {notes.length > 0 && (
+                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
+                                                {notes.length > 99 ? '99+' : notes.length}
+                                            </span>
+                                        )}
+                                    </Button>
+                                </PanelItem>
+                            </div>
+                        )}
+
+                        <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
+
+                        <PanelItem label="Chat">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={openChatPanel}
+                                className={cn(
+                                    'rounded-xl h-10 w-10',
+                                    isChatOpen ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
+                                )}
+                                title={tFloating('openChat')}
+                            >
+                                <MessageSquare className="h-5 w-5" />
+                            </Button>
+                        </PanelItem>
+
+                        <PanelItem label="Voz">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setTtsEnabled((v) => !v)}
+                                className={cn(
+                                    'rounded-xl h-10 w-10',
+                                    ttsEnabled ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
+                                )}
+                                title={ttsEnabled ? tChat('ttsDisable') : tChat('ttsEnable')}
+                            >
+                                {ttsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                            </Button>
+                        </PanelItem>
+
+                        <PanelItem label="Mic">
+                            <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
+                        </PanelItem>
+
+                    </div>
+                )}
+            </div>
+
+            {/* ── Mobile widget ─────────────────────────────────────────── */}
             <div className={cn(
-                "fixed z-[50]",
-                isMobile
-                    ? isExpanded
-                        ? "top-0 left-0 right-0 flex items-start"
-                        : "top-0 right-0 flex items-start"
-                    : "top-3 right-4 flex flex-col items-end gap-2"
+                "sm:hidden fixed z-[50]",
+                isExpanded
+                    ? "top-0 left-0 right-0 flex items-start"
+                    : "top-0 right-0 flex items-start"
             )}>
                 {!isExpanded ? (
-                    /* ── Collapsed state: widget toggle button in top-right slot ── */
                     <button
                         type="button"
                         onClick={() => setIsExpanded(true)}
                         className={cn(
-                            "flex items-center justify-center bg-[hsl(var(--floating-header-bg)/0.85)] backdrop-blur-md border border-border shadow-lg transition-all hover:bg-[hsl(var(--floating-header-bg))]",
-                            isMobile
-                                ? "h-12 w-12 rounded-none border-t-0 border-r-0 border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)]"
-                                : "h-8 w-8 rounded-full"
+                            "h-12 w-12 flex items-center justify-center border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)] transition-colors",
+                            shouldPulse && 'animate-tab-alert',
                         )}
                         aria-label={tFloating('openMenu')}
                     >
-                        <ChevronLeft className={cn("h-4 w-4", isMobile ? "text-foreground" : "text-muted-foreground")} />
+                        <ChevronLeft className="h-4 w-4 text-foreground" />
                     </button>
-                ) : isMobile ? (
-                    /* ── Mobile expanded: full-width bar (leaves space for hamburger) ── */
+                ) : (
                     <div className={cn(
-                        'flex flex-row-reverse items-center gap-0.5 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md py-1.5 px-1.5 border-b border-border shadow-md w-full justify-start overflow-x-auto',
+                        'flex flex-row items-center justify-evenly px-3 py-2 gap-1',
+                        'bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md border-b border-border shadow-md w-full',
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
-                        {/* Close button */}
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsExpanded(false)}
-                            className="rounded-xl h-8 w-8 hover:bg-accent flex-none"
-                        >
-                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-
-                        <div className="h-6 w-px bg-border/50 mx-0.5 flex-none" />
-
                         <OpenCashSessionWidget />
                         <TVDisplayWidget />
+
+                        {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openBillingWizard({})}
+                                className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                title="Cobro Rápido"
+                            >
+                                <Zap className="h-5 w-5" />
+                            </Button>
+                        )}
 
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
                             <Link href={`/${locale}/alerts`} passHref>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className={cn(
-                                        'relative rounded-xl h-9 w-9',
-                                        pendingCount > 0 && 'bg-red-500/10 text-red-600',
-                                    )}
+                                    className={cn('relative rounded-xl h-10 w-10', alertCount > 0 && 'bg-red-500/10 text-red-600')}
                                 >
-                                    <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
-                                        <Bell className="h-5 w-5" />
-                                    </div>
-                                    {pendingCount > 0 && (
+                                    <Bell className="h-5 w-5" />
+                                    {alertCount > 0 && (
                                         <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
-                                            {pendingCount > 99 ? '99+' : pendingCount}
+                                            {alertCount > 99 ? '99+' : alertCount}
                                         </span>
                                     )}
                                 </Button>
                             </Link>
                         )}
-
-                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-xl h-9 w-9">
-                                        <Globe className="h-5 w-5 text-muted-foreground" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" side="left" className="rounded-xl">
-                                    <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
-                                        <div className="flex items-center gap-2"><UyFlagIcon className="h-4 w-4" />{t('spanish')}</div>
-                                        {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
-                                        <div className="flex items-center gap-2"><UsFlagIcon className="h-4 w-4" />{t('english')}</div>
-                                        {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        )}
-
-                        <HelpMenu />
 
                         <NotificationsBell variant="square" />
 
@@ -460,10 +618,7 @@ export function Header() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setIsStickyNotesOpen(true)}
-                                className={cn(
-                                    'relative rounded-xl h-9 w-9',
-                                    notes.length > 0 && 'bg-yellow-400/20 text-yellow-500',
-                                )}
+                                className={cn('relative rounded-xl h-10 w-10', notes.length > 0 && 'bg-yellow-400/20 text-yellow-500')}
                                 title={tStickyNotes('openNotes')}
                             >
                                 <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
@@ -475,108 +630,22 @@ export function Header() {
                             </Button>
                         )}
 
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={openChatPanel}
+                            className="rounded-xl h-10 w-10"
+                        >
+                            <MessageSquare className="h-5 w-5 text-muted-foreground" />
+                        </Button>
+
                         <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
-                    </div>
-                ) : (
-                    /* ── Desktop expanded: horizontal pill ── */
-                    <div
-                        className={cn(
-                            'flex items-center gap-3 bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md p-2 rounded-full border border-border shadow-2xl transition-all',
-                            'animate-in fade-in slide-in-from-right-10 duration-300',
-                        )}
-                    >
-                        <div className="flex items-center gap-3 px-2">
-                            <OpenCashSessionWidget />
-                            <TVDisplayWidget />
-
-                            <div className="h-6 w-px bg-border/50" />
-
-                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
-                                <Link href={`/${locale}/alerts`} passHref>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className={cn(
-                                            'relative rounded-full transition-all duration-300 h-9 w-9',
-                                            pendingCount > 0 && 'bg-red-500/10 text-red-600',
-                                        )}
-                                    >
-                                        <div className={cn(pendingCount > 0 && 'animate-bell-ring')}>
-                                            <Bell className="h-5 w-5" />
-                                        </div>
-                                        {pendingCount > 0 && (
-                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-red-600 ring-2 ring-background">
-                                                {pendingCount > 99 ? '99+' : pendingCount}
-                                            </span>
-                                        )}
-                                        <span className="sr-only">{t('alerts')}</span>
-                                    </Button>
-                                </Link>
-                            )}
-
-                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
-                                <ExchangeRate activeCashSession={activeCashSession} />
-                            )}
-
-                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_CHANGE_LANGUAGE) && (
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="rounded-full h-9 w-9">
-                                            <Globe className="h-5 w-5 text-muted-foreground" />
-                                            <span className="sr-only">{t('toggleLanguage')}</span>
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="rounded-xl">
-                                        <DropdownMenuItem onSelect={() => onSelectLocale('es')} disabled={locale === 'es'}>
-                                            <span className="flex items-center justify-between w-full font-medium">
-                                                <div className="flex items-center gap-2"><UyFlagIcon className="h-4 w-4" />{t('spanish')}</div>
-                                                {locale === 'es' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                            </span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onSelect={() => onSelectLocale('en')} disabled={locale === 'en'}>
-                                            <span className="flex items-center justify-between w-full font-medium">
-                                                <div className="flex items-center gap-2"><UsFlagIcon className="h-4 w-4" />{t('english')}</div>
-                                                {locale === 'en' && <Check className="h-4 w-4 ml-2 text-primary" />}
-                                            </span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            )}
-
-                            <HelpMenu />
-
-                            <NotificationsBell variant="round" />
-
-                            {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsStickyNotesOpen(true)}
-                                    className={cn(
-                                        'relative rounded-full h-9 w-9',
-                                        notes.length > 0 && 'bg-yellow-400/20 text-yellow-500',
-                                    )}
-                                    title={tStickyNotes('openNotes')}
-                                >
-                                    <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
-                                    {notes.length > 0 && (
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
-                                            {notes.length > 99 ? '99+' : notes.length}
-                                        </span>
-                                    )}
-                                </Button>
-                            )}
-
-                            <div className="h-6 w-px bg-border/50" />
-
-                            <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
-                        </div>
 
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsExpanded(false)}
-                            className="rounded-full h-8 w-8 hover:bg-accent ml-1"
+                            className="rounded-xl h-10 w-10 hover:bg-accent"
                         >
                             <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         </Button>
@@ -586,7 +655,7 @@ export function Header() {
 
             {/* ── Chat panel ─────────────────────────────────────────────── */}
             {isClient && isChatOpen && createPortal(
-                <div className="fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-4 sm:w-auto sm:p-0 pointer-events-none">
+                <div className="fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-16 sm:w-auto sm:p-0 pointer-events-none">
                     {isChatMinimized ? (
                         <div className="pointer-events-auto px-3 pb-3 sm:px-0 sm:pb-0">
                             <Button
@@ -608,28 +677,6 @@ export function Header() {
                                         {tFloating('chatbotTitle')}
                                     </CardTitle>
                                     <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => {
-                                                setTtsEnabled((v) => {
-                                                    if (v) window.speechSynthesis?.cancel();
-                                                    return !v;
-                                                });
-                                            }}
-                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                            title={
-                                                ttsEnabled
-                                                    ? tChat('ttsDisable')
-                                                    : tChat('ttsEnable')
-                                            }
-                                        >
-                                            {ttsEnabled ? (
-                                                <Volume2 className="h-4 w-4" />
-                                            ) : (
-                                                <VolumeX className="h-4 w-4" />
-                                            )}
-                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -686,6 +733,25 @@ export function Header() {
 
             {/* ── Notifications panel ─────────────────────────────────────── */}
             {isClient && <NotificationsPanel />}
+
+            {/* ── Panel hint: slides in from the right when a new notification arrives ── */}
+            {isClient && panelHint && createPortal(
+                <div
+                    style={{ top: panelHint.top, right: isExpanded ? '3.75rem' : '1.75rem' }}
+                    className="fixed z-[49] -translate-y-1/2 pointer-events-none"
+                >
+                    <div className={cn(
+                        'flex items-center gap-2 px-3 py-2 rounded-xl border shadow-md',
+                        'text-xs font-medium max-w-[240px]',
+                        panelHint.colorClass,
+                        panelHintLeaving ? 'panel-hint-exit' : 'panel-hint-enter',
+                    )}>
+                        {panelHint.iconEl}
+                        <span className="truncate">{panelHint.label}</span>
+                    </div>
+                </div>,
+                document.body,
+            )}
         </>
     );
 }

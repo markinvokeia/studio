@@ -74,7 +74,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle } from 'lucide-react';
+import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -87,6 +87,7 @@ import * as z from 'zod';
 import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -950,6 +951,7 @@ export default function UsersPage() {
   const t = useTranslations();
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
+  const { open: openBillingWizard } = useBillingWizard();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
@@ -1147,6 +1149,7 @@ export default function UsersPage() {
           : (serviceId ? [{ id: serviceId, name: serviceName ?? '' } as any] : []),
         quote_id: raw.quote_id,
         quote_doc_no: raw.quote_doc_no,
+        invoice_id: raw.invoice_id != null ? String(raw.invoice_id) : null,
       };
       setEditingAppointmentForPlan(appt);
       setIsAppointmentDialogOpen(true);
@@ -1929,6 +1932,10 @@ export default function UsersPage() {
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuLabel className="text-xs text-muted-foreground">Financiero</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => selectedUser && openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}>
+                              <Zap className="h-4 w-4 mr-2 text-emerald-600" />Cobro rápido
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => setIsQuoteDialogOpen(true)}>
                               <FileText className="h-4 w-4 mr-2 text-emerald-600" />Presupuesto
                             </DropdownMenuItem>

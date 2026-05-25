@@ -560,24 +560,57 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           setRowSelection={setRowSelection}
           extraButtons={toolbarActions}
           isNarrow={isNarrow}
-          renderCard={(item: OrderItem, isSelected: boolean) => (
-            <DataCard
-              isSelected={isSelected}
-              title={item.service_name || String(item.id)}
-              subtitle={[
-                item.tooth_number ? `${t('columns.toothNumber')}: ${item.tooth_number}` : null,
-                `${t('columns.quantity')}: ${item.quantity}`,
-                item.status ? t(`status.${item.status.toLowerCase()}`) : null,
-              ].filter(Boolean).join(' · ')}
-              badge={item.total != null ? (
-                <Badge variant="outline">
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total)}
-                </Badge>
-              ) : undefined}
-              showArrow
-              onClick={() => handleRowSelectionChange([item])}
-            />
-          )}
+          renderCard={(item: OrderItem, isSelected: boolean) => {
+            const statusVariant: any = { completed: 'success', scheduled: 'info', cancelled: 'destructive' }[item.status?.toLowerCase() ?? ''] ?? 'default';
+            const canScheduleCard = canSchedule && !item.scheduled_date && item.status !== 'completed' && !item.completed_date;
+            const canCompleteCard = canComplete && !item.completed_date;
+            const fmt = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
+            return (
+              <DataCard
+                isSelected={isSelected}
+                title={item.service_name || String(item.id)}
+                badge={(
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    {item.status && (
+                      <Badge variant={statusVariant} className="text-[10px] font-normal capitalize">
+                        {t(`status.${item.status.toLowerCase()}`)}
+                      </Badge>
+                    )}
+                    {item.total != null && (
+                      <Badge variant="outline" className="text-[10px] font-medium tabular-nums">
+                        {fmt(item.total)}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                subtitle={[
+                  item.tooth_number ? `Diente ${item.tooth_number}` : null,
+                  item.quantity != null && item.unit_price ? `${item.quantity} × ${fmt(item.unit_price)}` : null,
+                  item.scheduled_date ? `${t('columns.scheduled')}: ${formatDateTime(item.scheduled_date)}` : null,
+                  item.completed_date ? `${t('columns.completed')}: ${formatDateTime(item.completed_date)}` : null,
+                  item.invoiced_date ? `Facturado: ${formatDateTime(item.invoiced_date)}` : null,
+                ].filter(Boolean).join(' · ')}
+                actions={isSelected && (canScheduleCard || canCompleteCard) ? (
+                  <div className="flex gap-1.5">
+                    {canScheduleCard && (
+                      <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1"
+                        onClick={(e) => { e.stopPropagation(); handleActionClick(item, 'schedule'); }}>
+                        <CalendarCheck className="h-3 w-3" />{t('actions.schedule')}
+                      </Button>
+                    )}
+                    {canCompleteCard && (
+                      <Button variant="default" size="sm" className="h-6 px-2 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={(e) => { e.stopPropagation(); handleActionClick(item, 'complete'); }}>
+                        <CheckCircle2 className="h-3 w-3" />{t('actions.complete')}
+                      </Button>
+                    )}
+                  </div>
+                ) : undefined}
+                showArrow
+                onClick={() => handleRowSelectionChange([item])}
+              />
+            );
+          }}
           columnTranslations={{
             id: t('columns.id'),
             service_name: t('columns.service'),
@@ -605,11 +638,11 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
         }}
         onSave={handleClinicSessionSave}
         userId={userId || ''}
+        patientName={patient?.name || patientUser?.name}
         quoteId={quoteId || ''}
         appointmentId={selectedItem?.appointment_id}
         defaultDate={selectedDate}
         serviceName={selectedItem?.service_name}
-        showTreatments={true}
         showAttachments={true}
       />
 

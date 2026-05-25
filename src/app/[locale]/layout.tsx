@@ -11,6 +11,7 @@ import { AlertNotificationsProvider } from '@/context/alert-notifications-contex
 import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
+import { BillingWizardModal } from '@/components/billing-wizard';
 
 
 export const metadata: Metadata = {
@@ -50,6 +51,7 @@ return (
             <NotificationsProvider>
               <PrivateRoute>
                 {children}
+                <BillingWizardModal />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

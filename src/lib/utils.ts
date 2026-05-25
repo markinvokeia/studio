@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, parseISO } from "date-fns"
-import type { QuoteItem } from '@/lib/types'
+import type { QuoteItem, TreatmentDetail } from '@/lib/types'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -164,6 +164,27 @@ export function fmtMultiCurrency(amounts: Record<string, number>): string {
     .sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) return '—';
   return entries.map(([c, v]) => `${_moneyFmt.format(v)} (${c})`).join(' / ');
+}
+
+/**
+ * Normaliza un tratamiento crudo del backend al shape de TreatmentDetail
+ * que usa el frontend. El backend guarda el ID del servicio como
+ * `service_catalog_id` (número), mientras que el frontend trabaja con
+ * `service_id` (string). También usa `descripcion` como fallback para
+ * `service_name` cuando el backend no lo incluye.
+ */
+export function normalizeTratamiento(raw: any): TreatmentDetail {
+  const catalogId = raw.service_catalog_id ?? raw.service_id;
+  return {
+    numero_diente: raw.numero_diente ?? null,
+    descripcion: raw.descripcion || '',
+    is_for_next_session: raw.is_for_next_session ?? false,
+    service_catalog_id: catalogId !== undefined && catalogId !== null ? catalogId : undefined,
+    service_id: catalogId !== undefined && catalogId !== null ? String(catalogId) : undefined,
+    service_name: raw.service_name || raw.descripcion || undefined,
+    unit_price: raw.unit_price ?? undefined,
+    quantity: raw.quantity ?? undefined,
+  };
 }
 
 export function sanitizeTextForSpeech(value: string): string {

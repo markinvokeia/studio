@@ -97,6 +97,7 @@ export type Document = {
 export type Role = {
   id: string;
   name: string;
+  is_default?: boolean;
 };
 
 export type Permission = {
@@ -510,6 +511,7 @@ export type Appointment = {
   services?: Service[];
   quote_id?: string; // ID del presupuesto asociado
   quote_doc_no?: string; // Número de documento del presupuesto (Doc No)
+  invoice_id?: string | null; // Factura vinculada (si existe, Cobro Rápido la reutiliza)
   // Treatment plan link — set when this appointment is linked to a treatment_seq_steps row
   treatment_seq_step_id?: number | null;
   // Cancellation metadata — populated when status='cancelled'.
@@ -561,6 +563,7 @@ export type SessionCompletedNotification = {
   appointment: Appointment;
   session?: PatientSession | null;
   discharge?: PatientDischarge | null;
+  actions_taken?: ('quote' | 'invoice' | 'schedule')[];
 };
 
 export type ReminderPanelNotification = {
@@ -691,7 +694,25 @@ export type DentalSurface = {
 export type TreatmentDetail = {
   numero_diente: number | null;
   descripcion: string;
+  // Campos que llegan del backend al leer sesiones clínicas guardadas
+  service_catalog_id?: number | string; // ID del servicio tal como lo guarda el backend
+  // Campos generados por IA / normalizados en el frontend
+  service_id?: string;    // Siempre usar este en el frontend (string, normalizado desde service_catalog_id)
+  service_name?: string;
+  unit_price?: number;
+  quantity?: number;
+  is_for_next_session?: boolean;
+  /** Frontend-only flag — stripped before sending to backend. True when added manually from catalog. */
+  is_manual?: boolean;
 };
+
+/**
+ * Servicio pre-cargado por IA desde una sesión clínica, para pre-llenar presupuesto/factura.
+ * `service_id` es siempre requerido — sólo los tratamientos con ID pueden pre-cargar forms.
+ */
+export type SessionPreloadedService =
+  Required<Pick<TreatmentDetail, 'service_id'>> &
+  Pick<TreatmentDetail, 'service_name' | 'unit_price' | 'quantity' | 'is_for_next_session' | 'numero_diente'>;
 
 export type AttachedFile = {
   id?: string;
@@ -722,6 +743,7 @@ export type PatientSession = {
   quote_id?: string;
   quote_doc_no?: string;
   appointment_id?: string;
+  invoice_id?: string | null; // Factura vinculada (si existe, Cobro Rápido la reutiliza)
 };
 
 export type DoctorPatientAllergy = {

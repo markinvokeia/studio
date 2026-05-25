@@ -18,6 +18,7 @@ export interface ImportField {
   type: ImportFieldType;
   enumValues?: string[];
   hint?: string;
+  aliases?: string[];
 }
 
 export type ImportEntityType =
@@ -47,16 +48,16 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'name', label: 'Nombre', required: true, type: 'text' },
       { key: 'email', label: 'Email', required: false, type: 'email', hint: 'email o teléfono requerido' },
       { key: 'phone_number', label: 'Teléfono', required: false, type: 'phone', hint: 'email o teléfono requerido' },
-      { key: 'identity_document', label: 'Documento de Identidad', required: false, type: 'text' },
+      { key: 'identity_document', label: 'Documento de Identidad', required: true, type: 'text' },
       { key: 'internal_id', label: 'ID Interno', required: false, type: 'text' },
-      { key: 'birthday', label: 'Fecha de Nacimiento', required: false, type: 'date', hint: 'YYYY-MM-DD' },
+      { key: 'birthday', label: 'Fecha de Nacimiento', required: false, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
       { key: 'address', label: 'Dirección', required: false, type: 'text' },
       { key: 'alternative_phone', label: 'Teléfono Alternativo', required: false, type: 'phone' },
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
       { key: 'rut', label: 'RUT', required: false, type: 'text' },
       { key: 'bank_account', label: 'Cuenta Bancaria', required: false, type: 'text' },
       { key: 'is_active', label: 'Activo', required: false, type: 'boolean', hint: 'true/false (default: true)' },
-      { key: 'is_dependent', label: 'Es Dependiente', required: false, type: 'boolean', hint: 'true/false (default: false)' },
+      { key: 'is_dependent', label: 'Es Dependiente', required: false, type: 'boolean', hint: 'true/false (default: false)', aliases: ['is_dependant'] },
       { key: 'responsible_contact_name', label: 'Nombre Contacto Responsable', required: false, type: 'text', hint: 'Nombre del paciente responsable (importar responsables primero y dependientes al final)' },
     ],
   },
@@ -117,7 +118,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'amount', label: 'Monto', required: true, type: 'number' },
       { key: 'payment_method', label: 'Método de Pago', required: true, type: 'text' },
-      { key: 'date', label: 'Fecha', required: true, type: 'date', hint: 'YYYY-MM-DD' },
+      { key: 'date', label: 'Fecha', required: true, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
       { key: 'currency', label: 'Moneda', required: false, type: 'enum', enumValues: ['USD', 'UYU'] },
       { key: 'notes', label: 'Notas', required: false, type: 'text' },
     ],
@@ -130,7 +131,7 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
       { key: 'doctor_name', label: 'Doctor', required: true, type: 'text' },
-      { key: 'date', label: 'Fecha', required: true, type: 'date', hint: 'YYYY-MM-DD' },
+      { key: 'date', label: 'Fecha', required: true, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
       { key: 'time', label: 'Hora', required: true, type: 'text', hint: 'HH:mm' },
       { key: 'service_name', label: 'Servicio', required: false, type: 'text' },
       { key: 'calendar', label: 'Calendario', required: false, type: 'text' },
@@ -144,13 +145,13 @@ export const IMPORT_SCHEMAS: Record<ImportEntityType, ImportSchema> = {
     exampleCsvUrl: 'https://drive.google.com/file/d/16wf9l3fKq-ZntuL_5WiTVhu_4gC6EzQr/view?usp=sharing',
     fields: [
       { key: 'patient_name', label: 'Paciente', required: true, type: 'text' },
-      { key: 'date', label: 'Fecha de Sesión', required: true, type: 'date', hint: 'YYYY-MM-DD' },
+      { key: 'date', label: 'Fecha de Sesión', required: true, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
       { key: 'doctor_name', label: 'Doctor', required: false, type: 'text' },
       { key: 'diagnosis', label: 'Diagnóstico', required: false, type: 'text' },
       { key: 'procedure', label: 'Procedimiento Realizado', required: false, type: 'text' },
       { key: 'clinical_notes', label: 'Notas Clínicas', required: false, type: 'text' },
       { key: 'next_appointment_plan', label: 'Plan Próxima Cita', required: false, type: 'text' },
-      { key: 'next_appointment_date', label: 'Fecha Próxima Cita', required: false, type: 'date', hint: 'YYYY-MM-DD' },
+      { key: 'next_appointment_date', label: 'Fecha Próxima Cita', required: false, type: 'date', hint: 'YYYY-MM-DD, DD/MM/YYYY u otros formatos' },
     ],
   },
 };

@@ -52,7 +52,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, QuoteItem, Service, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, Invoice, Order, PatientSession, Quote, QuoteItem, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
@@ -79,20 +79,28 @@ import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
 
 // ── Notification action deep-link ────────────────────────────────────────────
-// Reads ?act=quote|schedule|invoice&patientId=...&patientName=...&date=...
+// Reads ?act=quote|schedule|invoice&patientId=...&patientName=...&date=...&sessionRef=...
 // Triggers the corresponding dialog when the page loads from a notification card
+// If sessionRef is present, reads pre-loaded AI services from sessionStorage.
+
 
 interface NotifActCallbacks {
-  onQuote: (patientId: string, patientName: string) => void;
-  onSchedule: (patientId: string, patientName: string, date?: string, doctorId?: string, doctorName?: string) => void;
-  onInvoice: (patientId: string, patientName: string) => void;
+  onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void;
+  onSchedule: (
+    patientId: string,
+    patientName: string,
+    date?: string,
+    doctorId?: string,
+    doctorName?: string,
+    items?: SessionPreloadedService[],
+    quoteId?: string,
+    calendarId?: string,
+  ) => void;
+  onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void;
 }
 
 function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
   const searchParams = useSearchParams();
-  // Tracks the last processed params string to avoid re-firing for the same URL,
-  // while still reacting when the user clicks a new notification from the same page.
-  const lastHandledRef = React.useRef<string>('');
   // Keep callbacks in a ref so they don't need to be listed as deps.
   const cbRef = React.useRef({ onQuote, onSchedule, onInvoice });
   React.useEffect(() => { cbRef.current = { onQuote, onSchedule, onInvoice }; });
@@ -102,16 +110,35 @@ function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCal
     const patientId = searchParams.get('patientId');
     if (!act || !patientId) return;
 
-    // Deduplicate: same URL clicked twice → don't reopen dialog
-    const key = searchParams.toString();
-    if (lastHandledRef.current === key) return;
-    lastHandledRef.current = key;
-
     const patientName = searchParams.get('patientName') ?? '';
+    const sessionRef = searchParams.get('sessionRef');
     const { onQuote, onSchedule, onInvoice } = cbRef.current;
 
+    // Limpiar la URL inmediatamente para que un segundo click en la misma
+    // notificación vuelva a disparar el efecto (searchParams cambia → vacío → params).
+    // Usar replaceState evita una re-navegación/re-render de Next.js.
+    try {
+      window.history.replaceState(null, '', window.location.pathname);
+    } catch { /* no-op */ }
+
+    // Leer servicios pre-cargados por IA desde sessionStorage
+    let preloadedItems: SessionPreloadedService[] | undefined;
+    if (sessionRef) {
+      try {
+        const raw = sessionStorage.getItem(`notif-services:${sessionRef}`);
+        if (raw) {
+          preloadedItems = JSON.parse(raw) as SessionPreloadedService[];
+          sessionStorage.removeItem(`notif-services:${sessionRef}`);
+        }
+      } catch {
+        // sessionStorage no disponible — continuar sin pre-carga
+      }
+    }
+
+    const notifId = searchParams.get('notifId') ?? undefined;
+
     if (act === 'quote') {
-      onQuote(patientId, patientName);
+      onQuote(patientId, patientName, preloadedItems, notifId);
     } else if (act === 'schedule') {
       onSchedule(
         patientId,
@@ -119,9 +146,12 @@ function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCal
         searchParams.get('date') ?? undefined,
         searchParams.get('doctorId') ?? undefined,
         searchParams.get('doctorName') ?? undefined,
+        preloadedItems,
+        searchParams.get('quoteId') ?? undefined,
+        searchParams.get('calendarId') ?? undefined,
       );
     } else if (act === 'invoice') {
-      onInvoice(patientId, patientName);
+      onInvoice(patientId, patientName, preloadedItems, notifId);
     }
   }, [searchParams]);
 
@@ -229,8 +259,9 @@ async function getAppointments(
             const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
             const calendar = calendars.find(c => String(c.id) === calendarSourceId);
 
-            const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid;
-            const doctor = doctors.find(d => String(d.id) === String(doctorId) || (apiAppt.doctor_email && d.email === apiAppt.doctor_email) || (apiAppt.doctorEmail && d.email === apiAppt.doctorEmail) || (apiAppt.doctoremail && d.email === apiAppt.doctoremail));
+            const doctorId = apiAppt.doctor_id || apiAppt.doctorId || apiAppt.doctorid || apiAppt.assignee_id;
+            const doctorEmail = apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || apiAppt.assignee_email;
+            const doctor = doctors.find(d => String(d.id) === String(doctorId) || (doctorEmail && d.email === doctorEmail));
 
             // Try to find a service match from summary or from the services array if it exists
             const apiApptServices = Array.isArray(apiAppt.services) ? apiAppt.services : [];
@@ -262,9 +293,9 @@ async function getAppointments(
                     (!isWhite(cColor) ? cColor : null);
             }
 
-            const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid;
-            const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
-            const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || doctor?.name || 'Doctor';
+            const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid || apiAppt.user_id || apiAppt.userid;
+            const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || apiAppt.user_name || apiAppt.username || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
+            const doctorName = apiAppt.doctor_name || apiAppt.doctorName || apiAppt.doctorname || apiAppt.assignee_name || doctor?.name || 'Doctor';
 
             const endNode = apiAppt.end_time || apiAppt.end;
             const rawEndDateTimeStr = typeof endNode === 'string' ? endNode : (endNode?.dateTime);
@@ -278,11 +309,11 @@ async function getAppointments(
                 id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id || ''),
                 patientId: String(patientId || ''),
                 patientName: patientName,
-                patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail,
-                patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone,
+                patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail || apiAppt.user_email,
+                patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone || apiAppt.user_phone || apiAppt.phone_number,
                 doctorId: String(doctorId || ''),
                 doctorName: doctorName,
-                doctorEmail: apiAppt.doctor_email || apiAppt.doctorEmail || apiAppt.doctoremail || doctor?.email || '',
+                doctorEmail: doctorEmail || doctor?.email || '',
                 summary: apiAppt.summary || t('createDialog.none'),
                 service_name: apiAppt.summary || t('createDialog.none'),
                 description: apiAppt.description || '',
@@ -312,7 +343,8 @@ async function getAppointments(
                     is_active: true
                 } as Service)) : [],
                 quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
-                quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined
+                quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
+                invoice_id: apiAppt.invoice_id != null ? String(apiAppt.invoice_id) : null,
             };
 
             return appointment;
@@ -413,7 +445,7 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
 
-    const { refreshNotifications: refreshReminders } = useNotifications();
+    const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
 
     const { toast } = useToast();
@@ -521,6 +553,9 @@ export default function AppointmentsPage() {
         time?: string;
         doctorId?: string;
         doctorName?: string;
+        services?: SessionPreloadedService[];
+        quoteId?: string;
+        calendarId?: string;
     } | null>(null);
 
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar'; value: string }) => {
@@ -1000,24 +1035,99 @@ export default function AppointmentsPage() {
 
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
+    const [quickQuoteInitialItems, setQuickQuoteInitialItems] = React.useState<SessionPreloadedService[] | undefined>();
+    // notifId pendiente: se usa para marcar la acción en el contexto de notificaciones
+    // solo cuando el guardado del formulario es exitoso (no al abrir el dialog).
+    const [pendingQuoteNotifId, setPendingQuoteNotifId] = React.useState<string | undefined>();
     const [isInvoiceFormOpen, setIsInvoiceFormOpen] = React.useState(false);
     const [invoicePatient, setInvoicePatient] = React.useState<UserType | null>(null);
+    const [invoiceInitialItems, setInvoiceInitialItems] = React.useState<SessionPreloadedService[] | undefined>();
+    const [pendingInvoiceNotifId, setPendingInvoiceNotifId] = React.useState<string | undefined>();
 
     // ── Notification deep-link handlers ───────────────────────────────────────
-    const handleNotifQuote = React.useCallback((patientId: string, patientName: string) => {
-        setQuickQuotePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setIsQuickQuoteOpen(true);
-    }, []);
+    /**
+     * Enriches preloaded AI service items with prices from the loaded services catalog.
+     * AI treatments only carry service_id/name — prices must come from the catalog.
+     */
+    const enrichItemsWithPrices = React.useCallback((items?: SessionPreloadedService[]): SessionPreloadedService[] | undefined => {
+        if (!items) return undefined;
+        return items.map(item => {
+            if (item.unit_price != null && item.unit_price > 0) return item;
+            const catalogService = services.find(s => String(s.id) === String(item.service_id));
+            return {
+                ...item,
+                unit_price: catalogService?.price ?? item.unit_price,
+                service_name: item.service_name || catalogService?.name,
+            };
+        });
+    }, [services]);
 
-    const handleNotifSchedule = React.useCallback((patientId: string, patientName: string, date?: string, doctorId?: string, doctorName?: string) => {
-        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName });
+    const handleNotifQuote = React.useCallback((patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
+        setQuickQuotePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
+        setQuickQuoteInitialItems(enrichItemsWithPrices(items));
+        setPendingQuoteNotifId(notifId);
+        setIsQuickQuoteOpen(true);
+    }, [enrichItemsWithPrices]);
+
+    const handleNotifSchedule = React.useCallback((
+        patientId: string,
+        patientName: string,
+        date?: string,
+        doctorId?: string,
+        doctorName?: string,
+        items?: SessionPreloadedService[],
+        quoteId?: string,
+        calendarId?: string,
+    ) => {
+        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId });
         setCreateOpen(true);
     }, []);
 
-    const handleNotifInvoice = React.useCallback((patientId: string, patientName: string) => {
+    const handleNotifInvoice = React.useCallback((patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setInvoicePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
+        setInvoiceInitialItems(enrichItemsWithPrices(items));
+        setPendingInvoiceNotifId(notifId);
         setIsInvoiceFormOpen(true);
-    }, []);
+    }, [enrichItemsWithPrices]);
+
+    // Resolved initialData for the "schedule next" dialog — memoized to avoid a new
+    // object reference on every render while the dialog is open.
+    const scheduleNextInitialData = React.useMemo(() => {
+        if (!scheduleNextData) return undefined;
+        const doctor = scheduleNextData.doctorId
+            ? (doctors.find(d => String(d.id) === scheduleNextData.doctorId) ?? null)
+            : null;
+        const calendar = scheduleNextData.calendarId
+            ? (calendars.find(c => String(c.id) === scheduleNextData.calendarId) ?? null)
+            : null;
+        // Resolve pre-loaded AI services against the catalog.
+        // Return undefined (not []) when nothing resolves so the form stays
+        // in a clean uninitialized state; when the catalog finishes loading
+        // the memo will recompute and the form will reinitialize correctly.
+        const catalogMatches = scheduleNextData.services && scheduleNextData.services.length > 0
+            ? services.filter(s => scheduleNextData.services!.some(item => String(item.service_id) === String(s.id)))
+            : null;
+        const resolvedServices = catalogMatches && catalogMatches.length > 0 ? catalogMatches : undefined;
+        const quote: Quote | null = scheduleNextData.quoteId
+            ? {
+                id: scheduleNextData.quoteId,
+                user_id: scheduleNextData.patientId,
+                total: 0,
+                status: 'draft',
+                payment_status: 'unpaid',
+                billing_status: 'not_invoiced',
+                createdAt: '',
+            }
+            : null;
+        return {
+            user: { id: scheduleNextData.patientId, name: scheduleNextData.patientName } as UserType,
+            date: scheduleNextData.date,
+            doctor,
+            calendar,
+            services: resolvedServices,
+            quote,
+        };
+    }, [scheduleNextData, doctors, calendars, services]);
     // ─────────────────────────────────────────────────────────────────────────
 
     const loadInitialData = React.useCallback(async () => {
@@ -1056,6 +1166,15 @@ export default function AppointmentsPage() {
             loadAppointments();
         }
     }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
+
+    // Silent calendar refresh when the notification system detects new events
+    // (new appointments, status changes, completed sessions) or after a
+    // notification action is taken from the panel while on this page.
+    React.useEffect(() => {
+        const handler = () => { if (!isDataLoading) forceRefresh(); };
+        window.addEventListener('clinic:calendar:refresh', handler);
+        return () => window.removeEventListener('clinic:calendar:refresh', handler);
+    }, [forceRefresh, isDataLoading]);
 
     // Moved searches to AppointmentFormDialog
 
@@ -1722,12 +1841,7 @@ export default function AppointmentsPage() {
                 onOpenChange={handleOpenChange}
                 editingAppointment={editingAppointment}
                 mode={isReschedulingMode ? 'reschedule' : (editingAppointment ? 'edit' : 'create')}
-                initialData={scheduleNextData
-                    ? {
-                        user: { id: scheduleNextData.patientId, name: scheduleNextData.patientName } as any,
-                        date: scheduleNextData.date,
-                    }
-                    : slotInitialData || undefined}
+                initialData={scheduleNextInitialData ?? slotInitialData ?? undefined}
                 onSaveSuccess={handleSaveSuccess}
                 calendars={calendars}
                 doctors={doctors}
@@ -1758,6 +1872,7 @@ export default function AppointmentsPage() {
                     }}
                     onSave={handleSaveClinicSession}
                     userId={clinicSessionAppointment.patientId}
+                    patientName={clinicSessionAppointment.patientName}
                     appointmentId={clinicSessionAppointment.id}
                     quoteId={clinicSessionAppointment.quote_id}
                     serviceName={clinicSessionAppointment.services && clinicSessionAppointment.services.length > 0
@@ -1766,7 +1881,6 @@ export default function AppointmentsPage() {
                     defaultDate={clinicSessionAppointment.start?.dateTime
                         ? parseISO(clinicSessionAppointment.start.dateTime.replace(/Z$/, ''))
                         : new Date(clinicSessionAppointment.date)}
-                    showTreatments={true}
                     showAttachments={true}
                     prefillData={{
                         doctor_id: clinicSessionAppointment.doctorId,
@@ -1805,6 +1919,7 @@ export default function AppointmentsPage() {
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
+                onBillingSuccess={loadAppointments}
             />
             <ReminderPanel
                 open={isReminderPanelOpen}
@@ -1823,20 +1938,34 @@ export default function AppointmentsPage() {
                 open={isQuickQuoteOpen}
                 onOpenChange={(open) => {
                     setIsQuickQuoteOpen(open);
-                    if (!open) setQuickQuotePatient(null);
+                    if (!open) { setQuickQuotePatient(null); setQuickQuoteInitialItems(undefined); setPendingQuoteNotifId(undefined); }
                 }}
                 initialData={{ user: quickQuotePatient }}
+                initialItems={quickQuoteInitialItems}
                 onSaveSuccess={() => setIsQuickQuoteOpen(false)}
+                onQuoteCreated={() => {
+                    if (pendingQuoteNotifId) {
+                        markSessionAction(pendingQuoteNotifId, 'quote');
+                        setPendingQuoteNotifId(undefined);
+                    }
+                }}
             />
             <InvoiceFormDialog
                 isOpen={isInvoiceFormOpen}
                 onOpenChange={(open) => {
                     setIsInvoiceFormOpen(open);
-                    if (!open) setInvoicePatient(null);
+                    if (!open) { setInvoicePatient(null); setInvoiceInitialItems(undefined); setPendingInvoiceNotifId(undefined); }
                 }}
-                onInvoiceCreated={() => setIsInvoiceFormOpen(false)}
+                onInvoiceCreated={() => {
+                    if (pendingInvoiceNotifId) {
+                        markSessionAction(pendingInvoiceNotifId, 'invoice');
+                        setPendingInvoiceNotifId(undefined);
+                    }
+                    setIsInvoiceFormOpen(false);
+                }}
                 isSales={true}
                 initialUser={invoicePatient ?? undefined}
+                initialItems={invoiceInitialItems}
             />
 
             {/* Notification panel action deep-link */}

@@ -15,6 +15,7 @@ import type {
   ToothPerioData,
 } from '@/lib/types';
 import { upsertOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
+import { ensureDoctorOption } from '@/services/doctors';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
@@ -47,7 +48,9 @@ import {
   Stethoscope,
   User,
   X,
+  Zap,
 } from 'lucide-react';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -177,12 +180,15 @@ interface DentalRecordViewerProps {
   appointmentId?: string;
   /** When true, auto-enters edit mode for the snapshot matching appointmentId after load */
   autoNavigateToAppointmentSession?: boolean;
+  /** When true, hides the Cobro Rápido button (e.g. in doctor workspace) */
+  hideBillingWizard?: boolean;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
+  const { open: openBillingWizard } = useBillingWizard();
 
   const [mode, setMode] = useState<Mode>('odontogram');
   const [history, setHistory] = useState<OdontogramSnapshot[]>([]);
@@ -228,10 +234,11 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     Promise.all([
       fetchOdontograms(patientId),
       fetchDoctors(),
-    ]).then(([snapshots, docs]) => {
+    ]).then(async ([snapshots, docs]) => {
+      const nextDoctors = await ensureDoctorOption(docs, doctorId, doctorName);
       setHistory(snapshots);
       setHistoryIndex(snapshots.length - 1);
-      setDoctors(docs);
+      setDoctors(nextDoctors);
       setIsLoading(false);
 
       if (autoNavigateToAppointmentSession && appointmentId) {
@@ -637,6 +644,18 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               </Button>
             )}
 
+            {patientId && !hideBillingWizard && (
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-7 w-7 shrink-0"
+                title="Cobro Rápido"
+                onClick={() => openBillingWizard({ patientId, patientName, isSales: true })}
+              >
+                <Zap className="h-3.5 w-3.5 text-emerald-600" />
+              </Button>
+            )}
+
             {/* Layout toggle — mobile */}
             <Button
               size="icon" variant="ghost"
@@ -717,6 +736,18 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="gap-1.5 text-xs shrink-0" title={blockNewSession ? blockNewSessionMessage : undefined}>
               <Plus className="h-3.5 w-3.5" />
               {t('newSession')}
+            </Button>
+          )}
+
+          {patientId && !hideBillingWizard && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs shrink-0"
+              onClick={() => openBillingWizard({ patientId, patientName, isSales: true })}
+            >
+              <Zap className="h-3.5 w-3.5 text-emerald-600" />
+              Cobro Rápido
             </Button>
           )}
 
@@ -1071,7 +1102,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
           onSave={handleSave}
           onCancel={handleCancelEditing}
           lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
-          lockDoctorName={doctorName ?? (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
+          lockDoctorName={doctorName || (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
           isEdit={!!editingSessionId}
         />
       )}

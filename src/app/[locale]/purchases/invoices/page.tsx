@@ -2,13 +2,14 @@
 'use client';
 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
 import { CreditNotesTable } from '@/components/tables/credit-notes-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
-import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,7 +33,7 @@ import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X } from 'lucide-react';
+import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -235,6 +236,7 @@ function InvoicesPageContent() {
     const [invoiceType, setInvoiceType] = React.useState('all');
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+    const { open: openBillingWizard } = useBillingWizard();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
     const [invoiceForPayment, setInvoiceForPayment] = React.useState<Invoice | null>(null);
 
@@ -723,10 +725,16 @@ function InvoicesPageContent() {
                                         </Button>
                                     )}
                                     {canAddPaymentAction && (
-                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setInvoiceForPayment(selectedInvoice); setIsPaymentDialogOpen(true); }}>
-                                            <CreditCard className="h-3.5 w-3.5" />
-                                            {t('paymentDialog.add')}
-                                        </Button>
+                                        <>
+                                            <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openBillingWizard({ invoiceId: selectedInvoice.id, invoice: selectedInvoice, patientId: selectedInvoice.user_id, patientName: selectedInvoice.user_name, isSales: false }, () => { loadInvoices(); loadPayments(); })}>
+                                                <Zap className="h-3.5 w-3.5" />
+                                                {t('paymentDialog.add')}
+                                            </Button>
+                                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setInvoiceForPayment(selectedInvoice); setIsPaymentDialogOpen(true); }}>
+                                                <CreditCard className="h-3.5 w-3.5" />
+                                                {t('paymentDialog.addClassic')}
+                                            </Button>
+                                        </>
                                     )}
                                     {(canConfirmAction || canAddPaymentAction) && <Separator orientation="vertical" className="h-6 mx-1" />}
                                     <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintInvoice(selectedInvoice)}>
@@ -977,13 +985,6 @@ function InvoicesPageContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <InvoicePaymentDialog
-                isOpen={isPaymentDialogOpen}
-                onClose={() => { setIsPaymentDialogOpen(false); setInvoiceForPayment(null); }}
-                invoice={invoiceForPayment}
-                isSales={false}
-                onSuccess={() => { loadInvoices(); loadPayments(); }}
-            />
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1003,6 +1004,13 @@ function InvoicesPageContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <InvoicePaymentDialog
+                isOpen={isPaymentDialogOpen}
+                onClose={() => { setIsPaymentDialogOpen(false); setInvoiceForPayment(null); }}
+                invoice={invoiceForPayment}
+                isSales={false}
+                onSuccess={() => { loadInvoices(); loadPayments(); }}
+            />
         </>
     );
 }
@@ -1068,7 +1076,7 @@ const ItemFormDialog = ({
                     </div>
                 </DialogHeader>
                 <Form {...itemForm}>
-                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
                         <DialogBody className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}

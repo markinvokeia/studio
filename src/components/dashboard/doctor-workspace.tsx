@@ -814,7 +814,7 @@ function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: Doc
         } catch {}
 
         return (
-          <Collapsible key={session.sesion_id} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
+          <Collapsible key={`${session.sesion_id}-${index}`} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
             <div className="relative flex items-start gap-3 pl-9 sm:pl-[4.75rem]">
               {/* Date + dot in the left gutter */}
               <div className="absolute left-0 top-0 flex items-center gap-1.5">
@@ -1239,7 +1239,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
     if (!selectedAppointment?.patientId) return;
 
+    // Obtener sesion_id: para updates ya lo tenemos; para creates lo retorna createSession.
+    let sesionId: number | undefined;
     if (linkedSession?.sesion_id) {
+      sesionId = linkedSession.sesion_id;
       await updateSession(
         linkedSession.sesion_id,
         selectedAppointment.patientId,
@@ -1249,7 +1252,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         linkedSession.archivos_adjuntos,
       );
     } else {
-      await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
+      sesionId = await createSession(selectedAppointment.patientId, data, data.archivos_adjuntos);
     }
 
     if (selectedAppointment.status !== 'completed') {
@@ -1261,7 +1264,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       });
     }
 
-      await loadLinkedSession(selectedAppointment);
+    await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
     createSession,
@@ -1533,6 +1536,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   autoNavigateToAppointmentSession={isOdontogramSession}
                   blockNewSession={isOdontogramSession}
                   appointmentId={selectedAppointment.id}
+                  hideBillingWizard
                 />
               </div>
             )}
@@ -1608,6 +1612,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           onOpenChange={handleClinicSessionOpenChange}
           onSave={handleSaveClinicSession}
           userId={selectedAppointment.patientId}
+          patientName={selectedAppointment.patientName}
           appointmentId={selectedAppointment.id}
           quoteId={selectedAppointment.quote_id}
           serviceName={selectedAppointment.services?.length
@@ -1616,7 +1621,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           defaultDate={selectedAppointment.start?.dateTime
             ? parseISO(selectedAppointment.start.dateTime.replace(/Z$/, ''))
             : parseISO(`${formatDate(selectedAppointment.date)}T${selectedAppointment.time || '00:00'}:00`)}
-          showTreatments={true}
           showAttachments={true}
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}

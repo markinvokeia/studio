@@ -27,7 +27,7 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
 } from '@/lib/types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, normalizeTratamiento } from '@/lib/utils';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -65,15 +65,18 @@ function saveNotifications(userId: string, notifications: UnifiedNotification[])
   } catch {}
 }
 
-function readApptStatuses(doctorId: string, dateKey: string): Record<string, string> {
-  if (typeof window === 'undefined') return {};
+// Returns null when no snapshot exists for today (first poll ever), or {} when initialized
+// but empty (doctor had no appointments at first poll). This distinction is critical:
+// hasPreviousSnapshot must be based on "did we poll before?" not "were there appointments?".
+function readApptStatuses(doctorId: string, dateKey: string): Record<string, string> | null {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(`${APPT_STATUSES_PREFIX}:${doctorId}:${dateKey}`);
-    if (!raw) return {};
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
     return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed) ? parsed : {};
   } catch {
-    return {};
+    return null;
   }
 }
 
@@ -244,6 +247,7 @@ function normalizeAppointmentsResponse(data: unknown): Appointment[] {
           : [],
         quote_id: a.quote_id || a.quoteId,
         quote_doc_no: a.quote_doc_no || a.quoteDocNo,
+        invoice_id: a.invoice_id != null ? String(a.invoice_id) : null,
       } as Appointment;
     })
     .filter((a): a is Appointment => a !== null)
@@ -263,6 +267,7 @@ interface NotificationsContextValue {
   dismissNotification: (id: string) => void;
   clearAll: () => void;
   refreshNotifications: () => void;
+  markSessionAction: (notificationId: string, action: 'quote' | 'invoice' | 'schedule') => void;
 }
 
 const NotificationsContext = React.createContext<NotificationsContextValue>({
@@ -276,6 +281,7 @@ const NotificationsContext = React.createContext<NotificationsContextValue>({
   dismissNotification: () => undefined,
   clearAll: () => undefined,
   refreshNotifications: () => undefined,
+  markSessionAction: () => undefined,
 });
 
 export function useNotifications() {
@@ -312,6 +318,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   const [notifications, setNotifications] = React.useState<UnifiedNotification[]>([]);
   const [isPanelOpen, setIsPanelOpen] = React.useState(false);
+  const markSessionAction = React.useCallback((notificationId: string, action: 'quote' | 'invoice' | 'schedule') => {
+    setNotifications((prev) =>
+      prev.map((n) => {
+        if (n.id !== notificationId || n.type !== 'session_completed') return n;
+        const current = n.actions_taken ?? [];
+        if (current.includes(action)) return n;
+        return { ...n, actions_taken: [...current, action] };
+      }),
+    );
+  }, []);
   const mountedRef = React.useRef(false);
   const secretaryProcessingRef = React.useRef<Set<string>>(new Set());
   // Prevents write-back loop when syncing notifications received from another tab
@@ -377,16 +393,18 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       });
       const appointments = normalizeAppointmentsResponse(data);
       const dateKey = formatDate(new Date());
-      const previousStatuses = readApptStatuses(userId, dateKey);
+      const previousStatusesOrNull = readApptStatuses(userId, dateKey);
       const locallyUpdated = readLocallyUpdatedIds(userId);
       const locallyCreated = readLocallyCreatedIds(userId);
 
       const newStatuses: Record<string, string> = {};
       const changed: AppointmentStatusChangeNotification[] = [];
       const newAppts: NewAppointmentNotification[] = [];
-      // Only detect "new" appointments when we already had a previous snapshot.
-      // On the very first poll (empty previousStatuses) we just record baselines.
-      const hasPreviousSnapshot = Object.keys(previousStatuses).length > 0;
+      // null means this is the very first poll today (no snapshot written yet).
+      // An empty {} means we polled before but the doctor had no appointments then.
+      // Both cases must be distinguished: only {} (initialized) enables new-appt detection.
+      const hasPreviousSnapshot = previousStatusesOrNull !== null;
+      const previousStatuses = previousStatusesOrNull ?? {};
 
       for (const appt of appointments) {
         newStatuses[appt.id] = appt.status;
@@ -437,18 +455,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
       const newStatuses: Record<string, string> = {};
       const newlyCompleted: Appointment[] = [];
-      // Suppress sessions the current user completed themselves from the workspace
-      const locallyUpdated = readLocallyUpdatedIds(userId);
 
       for (const appt of appointments) {
         newStatuses[appt.id] = appt.status;
         const prev = previousStatuses[appt.id];
         if (
           appt.status === 'completed' &&
-          prev !== undefined &&
           prev !== 'completed' &&
-          !secretaryProcessingRef.current.has(appt.id) &&
-          !locallyUpdated.has(appt.id)
+          !secretaryProcessingRef.current.has(appt.id)
         ) {
           newlyCompleted.push(appt);
         }
@@ -467,7 +481,14 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
                   ? rawSessions
                   : ((rawSessions as any)?.patient_sessions ?? (rawSessions as any)?.data ?? []);
                 const sessions: PatientSession[] = arr
-                  .map((s: any) => ({ ...s, sesion_id: Number(s.sesion_id) }))
+                  .map((s: any) => ({
+                    ...s,
+                    sesion_id: Number(s.sesion_id),
+                    // Normalizar tratamientos para mapear service_catalog_id → service_id
+                    tratamientos: Array.isArray(s.tratamientos)
+                      ? s.tratamientos.map(normalizeTratamiento)
+                      : [],
+                  }))
                   .sort((a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''));
                 return sessions.find((s) => String(s.appointment_id ?? '') === appt.id) ?? sessions[0] ?? null;
               })
@@ -604,6 +625,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const novel = notifications.filter((n) => !alertedNotifIdsRef.current.has(n.id) && !n.seen);
     if (novel.length === 0) return;
     novel.forEach((n) => alertedNotifIdsRef.current.add(n.id));
+    // Signal the calendar page to silently refresh — new notifications often
+    // mean appointment state changed (new booking, status update, session done).
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    }
 
     const newAppts = novel.filter((n): n is NewAppointmentNotification => n.type === 'new_appointment');
     const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');
@@ -640,6 +666,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
             : n.reminder.title,
         });
       });
+      // Mark all fired notifications as seen so they don't re-fire on page reload.
+      const novelIds = new Set(novel.map((n) => n.id));
+      setNotifications((ns) => ns.map((n) => novelIds.has(n.id) ? { ...n, seen: true } : n));
     } else {
       if (novel.length > 0) setAlertQueue((prev) => [...prev, ...novel]);
     }
@@ -668,8 +697,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const pendingCount = notifications.length;
 
   const value = React.useMemo<NotificationsContextValue>(
-    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications }),
-    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications],
+    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction }),
+    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction],
   );
 
   return (

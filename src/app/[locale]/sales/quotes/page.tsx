@@ -1,6 +1,7 @@
 'use client';
 
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
@@ -19,7 +20,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DetailHeader } from '@/components/ui/detail-header';
 import {
     Dialog,
@@ -33,7 +34,6 @@ import {
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import {
     Select,
@@ -43,12 +43,12 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -60,7 +60,7 @@ import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
-import { AlertTriangle, CalendarDays, Check, CheckCircle, ChevronsUpDown, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, Stethoscope, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -81,6 +81,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    patient_confirmed: z.boolean().default(false),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
@@ -354,8 +355,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
     if (!quoteId) return [];
     try {
         const data = await api.get(API_ROUTES.SALES.QUOTES_ITEMS, { quote_id: quoteId });
-        const normalized = normalizeApiResponse(data);
-        const itemsData = normalized.items;
+        const itemsData = Array.isArray(data) ? data : (data.items || data.data || data.result || []);
 
         const quoteItems = itemsData.map((apiItem: any) => ({
             id: apiItem.id ? String(apiItem.id) : t('defaults.notAvailable'),
@@ -556,30 +556,6 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
     }
 }
 
-async function getUsers(t: (key: string) => string, search?: string): Promise<User[]> {
-    try {
-        const params: any = { filter_type: 'PACIENTE' };
-        if (search?.trim()) {
-            params.search = search.trim();
-        }
-        const responseData = await api.get(API_ROUTES.SALES.USERS, params);
-        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-        const usersData = Array.isArray(data.data) ? data.data : [];
-        return usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : t('defaults.noName'),
-            name: apiUser.name || t('defaults.noName'),
-            email: apiUser.email || t('defaults.noEmail'),
-            phone_number: apiUser.phone_number || '000-000-0000',
-            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-            avatar: '',
-            identity_document: ''
-        }));
-    } catch (error) {
-        console.error("Failed to fetch users:", error);
-        return [];
-    }
-}
-
 async function upsertQuote(quoteData: QuoteFormValues, t: (key: string) => string) {
     const responseData = await api.post(API_ROUTES.SALES.QUOTES_UPSERT, { ...quoteData, is_sales: true });
     if (Array.isArray(responseData) && responseData[0]?.code >= 400) {
@@ -628,6 +604,7 @@ export default function QuotesPage() {
     const { user, activeCashSession } = useAuth();
     const viewportNarrow = useViewportNarrow();
     const { hasPermission } = usePermissions();
+    const { open: openBillingWizard } = useBillingWizard();
 
     // Permission checks for UI elements (used in this page and child components)
     const canViewList = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_LIST);
@@ -698,11 +675,7 @@ export default function QuotesPage() {
     const [selectedQuoteItem, setSelectedQuoteItem] = React.useState<QuoteItem | null>(null);
     const [quoteItemRowSelection, setQuoteItemRowSelection] = React.useState<RowSelectionState>({});
 
-    const [allUsers, setAllUsers] = React.useState<User[]>([]);
-    const [userSearchTerm, setUserSearchTerm] = React.useState('');
-    const debouncedUserSearch = useDebounce(userSearchTerm, 300);
-    const [isLoadingUsers, setIsLoadingUsers] = React.useState(false);
-    const [isUserSearchOpen, setUserSearchOpen] = React.useState(false);
+    const [selectedQuoteUser, setSelectedQuoteUser] = React.useState<User | null>(null);
     const [allServices, setAllServices] = React.useState<Service[]>([]);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -880,42 +853,9 @@ export default function QuotesPage() {
         }
     }, [selectedInvoice, loadInvoiceItems]);
 
-    const loadUsersForQuoteDialog = React.useCallback(async () => {
-        try {
-            const users = await getUsers(t);
-            setAllUsers(users);
-        } catch (error) {
-            toast({ variant: 'destructive', title: t('errors.errorTitle'), description: t('errors.failedToLoadUsers') });
-        }
-    }, [t, toast]);
-
-    // Fetch users when search term changes (debounced) or when dialog opens
-    React.useEffect(() => {
-        const fetchUsers = async () => {
-            // Only fetch if dialog is open and either we have a search term or it's initial load
-            if (!isQuoteDialogOpen) return;
-            setIsLoadingUsers(true);
-            try {
-                const users = await getUsers(t, debouncedUserSearch);
-                setAllUsers(users);
-            } catch (error) {
-                console.error('Failed to fetch users:', error);
-            } finally {
-                setIsLoadingUsers(false);
-            }
-        };
-        fetchUsers();
-    }, [debouncedUserSearch, isQuoteDialogOpen, t]);
-
-    // Reset user search when dialog closes
-    React.useEffect(() => {
-        if (!isQuoteDialogOpen) {
-            setUserSearchTerm('');
-        }
-    }, [isQuoteDialogOpen]);
-
     const handleCreateQuote = async () => {
         setEditingQuote(null);
+        setSelectedQuoteUser(null);
         const sessionRate = getSessionExchangeRate();
         const defaultCurrency = clinic?.currency || 'UYU';
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
@@ -923,7 +863,7 @@ export default function QuotesPage() {
             {
                 user_id: '', total: 0, currency: defaultCurrency, status: 'draft',
                 payment_status: 'unpaid', billing_status: 'not invoiced',
-                exchange_rate: exchangeRate, created_at: new Date(), notes: '', items: []
+                exchange_rate: exchangeRate, created_at: new Date(), notes: '', patient_confirmed: false, items: []
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -992,6 +932,7 @@ export default function QuotesPage() {
                 keepTouched: false, keepIsValid: false, keepSubmitCount: false
             }
         );
+        setSelectedQuoteUser(quote.user_id ? { id: quote.user_id, name: quote.user_name || '', email: '', phone_number: '', is_active: true, avatar: '' } : null);
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
     };
@@ -1040,11 +981,29 @@ export default function QuotesPage() {
 
             const payload = {
                 ...values,
+                status: 'draft',
                 billing_status: normalizeBilling(values.billing_status),
                 created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit
             };
-            await upsertQuote(payload as any, t);
+            const response = await upsertQuote(payload as any, t);
+
+            if (!editingQuote && values.patient_confirmed) {
+                const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
+                const quoteId = quoteData?.id ? String(quoteData.id) : null;
+                if (quoteId) {
+                    const confirmResponse = await api.post(API_ROUTES.SALES.QUOTE_CONFIRM, {
+                        quote_number: quoteId,
+                        confirm_reject: 'confirm',
+                        is_sales: true,
+                        notes: '',
+                    });
+                    if (Array.isArray(confirmResponse) && confirmResponse[0]?.code >= 400) {
+                        throw new Error(confirmResponse[0]?.message || t('toast.quoteError'));
+                    }
+                }
+            }
+
             toast({ title: editingQuote ? t('toast.quoteUpdated') : t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             setIsQuoteDialogOpen(false);
             setEditingQuote(null);
@@ -1758,12 +1717,33 @@ export default function QuotesPage() {
                                                     {selectedInvoice && (
                                                         <div className="flex h-full flex-col overflow-hidden bg-card">
                                                             <SheetHeader className="border-b border-border px-6 py-4 text-left">
-                                                                <div className="flex items-start gap-3">
-                                                                    <div className="header-icon-circle mt-0.5"><Receipt className="h-5 w-5" /></div>
-                                                                    <div className="min-w-0">
-                                                                        <SheetTitle className="truncate text-2xl font-bold">{selectedInvoice.doc_no || selectedInvoice.id}</SheetTitle>
-                                                                        <SheetDescription className="truncate text-sm">{selectedInvoice.user_name}</SheetDescription>
+                                                                <div className="flex items-start justify-between gap-3">
+                                                                    <div className="flex items-start gap-3 min-w-0">
+                                                                        <div className="header-icon-circle mt-0.5"><Receipt className="h-5 w-5" /></div>
+                                                                        <div className="min-w-0">
+                                                                            <SheetTitle className="truncate text-2xl font-bold">{selectedInvoice.doc_no || selectedInvoice.id}</SheetTitle>
+                                                                            <SheetDescription className="truncate text-sm">{selectedInvoice.user_name}</SheetDescription>
+                                                                        </div>
                                                                     </div>
+                                                                    {selectedInvoice.status.toLowerCase() === 'booked' && selectedInvoice.payment_status?.toLowerCase() !== 'paid' && (
+                                                                        <Button
+                                                                            size="sm"
+                                                                            className="shrink-0"
+                                                                            onClick={() => openBillingWizard(
+                                                                                {
+                                                                                    invoiceId: selectedInvoice.id,
+                                                                                    invoice: selectedInvoice,
+                                                                                    patientId: selectedInvoice.user_id,
+                                                                                    patientName: selectedInvoice.user_name,
+                                                                                    isSales: true,
+                                                                                },
+                                                                                () => { loadInvoices(); loadPayments(); }
+                                                                            )}
+                                                                        >
+                                                                            <CreditCard className="h-4 w-4 mr-1.5" />
+                                                                            {tRoot('InvoicesPage.paymentDialog.add')}
+                                                                        </Button>
+                                                                    )}
                                                                 </div>
                                                             </SheetHeader>
                                                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -1920,7 +1900,7 @@ export default function QuotesPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddQuoteItem(); } }}>
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {quoteSubmissionError && (
                                     <Alert variant="destructive">
@@ -1936,38 +1916,20 @@ export default function QuotesPage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.user')}</FormLabel>
-                                                <Popover open={isUserSearchOpen} onOpenChange={setUserSearchOpen}>
-                                                    <PopoverTrigger asChild>
-                                                        <FormControl>
-                                                            <Button variant="outline" role="combobox" className={cn("w-full justify-between", !field.value && "text-muted-foreground")}>
-                                                                {field.value ? allUsers.find(user => user.id === field.value)?.name : t('quoteDialog.selectUser')}
-                                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                            </Button>
-                                                        </FormControl>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                                        <Command shouldFilter={false}>
-                                                            <CommandInput placeholder={t('quoteDialog.searchUser')} value={userSearchTerm} onValueChange={setUserSearchTerm} />
-                                                            <CommandList>
-                                                                {isLoadingUsers ? (
-                                                                    <CommandEmpty>Searching...</CommandEmpty>
-                                                                ) : (
-                                                                    <>
-                                                                        <CommandEmpty>{t('quoteDialog.noUserFound')}</CommandEmpty>
-                                                                        <CommandGroup>
-                                                                            {allUsers.map((user) => (
-                                                                                <CommandItem value={user.name} key={user.id} onSelect={() => { quoteForm.setValue("user_id", user.id); setUserSearchOpen(false); }}>
-                                                                                    <Check className={cn("mr-2 h-4 w-4", user.id === field.value ? "opacity-100" : "opacity-0")} />
-                                                                                    {user.name}
-                                                                                </CommandItem>
-                                                                            ))}
-                                                                        </CommandGroup>
-                                                                    </>
-                                                                )}
-                                                            </CommandList>
-                                                        </Command>
-                                                    </PopoverContent>
-                                                </Popover>
+                                                <FormControl>
+                                                    <UserSelector
+                                                        filterType="PACIENTE"
+                                                        isSales={true}
+                                                        value={field.value}
+                                                        selectedUserName={selectedQuoteUser?.name}
+                                                        onValueChange={(userId, user) => {
+                                                            quoteForm.setValue('user_id', userId);
+                                                            setSelectedQuoteUser(user || null);
+                                                        }}
+                                                        triggerText={t('quoteDialog.selectUser')}
+                                                        placeholder={t('quoteDialog.searchUser')}
+                                                    />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -2258,6 +2220,30 @@ export default function QuotesPage() {
                                         </FormItem>
                                     )}
                                 />
+                                {!editingQuote && (
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="patient_confirmed"
+                                        render={({ field }) => (
+                                            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
+                                                <Checkbox
+                                                    id="sales_patient_confirmed"
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                    className="mt-0.5"
+                                                />
+                                                <div className="flex flex-col gap-0.5">
+                                                    <label htmlFor="sales_patient_confirmed" className="text-sm font-medium cursor-pointer leading-none">
+                                                        {t('quoteDialog.patientConfirmed')}
+                                                    </label>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {t('quoteDialog.patientConfirmedNote')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    />
+                                )}
                             </DialogBody>
                             <DialogFooter>
                                 <Button type="button" variant="outline" onClick={() => setIsQuoteDialogOpen(false)} disabled={isSubmittingQuote}>{t('quoteDialog.cancel')}</Button>

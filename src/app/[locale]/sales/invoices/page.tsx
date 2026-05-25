@@ -2,13 +2,14 @@
 'use client';
 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
 import { CreditNotesTable } from '@/components/tables/credit-notes-table';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { InvoicesTable } from '@/components/tables/invoices-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
-import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,10 +34,10 @@ import { api } from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { RowSelectionState } from '@tanstack/react-table';
-import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X } from 'lucide-react';
+import { Check, CheckCircle, CreditCard, File, FileMinus, FileText, FileUp, Link2, Loader2, Maximize2, Minimize2, PlusCircle, Printer, Receipt, RefreshCw, Send, StickyNote, Trash2, X, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 
 const getInvoiceItemSchema = (t: (key: string) => string) => z.object({
@@ -249,32 +250,11 @@ export default function InvoicesPage() {
     const [invoiceType, setInvoiceType] = React.useState('all');
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+    const { open: openBillingWizard } = useBillingWizard();
     const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
     const [invoiceForPayment, setInvoiceForPayment] = React.useState<Invoice | null>(null);
 
-    const invoiceItemSchema = React.useMemo(() => getInvoiceItemSchema(t), [t]);
-    const itemForm = useForm<InvoiceItemFormValues>({
-        resolver: zodResolver(invoiceItemSchema),
-        defaultValues: {
-            id: undefined,
-            service_id: '',
-            quantity: 1,
-            unit_price: 0,
-        },
-    });
 
-    const watchedServiceId = itemForm.watch('service_id');
-    const watchedQuantity = itemForm.watch('quantity');
-
-    React.useEffect(() => {
-        if (watchedServiceId) {
-            const service = services.find(s => s.id === watchedServiceId);
-            if (service) {
-                const quantity = Number(itemForm.getValues('quantity')) || 1;
-                itemForm.setValue('unit_price', service.price);
-            }
-        }
-    }, [watchedServiceId, itemForm, services]);
 
     const loadInvoices = React.useCallback(async () => {
         setIsLoadingInvoices(true);
@@ -521,12 +501,6 @@ export default function InvoicesPage() {
 
     const handleCreateItem = () => {
         setEditingItem(null);
-        itemForm.reset({
-            id: undefined,
-            service_id: '',
-            quantity: 1,
-            unit_price: 0
-        });
         setIsItemDialogOpen(true);
     };
 
@@ -730,10 +704,16 @@ export default function InvoicesPage() {
                                         </Button>
                                     )}
                                     {canAddPaymentAction && (
-                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setInvoiceForPayment(selectedInvoice); setIsPaymentDialogOpen(true); }}>
-                                            <CreditCard className="h-3.5 w-3.5" />
-                                            {t('paymentDialog.add')}
-                                        </Button>
+                                        <>
+                                            <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openBillingWizard({ invoiceId: selectedInvoice.id, invoice: selectedInvoice, patientId: selectedInvoice.user_id, patientName: selectedInvoice.user_name, isSales: true }, () => { loadInvoices(); loadPayments(); })}>
+                                                <Zap className="h-3.5 w-3.5" />
+                                                {t('paymentDialog.add')}
+                                            </Button>
+                                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setInvoiceForPayment(selectedInvoice); setIsPaymentDialogOpen(true); }}>
+                                                <CreditCard className="h-3.5 w-3.5" />
+                                                {t('paymentDialog.addClassic')}
+                                            </Button>
+                                        </>
                                     )}
                                     {(canConfirmAction || canAddPaymentAction) && <Separator orientation="vertical" className="h-6 mx-1" />}
                                     {canPrint && (
@@ -960,7 +940,6 @@ export default function InvoicesPage() {
                 onOpenChange={setIsItemDialogOpen}
                 editingItem={editingItem}
                 onSubmit={onItemSubmit}
-                itemForm={itemForm}
                 services={services}
                 t={t}
             />
@@ -984,13 +963,6 @@ export default function InvoicesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <InvoicePaymentDialog
-                isOpen={isPaymentDialogOpen}
-                onClose={() => { setIsPaymentDialogOpen(false); setInvoiceForPayment(null); }}
-                invoice={invoiceForPayment}
-                isSales={true}
-                onSuccess={() => { loadInvoices(); loadPayments(); }}
-            />
             <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -1010,6 +982,13 @@ export default function InvoicesPage() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <InvoicePaymentDialog
+                isOpen={isPaymentDialogOpen}
+                onClose={() => { setIsPaymentDialogOpen(false); setInvoiceForPayment(null); }}
+                invoice={invoiceForPayment}
+                isSales={true}
+                onSuccess={() => { loadInvoices(); loadPayments(); }}
+            />
         </>
     );
 }
@@ -1019,7 +998,6 @@ const ItemFormDialog = ({
     onOpenChange,
     editingItem,
     onSubmit,
-    itemForm,
     services,
     t
 }: {
@@ -1027,12 +1005,22 @@ const ItemFormDialog = ({
     onOpenChange: (open: boolean) => void;
     editingItem: InvoiceItem | null;
     onSubmit: (data: InvoiceItemFormValues) => void;
-    itemForm: any;
     services: Service[];
     t: any;
 }) => {
     const title = editingItem ? t('InvoiceItemsTable.editTitle') : t('InvoiceItemsTable.createTitle');
     const isLoading = services.length === 0;
+
+    const itemSchema = React.useMemo(() => getInvoiceItemSchema(t), [t]);
+    const itemForm = useForm<InvoiceItemFormValues>({
+        resolver: zodResolver(itemSchema),
+        defaultValues: {
+            id: undefined,
+            service_id: '',
+            quantity: 1,
+            unit_price: 0,
+        },
+    });
 
     React.useEffect(() => {
         if (isOpen) {
@@ -1048,11 +1036,21 @@ const ItemFormDialog = ({
                     id: undefined,
                     service_id: '',
                     quantity: 1,
-                    unit_price: 0
+                    unit_price: 0,
                 });
             }
         }
-    }, [isOpen, editingItem, itemForm]);
+    }, [isOpen, editingItem]);
+
+    const watchedServiceId = useWatch({ control: itemForm.control, name: 'service_id' });
+
+    React.useEffect(() => {
+        if (!watchedServiceId) return;
+        const service = services.find(s => s.id === watchedServiceId);
+        if (service) {
+            itemForm.setValue('unit_price', service.price, { shouldDirty: false });
+        }
+    }, [watchedServiceId]);
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -1073,7 +1071,7 @@ const ItemFormDialog = ({
                     </div>
                 ) : (
                     <Form {...itemForm}>
-                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
                             <DialogBody className="space-y-4 px-6 py-4">
                                 <FormField
                                     control={itemForm.control}

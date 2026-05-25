@@ -235,6 +235,7 @@ async function getAppointmentsForUser(
         googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
         quote_id: apiAppt.quote_id || apiAppt.quoteId || apiAppt.quoteid || undefined,
         quote_doc_no: apiAppt.quote_doc_no || apiAppt.quoteDocNo || apiAppt.quotedocno || apiAppt.doc_no || apiAppt.docNo || apiAppt.docno || undefined,
+        invoice_id: apiAppt.invoice_id != null ? String(apiAppt.invoice_id) : null,
         color: (() => {
           const c = (apiAppt.color && ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"].includes(String(apiAppt.color)))
             ? {

@@ -6,15 +6,14 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Box, ArrowRight, Banknote } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Box, Banknote, ArrowRight } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -23,89 +22,81 @@ export const OpenCashSessionWidget = () => {
     const locale = useLocale();
     const { activeCashSession, isLoading: isAuthLoading } = useAuth();
     const { hasPermission } = usePermissions();
-    
+
     const canViewWidget = hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET);
-    
-    if (!canViewWidget) {
-        return null;
-    }
-    
+
+    if (!canViewWidget) return null;
+
     if (isAuthLoading) {
-        return (
-            <div className="flex items-center gap-2">
-                <Skeleton className="h-9 w-24" />
-                <Skeleton className="h-9 w-24" />
-            </div>
-        );
+        return <Skeleton className="h-10 w-10 rounded-xl" />;
     }
 
-    if (activeCashSession && activeCashSession.data?.current_balances) {
-        const balances = activeCashSession.data.current_balances || [];
+    const isOpen = !!(activeCashSession && activeCashSession.data?.current_balances);
+
+    if (isOpen) {
+        const balances = activeCashSession!.data.current_balances || [];
         const uyuAmount = balances.find((a: any) => a.currency === 'UYU')?.cash_on_hand || 0;
         const usdAmount = balances.find((a: any) => a.currency === 'USD')?.cash_on_hand || 0;
 
         return (
-             <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                         <Link href={`/${locale}/cashier`} passHref>
-                            <Button
-                                variant="outline"
-                                className={cn(
-                                    "h-7 px-2 gap-1.5 sm:h-9 sm:px-3 sm:gap-2",
-                                    "border-none bg-emerald-600 text-[var(--nav-foreground)]",
-                                    "hover:bg-emerald-700",
-                                    "transition-all duration-200 shadow-sm rounded-lg whitespace-nowrap"
-                                )}
-                            >
-                                <Banknote className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
-                                <span className="text-[11px] font-semibold sm:hidden">{t('activeSession.button')}</span>
-                                <div className="hidden items-center gap-1.5 text-[11px] sm:flex sm:gap-2 sm:text-xs">
-                                    <div className="flex items-center gap-0.5 sm:gap-1">
-                                        <span className="font-bold">{uyuAmount.toFixed(2)}</span>
-                                        <span className="opacity-90 text-[9px] sm:text-[10px]">UYU</span>
-                                    </div>
-                                    <span className="opacity-40">·</span>
-                                    <div className="flex items-center gap-0.5 sm:gap-1">
-                                        <span className="font-bold">{usdAmount.toFixed(2)}</span>
-                                        <span className="opacity-90 text-[9px] sm:text-[10px]">USD</span>
-                                    </div>
-                                </div>
-                                <ArrowRight className="h-3 w-3 shrink-0 opacity-70 sm:h-3.5 sm:w-3.5" />
-                            </Button>
-                        </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p>{t('activeSession.tooltip')}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative rounded-xl h-10 w-10 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25"
+                        title={t('activeSession.tooltip')}
+                    >
+                        <Banknote className="h-5 w-5" />
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent side="left" align="center" className="w-52 p-3 rounded-xl">
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                        {t('activeSession.button')}
+                    </p>
+                    <div className="flex flex-col gap-1 text-sm">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">UYU</span>
+                            <span className="font-semibold">{uyuAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">USD</span>
+                            <span className="font-semibold">{usdAmount.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <Link href={`/${locale}/cashier`} passHref>
+                        <Button variant="outline" size="sm" className="w-full mt-3 h-7 text-xs rounded-lg">
+                            {t('activeSession.tooltip')} <ArrowRight className="h-3 w-3 ml-1" />
+                        </Button>
+                    </Link>
+                </PopoverContent>
+            </Popover>
         );
     }
 
     return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Link href={`/${locale}/cashier`} passHref>
-                        <Button
-                            variant="outline"
-                            className={cn(
-                                "h-7 px-2 gap-1.5 sm:h-9 sm:px-3 sm:gap-2",
-                                "border-none bg-orange-500 text-[var(--nav-foreground)]",
-                                "hover:bg-orange-600 shadow-sm rounded-lg",
-                                "transition-all whitespace-nowrap"
-                            )}
-                        >
-                            <Box className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" />
-                            <span className="text-[11px] font-semibold sm:text-xs">{t('button')}</span>
-                        </Button>
-                    </Link>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>{t('tooltip')}</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
+        <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                        'relative rounded-xl h-10 w-10 bg-orange-500/15 text-orange-600 hover:bg-orange-500/25',
+                        'animate-pulse-slow',
+                    )}
+                    title={t('tooltip')}
+                >
+                    <Box className="h-5 w-5" />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent side="left" align="center" className="w-48 p-3 rounded-xl">
+                <p className="text-xs text-muted-foreground mb-2">{t('tooltip')}</p>
+                <Link href={`/${locale}/cashier`} passHref>
+                    <Button size="sm" className="w-full h-7 text-xs rounded-lg bg-orange-500 hover:bg-orange-600 text-white">
+                        {t('button')} <ArrowRight className="h-3 w-3 ml-1" />
+                    </Button>
+                </Link>
+            </PopoverContent>
+        </Popover>
     );
 };

@@ -34,6 +34,9 @@ export const API_ROUTES = {
     APPOINTMENTS_UPDATE_STATUS: '/appointments/update_status',
     APPOINTMENTS_RESCHEDULE: '/appointments/reschedule',
     APPOINTMENTS_DELETE: '/appointments/delete',
+    APPOINTMENTS_LINK_INVOICE: '/appointments/link_invoice',
+    CLINIC_SESSIONS_LINK_INVOICE: '/sesiones_clinicas/link_invoice',
+    SESSIONS_LINK_INVOICE: '/sesiones/link_invoice',
     REMINDERS: '/reminders',
     REMINDERS_UPSERT: '/reminders/upsert',
     REMINDERS_DELETE: '/reminders/delete',
@@ -118,6 +121,8 @@ export const API_ROUTES = {
     AI: {
         DOCTOR_QUERY: '/ai/doctor/query',
         ENHANCE_TEXT: '/ai/enhance-text',
+        /** Genera tratamientos estructurados desde procedimiento y plan de próxima sesión */
+        TREATMENTS: '/ai/treatments',
     },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',

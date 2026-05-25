@@ -1,7 +1,5 @@
 'use client';
 
-import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
-import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +20,7 @@ import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
@@ -39,9 +38,10 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
@@ -251,6 +251,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
+  const { open: openBillingWizard } = useBillingWizard();
   const isViewportNarrow = useViewportNarrow();
   const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
@@ -282,6 +283,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   // Items
   const [invoiceItems, setInvoiceItems] = React.useState<InvoiceItem[]>([]);
   const [isLoadingItems, setIsLoadingItems] = React.useState(false);
+
+  // Payments
+  const [invoicePayments, setInvoicePayments] = React.useState<any[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = React.useState(false);
   const [services, setServices] = React.useState<Service[]>([]);
 
   // Item dialogs
@@ -293,8 +298,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   // Record-level dialogs
   const [isEditInvoiceOpen, setIsEditInvoiceOpen] = React.useState(false);
   const [isSubmittingInvoice, setIsSubmittingInvoice] = React.useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
-
   // Email dialog states
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
@@ -349,6 +352,29 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     }
   }, [isSales]);
 
+  const loadInvoicePayments = React.useCallback(async (invoiceId: string) => {
+    setIsLoadingPayments(true);
+    try {
+      const data = await api.get(
+        isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS,
+        { invoice_id: invoiceId }
+      );
+      const raw = Array.isArray(data) ? data : (data.payments || data.data || []);
+      setInvoicePayments(raw.map((p: any) => ({
+        id: String(p.id),
+        amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
+        currency: p.invoice_currency || p.source_currency || p.currency || 'UYU',
+        method: p.payment_method_name || p.method || p.payment_method || '',
+        date: p.payment_date || p.created_at || p.date || '',
+        doc_no: p.doc_no || p.payment_doc_no || '',
+      })));
+    } catch {
+      setInvoicePayments([]);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, [isSales]);
+
   const loadServices = React.useCallback(async () => {
     if (services.length > 0) return;
     try {
@@ -376,7 +402,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const handleOpenSheet = React.useCallback((invoice: Invoice) => {
     setIsSheetOpen(true);
     loadItems(invoice.id);
-  }, [loadItems]);
+    loadInvoicePayments(invoice.id);
+  }, [loadItems, loadInvoicePayments]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = async () => {
@@ -481,7 +508,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
 
   // ── Edit invoice form ─────────────────────────────────────────────────────────
   const invoiceEditForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
-  const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem, update: updateEditInvoiceItem } = useFieldArray({
+  const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem } = useFieldArray({
     control: invoiceEditForm.control,
     name: 'items',
   });
@@ -637,10 +664,22 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           variant="default"
           size="sm"
           className="h-8 gap-1.5 text-xs"
-          onClick={() => setIsPaymentDialogOpen(true)}
+          onClick={() =>
+            selectedInvoice &&
+            openBillingWizard(
+              {
+                invoiceId: selectedInvoice.id,
+                invoice: selectedInvoice,
+                patientId: selectedInvoice.user_id,
+                patientName: selectedInvoice.user_name,
+                isSales,
+              },
+              () => { loadInvoices(true); onDataChange?.(); },
+            )
+          }
         >
-          <CreditCard className="h-3.5 w-3.5" />
-          Agregar pago
+          <Zap className="h-3.5 w-3.5" />
+          Cobrar
         </Button>
       )}
       {/* Print y Enviar son siempre visibles; Editar es condicional */}
@@ -749,7 +788,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         open={isSheetOpen}
         onOpenChange={(open: boolean) => {
           setIsSheetOpen(open);
-          if (!open) { setRowSelection({}); setSelectedInvoice(null); setInvoiceItems([]); }
+          if (!open) { setRowSelection({}); setSelectedInvoice(null); setInvoiceItems([]); setInvoicePayments([]); }
         }}
         defaultWidth={800}
         minWidth={560}
@@ -821,12 +860,28 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 </Button>
               )}
               {isBookedUnpaid && canCreatePayment && (
-                <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsPaymentDialogOpen(true)}>
-                  <CreditCard className="h-3.5 w-3.5" />
-                  Agregar pago
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  onClick={() =>
+                    selectedInvoice &&
+                    openBillingWizard(
+                      {
+                        invoiceId: selectedInvoice.id,
+                        invoice: selectedInvoice,
+                        patientId: selectedInvoice.user_id,
+                        patientName: selectedInvoice.user_name,
+                        isSales,
+                      },
+                      () => { loadInvoices(true); onDataChange?.(); },
+                    )
+                  }
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  Cobrar
                 </Button>
               )}
-              {(isDraft || isBookedUnpaid) && <Separator orientation="vertical" className="h-6 mx-1" />}
               {/* Acciones secundarias */}
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handlePrint}>
                 <Printer className="h-3.5 w-3.5" />
@@ -844,18 +899,103 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               )}
             </div>
 
-            {/* Items */}
-            <div className="flex-1 flex flex-col overflow-hidden px-4 py-3">
-              <p className="text-sm font-semibold mb-2">Ítems de la factura</p>
-              <div className="flex-1 overflow-hidden">
-                <InvoiceItemsTable
-                  items={invoiceItems}
-                  isLoading={isLoadingItems}
-                  canEdit={canEditItems}
-                  onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : undefined}
-                  onDelete={canDeleteItem ? setDeletingItem : undefined}
-                />
-              </div>
+            {/* Tabs: Items + Payments */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
+                <div className="px-6 border-b bg-background">
+                  <TabsList className="h-10 bg-transparent gap-1 p-0">
+                    <TabsTrigger value="items" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-full px-3 text-xs font-medium">
+                      Ítems
+                    </TabsTrigger>
+                    <TabsTrigger value="payments" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-full px-3 text-xs font-medium flex items-center gap-1.5">
+                      <CreditCard className="h-3.5 w-3.5" />
+                      Pagos
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
+                  <ScrollArea className="h-full">
+                    <div className="px-4 py-3 space-y-2">
+                      {isLoadingItems ? (
+                        <>
+                          <Skeleton className="h-16 w-full" />
+                          <Skeleton className="h-16 w-full" />
+                          <Skeleton className="h-16 w-full" />
+                        </>
+                      ) : invoiceItems.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">Sin ítems registrados.</p>
+                      ) : (
+                        invoiceItems.map((item) => (
+                          <DataCard
+                            key={item.id}
+                            title={item.service_name || '-'}
+                            subtitle={item.steps || item.step_id || undefined}
+                            fields={[
+                              { label: 'Cantidad', value: String(item.quantity) },
+                              {
+                                label: 'Precio unit.',
+                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.unit_price),
+                              },
+                              {
+                                label: 'Total',
+                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.total),
+                                primary: true,
+                              },
+                            ]}
+                            actions={canEditItems ? (
+                              <div className="flex items-center gap-1">
+                                {canUpdateItem && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                {canDeleteItem && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingItem(item)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            ) : undefined}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+
+                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
+                  <ScrollArea className="h-full">
+                    <div className="px-4 py-3 space-y-2">
+                      {isLoadingPayments ? (
+                        <>
+                          <Skeleton className="h-16 w-full" />
+                          <Skeleton className="h-16 w-full" />
+                        </>
+                      ) : invoicePayments.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
+                      ) : (
+                        invoicePayments.map((payment) => (
+                          <DataCard
+                            key={payment.id}
+                            title={payment.doc_no || `Pago #${payment.id}`}
+                            subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
+                            fields={[
+                              { label: 'Método', value: payment.method || '-' },
+                              { label: 'Moneda', value: payment.currency || '-' },
+                              {
+                                label: 'Monto',
+                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: payment.currency || 'USD' }).format(payment.amount),
+                                primary: true,
+                              },
+                            ]}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
             </div>
           </>
         )}
@@ -865,7 +1005,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>
         <DialogContent maxWidth="4xl">
           <Form {...invoiceEditForm}>
-            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
                 <DialogTitle>Editar factura</DialogTitle>
                 <DialogDescription>Modifica los datos de la factura {selectedInvoice?.doc_no}.</DialogDescription>
@@ -953,7 +1093,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                           variant="outline"
                           onClick={() => { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
                         >
-                          Agregar ítem
+                          Agregar Artículo
                         </Button>
                       )}
                     </div>
@@ -988,7 +1128,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                           field.onChange(serviceId);
                                           if (service) {
                                             const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 1;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), service_id: serviceId, service_name: service.name, unit_price: Number(service.price), total: Number(service.price) * qty });
+                                            invoiceEditForm.setValue(`items.${index}.service_name`, service.name);
+                                            invoiceEditForm.setValue(`items.${index}.unit_price`, Number(service.price));
+                                            invoiceEditForm.setValue(`items.${index}.total`, Number(service.price) * qty);
                                           }
                                         }}
                                         placeholder="Buscar servicio..."
@@ -1008,7 +1150,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                             field.onChange(e);
                                             const qty = parseInt(e.target.value) || 0;
                                             const price = invoiceEditForm.getValues(`items.${index}.unit_price`) || 0;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), quantity: qty, total: qty * price });
+                                            invoiceEditForm.setValue(`items.${index}.total`, qty * price);
                                           }}
                                         />
                                       </FormControl>
@@ -1025,7 +1167,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                                             field.onChange(e);
                                             const price = parseFloat(e.target.value) || 0;
                                             const qty = invoiceEditForm.getValues(`items.${index}.quantity`) || 0;
-                                            updateEditInvoiceItem(index, { ...invoiceEditForm.getValues(`items.${index}`), unit_price: price, total: qty * price });
+                                            invoiceEditForm.setValue(`items.${index}.total`, qty * price);
                                           }}
                                         />
                                       </FormControl>
@@ -1092,22 +1234,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <Button type="button" variant="outline" onClick={() => setIsEditInvoiceOpen(false)}>Cancelar</Button>
                 <Button type="submit" disabled={isSubmittingInvoice}>
                   {isSubmittingInvoice && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Guardar cambios
+                  Guardar
                 </Button>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-
-      {/* ── Add payment dialog ── */}
-      <InvoicePaymentDialog
-        isOpen={isPaymentDialogOpen}
-        onClose={() => setIsPaymentDialogOpen(false)}
-        invoice={selectedInvoice}
-        isSales={isSales}
-        onSuccess={() => { loadInvoices(true); onDataChange?.(); }}
-      />
 
       {/* ── Item create/edit dialog ── */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>

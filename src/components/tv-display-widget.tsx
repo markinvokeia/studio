@@ -59,7 +59,7 @@ export function TVDisplayWidget() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent side="left" align="start" className="w-56">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>{t('status')}</span>
           <span className={cn(

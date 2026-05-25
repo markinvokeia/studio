@@ -3,6 +3,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
@@ -23,11 +24,12 @@ import {
 } from '@/components/ui/select';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clinic, Quote, User } from '@/lib/types';
+import { Clinic, Quote, TreatmentDetail, User } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,13 +54,18 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    patient_confirmed: z.boolean().default(false),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
+        /** Nombre del servicio — solo para display en ServiceSelector pre-cargado */
+        service_name: z.string().optional(),
         quantity: z.coerce.number().int().min(1, t('validation.quantityMinOne')),
         unit_price: z.coerce.number().min(0, t('validation.unitPricePositive')).multipleOf(0.01, t('validation.unitPriceTwoDecimals')),
         total: z.coerce.number().min(0, t('validation.totalPositive')),
         tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
+        /** Flag para diferenciar servicios de sesión actual vs próxima sesión (generado por IA) */
+        is_for_next_session: z.boolean().optional(),
     })).default([]),
 });
 
@@ -99,9 +106,11 @@ export interface QuoteFormDialogProps {
     onSaveSuccess?: () => void;
     onQuoteCreated?: (quote: Quote) => void;
     isSales?: boolean;
+    /** Servicios pre-cargados por IA desde la sesión clínica (TreatmentDetail con service_id) */
+    initialItems?: Pick<TreatmentDetail, 'service_id' | 'service_name' | 'unit_price' | 'quantity' | 'is_for_next_session' | 'numero_diente'>[];
 }
 
-export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true }: QuoteFormDialogProps) {
+export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true, initialItems }: QuoteFormDialogProps) {
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession } = useAuth();
@@ -130,11 +139,20 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
         getClinic().then(setClinic);
     }, []);
 
-    // Reset form when dialog opens
+    // Reset form when dialog opens — pre-carga ítems IA si están disponibles
     React.useEffect(() => {
         if (!open) return;
         const defaultCurrency = clinic?.currency || 'UYU';
         const sessionRate = getSessionExchangeRate();
+        const preloadedItems = initialItems?.filter(i => i.service_id).map(i => ({
+            service_id: i.service_id!,
+            service_name: i.service_name ?? '',
+            quantity: i.quantity ?? 1,
+            unit_price: i.unit_price ?? 0,
+            total: (i.unit_price ?? 0) * (i.quantity ?? 1),
+            tooth_number: (i.numero_diente ?? '') as number | '',
+            is_for_next_session: i.is_for_next_session ?? false,
+        })) ?? [];
         form.reset(
             {
                 user_id: initialData?.user?.id || '',
@@ -146,7 +164,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 exchange_rate: 1,
                 created_at: new Date(),
                 notes: '',
-                items: [],
+                patient_confirmed: false,
+                items: preloadedItems,
             },
             {
                 keepErrors: false, keepDirty: false, keepIsSubmitted: false,
@@ -206,37 +225,52 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 unit_price: item.unit_price,
                 total: item.total,
                 tooth_number: item.tooth_number ? Number(item.tooth_number) : null,
+                // Flag de sesión para el backend (ignorado si aún no tiene soporte)
+                is_for_next_session: item.is_for_next_session ?? false,
             }));
             const normalizeBilling = (s: string) =>
                 s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
 
             const payload = {
                 ...values,
+                status: 'draft',
                 billing_status: normalizeBilling(values.billing_status),
                 created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit,
             };
             const response = await upsertQuote(payload as any, isSales, t);
+            const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
+            const quoteId = quoteData?.id ? String(quoteData.id) : null;
+
+            if (values.patient_confirmed && quoteId) {
+                const confirmResponse = await api.post(API_ROUTES.SALES.QUOTE_CONFIRM, {
+                    quote_number: quoteId,
+                    confirm_reject: 'confirm',
+                    is_sales: isSales,
+                    notes: '',
+                });
+                if (Array.isArray(confirmResponse) && confirmResponse[0]?.code >= 400) {
+                    throw new Error(confirmResponse[0]?.message || t('toast.quoteError'));
+                }
+            }
+
             toast({ title: t('toast.quoteCreated'), description: t('toast.quoteSaveSuccess') });
             onOpenChange(false);
             onSaveSuccess?.();
-            if (onQuoteCreated) {
-                const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
-                if (quoteData) {
-                    onQuoteCreated({
-                        id: String(quoteData.id),
-                        doc_no: quoteData.doc_no || 'N/A',
-                        user_id: quoteData.user_id,
-                        total: parseFloat(quoteData.total) || 0,
-                        status: quoteData.status || 'draft',
-                        payment_status: quoteData.payment_status || 'unpaid',
-                        billing_status: quoteData.billing_status || 'not invoiced',
-                        currency: quoteData.currency || 'USD',
-                        exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
-                        notes: quoteData.notes || '',
-                        createdAt: quoteData.created_at || new Date().toISOString(),
-                    });
-                }
+            if (onQuoteCreated && quoteData) {
+                onQuoteCreated({
+                    id: quoteId!,
+                    doc_no: quoteData.doc_no || 'N/A',
+                    user_id: quoteData.user_id,
+                    total: parseFloat(quoteData.total) || 0,
+                    status: values.patient_confirmed ? 'confirmed' : (quoteData.status || 'draft'),
+                    payment_status: quoteData.payment_status || 'unpaid',
+                    billing_status: quoteData.billing_status || 'not invoiced',
+                    currency: quoteData.currency || 'USD',
+                    exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
+                    notes: quoteData.notes || '',
+                    createdAt: quoteData.created_at || new Date().toISOString(),
+                });
             }
         } catch (error) {
             setSubmissionError(error instanceof Error ? error.message : t('toast.quoteError'));
@@ -255,7 +289,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                     <DialogDescription>{t('quoteDialog.description')}</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
                         <DialogBody className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
@@ -291,7 +325,14 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.user')}</FormLabel>
                                                 <FormControl>
-                                                    <Input placeholder={t('quoteDialog.selectUser')} {...field} />
+                                                    <UserSelector
+                                                        filterType="PACIENTE"
+                                                        isSales={true}
+                                                        value={field.value}
+                                                        onValueChange={(userId) => form.setValue('user_id', userId)}
+                                                        triggerText={t('quoteDialog.selectUser')}
+                                                        placeholder={t('quoteDialog.selectUser')}
+                                                    />
                                                 </FormControl>
                                                 <FormMessage />
                                             </FormItem>
@@ -379,7 +420,19 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                             {fields.map((fieldItem, index) => (
                                                 <div key={fieldItem.id} className="rounded-lg border bg-muted/30 p-3 space-y-3">
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-medium text-muted-foreground">{t('quoteDialog.items.title')} #{index + 1}</span>
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="text-xs font-medium text-muted-foreground">{t('quoteDialog.items.title')} #{index + 1}</span>
+                                                            {watchedItems?.[index]?.is_for_next_session === true && (
+                                                                <span className="rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                                                    {t('quoteDialog.items.nextSessionBadge')}
+                                                                </span>
+                                                            )}
+                                                            {watchedItems?.[index]?.is_for_next_session === false && watchedItems?.[index]?.service_id && (
+                                                                <span className="rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                                                    {t('quoteDialog.items.currentSessionBadge')}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <Button type="button" variant="destructive" size="icon" className="h-7 w-7 shrink-0" onClick={() => remove(index)}>
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </Button>
@@ -390,11 +443,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                             <ServiceSelector
                                                                 isSales={isSales}
                                                                 value={field.value}
+                                                                selectedServiceName={watchedItems?.[index]?.service_name}
                                                                 onValueChange={(serviceId, service) => {
                                                                     field.onChange(serviceId);
                                                                     if (service) {
                                                                         const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                         const servicePrice = Number(service.price);
+                                                                        form.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                         form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                         form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                     }
@@ -491,11 +546,13 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                     <ServiceSelector
                                                                         isSales={isSales}
                                                                         value={field.value}
+                                                                        selectedServiceName={watchedItems?.[index]?.service_name}
                                                                         onValueChange={(serviceId, service) => {
                                                                             field.onChange(serviceId);
                                                                             if (service) {
                                                                                 const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                                 const servicePrice = Number(service.price);
+                                                                                form.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                                 form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
                                                                                 form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
                                                                             }
@@ -504,6 +561,17 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                         noResultsText={t('itemDialog.noServiceFound')}
                                                                         triggerText={t('quoteDialog.items.selectService')}
                                                                     />
+                                                                    {/* Badge de sesión generado por IA */}
+                                                                    {watchedItems?.[index]?.is_for_next_session === true && (
+                                                                        <span className="inline-flex items-center mt-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-[10px] font-medium text-blue-700 dark:text-blue-300">
+                                                                            {t('quoteDialog.items.nextSessionBadge')}
+                                                                        </span>
+                                                                    )}
+                                                                    {watchedItems?.[index]?.is_for_next_session === false && watchedItems?.[index]?.service_id && (
+                                                                        <span className="inline-flex items-center mt-1 rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                                                            {t('quoteDialog.items.currentSessionBadge')}
+                                                                        </span>
+                                                                    )}
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )} />
@@ -604,6 +672,30 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
+                                )}
+                            />
+
+                            {/* Patient confirmed flag */}
+                            <FormField
+                                control={form.control}
+                                name="patient_confirmed"
+                                render={({ field }) => (
+                                    <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-4 py-3">
+                                        <Checkbox
+                                            id="patient_confirmed"
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            className="mt-0.5"
+                                        />
+                                        <div className="flex flex-col gap-0.5">
+                                            <label htmlFor="patient_confirmed" className="text-sm font-medium cursor-pointer leading-none">
+                                                {t('quoteDialog.patientConfirmed')}
+                                            </label>
+                                            <p className="text-xs text-muted-foreground">
+                                                {t('quoteDialog.patientConfirmedNote')}
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
                             />
                         </DialogBody>

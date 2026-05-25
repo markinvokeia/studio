@@ -241,6 +241,10 @@
     "procedure": "Procedimiento",
     "nextPlan": "Plan próxima cita",
     "treatmentCount": "{count} tratamiento(s) aplicado(s)",
+    "currentSessionServices": "Servicios sesión actual",
+    "nextSessionServices": "Servicios próxima sesión",
+    "servicesPreloaded": "precargados",
+    "actionCobroRapido": "Cobro Rápido",
     "actionCreateQuote": "Crear presupuesto",
     "actionScheduleNext": "Agendar próxima cita",
     "actionGenerateInvoice": "Generar factura",
@@ -331,7 +335,7 @@
       "title": "Sesión de Caja Activa",
       "description": "La sesión para {user} en {cashPoint} está abierta.",
       "button": "Ir a Caja",
-      "tooltip": "Ver su sesión de caja activa"
+      "tooltip": "Ver sesión activa"
     },
     "title": "Sin Sesión de Caja Activa",
     "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
@@ -1651,10 +1655,14 @@
         "total": "Total",
         "selectService": "Seleccionar Servicio",
         "toothNumber": "Número de Diente",
-        "empty": "Aún no se han agregado artículos."
+        "empty": "Aún no se han agregado artículos.",
+        "currentSessionBadge": "Sesión actual",
+        "nextSessionBadge": "Próxima sesión"
       },
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí..."
+      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "patientConfirmed": "Confirmado por el paciente",
+      "patientConfirmedNote": "Al seleccionar esta opción se creará el presupuesto confirmado. Desmarcar para crear en estado Borrador y confirmar o rechazar luego."
     },
     "quickQuote": {
       "title": "Crear Presupuesto Rápido",
@@ -1894,6 +1902,7 @@
     },
     "paymentDialog": {
       "add": "Agregar Pago",
+      "addClassic": "Agregar Pago",
       "title": "Agregar Pago",
       "description": "Agregar un pago para la factura #{invoiceId}",
       "amount": "Monto",
@@ -2163,7 +2172,8 @@
         "quantity": "Cantidad",
         "unitPrice": "Precio Unitario",
         "notInList": "No está en la lista"
-      }
+      },
+      "addItem": "Agregar Artículo"
     },
     "common": {
       "closeDetails": "Cerrar detalles"
@@ -3516,13 +3526,17 @@
         "phoneInvalid": "Número de teléfono inválido",
         "identityInvalid": "El documento de identidad debe ser un número.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
-        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
+        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+        "serverError": "Error del servidor, por favor inténtelo más tarde."
       },
       "editSave": "Guardar",
       "serverError": "Error del servidor, por favor inténtelo más tarde.",
       "errorTitle": "Error",
       "createSuccessTitle": "Usuario creado",
-      "createSuccessDescription": "El usuario se ha creado exitosamente"
+      "createSuccessDescription": "El usuario se ha creado exitosamente",
+      "editSuccessTitle": "Usuario actualizado",
+      "editSuccessDescription": "El usuario se ha actualizado exitosamente"
     },
     "setInitialPassword": "Establecer Contraseña Inicial",
     "tabs": {
@@ -3536,7 +3550,7 @@
       "details": "Detalles"
     },
     "detailsFor": "Detalles para {name}",
-    "close": "Close details",
+    "close": "Cerrar detalles",
     "filters": {
       "showOnlyActive": "Mostrar solo activos"
     }
@@ -4259,9 +4273,9 @@
         "notesOptional": "Notas (opcional)",
         "notesPlaceholder": "Observaciones...",
         "items": "Ítems del presupuesto",
-        "addItem": "Agregar ítem",
+        "addItem": "Agregar Artículo",
         "cancel": "Cancelar",
-        "save": "Guardar cambios"
+        "save": "Guardar"
       },
       "confirmAction": {
         "confirmTitle": "Confirmar presupuesto",
@@ -4293,7 +4307,7 @@
         "toothNumber": "N° de diente",
         "toothNumberOptional": "N° de diente (opcional)",
         "cancel": "Cancelar",
-        "save": "Guardar cambios",
+        "save": "Guardar",
         "add": "Agregar"
       },
       "deleteItem": {
@@ -4512,6 +4526,12 @@
         "colorInvalid": "Color inválido."
       }
     }
+  },
+  "AlertsWidget": {
+    "title": "Alertas pendientes",
+    "empty": "No hay alertas pendientes",
+    "viewAll": "Ver alertas",
+    "defaultCategory": "General"
   },
   "AlertsCenterPage": {
     "title": "Centro de Alertas",
@@ -5367,10 +5387,11 @@
   },
   "ClinicSessionDialog": {
     "treatments": {
+      "sectionTitle": "Tratamientos",
       "title": "Tratamientos por diente",
       "toothNumber": "N° diente",
       "description": "Descripción",
-      "add": "Agregar tratamiento",
+      "add": "Añadir",
       "noTreatments": "Sin tratamientos",
       "treatmentPlaceholder": "Descripción del tratamiento..."
     },
@@ -5419,7 +5440,30 @@
       "applySuccess": "La IA completó la sesión clínica.",
       "applyError": "No se pudo estructurar el dictado con IA.",
       "missingInformation": "Información que conviene confirmar"
-    }
+    },
+    "aiTreatments": {
+      "generate": "Generar con IA",
+      "regenerate": "Regenerar",
+      "addTreatment": "Agregar tratamiento",
+      "generating": "Analizando tratamientos con IA...",
+      "title": "Tratamientos detectados por IA",
+      "currentSession": "Sesión actual",
+      "nextSession": "Próxima sesión",
+      "remove": "Quitar tratamiento",
+      "error": "No se pudieron generar los tratamientos. Intenta de nuevo.",
+      "selectService": "Seleccionar servicio...",
+      "searchService": "Buscar servicios...",
+      "noServices": "No se encontraron servicios.",
+      "emptyHint": "Genera con IA o añade tratamientos manualmente."
+    },
+    "patientLabel": "Paciente",
+    "quoteLabel": "Presupuesto",
+    "newQuote": "Nuevo",
+    "selectQuote": "Seleccionar presupuesto",
+    "loadingQuotes": "Cargando presupuestos...",
+    "noQuote": "Sin presupuesto",
+    "noQuotes": "No hay presupuestos disponibles",
+    "searchQuotePlaceholder": "Buscar presupuesto..."
   },
   "VoiceAssistant": {
     "clickToSpeak": "Haz clic para hablar",
@@ -6373,5 +6417,24 @@
     "total_cobrado": "Total Cobrado",
     "total_gastos": "Total Gastos",
     "vs_periodo_anterior": "vs período anterior"
+  },
+  "BillingWizard": {
+    "title": "Cobro Rápido",
+    "subtitle": "Asistente de facturación y cobro",
+    "step1Title": "Tratamiento",
+    "step2Title": "Pago",
+    "step3Title": "Listo",
+    "actions": {
+      "next": "Siguiente",
+      "processing": "Generando factura...",
+      "invoiceOnly": "Solo facturar",
+      "invoiceAndPay": "Facturar y cobrar",
+      "printReceipt": "Imprimir recibo",
+      "close": "Cerrar"
+    },
+    "confirmation": {
+      "paymentTitle": "¡Cobro registrado!",
+      "invoiceTitle": "¡Factura creada!"
+    }
   }
 }

@@ -4,10 +4,28 @@ import { Header } from '@/components/header';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
+import { navItems, type NavItem } from '@/config/nav';
+import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Sidebar } from '../sidebar';
+
+function getFirstAccessibleHref(
+  items: NavItem[],
+  hasPermission: (code: string) => boolean,
+  hasAnyPermission: (codes: string[]) => boolean,
+): string | null {
+  for (const item of items) {
+    if (!item.href || item.isSeparator) continue;
+    const ok =
+      (!item.requiredPermission || hasPermission(item.requiredPermission)) &&
+      (!item.requiredPermissions || item.requiredPermissions.every(p => hasPermission(p))) &&
+      (!item.requiredAnyPermission || hasAnyPermission(item.requiredAnyPermission));
+    if (ok) return item.href;
+  }
+  return null;
+}
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -39,9 +57,19 @@ export function PrivateRoute({
         router.replace(`/${locale}/login`);
       } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
         router.replace(`/${locale}`);
+      } else if (user && !isPublicPage) {
+        const effectivePath = pathname.startsWith(`/${locale}`)
+          ? pathname.slice(`/${locale}`.length) || '/'
+          : pathname;
+        if (effectivePath === '/' && !hasPermission(DASHBOARD_PERMISSIONS.VIEW_MENU)) {
+          const firstRoute = getFirstAccessibleHref(navItems, hasPermission, hasAnyPermission);
+          if (firstRoute && firstRoute !== '/') {
+            router.replace(`/${locale}${firstRoute}`);
+          }
+        }
       }
     }
-  }, [user, isLoading, isPublicPage, pathname, router, locale]);
+  }, [user, isLoading, isPublicPage, pathname, router, locale, hasPermission, hasAnyPermission]);
 
   if (isLoading && !isPublicPage) {
     return (
@@ -67,6 +95,14 @@ export function PrivateRoute({
     // TV screen page renders without nav/sidebar layout
     if (isTVScreenPage) {
       return <>{children}</>;
+    }
+
+    // Prevent flash: if on root and user has no dashboard access, wait for the redirect
+    const effectivePath = pathname.startsWith(`/${locale}`)
+      ? pathname.slice(`/${locale}`.length) || '/'
+      : pathname;
+    if (effectivePath === '/' && !hasPermission(DASHBOARD_PERMISSIONS.VIEW_MENU)) {
+      return null;
     }
 
     const hasAccess = !requiredPermission || hasPermission(requiredPermission);
@@ -118,7 +154,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       <div className="print:hidden">
         <Sidebar />
       </div>
-      <div className={cn("flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible")}>
+      <div className={cn("widget-content-area flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible")}>
         <div className="print:hidden">
           <Header />
         </div>

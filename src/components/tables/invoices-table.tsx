@@ -1,7 +1,7 @@
 
 'use client';
 
-import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
+import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,14 +32,14 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/context/AuthContext';
-import { Invoice, Service, User } from '@/lib/types';
+import { Invoice, Service, SessionPreloadedService, User } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { addDays, format, parseISO } from 'date-fns';
-import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, CreditCard, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Box, CalendarIcon, Check, ChevronsUpDown, FileUp, Loader2, MoreHorizontal, Printer, Receipt, Send, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import * as React from 'react';
@@ -283,15 +283,22 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
   const { hasPermission } = usePermissions();
   const [isFormDialogOpen, setIsFormDialogOpen] = React.useState(false);
   const [editingInvoice, setEditingInvoice] = React.useState<Invoice | null>(null);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = React.useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = React.useState(false);
   const [confirmingInvoice, setConfirmingInvoice] = React.useState<Invoice | null>(null);
-  const [selectedInvoiceForPayment, setSelectedInvoiceForPayment] = React.useState<Invoice | null>(null);
+  const { open: openBillingWizard } = useBillingWizard();
 
   const handleAddPaymentClick = React.useCallback((invoice: Invoice) => {
-    setSelectedInvoiceForPayment(invoice);
-    setIsPaymentDialogOpen(true);
-  }, []);
+    openBillingWizard(
+      {
+        invoiceId: invoice.id,
+        invoice,
+        patientId: invoice.user_id,
+        patientName: invoice.user_name,
+        isSales,
+      },
+      () => { if (onRefresh) onRefresh(); },
+    );
+  }, [openBillingWizard, isSales, onRefresh]);
 
   const handleConfirmInvoiceInternal = async (invoice: Invoice) => {
     try {
@@ -464,14 +471,6 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
         </CardContent>
       </Card>
 
-      <InvoicePaymentDialog
-        isOpen={isPaymentDialogOpen}
-        onClose={() => { setIsPaymentDialogOpen(false); setSelectedInvoiceForPayment(null); }}
-        invoice={selectedInvoiceForPayment}
-        isSales={isSales}
-        onSuccess={() => { if (onRefresh) onRefresh(); }}
-      />
-
       <AlertDialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -504,9 +503,11 @@ interface InvoiceFormDialogProps {
   isSales: boolean;
   invoice?: Invoice | null;
   initialUser?: User;
+  /** Servicios pre-cargados por IA desde la sesión clínica actual */
+  initialItems?: SessionPreloadedService[];
 }
 
-export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser }: InvoiceFormDialogProps) {
+export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser, initialItems }: InvoiceFormDialogProps) {
   const t = useTranslations('InvoicesPage.createDialog');
   const tRoot = useTranslations('InvoicesPage');
   const [users, setUsers] = React.useState<User[]>([]);
@@ -575,6 +576,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const isEditing = !!invoice;
   const items = useWatch({ control: form.control, name: 'items' }) || [];
   const invoiceType = form.watch('type');
+  const selectedUserId = form.watch('user_id');
   const createdAt = form.watch('created_at');
 
   const calculatedTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.total) || 0), 0);
@@ -725,11 +727,21 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
             if (initialUser) {
               setUsers([initialUser]);
             }
+            // Pre-cargar ítems generados por IA si están disponibles
+            const preloadedItems = initialItems
+              ?.filter(i => i.service_id)
+              .map(i => ({
+                service_id: i.service_id!,
+                service_name: i.service_name ?? '',
+                quantity: i.quantity ?? 1,
+                unit_price: i.unit_price ?? 0,
+                total: (i.unit_price ?? 0) * (i.quantity ?? 1),
+              })) ?? [];
             form.reset({
               type: 'invoice',
               user_id: initialUser ? initialUser.id : '',
               currency: 'UYU',
-              items: [],
+              items: preloadedItems,
               total: 0,
               created_at: new Date(),
               due_date: addDays(new Date(), 30),
@@ -744,6 +756,13 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   }, [isOpen, invoice, isSales, form]);
 
   const parentId = form.watch('parent_id');
+
+  const filteredBookedInvoices = React.useMemo(() => {
+    if (invoiceType !== 'credit_note') return bookedInvoices;
+    if (!selectedUserId) return [];
+
+    return bookedInvoices.filter((inv) => String(inv.user_id) === String(selectedUserId));
+  }, [bookedInvoices, invoiceType, selectedUserId]);
 
   // Fetch users when search term changes (debounced)
   React.useEffect(() => {
@@ -777,8 +796,17 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   }, [debouncedUserSearch, userSearchOpen]);
 
   React.useEffect(() => {
-    if (invoiceType === 'credit_note' && parentId && bookedInvoices.length > 0) {
-      const parentInvoice = bookedInvoices.find(inv => String(inv.id) === parentId);
+    if (invoiceType !== 'credit_note') return;
+
+    if (parentId && !filteredBookedInvoices.some((inv) => String(inv.id) === parentId)) {
+      form.setValue('parent_id', '');
+      form.setValue('items', []);
+    }
+  }, [filteredBookedInvoices, form, invoiceType, parentId]);
+
+  React.useEffect(() => {
+    if (invoiceType === 'credit_note' && parentId && filteredBookedInvoices.length > 0) {
+      const parentInvoice = filteredBookedInvoices.find(inv => String(inv.id) === parentId);
       if (parentInvoice) {
         form.setValue('user_id', String(parentInvoice.user_id));
         const fetchParentItems = async () => {
@@ -806,7 +834,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
         fetchParentItems();
       }
     }
-  }, [parentId, invoiceType, bookedInvoices, isSales, form]);
+  }, [parentId, invoiceType, filteredBookedInvoices, isSales, form]);
 
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
@@ -880,7 +908,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent maxWidth="4xl">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 w-full overflow-hidden">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 w-full overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
             <DialogHeader>
               <div className="flex items-start gap-3">
                 <div className="header-icon-circle mt-0.5">
@@ -1008,14 +1036,14 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('parentInvoice')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={!selectedUserId}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t('selectParentInvoice')} />
+                            <SelectValue placeholder={selectedUserId ? t('selectParentInvoice') : (isSales ? t('selectPatient') : t('selectProvider'))} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {bookedInvoices.map(inv => (
+                          {filteredBookedInvoices.map(inv => (
                             <SelectItem key={inv.id} value={String(inv.id)}>
                               {inv.doc_no} - {inv.user_name} - ${inv.total}
                             </SelectItem>
@@ -1243,7 +1271,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>{t('cancel')}</Button>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEditing ? t('save') || 'Save Changes' : t('create')}
+                {t('save')}
               </Button>
             </DialogFooter>
           </form>

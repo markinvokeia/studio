@@ -21,7 +21,7 @@ import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation } from '@/lib/types';
-import { formatDisplayDate, getDocumentFileName } from '@/lib/utils';
+import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { api } from '@/services/api';
 import { getPurchasePayments } from '@/services/payments-service';
 import { RowSelectionState } from '@tanstack/react-table';
@@ -72,6 +72,15 @@ function PaymentsPageContent() {
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
     const [activeTab, setActiveTab] = React.useState('allocations');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
+
+    // Prepaid credit balance (only relevant when selectedPayment.invoice_id is null)
+    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+    const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
+    const prepaidUsed = React.useMemo(
+        () => paymentAllocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
+        [paymentAllocations],
+    );
+    const prepaidAvailable = Math.max(0, prepaidTotal - prepaidUsed);
 
     const handleCreatePrepaid = React.useCallback(() => {
         setIsPrepaidDialogOpen(true);
@@ -334,6 +343,42 @@ function PaymentsPageContent() {
                                     {t('actions.sendEmail')}
                                 </Button>
                             </div>
+
+                            {/* Credit balance summary — only for prepaid payments (no invoice attached) */}
+                            {!selectedPayment.invoice_id && (
+                                <div className="px-6 py-3 border-b">
+                                    {isLoadingAllocations ? (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                            <span>Calculando saldo disponible...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-5">
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Total prepago</span>
+                                                <span className="text-sm font-semibold tabular-nums">
+                                                    {new Intl.NumberFormat('es-UY', { style: 'currency', currency: prepaidCurrency }).format(prepaidTotal)}
+                                                </span>
+                                            </div>
+                                            <div className="w-px h-8 bg-border" />
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Utilizado</span>
+                                                <span className="text-sm font-medium tabular-nums text-amber-600 dark:text-amber-400">
+                                                    {new Intl.NumberFormat('es-UY', { style: 'currency', currency: prepaidCurrency }).format(prepaidUsed)}
+                                                </span>
+                                            </div>
+                                            <div className="w-px h-8 bg-border" />
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Disponible</span>
+                                                <span className={cn('text-sm font-semibold tabular-nums', prepaidAvailable > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground')}>
+                                                    {new Intl.NumberFormat('es-UY', { style: 'currency', currency: prepaidCurrency }).format(prepaidAvailable)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                 <VerticalTabStrip
                                     tabs={paymentTabs}

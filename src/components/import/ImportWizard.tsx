@@ -6,7 +6,7 @@ import { StepSelectType } from '@/components/import/steps/StepSelectType';
 import { StepUploadFile } from '@/components/import/steps/StepUploadFile';
 import { StepPreview } from '@/components/import/steps/StepPreview';
 import { StepMapColumns, buildAutoMapping, ColumnMapping } from '@/components/import/steps/StepMapColumns';
-import { StepValidate, validateData, ValidationResult } from '@/components/import/steps/StepValidate';
+import { StepValidate, validateData, ValidationResult, parseAnyDate } from '@/components/import/steps/StepValidate';
 import { StepResult, ImportResult } from '@/components/import/steps/StepResult';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
@@ -189,7 +189,10 @@ export function ImportWizard() {
           const csvHeader = reverseMapping[field.key];
           if (!csvHeader) return;
           const colIndex = parsedData.headers.indexOf(csvHeader);
-          if (colIndex >= 0) record[field.key] = row[colIndex] ?? '';
+          if (colIndex >= 0) {
+            const rawVal = row[colIndex] ?? '';
+            record[field.key] = field.type === 'date' && rawVal ? (parseAnyDate(rawVal) ?? rawVal) : rawVal;
+          }
         });
         return record;
       });
