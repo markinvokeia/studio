@@ -576,6 +576,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   const isEditing = !!invoice;
   const items = useWatch({ control: form.control, name: 'items' }) || [];
   const invoiceType = form.watch('type');
+  const selectedUserId = form.watch('user_id');
   const createdAt = form.watch('created_at');
 
   const calculatedTotal = items.reduce((sum: number, item: any) => sum + (Number(item?.total) || 0), 0);
@@ -756,6 +757,13 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
 
   const parentId = form.watch('parent_id');
 
+  const filteredBookedInvoices = React.useMemo(() => {
+    if (invoiceType !== 'credit_note') return bookedInvoices;
+    if (!selectedUserId) return [];
+
+    return bookedInvoices.filter((inv) => String(inv.user_id) === String(selectedUserId));
+  }, [bookedInvoices, invoiceType, selectedUserId]);
+
   // Fetch users when search term changes (debounced)
   React.useEffect(() => {
     const fetchUsers = async () => {
@@ -788,8 +796,17 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
   }, [debouncedUserSearch, userSearchOpen]);
 
   React.useEffect(() => {
-    if (invoiceType === 'credit_note' && parentId && bookedInvoices.length > 0) {
-      const parentInvoice = bookedInvoices.find(inv => String(inv.id) === parentId);
+    if (invoiceType !== 'credit_note') return;
+
+    if (parentId && !filteredBookedInvoices.some((inv) => String(inv.id) === parentId)) {
+      form.setValue('parent_id', '');
+      form.setValue('items', []);
+    }
+  }, [filteredBookedInvoices, form, invoiceType, parentId]);
+
+  React.useEffect(() => {
+    if (invoiceType === 'credit_note' && parentId && filteredBookedInvoices.length > 0) {
+      const parentInvoice = filteredBookedInvoices.find(inv => String(inv.id) === parentId);
       if (parentInvoice) {
         form.setValue('user_id', String(parentInvoice.user_id));
         const fetchParentItems = async () => {
@@ -817,7 +834,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
         fetchParentItems();
       }
     }
-  }, [parentId, invoiceType, bookedInvoices, isSales, form]);
+  }, [parentId, invoiceType, filteredBookedInvoices, isSales, form]);
 
   const onSubmit = async (values: CreateInvoiceFormValues) => {
     setSubmissionError(null);
@@ -1019,14 +1036,14 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{t('parentInvoice')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value} disabled={!selectedUserId}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={t('selectParentInvoice')} />
+                            <SelectValue placeholder={selectedUserId ? t('selectParentInvoice') : (isSales ? t('selectPatient') : t('selectProvider'))} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {bookedInvoices.map(inv => (
+                          {filteredBookedInvoices.map(inv => (
                             <SelectItem key={inv.id} value={String(inv.id)}>
                               {inv.doc_no} - {inv.user_name} - ${inv.total}
                             </SelectItem>
