@@ -1170,7 +1170,14 @@
       "orders": "Órdenes",
       "invoices": "Facturas",
       "payments": "Pagos",
-      "notes": "Notas"
+      "notes": "Notas",
+      "clinical": "Clínica",
+      "financial": "Finanzas",
+      "management": "Gestión",
+      "info": "Información",
+      "anamnesis": "Anamnesis",
+      "summary": "Resumen",
+      "history": "Historia"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
