@@ -868,7 +868,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <User className="w-5 h-5 text-primary mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('personalTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('personalTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
                         <Plus className="h-4 w-4" />
@@ -879,7 +879,7 @@ function AnamnesisSection({
                         personalHistory.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-blue-300 dark:border-blue-700 pl-4 py-2 flex justify-between items-center">
                                 <div>
-                                    <div className="font-semibold text-foreground">{item.nombre}</div>
+                                    <div className="text-sm font-semibold text-foreground">{item.nombre}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
                                 <div className="flex items-center space-x-1">
@@ -893,7 +893,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.personal')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.personal')}</p>
                     )}
                 </div>
             </div>
@@ -903,7 +903,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <Pill className="w-5 h-5 text-green-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('medicationsTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('medicationsTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
                         <Plus className="h-4 w-4" />
@@ -914,7 +914,7 @@ function AnamnesisSection({
                         medications.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-green-300 dark:border-green-700 pl-4 py-2 flex justify-between items-center">
                                 <div className="flex-1">
-                                    <div className="font-semibold text-foreground">{item.nombre_medicamento}</div>
+                                    <div className="text-sm font-semibold text-foreground">{item.nombre_medicamento}</div>
                                     <div className="text-sm text-muted-foreground">
                                         {item.dosis} - {item.frecuencia}
                                     </div>
@@ -938,7 +938,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.medications')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.medications')}</p>
                     )}
                 </div>
             </div>
@@ -948,7 +948,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <Heart className="w-5 h-5 text-red-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('familyTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('familyTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
                         <Plus className="h-4 w-4" />
@@ -959,7 +959,7 @@ function AnamnesisSection({
                         familyHistory.map((item, idx) => (
                             <div key={idx} className="border-l-4 border-red-300 dark:border-red-700 pl-4 py-2 flex justify-between items-center">
                                 <div>
-                                    <div className="font-semibold text-foreground">{item.nombre}</div>
+                                    <div className="text-sm font-semibold text-foreground">{item.nombre}</div>
                                     <div className="text-sm text-muted-foreground">{t('relative')}: {getRelationshipLabel(item.parentesco)}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
@@ -974,7 +974,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.family')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.family')}</p>
                     )}
                 </div>
             </div>
@@ -984,7 +984,7 @@ function AnamnesisSection({
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-                        <h3 className="text-lg font-bold text-card-foreground">{t('allergiesTitle')}</h3>
+                        <h3 className="text-base font-semibold text-card-foreground">{t('allergiesTitle')}</h3>
                     </div>
                     <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
                         <Plus className="h-4 w-4" />
@@ -995,7 +995,7 @@ function AnamnesisSection({
                         allergies.map((item, idx) => (
                             <div key={idx} className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex justify-between items-center">
                                 <div>
-                                    <div className="font-semibold text-destructive">{item.alergeno}</div>
+                                    <div className="text-sm font-semibold text-destructive">{item.alergeno}</div>
                                     {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
                                 </div>
                                 <div className="flex items-center space-x-1">
@@ -1009,7 +1009,7 @@ function AnamnesisSection({
                             </div>
                         ))
                     ) : (
-                        <p className="text-muted-foreground">{t('noData.allergies')}</p>
+                        <p className="text-sm text-muted-foreground">{t('noData.allergies')}</p>
                     )}
                 </div>
             </div>
@@ -1020,7 +1020,7 @@ function AnamnesisSection({
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
                             <Wind className="w-5 h-5 text-purple-500 mr-2" />
-                            <CardTitle className="text-lg font-bold">{tHabits('title')}</CardTitle>
+                            <CardTitle className="text-base font-semibold">{tHabits('title')}</CardTitle>
                         </div>
                         <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
                             <Edit3 className="h-4 w-4" />
@@ -1029,7 +1029,7 @@ function AnamnesisSection({
                 </CardHeader>
                 <CardContent>
                     {isLoadingPatientHabits ? (
-                        <p>Loading...</p>
+                        <p className="text-sm text-muted-foreground">Loading...</p>
                     ) : isHabitsEditing ? (
                         <div className="space-y-4">
                             <div>
@@ -1075,21 +1075,21 @@ function AnamnesisSection({
                             <div className="flex items-start gap-4">
                                 <Wind className="w-5 h-5 text-muted-foreground mt-1" />
                                 <div>
-                                    <h4 className="font-semibold">{tHabits('smoking')}</h4>
+                                    <h4 className="text-sm font-semibold">{tHabits('smoking')}</h4>
                                     <p className="text-sm text-foreground/80">{habitsFormData.tabaquismo || tHabits('noData')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <GlassWater className="w-5 h-5 text-muted-foreground mt-1" />
                                 <div>
-                                    <h4 className="font-semibold">{tHabits('alcohol')}</h4>
+                                    <h4 className="text-sm font-semibold">{tHabits('alcohol')}</h4>
                                     <p className="text-sm text-foreground/80">{habitsFormData.alcoholismo || tHabits('noData')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-4">
                                 <Smile className="w-5 h-5 text-muted-foreground mt-1" />
                                 <div>
-                                    <h4 className="font-semibold">{tHabits('bruxism')}</h4>
+                                    <h4 className="text-sm font-semibold">{tHabits('bruxism')}</h4>
                                     <p className="text-sm text-foreground/80">{habitsFormData.bruxismo || tHabits('noData')}</p>
                                 </div>
                             </div>

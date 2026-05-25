@@ -54,10 +54,7 @@ import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
-import { UserSummaryPanel } from '@/components/users/user-summary-panel';
 import { UserInvoices } from '@/components/users/user-invoices';
-import { UserLogs } from '@/components/users/user-logs';
-import { UserMessages } from '@/components/users/user-messages';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
@@ -74,9 +71,9 @@ import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { addMonths, differenceInYears, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
+import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Cake, CalendarIcon, Check, CheckCircle, ChevronsUpDown, ClipboardList, CreditCard, FileText, FolderArchive, Heart, History, Loader2, Mail, Maximize2, MessageSquare, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, StickyNote, ToggleLeft, Upload, Users, Wrench, X, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -394,119 +391,6 @@ async function getMutualSocietiesList(): Promise<MutualSociety[]> {
     return [];
   }
 }
-
-const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) => void }) => {
-  const t = useTranslations();
-  const [isEditing, setIsEditing] = React.useState(false);
-  const [notes, setNotes] = React.useState(user.notes || '');
-  const [isSaving, setIsSaving] = React.useState(false);
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    setNotes(user.notes || '');
-  }, [user.notes]);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await onUpdate(notes);
-      setIsEditing(false);
-      toast({
-        title: t('UsersPage.notes.saveSuccess'),
-        description: t('UsersPage.notes.saveSuccessDescription'),
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('UsersPage.notes.saveError'),
-        description: t('UsersPage.notes.saveErrorDescription'),
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    setNotes(user.notes || '');
-    setIsEditing(false);
-  };
-
-  return (
-    <Card className="h-full flex flex-col shadow-none border-0">
-      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
-        <div className="min-w-0 flex-1">
-          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
-            {t('UsersPage.notes.description')}
-          </CardDescription>
-        </div>
-        <div className="flex items-center gap-2 ml-2">
-          {!isEditing && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsEditing(true)}
-            >
-              {t('UsersPage.notes.edit')}
-            </Button>
-          )}
-          {isEditing && (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                {t('UsersPage.notes.cancel')}
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
-              </Button>
-            </>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="flex-1 overflow-auto p-4 pt-2 bg-card">
-        {isEditing ? (
-          <div className="h-full flex flex-col">
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={t('UsersPage.notes.placeholder')}
-              className="flex-1 min-h-[200px] resize-none"
-            />
-          </div>
-        ) : (
-          <div className="h-full">
-            {notes ? (
-              <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                {notes}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <p className="text-center mb-4">
-                  {t('UsersPage.notes.noNotes')}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  {t('UsersPage.notes.addFirstNote')}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
 
 const ResponsibleContactField = ({
   form,
@@ -1023,11 +907,8 @@ export default function UsersPage() {
     setActiveClinicalSubTab,
     activeFinancialSubTab,
     setActiveFinancialSubTab,
-    activeManagementSubTab,
-    setActiveManagementSubTab,
     openClinicalAnamnesis,
     openClinicalHistory,
-    openClinicalTreatmentPlans,
     openClinicalDocuments,
     openFinancialQuotes,
     openFinancialInvoices,
@@ -1595,44 +1476,6 @@ export default function UsersPage() {
     setRowSelection({});
   };
 
-  const handleUpdateNotes = async (notes: string) => {
-    if (!selectedUser) return;
-
-    try {
-      const updatedUserData = {
-        ...selectedUser,
-        notes,
-      };
-
-      await upsertUser({
-        id: selectedUser.id,
-        name: selectedUser.name,
-        email: selectedUser.email,
-        phone: selectedUser.phone_number,
-        identity_document: selectedUser.identity_document || '',
-        birth_date: selectedUser.birth_date || '',
-        notes,
-        is_active: selectedUser.is_active,
-        mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
-        is_dependent: selectedUser.is_dependent ?? false,
-        responsible_contact_id: selectedUser.responsible_contact_id || null,
-      });
-
-      setSelectedUser(updatedUserData);
-
-      // Update the user in the users list
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === selectedUser.id ? { ...user, notes } : user
-        )
-      );
-
-    } catch (error) {
-      console.error('Failed to update notes:', error);
-      throw error;
-    }
-  };
-
   const onSubmit = async (data: UserFormValues) => {
     setSubmissionError(null);
     form.clearErrors();
@@ -1730,8 +1573,8 @@ export default function UsersPage() {
   // ── Deep-link URL navigation (?f=&t=&st=&act=) ──────────────────────────────
   useDeepLink<User>({
     tabMap: {
-      'Información': 'clinical',
-      'Informacion': 'clinical',
+      'Información': 'info',
+      'Informacion': 'info',
       'Historia-Clinica': 'clinical',
       'Historia_Clinica': 'clinical',
       'Servicios': 'clinical',
@@ -1740,16 +1583,17 @@ export default function UsersPage() {
       'Ordenes': 'financial',
       'Facturas': 'financial',
       'Pagos': 'financial',
-      'Mensajes': 'management',
-      'Historial': 'management',
-      'Notas': 'management',
-      'Citas': 'management',
+      'Mensajes': 'clinical',
+      'Historial': 'clinical',
+      'Notas': 'info',
+      'Citas': 'clinical',
     },
     subtabMap: {
       'Anamnesis': 'anamnesis',
       'Timeline': 'timeline',
       'Linea-de-Tiempo': 'timeline',
       'Documentos': 'documents',
+      'Tratamientos': 'treatments',
     },
     onFilter: (value) => {
       setPagination((prev) => ({ ...prev, pageIndex: 0 }));
@@ -2051,15 +1895,6 @@ export default function UsersPage() {
                 <CardContent className="flex-1 overflow-hidden flex flex-col min-h-0 p-4 pt-0">
                   {canViewDetail && selectedUser ? (
                     <>
-                      <UserSummaryPanel
-                        financialData={userFinancialData}
-                        userId={selectedUser.id}
-                        isOpen={isStatsOpen}
-                        onToggle={() => setIsStatsOpen(v => !v)}
-                        onPrint={handlePrintFinancialSummary}
-                        onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
-                        onViewAllTreatments={() => { setActiveTab('clinical'); setActiveClinicalSubTab('treatment-plans'); }}
-                      />
                       <PatientDetailMainContent
                         activeTab={activeTab}
                         onActiveTabChange={setActiveTab}
@@ -2067,11 +1902,9 @@ export default function UsersPage() {
                         onClinicalSubTabChange={setActiveClinicalSubTab}
                         activeFinancialSubTab={activeFinancialSubTab}
                         onFinancialSubTabChange={setActiveFinancialSubTab}
-                        activeManagementSubTab={activeManagementSubTab}
-                        onManagementSubTabChange={setActiveManagementSubTab}
                         showDocuments={canViewHistory}
                         showServices={selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active)}
-                        summaryContent={
+                        infoContent={
                           <UserInfoTab
                             user={selectedUser}
                             mutualSocieties={mutualSocieties}
@@ -2133,8 +1966,8 @@ export default function UsersPage() {
                         financialSummaryContent={
                           <UserFinancialSummaryStats
                             financialData={userFinancialData}
-                            isOpen={true}
-                            onToggle={() => {}}
+                            isOpen={isStatsOpen}
+                            onToggle={() => setIsStatsOpen(v => !v)}
                             onPrint={handlePrintFinancialSummary}
                           />
                         }
@@ -2160,9 +1993,6 @@ export default function UsersPage() {
                           />
                         }
                         paymentsContent={<UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} refreshTrigger={refreshPaymentsTrigger} />}
-                        messagesContent={<UserMessages userId={selectedUser.id} />}
-                        notesContent={<NotesTab user={selectedUser} onUpdate={handleUpdateNotes} />}
-                        logsContent={<UserLogs userId={selectedUser.id} />}
                       />
                     </>
                   ) : (<></>)}

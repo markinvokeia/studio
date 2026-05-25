@@ -5,7 +5,6 @@ import * as React from 'react'
 import type {
   ClinicalSubTab,
   FinancialSubTab,
-  ManagementSubTab,
   PatientMacroTab,
 } from '@/components/patients/patient-detail-main-content'
 
@@ -15,29 +14,35 @@ interface UsePatientDetailNavigationOptions {
 }
 
 export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: UsePatientDetailNavigationOptions) {
-  const [activeTab, setActiveTab] = React.useState<PatientMacroTab>('clinical')
-  const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<ClinicalSubTab>('summary')
-  const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<FinancialSubTab>('summary')
-  const [activeManagementSubTab, setActiveManagementSubTab] = React.useState<ManagementSubTab>('messages')
+  const [activeTab, setActiveTab] = React.useState<PatientMacroTab>('info')
+  const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<ClinicalSubTab>('anamnesis')
+  const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<FinancialSubTab>('quotes')
 
   React.useEffect(() => {
     if (!selectedUserId) return
-    setActiveTab('clinical')
-    setActiveClinicalSubTab('summary')
-    setActiveFinancialSubTab('summary')
-    setActiveManagementSubTab('messages')
+    setActiveTab('info')
+    setActiveClinicalSubTab('anamnesis')
+    setActiveFinancialSubTab('quotes')
   }, [selectedUserId])
 
   React.useEffect(() => {
-    if (activeTab !== 'clinical') return
-    if (deepLinkView === 'anamnesis') setActiveClinicalSubTab('anamnesis')
-    else if (deepLinkView === 'documents') setActiveClinicalSubTab('documents')
-    else if (deepLinkView === 'timeline') setActiveClinicalSubTab('clinical-history')
-  }, [activeTab, deepLinkView])
+    if (deepLinkView === 'anamnesis') {
+      setActiveTab('clinical')
+      setActiveClinicalSubTab('anamnesis')
+    } else if (deepLinkView === 'documents') {
+      setActiveTab('clinical')
+      setActiveClinicalSubTab('documents')
+    } else if (deepLinkView === 'timeline') {
+      setActiveTab('clinical')
+      setActiveClinicalSubTab('clinical-history')
+    } else if (deepLinkView === 'treatments') {
+      setActiveTab('clinical')
+      setActiveClinicalSubTab('treatment-plans')
+    }
+  }, [deepLinkView])
 
-  const openClinicalSummary = React.useCallback(() => {
-    setActiveTab('clinical')
-    setActiveClinicalSubTab('summary')
+  const openInfo = React.useCallback(() => {
+    setActiveTab('info')
   }, [])
 
   const openClinicalAnamnesis = React.useCallback(() => {
@@ -58,11 +63,6 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
   const openClinicalDocuments = React.useCallback(() => {
     setActiveTab('clinical')
     setActiveClinicalSubTab('documents')
-  }, [])
-
-  const openFinancialSummary = React.useCallback(() => {
-    setActiveTab('financial')
-    setActiveFinancialSubTab('summary')
   }, [])
 
   const openFinancialQuotes = React.useCallback(() => {
@@ -87,14 +87,11 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     setActiveClinicalSubTab,
     activeFinancialSubTab,
     setActiveFinancialSubTab,
-    activeManagementSubTab,
-    setActiveManagementSubTab,
-    openClinicalSummary,
+    openInfo,
     openClinicalAnamnesis,
     openClinicalHistory,
     openClinicalTreatmentPlans,
     openClinicalDocuments,
-    openFinancialSummary,
     openFinancialQuotes,
     openFinancialInvoices,
     openFinancialPayments,

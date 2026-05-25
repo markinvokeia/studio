@@ -1,17 +1,16 @@
 'use client'
 
 import * as React from 'react'
-import { CreditCard, MessageSquare, StickyNote, Stethoscope } from 'lucide-react'
+import { CreditCard, Stethoscope } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip'
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 
-export type PatientSheetMacroTab = 'clinical' | 'financial' | 'management'
+export type PatientSheetMacroTab = 'clinical' | 'financial'
 export type PatientSheetClinicalSubTab = 'anamnesis' | 'clinical-history'
 export type PatientSheetFinancialSubTab = 'quotes' | 'invoices' | 'payments'
-export type PatientSheetManagementSubTab = 'messages' | 'notes'
 
 interface PatientDetailSheetMainContentProps {
   activeTab: PatientSheetMacroTab
@@ -20,16 +19,13 @@ interface PatientDetailSheetMainContentProps {
   onClinicalSubTabChange: (tab: PatientSheetClinicalSubTab) => void
   activeFinancialSubTab: PatientSheetFinancialSubTab
   onFinancialSubTabChange: (tab: PatientSheetFinancialSubTab) => void
-  activeManagementSubTab: PatientSheetManagementSubTab
-  onManagementSubTabChange: (tab: PatientSheetManagementSubTab) => void
   isDoctorMode: boolean
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
+  financialSummaryContent?: React.ReactNode
   quotesContent: React.ReactNode
   invoicesContent: React.ReactNode
   paymentsContent: React.ReactNode
-  messagesContent: React.ReactNode
-  notesContent: React.ReactNode
 }
 
 export function PatientDetailSheetMainContent({
@@ -39,16 +35,13 @@ export function PatientDetailSheetMainContent({
   onClinicalSubTabChange,
   activeFinancialSubTab,
   onFinancialSubTabChange,
-  activeManagementSubTab,
-  onManagementSubTabChange,
   isDoctorMode,
   anamnesisContent,
   clinicalHistoryContent,
+  financialSummaryContent,
   quotesContent,
   invoicesContent,
   paymentsContent,
-  messagesContent,
-  notesContent,
 }: PatientDetailSheetMainContentProps) {
   const t = useTranslations('UsersPage')
 
@@ -56,12 +49,10 @@ export function PatientDetailSheetMainContent({
     isDoctorMode
       ? [
           { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
-          { id: 'management', icon: StickyNote, label: t('tabs.management') },
         ]
       : [
           { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
           { id: 'financial', icon: CreditCard, label: t('tabs.financial') },
-          { id: 'management', icon: StickyNote, label: t('tabs.management') },
         ]
   ), [isDoctorMode, t])
 
@@ -89,7 +80,8 @@ export function PatientDetailSheetMainContent({
         )}
 
         {activeTab === 'financial' && !isDoctorMode && (
-          <>
+          <div className="space-y-4">
+            {financialSummaryContent}
             <PatientSubTabNav
               tabs={[
                 { id: 'quotes', label: t('tabs.quotes') },
@@ -102,22 +94,7 @@ export function PatientDetailSheetMainContent({
             {activeFinancialSubTab === 'quotes' && quotesContent}
             {activeFinancialSubTab === 'invoices' && invoicesContent}
             {activeFinancialSubTab === 'payments' && paymentsContent}
-          </>
-        )}
-
-        {activeTab === 'management' && (
-          <>
-            <PatientSubTabNav
-              tabs={[
-                { id: 'messages', label: t('tabs.messages') },
-                { id: 'notes', label: t('tabs.notes') },
-              ]}
-              activeTab={activeManagementSubTab}
-              onChange={(id) => onManagementSubTabChange(id as PatientSheetManagementSubTab)}
-            />
-            {activeManagementSubTab === 'messages' && messagesContent}
-            {activeManagementSubTab === 'notes' && notesContent}
-          </>
+          </div>
         )}
       </div>
     </div>
