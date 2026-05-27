@@ -171,7 +171,7 @@ Used when migrating existing sheets/pages to the new design.
 4. **Replace** `Tabs/TabsList/TabsTrigger` with `VerticalTabStrip`
 5. **Replace** `TabsContent` with `{activeTab === 'id' && <Component />}` conditional rendering
 6. **Adjust** header from full `CardHeader` to compact `px-5 py-3` layout
-7. **Run** `npm run typecheck && npm run lint` before committing
+7. **Run** `pnpm typecheck && pnpm lint` before committing
 
 ### Example — Sheet migration:
 ```tsx
@@ -275,7 +275,7 @@ LEFT_PANEL_NARROW_THRESHOLD = 380  // px — activates card view
 
 ## Verification Checklist (after each migration)
 
-1. `npm run typecheck && npm run lint` — must pass (existing warnings OK, no new errors)
+1. `pnpm typecheck && pnpm lint` — must pass (existing warnings OK, no new errors)
 2. Manual test: open the migrated page, click through all tabs
 3. Verify all actions still work (create, edit, delete, form submit)
 4. Test all 3 themes: Invoke (light), Claro, Dark

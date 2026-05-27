@@ -23,11 +23,11 @@ La app Next.js **nunca** se conecta directamente a PostgreSQL — lo hace a trav
 El flujo de trabajo es:
 
 ```
-DB local (DEV) ──── npm run db:snapshot ───► changelog_YYYYMMDD_HHMM.xml
+DB local (DEV) ──── pnpm db:snapshot ───► changelog_YYYYMMDD_HHMM.xml
                                                     │
                                               git commit & push
                                                     │
-                                       npm run db:migrate (en cada entorno)
+                                       pnpm db:migrate (en cada entorno)
                                                     │
                                             DB staging / CLIENTE / PROD
 ```
@@ -56,10 +56,10 @@ cp database/.env.example database/.env
 #    DB_URL, DB_USER, DB_PASS, ENVIRONMENT
 
 # 3. Verifica Docker, descarga el driver JDBC, valida la conexión
-npm run db:setup
+pnpm db:setup
 
 # 4. (Solo la primera vez) Genera el baseline desde la DB existente
-npm run db:baseline
+pnpm db:baseline
 #    → Revisa database/changelogs/v1_baseline.xml
 #    → Descomenta el <include> en changelog-master.xml
 #    → Haz commit de ambos archivos
@@ -95,20 +95,20 @@ Configura `database/.env` (nunca se sube a git):
 
 ## Referencia de Comandos
 
-### `npm run db:setup`
+### `pnpm db:setup`
 
 ```bash
-npm run db:setup
+pnpm db:setup
 ```
 
 Verifica Docker, descarga el driver JDBC de PostgreSQL 42.7.4 si no existe, valida la conexión a la DB. Ejecutar en cada máquina nueva o después de limpiar `database/drivers/`.
 
 ---
 
-### `npm run db:baseline` — Primera vez solamente
+### `pnpm db:baseline` — Primera vez solamente
 
 ```bash
-npm run db:baseline
+pnpm db:baseline
 ```
 
 Genera `database/changelogs/v1_baseline.xml` con el esquema actual de la DB y lo marca como "ya aplicado" en `DATABASECHANGELOG`. Ejecutar **una sola vez** por proyecto.
@@ -123,10 +123,10 @@ Después de ejecutarlo:
 
 ---
 
-### `npm run db:snapshot` — Capturar cambios
+### `pnpm db:snapshot` — Capturar cambios
 
 ```bash
-npm run db:snapshot
+pnpm db:snapshot
 ```
 
 Compara la DB actual contra los changelogs ya registrados y genera `database/changelogs/changelog_YYYYMMDD_HHMM.xml` con las diferencias.
@@ -137,18 +137,18 @@ Flujo después de ejecutarlo:
    ```xml
    <include file="changelogs/changelog_YYYYMMDD_HHMM.xml" relativeToChangelogFile="false"/>
    ```
-3. Aplica con `npm run db:migrate`
+3. Aplica con `pnpm db:migrate`
 
 ---
 
-### `npm run db:migrate` — Aplicar migraciones
+### `pnpm db:migrate` — Aplicar migraciones
 
 ```bash
 # Previsualizar SQL sin aplicar nada
-npm run db:migrate -- --dry-run
+pnpm db:migrate -- --dry-run
 
 # Aplicar cambios pendientes
-npm run db:migrate
+pnpm db:migrate
 ```
 
 Ejecuta `liquibase update` con el contexto del `ENVIRONMENT` configurado. Crea automáticamente un tag de rollback con timestamp (`deploy_YYYYMMDD_HHMMSS`).
@@ -157,17 +157,17 @@ Para ambientes `PROD` y `CLIENTE`: pausa y requiere escribir **CONFIRMO** antes 
 
 ---
 
-### `npm run db:rollback` — Revertir cambios
+### `pnpm db:rollback` — Revertir cambios
 
 ```bash
 # Revertir el último deploy (1 changeset)
-npm run db:rollback
+pnpm db:rollback
 
 # Revertir hasta un tag específico
-npm run db:rollback -- --tag=deploy_20260426_143000
+pnpm db:rollback -- --tag=deploy_20260426_143000
 
 # Revertir N changesets
-npm run db:rollback -- --count=3
+pnpm db:rollback -- --count=3
 ```
 
 Para ambientes `PROD` y `CLIENTE`: requiere **CONFIRMO**.
@@ -185,7 +185,7 @@ Los tags de rollback son creados automáticamente por `db:migrate` con el format
 #    (crea tablas, agrega columnas, crea vistas, etc.)
 
 # 2. Captura los cambios como un nuevo changelog
-npm run db:snapshot
+pnpm db:snapshot
 # → Genera database/changelogs/changelog_20260427_0930.xml
 
 # 3. Revisa el archivo generado y ajústalo si necesario
@@ -194,10 +194,10 @@ code database/changelogs/changelog_20260427_0930.xml
 # 4. Registra en changelog-master.xml (descomentar/agregar el <include>)
 
 # 5. Previsualiza el SQL que se ejecutará
-npm run db:migrate -- --dry-run
+pnpm db:migrate -- --dry-run
 
 # 6. Aplica localmente para verificar
-npm run db:migrate
+pnpm db:migrate
 
 # 7. Commit y push
 git add database/changelogs/
@@ -213,7 +213,7 @@ DB_URL=jdbc:postgresql://prod-host:5432/studio
 DB_USER=prod_user
 DB_PASS=prod_password
 ENVIRONMENT=PROD
-npm run db:migrate
+pnpm db:migrate
 
 # Opción B: inyectar variables en línea (útil en CI/CD)
 # Crea un archivo .env temporal en database/.env antes de correr el script
@@ -337,7 +337,7 @@ Nunca modifiques un changeset que ya fue aplicado. Si fue un error y es entorno 
 DELETE FROM DATABASECHANGELOG WHERE id = 'id-del-changeset' AND author = 'autor';
 ```
 
-Luego vuelve a ejecutar `npm run db:migrate`.
+Luego vuelve a ejecutar `pnpm db:migrate`.
 
 ### `Cannot connect to database`
 
@@ -389,8 +389,8 @@ DB_URL=jdbc:postgresql://localhost:5433/studio
 database/
 ├── changelogs/
 │   ├── changelog-master.xml    # Entrypoint — lista todos los changelogs
-│   ├── v1_baseline.xml         # Generado por: npm run db:baseline (primera vez)
-│   └── changelog_*.xml         # Generados por: npm run db:snapshot
+│   ├── v1_baseline.xml         # Generado por: pnpm db:baseline (primera vez)
+│   └── changelog_*.xml         # Generados por: pnpm db:snapshot
 │
 ├── scripts/
 │   ├── metadata/               # Vistas, funciones, catálogos (todos los entornos)
@@ -431,7 +431,7 @@ Para pipelines de CI/CD (GitHub Actions, etc.), crea el archivo `database/.env` 
     DB_SCHEMA=${DB_SCHEMA}
     ENVIRONMENT=${ENVIRONMENT}
     EOF
-    npm run db:migrate
+    pnpm db:migrate
 ```
 
 > En CI, `ENVIRONMENT=PROD` activa el prompt de confirmación. Para saltarlo en pipelines automatizados, puedes pasar el flag adicional `-y` o modificar el script para detectar modo CI con `[ -n "${CI:-}" ]`.

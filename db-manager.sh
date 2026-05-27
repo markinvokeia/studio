@@ -21,9 +21,9 @@
 #   ./db-manager.sh rollback --tag=deploy_20260426_143000
 #   ./db-manager.sh rollback --count=3
 #
-# Npm aliases:
-#   npm run db:setup    npm run db:baseline  npm run db:snapshot
-#   npm run db:migrate  npm run db:rollback
+# pnpm aliases:
+#   pnpm db:setup    pnpm db:baseline  pnpm db:snapshot
+#   pnpm db:migrate  pnpm db:rollback
 # =============================================================================
 set -euo pipefail
 
@@ -244,9 +244,9 @@ cmd_setup() {
   printf "\n"
   _log "${GREEN}${BOLD}Setup completado exitosamente.${RESET}"
   _log "Próximos pasos:"
-  _log "  → Primera vez: ${BOLD}npm run db:baseline${RESET}  (genera changelog inicial desde la DB)"
-  _log "  → Desplegar:   ${BOLD}npm run db:migrate${RESET}   (aplica migraciones pendientes)"
-  _log "  → Ver SQL:     ${BOLD}npm run db:migrate -- --dry-run${RESET}"
+  _log "  → Primera vez: ${BOLD}pnpm db:baseline${RESET}  (genera changelog inicial desde la DB)"
+  _log "  → Desplegar:   ${BOLD}pnpm db:migrate${RESET}   (aplica migraciones pendientes)"
+  _log "  → Ver SQL:     ${BOLD}pnpm db:migrate --dry-run${RESET}"
 }
 
 # =============================================================================
@@ -470,7 +470,7 @@ cmd_deploy() {
 
     printf "\n"
     _log "${GREEN}${BOLD}Deploy completado.${RESET}"
-    _log "Para revertir: ${BOLD}npm run db:rollback -- --tag=${tag}${RESET}"
+    _log "Para revertir: ${BOLD}pnpm db:rollback --tag=${tag}${RESET}"
   fi
 }
 
@@ -548,10 +548,10 @@ _usage() {
   printf "    ./db-manager.sh deploy\n"
   printf "    ./db-manager.sh rollback --tag=deploy_20260426_143000\n"
   printf "    ./db-manager.sh rollback --count=2\n\n"
-  printf "  %bNpm scripts:%b\n\n" "${BOLD}" "${RESET}"
-  printf "    npm run db:setup     npm run db:baseline  npm run db:snapshot\n"
-  printf "    npm run db:migrate   npm run db:migrate -- --dry-run\n"
-  printf "    npm run db:rollback  npm run db:rollback -- --tag=TAG\n\n"
+  printf "  %bpnpm scripts:%b\n\n" "${BOLD}" "${RESET}"
+  printf "    pnpm db:setup     pnpm db:baseline  pnpm db:snapshot\n"
+  printf "    pnpm db:migrate   pnpm db:migrate --dry-run\n"
+  printf "    pnpm db:rollback  pnpm db:rollback --tag=TAG\n\n"
 }
 
 # =============================================================================
