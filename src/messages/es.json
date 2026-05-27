@@ -4384,6 +4384,8 @@
     "title": "Calendario",
     "create": "Crear",
     "today": "Hoy",
+    "collapseMonth": "Colapsar mes",
+    "expandMonth": "Expandir mes",
     "timeZone": "GMT-03",
     "views": {
       "2day": "2 Días",

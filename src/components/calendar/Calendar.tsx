@@ -1,6 +1,7 @@
 
 'use client';
 
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
@@ -58,6 +59,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const isCompactHeader = breakpoint !== 'desktop';
 
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
+  const [monthCollapsed, setMonthCollapsed] = React.useState(false);
 
   const {
     currentDate,
@@ -170,6 +172,7 @@ const Calendar: React.FC<CalendarProps> = ({
               currentDate={currentDate}
               events={events}
               dateLocale={dateLocale}
+              collapsed={monthCollapsed}
               onEventClick={onEventClick}
               onSlotClick={onSlotClick}
             />
@@ -211,8 +214,19 @@ const Calendar: React.FC<CalendarProps> = ({
 
       {/* Mobile: date title bar */}
       {isMobile && (
-        <div className="px-3 py-2 border-b border-border bg-card">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card">
           <h3 className="text-sm font-semibold text-foreground">{headerTitle}</h3>
+          {effectiveView === 'month' && (
+            <button
+              type="button"
+              onClick={() => setMonthCollapsed((prev) => !prev)}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted active:bg-muted"
+              aria-label={monthCollapsed ? t('expandMonth') : t('collapseMonth')}
+              aria-expanded={!monthCollapsed}
+            >
+              {monthCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </button>
+          )}
         </div>
       )}
 
