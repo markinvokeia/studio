@@ -20,6 +20,7 @@ interface CalendarMonthViewMobileProps {
   currentDate: Date;
   events: CalendarEvent[];
   dateLocale: Locale;
+  collapsed?: boolean;
   onEventClick: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
 }
@@ -28,6 +29,7 @@ export function CalendarMonthViewMobile({
   currentDate,
   events,
   dateLocale,
+  collapsed = false,
   onEventClick,
   onSlotClick,
 }: CalendarMonthViewMobileProps) {
@@ -133,25 +135,29 @@ export function CalendarMonthViewMobile({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Compact month grid */}
-      <div className="shrink-0 px-3 pt-2 pb-1">
-        {/* Day name headers */}
-        <div className="grid grid-cols-7 text-center mb-1">
-          {dayNames.map((name, i) => (
-            <div key={i} className="text-xs font-medium text-muted-foreground py-1">
-              {name}
+      {!collapsed && (
+        <>
+          {/* Compact month grid */}
+          <div className="shrink-0 px-3 pt-2 pb-1">
+            {/* Day name headers */}
+            <div className="grid grid-cols-7 text-center mb-1">
+              {dayNames.map((name, i) => (
+                <div key={i} className="text-xs font-medium text-muted-foreground py-1">
+                  {name}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Grid of days */}
-        <div className="grid grid-cols-7 gap-0.5">
-          {cells}
-        </div>
-      </div>
+            {/* Grid of days */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {cells}
+            </div>
+          </div>
 
-      {/* Divider */}
-      <div className="border-t border-border mx-3" />
+          {/* Divider */}
+          <div className="border-t border-border mx-3" />
+        </>
+      )}
 
       {/* Agenda for selected day */}
       <div className="flex-1 overflow-y-auto px-3 pt-2 pb-20">

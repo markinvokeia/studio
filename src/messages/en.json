@@ -4398,6 +4398,8 @@
     "title": "Calendar",
     "create": "Create",
     "today": "Today",
+    "collapseMonth": "Collapse month",
+    "expandMonth": "Expand month",
     "timeZone": "GMT-03",
     "views": {
       "2day": "2 Days",

@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronRight, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -31,7 +32,7 @@ interface AppointmentStatusRailProps {
   appointment: Appointment;
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
-  variant?: 'top' | 'side';
+  variant?: 'top' | 'side' | 'dropdown';
 }
 
 const STATUS_FLOW: AppointmentStatus[] = [
@@ -71,7 +72,7 @@ export function AppointmentStatusRail({
     });
   }, [current]);
 
-  const renderCancellationMenuItems = () => (
+  const renderCancellationMenuItems = ({ closeOnSelect = false }: { closeOnSelect?: boolean } = {}) => (
     <>
       {CANCELLATION_REASONS_QUICK.map((reason) => (
         (() => {
@@ -81,7 +82,7 @@ export function AppointmentStatusRail({
             <DropdownMenuItem
               key={reason}
               onSelect={(event) => {
-                event.preventDefault();
+                if (!closeOnSelect) event.preventDefault();
                 onChange('cancelled', { cancellation_reason: reason });
               }}
               className="gap-2 text-sm"
@@ -100,7 +101,7 @@ export function AppointmentStatusRail({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onSelect={(event) => {
-              event.preventDefault();
+              if (!closeOnSelect) event.preventDefault();
               onRequestCustomCancellation();
             }}
             className="gap-2 text-sm"
@@ -113,9 +114,88 @@ export function AppointmentStatusRail({
     </>
   );
 
+  if (variant === 'dropdown') {
+    const transitions = STATUS_FLOW.filter(
+      (status) =>
+        APPOINTMENT_STATUSES.includes(status) &&
+        status !== 'cancelled' &&
+        allowed.includes(status),
+    );
+    const CancelIcon = STATUS_ICONS.cancelled;
+
+    return (
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-base font-semibold shadow-sm transition-colors"
+            style={{
+              borderColor: `${currentColor}40`,
+              backgroundColor: `${currentColor}14`,
+              color: currentColor,
+            }}
+          >
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <span
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
+                style={{ backgroundColor: `${currentColor}24` }}
+              >
+                <CurrentIcon className="h-4 w-4" style={{ color: currentColor }} strokeWidth={2.5} />
+              </span>
+              <span className="truncate">{tStatus(current)}</span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-[calc(100vw-1.5rem)] overflow-y-auto overscroll-contain"
+        >
+          <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+            {tMenu('changeStatus')}
+          </DropdownMenuLabel>
+          {transitions.length === 0 && !canCancel && (
+            <DropdownMenuItem disabled className="text-sm text-muted-foreground">
+              {tMenu('noTransitions')}
+            </DropdownMenuItem>
+          )}
+          {transitions.map((status) => {
+            const Icon = STATUS_ICONS[status];
+            const statusColor = STATUS_ACCENT_COLOR[status];
+
+            return (
+              <DropdownMenuItem
+                key={status}
+                onSelect={() => onChange(status)}
+                className="gap-2 text-sm"
+              >
+                <Icon className="h-4 w-4" style={{ color: statusColor }} strokeWidth={2.4} />
+                <span className="flex-1">{tStatus(status)}</span>
+              </DropdownMenuItem>
+            );
+          })}
+          {canCancel && (
+            <>
+              {transitions.length > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <CancelIcon
+                  className="h-3.5 w-3.5"
+                  style={{ color: STATUS_ACCENT_COLOR.cancelled }}
+                  strokeWidth={2.4}
+                />
+                {tMenu('cancelSubmenu')}
+              </DropdownMenuLabel>
+              {renderCancellationMenuItems({ closeOnSelect: true })}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
   if (variant === 'side') {
     return (
-      <aside className="w-14 shrink-0 overflow-y-auto border-l border-border bg-card px-1.5 py-3 sm:w-52 sm:px-3 sm:py-4 xl:w-56">
+      <aside className="hidden shrink-0 overflow-y-auto border-l border-border bg-card sm:block sm:w-52 sm:px-3 sm:py-4 xl:w-56">
         <div className="flex flex-col gap-2">
           {STATUS_FLOW.map((status) => {
             if (!APPOINTMENT_STATUSES.includes(status)) return null;
