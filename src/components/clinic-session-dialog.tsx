@@ -164,6 +164,9 @@ export function ClinicSessionDialog({
     // Pending slot: stores the last value typed while a fetch was in flight
     const pendingProcedureRef = React.useRef<string | null>(null);
     const pendingPlanRef = React.useRef<string | null>(null);
+    // Track last prefill values to avoid re-triggering AI generation on unrelated re-renders
+    const prevPrefillProcedureRef = React.useRef<string | undefined>(undefined);
+    const prevPrefillPlanRef = React.useRef<string | undefined>(undefined);
     // Service catalog for manual add
     const [services, setServices] = React.useState<Service[]>([]);
     const [isLoadingServices, setIsLoadingServices] = React.useState(false);
@@ -342,6 +345,30 @@ export function ClinicSessionDialog({
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, prefillData, prefillTreatments]);
+
+    // When the agent prefills procedimiento/plan, auto-generate AI treatment badges
+    // (same path as the textarea debounce, but triggered by agent prefill changes)
+    React.useEffect(() => {
+        if (!open) {
+            prevPrefillProcedureRef.current = undefined;
+            prevPrefillPlanRef.current = undefined;
+            return;
+        }
+        if (existingSession) return;
+
+        const procedure = prefillData?.procedimiento_realizado;
+        const plan = prefillData?.plan_proxima_cita;
+
+        if (procedure && procedure !== prevPrefillProcedureRef.current) {
+            prevPrefillProcedureRef.current = procedure;
+            handleGenerateForProcedure(procedure);
+        }
+        if (plan && plan !== prevPrefillPlanRef.current) {
+            prevPrefillPlanRef.current = plan;
+            handleGenerateForPlan(plan);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, prefillData?.procedimiento_realizado, prefillData?.plan_proxima_cita]);
 
     const fetchDoctors = async () => {
         setIsLoadingDoctors(true);
