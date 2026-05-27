@@ -7,6 +7,7 @@ import { useTranslations } from 'next-intl'
 
 import { Badge } from '@/components/ui/badge'
 import { CardHeader, CardTitle } from '@/components/ui/card'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatDisplayDate } from '@/lib/utils'
 import type { PatientDischarge, User } from '@/lib/types'
@@ -50,38 +51,92 @@ export function PatientDetailHeader({
   onOpenAnamnesis,
 }: PatientDetailHeaderProps) {
   const t = useTranslations()
+  const hasAlerts = allergies.length > 0 || conditions.length > 0
+
+  const alertIcon = (
+    <div
+      className="header-icon-circle flex-none"
+      style={
+        allergies.length > 0
+          ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
+          : conditions.length > 0
+            ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
+            : undefined
+      }
+    >
+      {hasAlerts ? <AlertTriangle className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+    </div>
+  )
 
   return (
     <CardHeader className="flex-none p-4 pb-2 space-y-0">
       <div className="flex items-center justify-between">
         <div className="min-w-0 flex-1 flex items-center gap-2">
           <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  className="header-icon-circle flex-none cursor-default"
-                  style={
-                    allergies.length > 0
-                      ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
-                      : conditions.length > 0
-                        ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
-                        : undefined
-                  }
-                >
-                  {(allergies.length > 0 || conditions.length > 0)
-                    ? <AlertTriangle className="h-5 w-5" />
-                    : <Users className="h-5 w-5" />}
-                </div>
-              </TooltipTrigger>
-              {(allergies.length > 0 || conditions.length > 0) && (
-                <TooltipContent>
-                  {[
-                    allergies.length > 0 ? `${allergies.length} alergia(s)` : '',
-                    conditions.length > 0 ? `${conditions.length} padecimiento(s)` : '',
-                  ].filter(Boolean).join(' · ')}
-                </TooltipContent>
-              )}
-            </Tooltip>
+            {hasAlerts ? (
+              <Popover>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button type="button" className="flex-none cursor-pointer">
+                        {alertIcon}
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {[
+                      allergies.length > 0 ? `${allergies.length} alergia(s)` : '',
+                      conditions.length > 0 ? `${conditions.length} padecimiento(s)` : '',
+                    ].filter(Boolean).join(' · ')}
+                  </TooltipContent>
+                </Tooltip>
+                <PopoverContent align="start" className="w-64 p-3 space-y-3">
+                  {allergies.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-destructive uppercase tracking-wide flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Alergias
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {allergies.map((a, i) => (
+                          <Badge key={i} variant="destructive" className="gap-1 text-xs font-normal">
+                            {a.alergeno}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {conditions.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1">
+                        <Heart className="h-3 w-3" />
+                        Padecimientos
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {conditions.map((c, i) => (
+                          <Badge key={i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
+                            {c.nombre}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="text-xs text-primary hover:underline w-full text-left pt-1 border-t border-border"
+                    onClick={onOpenAnamnesis}
+                  >
+                    Ver Anamnesis completa →
+                  </button>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex-none cursor-default">{alertIcon}</div>
+                </TooltipTrigger>
+                <TooltipContent>Sin alertas</TooltipContent>
+              </Tooltip>
+            )}
           </TooltipProvider>
           <CardTitle className="text-lg lg:text-xl truncate text-foreground font-bold">
             {user.name}
@@ -130,35 +185,6 @@ export function PatientDetailHeader({
           </Badge>
         )}
       </div>
-
-      {(allergies.length > 0 || conditions.length > 0) && (
-        <div className="flex items-center gap-1.5 mt-1 ml-10 flex-wrap">
-          {[
-            ...allergies.map(a => ({ label: a.alergeno || '', type: 'allergy' as const })),
-            ...conditions.map(c => ({ label: c.nombre || '', type: 'condition' as const })),
-          ].slice(0, 3).map((item, i) => (
-            item.type === 'allergy' ? (
-              <Badge key={`a-${i}`} variant="destructive" className="gap-1 text-xs font-normal">
-                <AlertTriangle className="h-3 w-3" />
-                {item.label}
-              </Badge>
-            ) : (
-              <Badge key={`c-${i}`} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
-                <Heart className="h-3 w-3" />
-                {item.label}
-              </Badge>
-            )
-          ))}
-          {(allergies.length + conditions.length) > 3 && (
-            <button
-              className="text-xs text-primary hover:underline"
-              onClick={onOpenAnamnesis}
-            >
-              +{allergies.length + conditions.length - 3} más → Anamnesis
-            </button>
-          )}
-        </div>
-      )}
     </CardHeader>
   )
 }

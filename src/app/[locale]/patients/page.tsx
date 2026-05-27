@@ -73,7 +73,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -1745,6 +1745,7 @@ export default function UsersPage() {
                   onOpenAnamnesis={openClinicalAnamnesis}
                   actions={(
                     <TooltipProvider>
+                      {/* Create dropdown — always visible */}
                       <DropdownMenu>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1790,97 +1791,160 @@ export default function UsersPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {effectivePatientEmail && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                              <Mail className="h-4 w-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{effectivePatientEmail}</TooltipContent>
-                        </Tooltip>
-                      )}
-
-                      {effectivePatientPhone && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={() => setIsWhatsAppDialogOpen(true)}
-                              className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                            >
-                              <WhatsAppIcon className="h-4 w-4" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{effectivePatientPhone}</TooltipContent>
-                        </Tooltip>
-                      )}
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className={cn(
-                              "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                              currentDischarge
-                                ? "text-green-600 hover:bg-green-50"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                            )}
-                            onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
-                            disabled={isSubmittingDischarge}
-                          >
-                            {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}</TooltipContent>
-                      </Tooltip>
-
-                      <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                              <button type="button" className={cn("flex items-center justify-center h-8 w-8 rounded-lg transition-colors", isPreferencesOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
-                                <SlidersHorizontal className="h-4 w-4" />
+                      {/* Desktop-only individual buttons */}
+                      <div className="hidden sm:flex items-center gap-0.5">
+                        {effectivePatientEmail && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                                <Mail className="h-4 w-4" />
                               </button>
-                            </PopoverTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent>{t('UsersPage.preferencesButton')}</TooltipContent>
-                        </Tooltip>
-                        <PopoverContent align="end" className="w-auto p-3 space-y-2">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">{t('UsersPage.preferencesButton')}</p>
-                          <UserCommunicationPreferences user={selectedUser} autoSave compact />
-                        </PopoverContent>
-                      </Popover>
+                            </TooltipTrigger>
+                            <TooltipContent>{effectivePatientEmail}</TooltipContent>
+                          </Tooltip>
+                        )}
 
-                      {canToggleStatus && (
+                        {effectivePatientPhone && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={() => setIsWhatsAppDialogOpen(true)}
+                                className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                              >
+                                <WhatsAppIcon className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{effectivePatientPhone}</TooltipContent>
+                          </Tooltip>
+                        )}
+
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
                               type="button"
                               className={cn(
                                 "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                                selectedUser.is_active
-                                  ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  : "text-green-600 hover:bg-green-50"
+                                currentDischarge
+                                  ? "text-green-600 hover:bg-green-50"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
                               )}
-                              onClick={() => handleToggleActivate(selectedUser)}
+                              onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                              disabled={isSubmittingDischarge}
                             >
-                              <ToggleLeft className="h-4 w-4" />
+                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
+                          <TooltipContent>{currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}</TooltipContent>
                         </Tooltip>
-                      )}
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setIsRightExpanded(v => !v)}>
-                            {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
-                      </Tooltip>
+                        <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <PopoverTrigger asChild>
+                                <button type="button" className={cn("flex items-center justify-center h-8 w-8 rounded-lg transition-colors", isPreferencesOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
+                                  <SlidersHorizontal className="h-4 w-4" />
+                                </button>
+                              </PopoverTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>{t('UsersPage.preferencesButton')}</TooltipContent>
+                          </Tooltip>
+                          <PopoverContent align="end" className="w-auto p-3 space-y-2">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">{t('UsersPage.preferencesButton')}</p>
+                            <UserCommunicationPreferences user={selectedUser} autoSave compact />
+                          </PopoverContent>
+                        </Popover>
 
+                        {canToggleStatus && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className={cn(
+                                  "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
+                                  selectedUser.is_active
+                                    ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                    : "text-green-600 hover:bg-green-50"
+                                )}
+                                onClick={() => handleToggleActivate(selectedUser)}
+                              >
+                                <ToggleLeft className="h-4 w-4" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
+                          </Tooltip>
+                        )}
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setIsRightExpanded(v => !v)}>
+                              {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                        </Tooltip>
+                      </div>
+
+                      {/* Mobile-only "more actions" dropdown */}
+                      <DropdownMenu>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <button type="button" className="sm:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Más acciones</TooltipContent>
+                        </Tooltip>
+                        <DropdownMenuContent align="end" className="w-52">
+                          {(effectivePatientEmail || effectivePatientPhone) && (
+                            <>
+                              <DropdownMenuLabel className="text-xs text-muted-foreground">Comunicación</DropdownMenuLabel>
+                              {effectivePatientEmail && (
+                                <DropdownMenuItem onClick={() => setIsEmailDialogOpen(true)}>
+                                  <Mail className="h-4 w-4 mr-2" />Enviar email
+                                </DropdownMenuItem>
+                              )}
+                              {effectivePatientPhone && (
+                                <DropdownMenuItem onClick={() => setIsWhatsAppDialogOpen(true)}>
+                                  <WhatsAppIcon className="h-4 w-4 mr-2" />WhatsApp
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Estado</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                            disabled={isSubmittingDischarge}
+                          >
+                            {currentDischarge
+                              ? <XCircle className="h-4 w-4 mr-2 text-green-600" />
+                              : <CheckCircle className="h-4 w-4 mr-2" />}
+                            {currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}
+                          </DropdownMenuItem>
+                          {canToggleStatus && (
+                            <DropdownMenuItem onClick={() => handleToggleActivate(selectedUser)}>
+                              <ToggleLeft className={cn("h-4 w-4 mr-2", selectedUser.is_active ? "text-destructive" : "text-green-600")} />
+                              {selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Configuración</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => setIsPreferencesOpen(true)}>
+                            <SlidersHorizontal className="h-4 w-4 mr-2" />{t('UsersPage.preferencesButton')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Vista</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => setIsRightExpanded(v => !v)}>
+                            {isRightExpanded ? <Minimize2 className="h-4 w-4 mr-2" /> : <Maximize2 className="h-4 w-4 mr-2" />}
+                            {isRightExpanded ? 'Restaurar' : 'Expandir'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Close button — always visible */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={handleCloseDetails}>
