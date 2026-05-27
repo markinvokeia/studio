@@ -5,6 +5,7 @@ import * as React from 'react'
 import type {
   ClinicalSubTab,
   FinancialSubTab,
+  InfoSubTab,
   PatientMacroTab,
 } from '@/components/patients/patient-detail-main-content'
 
@@ -15,12 +16,14 @@ interface UsePatientDetailNavigationOptions {
 
 export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: UsePatientDetailNavigationOptions) {
   const [activeTab, setActiveTab] = React.useState<PatientMacroTab>('info')
+  const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<InfoSubTab>('details')
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<ClinicalSubTab>('anamnesis')
   const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<FinancialSubTab>('quotes')
 
   React.useEffect(() => {
     if (!selectedUserId) return
     setActiveTab('info')
+    setActiveInfoSubTab('details')
     setActiveClinicalSubTab('anamnesis')
     setActiveFinancialSubTab('quotes')
   }, [selectedUserId])
@@ -83,6 +86,8 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
   return {
     activeTab,
     setActiveTab,
+    activeInfoSubTab,
+    setActiveInfoSubTab,
     activeClinicalSubTab,
     setActiveClinicalSubTab,
     activeFinancialSubTab,

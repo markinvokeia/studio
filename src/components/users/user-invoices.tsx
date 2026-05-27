@@ -38,7 +38,7 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, FileMinus2, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
@@ -298,6 +298,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   // Record-level dialogs
   const [isEditInvoiceOpen, setIsEditInvoiceOpen] = React.useState(false);
   const [isSubmittingInvoice, setIsSubmittingInvoice] = React.useState(false);
+  const [isCreditNoteOpen, setIsCreditNoteOpen] = React.useState(false);
+  const [isSubmittingCreditNote, setIsSubmittingCreditNote] = React.useState(false);
   // Email dialog states
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
@@ -316,6 +318,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const canUpdateItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_UPDATE_ITEM : PURCHASES_PERMISSIONS.INVOICES_UPDATE_ITEM);
   const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_DELETE_ITEM : PURCHASES_PERMISSIONS.INVOICES_DELETE_ITEM);
   const canCreatePayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
+  const canCreateInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_CREATE : PURCHASES_PERMISSIONS.INVOICES_CREATE);
   const canEditItems = isDraft && (canAddItem || canUpdateItem || canDeleteItem);
 
   // ── Data loading ────────────────────────────────────────────────────────────
@@ -594,6 +597,90 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     }
   };
 
+  // ── Credit note form ─────────────────────────────────────────────────────────
+  const creditNoteForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
+  const { fields: creditNoteItemFields, append: appendCreditNoteItem, remove: removeCreditNoteItem } = useFieldArray({
+    control: creditNoteForm.control,
+    name: 'items',
+  });
+
+  React.useEffect(() => {
+    if (!isCreditNoteOpen || !selectedInvoice) return;
+    creditNoteForm.reset({
+      type: 'credit_note',
+      currency: (selectedInvoice.currency as 'USD' | 'UYU') ?? 'UYU',
+      created_at: new Date(),
+      due_date: undefined,
+      is_historical: false,
+      notes: '',
+      items: invoiceItems.map(i => ({
+        id: undefined,
+        service_id: i.service_id,
+        service_name: i.service_name || '',
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.total,
+      })),
+    });
+    if (invoiceItems.length === 0) loadItems(selectedInvoice.id);
+    loadServices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCreditNoteOpen, selectedInvoice]);
+
+  React.useEffect(() => {
+    if (!isCreditNoteOpen || invoiceItems.length === 0) return;
+    const current = creditNoteForm.getValues('items');
+    if (current.length === 0) {
+      creditNoteForm.setValue('items', invoiceItems.map(i => ({
+        id: undefined,
+        service_id: i.service_id,
+        service_name: i.service_name || '',
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        total: i.total,
+      })));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceItems, isCreditNoteOpen]);
+
+  const watchedCreditNoteCurrency = creditNoteForm.watch('currency');
+
+  const handleSubmitCreditNote = async (values: InvoiceEditFormValues) => {
+    if (!selectedInvoice) return;
+    setIsSubmittingCreditNote(true);
+    try {
+      const calculatedTotal = (values.items || []).reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+      await api.post(isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT, {
+        user_id: selectedInvoice.user_id,
+        type: 'credit_note',
+        invoice_id: selectedInvoice.id,
+        currency: values.currency,
+        total: calculatedTotal,
+        order_id: selectedInvoice.order_id !== 'N/A' ? selectedInvoice.order_id : undefined,
+        quote_id: selectedInvoice.quote_id !== 'N/A' ? selectedInvoice.quote_id : undefined,
+        created_at: values.created_at ? toLocalISOString(values.created_at) : undefined,
+        due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
+        notes: values.notes || '',
+        is_historical: values.is_historical ?? false,
+        is_sales: isSales,
+        items: (values.items || []).map(i => ({
+          service_id: i.service_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          total: i.total,
+        })),
+      });
+      toast({ title: 'Nota de crédito creada' });
+      setIsCreditNoteOpen(false);
+      await loadInvoices(true);
+      onDataChange?.();
+    } catch (e: any) {
+      toast({ title: e?.message || 'Error al crear nota de crédito', variant: 'destructive' });
+    } finally {
+      setIsSubmittingCreditNote(false);
+    }
+  };
+
   // ── Item form ────────────────────────────────────────────────────────────────
   const itemForm = useForm<ItemFormValues>({ resolver: zodResolver(itemSchema) });
 
@@ -706,6 +793,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <DropdownMenuItem onClick={() => setIsEditInvoiceOpen(true)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Editar
+                </DropdownMenuItem>
+              </>
+            )}
+            {!isDraft && selectedInvoice?.type !== 'credit_note' && canCreateInvoice && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => { loadItems(selectedInvoice.id); setIsCreditNoteOpen(true); }}>
+                  <FileMinus2 className="h-4 w-4 mr-2" />
+                  Nota de crédito
                 </DropdownMenuItem>
               </>
             )}
@@ -1316,6 +1412,208 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               Eliminar
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Credit note dialog ── */}
+      <Dialog open={isCreditNoteOpen} onOpenChange={setIsCreditNoteOpen}>
+        <DialogContent maxWidth="4xl">
+          <Form {...creditNoteForm}>
+            <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="header-icon-circle mt-0.5">
+                    <FileMinus2 className="h-5 w-5" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <DialogTitle>Nueva nota de crédito</DialogTitle>
+                    <DialogDescription>Factura referenciada: {selectedInvoice?.doc_no}.</DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <DialogBody className="space-y-4 py-4 px-6">
+                {/* Currency + Date */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField control={creditNoteForm.control} name="currency" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Moneda</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="UYU">UYU</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={creditNoteForm.control} name="created_at" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha</FormLabel>
+                      <FormControl>
+                        <DatePickerInput
+                          value={field.value ? format(field.value, 'yyyy-MM-dd') : ''}
+                          onChange={(iso) => field.onChange(iso ? parseISO(iso) : undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                </div>
+
+                {/* Items */}
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="flex items-center justify-between px-4 pt-4 pb-2">
+                      <p className="text-sm font-semibold">Ítems</p>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); }}
+                      >
+                        Agregar Artículo
+                      </Button>
+                    </div>
+                    <div className="overflow-x-auto px-4 pb-4">
+                      {isLoadingItems ? (
+                        <div className="space-y-2 py-2">
+                          <Skeleton className="h-8 w-full" />
+                          <Skeleton className="h-8 w-full" />
+                        </div>
+                      ) : (
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-muted-foreground text-center border-b">
+                              <th className="text-left font-semibold p-2">Servicio</th>
+                              <th className="font-semibold p-2 w-24">Cantidad</th>
+                              <th className="font-semibold p-2 w-28">Precio unit.</th>
+                              <th className="font-semibold p-2 w-28">Total</th>
+                              <th className="p-2 w-10"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {creditNoteItemFields.map((fieldItem, index) => (
+                              <tr key={fieldItem.id} className="align-top border-b last:border-0">
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.service_id`} render={({ field }) => (
+                                    <FormItem>
+                                      <ServiceSelector
+                                        isSales={isSales}
+                                        value={field.value}
+                                        selectedServiceName={creditNoteForm.getValues(`items.${index}.service_name`) || undefined}
+                                        onValueChange={(serviceId, service) => {
+                                          field.onChange(serviceId);
+                                          if (service) {
+                                            const qty = creditNoteForm.getValues(`items.${index}.quantity`) || 1;
+                                            creditNoteForm.setValue(`items.${index}.service_name`, service.name);
+                                            creditNoteForm.setValue(`items.${index}.unit_price`, Number(service.price));
+                                            creditNoteForm.setValue(`items.${index}.total`, Number(service.price) * qty);
+                                          }
+                                        }}
+                                        placeholder="Buscar servicio..."
+                                        noResultsText="Sin resultados"
+                                        triggerText="Seleccionar servicio"
+                                      />
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="1" min="1" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const qty = parseInt(e.target.value) || 0;
+                                            const price = creditNoteForm.getValues(`items.${index}.unit_price`) || 0;
+                                            creditNoteForm.setValue(`items.${index}.total`, qty * price);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.unit_price`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input type="number" step="0.01" min="0" {...field}
+                                          onChange={e => {
+                                            field.onChange(e);
+                                            const price = parseFloat(e.target.value) || 0;
+                                            const qty = creditNoteForm.getValues(`items.${index}.quantity`) || 0;
+                                            creditNoteForm.setValue(`items.${index}.total`, qty * price);
+                                          }}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1">
+                                  <FormField control={creditNoteForm.control} name={`items.${index}.total`} render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Input
+                                          readOnly
+                                          disabled
+                                          value={new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(Number(field.value) || 0)}
+                                          className="bg-muted text-muted-foreground cursor-not-allowed"
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )} />
+                                </td>
+                                <td className="p-1 text-center">
+                                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeCreditNoteItem(index)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                            {creditNoteItemFields.length === 0 && (
+                              <tr><td colSpan={5} className="text-center text-muted-foreground text-xs py-4">Sin ítems. Agrega uno con el botón superior.</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                    {creditNoteItemFields.length > 0 && (
+                      <div className="mt-4 flex justify-end border-t border-dashed px-4 pb-4 pt-4">
+                        <div className="text-right">
+                          <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total</p>
+                          <p className="text-2xl font-semibold">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(
+                              creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0)
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Notes */}
+                <FormField control={creditNoteForm.control} name="notes" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notas <span className="text-muted-foreground">(opcional)</span></FormLabel>
+                    <FormControl><Textarea rows={2} placeholder="Motivo de la nota de crédito..." {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </DialogBody>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsCreditNoteOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={isSubmittingCreditNote}>
+                  {isSubmittingCreditNote && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Crear nota de crédito
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 

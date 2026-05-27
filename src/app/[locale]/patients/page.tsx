@@ -73,7 +73,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
@@ -528,6 +528,83 @@ const ResponsibleContactField = ({
   );
 };
 
+const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) => void }) => {
+  const t = useTranslations();
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [notes, setNotes] = React.useState(user.notes || '');
+  const [isSaving, setIsSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    setNotes(user.notes || '');
+  }, [user.notes]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdate(notes);
+      setIsEditing(false);
+      toast({ title: t('UsersPage.notes.saveSuccess'), description: t('UsersPage.notes.saveSuccessDescription') });
+    } catch {
+      toast({ variant: 'destructive', title: t('UsersPage.notes.saveError'), description: t('UsersPage.notes.saveErrorDescription') });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setNotes(user.notes || '');
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="h-full flex flex-col shadow-none border-0">
+      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
+        <div className="min-w-0 flex-1">
+          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">{t('UsersPage.notes.description')}</CardDescription>
+        </div>
+        <div className="flex items-center gap-2 ml-2">
+          {!isEditing && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              {t('UsersPage.notes.edit')}
+            </Button>
+          )}
+          {isEditing && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+                {t('UsersPage.notes.cancel')}
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
+              </Button>
+            </>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-auto p-4 pt-2">
+        {isEditing ? (
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder={t('UsersPage.notes.placeholder')}
+            className="min-h-[200px] resize-none w-full"
+          />
+        ) : notes ? (
+          <div className="whitespace-pre-wrap text-sm leading-relaxed">{notes}</div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+            <p className="text-center">{t('UsersPage.notes.noNotes')}</p>
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              {t('UsersPage.notes.addFirstNote')}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const UserInfoTab = ({
   user,
   mutualSocieties,
@@ -903,6 +980,8 @@ export default function UsersPage() {
   const {
     activeTab,
     setActiveTab,
+    activeInfoSubTab,
+    setActiveInfoSubTab,
     activeClinicalSubTab,
     setActiveClinicalSubTab,
     activeFinancialSubTab,
@@ -1299,6 +1378,26 @@ export default function UsersPage() {
       });
       console.error(error);
     }
+  };
+
+  const handleUpdateNotes = async (notes: string) => {
+    if (!selectedUser) return;
+    const updatedUser = { ...selectedUser, notes };
+    await upsertUser({
+      id: selectedUser.id,
+      name: selectedUser.name,
+      email: selectedUser.email || '',
+      phone: selectedUser.phone_number || '',
+      identity_document: selectedUser.identity_document || '',
+      birth_date: selectedUser.birth_date || '',
+      notes,
+      is_active: selectedUser.is_active,
+      mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
+      is_dependent: selectedUser.is_dependent ?? false,
+      responsible_contact_id: selectedUser.responsible_contact_id || null,
+    });
+    setSelectedUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
   };
 
   const handlePrintFinancialSummary = () => {
@@ -1750,8 +1849,10 @@ export default function UsersPage() {
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                <Plus className="h-4 w-4" />
+                              <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                                <Plus className="sm:hidden h-4 w-4 flex-none" />
+                                <span className="hidden sm:inline">Crear</span>
+                                <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
                               </button>
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
@@ -1791,107 +1892,15 @@ export default function UsersPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      {/* Desktop-only individual buttons */}
-                      <div className="hidden sm:flex items-center gap-0.5">
-                        {effectivePatientEmail && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button type="button" onClick={() => setIsEmailDialogOpen(true)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                <Mail className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{effectivePatientEmail}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        {effectivePatientPhone && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                onClick={() => setIsWhatsAppDialogOpen(true)}
-                                className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                              >
-                                <WhatsAppIcon className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{effectivePatientPhone}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className={cn(
-                                "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                                currentDischarge
-                                  ? "text-green-600 hover:bg-green-50"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              )}
-                              onClick={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
-                              disabled={isSubmittingDischarge}
-                            >
-                              {currentDischarge ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{currentDischarge ? t('UsersPage.readmitButton') : t('UsersPage.dischargeButton')}</TooltipContent>
-                        </Tooltip>
-
-                        <Popover open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <PopoverTrigger asChild>
-                                <button type="button" className={cn("flex items-center justify-center h-8 w-8 rounded-lg transition-colors", isPreferencesOpen ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted")}>
-                                  <SlidersHorizontal className="h-4 w-4" />
-                                </button>
-                              </PopoverTrigger>
-                            </TooltipTrigger>
-                            <TooltipContent>{t('UsersPage.preferencesButton')}</TooltipContent>
-                          </Tooltip>
-                          <PopoverContent align="end" className="w-auto p-3 space-y-2">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1">{t('UsersPage.preferencesButton')}</p>
-                            <UserCommunicationPreferences user={selectedUser} autoSave compact />
-                          </PopoverContent>
-                        </Popover>
-
-                        {canToggleStatus && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                type="button"
-                                className={cn(
-                                  "flex items-center justify-center h-8 w-8 rounded-lg transition-colors",
-                                  selectedUser.is_active
-                                    ? "text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    : "text-green-600 hover:bg-green-50"
-                                )}
-                                onClick={() => handleToggleActivate(selectedUser)}
-                              >
-                                <ToggleLeft className="h-4 w-4" />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{selectedUser.is_active ? t('UserColumns.deactivate') : t('UserColumns.activate')}</TooltipContent>
-                          </Tooltip>
-                        )}
-
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button type="button" className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => setIsRightExpanded(v => !v)}>
-                              {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
-                        </Tooltip>
-                      </div>
-
-                      {/* Mobile-only "more actions" dropdown */}
+                      {/* More actions dropdown — always visible */}
                       <DropdownMenu>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <DropdownMenuTrigger asChild>
-                              <button type="button" className="sm:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
-                                <MoreHorizontal className="h-4 w-4" />
+                              <button type="button" className="flex items-center justify-center gap-1.5 h-8 px-2 sm:px-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs font-medium">
+                                <MoreHorizontal className="sm:hidden h-4 w-4 flex-none" />
+                                <span className="hidden sm:inline">Más acciones</span>
+                                <ChevronDown className="hidden sm:block h-3 w-3 flex-none" />
                               </button>
                             </DropdownMenuTrigger>
                           </TooltipTrigger>
@@ -1968,6 +1977,9 @@ export default function UsersPage() {
                         onFinancialSubTabChange={setActiveFinancialSubTab}
                         showDocuments={canViewHistory}
                         showServices={selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active)}
+                        showNotes={canViewNotes}
+                        activeInfoSubTab={activeInfoSubTab}
+                        onInfoSubTabChange={setActiveInfoSubTab}
                         infoContent={
                           <UserInfoTab
                             user={selectedUser}
@@ -1976,6 +1988,12 @@ export default function UsersPage() {
                               setSelectedUser(updated)
                               loadUsers()
                             }}
+                          />
+                        }
+                        notesContent={
+                          <NotesTab
+                            user={selectedUser}
+                            onUpdate={handleUpdateNotes}
                           />
                         }
                         anamnesisContent={

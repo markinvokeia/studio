@@ -1171,13 +1171,14 @@
       "invoices": "Invoices",
       "payments": "Payments",
       "notes": "Notes",
+      "details": "Details",
       "clinical": "Clinical history",
       "financial": "Finance",
       "management": "Management",
       "info": "Info",
       "anamnesis": "Anamnesis",
       "summary": "Summary",
-      "history": "History"
+      "history": "Timeline"
     },
     "createDialog": {
       "title": "Create New Patient",
