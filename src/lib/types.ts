@@ -236,6 +236,16 @@ export type CreditNote = Invoice & {
   parent_id?: string;
 };
 
+export interface DocPrintTemplate {
+  id: string;
+  clinic_id: string;
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment';
+  template_html: string;
+  is_active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type InvoiceItem = {
   id: string;
   service_id: string;

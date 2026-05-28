@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { DataCard } from '@/components/ui/data-card';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -430,6 +431,7 @@ export function RecentQuotesTable({
   const isNarrow = isCompact || panelNarrow || viewportNarrow;
   const t = useTranslations();
   const { toast } = useToast();
+  const { printQuote } = usePrintDocument();
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
   const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
   const [emailRecipients, setEmailRecipients] = React.useState('');
@@ -439,37 +441,9 @@ export function RecentQuotesTable({
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
-  const handlePrintQuote = React.useCallback(async (quote: Quote) => {
-    const fileName = getDocumentFileName(quote, 'quote');
-    toast({
-      title: t('QuotesPage.generatingPdf'),
-      description: t('QuotesPage.pleaseWait', { id: fileName }),
-    });
-
-    try {
-      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: quote.id.toString() });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
-
-      toast({
-        title: t('QuotesPage.downloadStarted'),
-        description: t('QuotesPage.pdfDownloading', { id: fileName }),
-      });
-
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('QuotesPage.printError'),
-        description: error instanceof Error ? error.message : t('QuotesPage.couldNotPrint'),
-      });
-    }
-  }, [t, toast]);
+  const handlePrintQuote = React.useCallback((quote: Quote) => {
+    printQuote(quote, isSales);
+  }, [printQuote, isSales]);
 
   const handleSendEmailClick = (quote: Quote) => {
     setSelectedQuoteForEmail(quote);

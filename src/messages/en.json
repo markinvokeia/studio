@@ -44,6 +44,7 @@
     "Currencies": "Currencies & Exchange Rates",
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
+    "PrintTemplates": "Document Templates",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -5323,6 +5324,33 @@
       "codeRequired": "Code is required."
     }
   },
+  "Config": {
+    "PrintTemplates": {
+      "title": "Document Templates",
+      "description": "Customize the HTML for each print template for your clinic.",
+      "tabs": {
+        "invoice": "Invoice",
+        "quote": "Quote",
+        "payment": "Payment",
+        "credit_note": "Credit Note",
+        "prepayment": "Prepayment"
+      },
+      "editor": "HTML Editor",
+      "preview": "Preview",
+      "insertVariable": "Insert variable",
+      "snippets": "Snippets",
+      "save": "Save template",
+      "resetDefault": "Restore default",
+      "saveSuccess": "Template saved successfully",
+      "resetSuccess": "Template restored to default",
+      "groups": {
+        "document": "Document",
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "tables": "Tables"
+      }
+    }
+  },
   "MutualSocietiesColumns": {
     "id": "ID",
     "name": "Name",
@@ -6478,6 +6506,75 @@
     "confirmation": {
       "paymentTitle": "Payment recorded!",
       "invoiceTitle": "Invoice created!"
+    }
+  },
+  "PrintTemplates": {
+    "quote": "Quote",
+    "invoice": "Invoice",
+    "payment": "Payment Receipt",
+    "credit_note": "Credit Note",
+    "prepayment": "Prepayment",
+    "patient": "Patient",
+    "date": "Date",
+    "dueDate": "Due Date",
+    "status": "Status",
+    "billingStatus": "Billing Status",
+    "paymentStatus": "Payment Status",
+    "services": "Services",
+    "service": "Service",
+    "tooth": "Tooth",
+    "qty": "Qty.",
+    "unitPrice": "Unit Price",
+    "total": "Total",
+    "invoices": "Invoices",
+    "payments": "Payments",
+    "paymentDate": "Payment Date",
+    "paymentMethod": "Method",
+    "amount": "Amount",
+    "subtotal": "Subtotal",
+    "amountInvoiced": "Invoiced",
+    "pendingInvoice": "Pending Invoice",
+    "amountPaid": "Paid",
+    "pendingPayment": "Pending Payment",
+    "creditedAmount": "Credited Amount",
+    "originalInvoice": "Original Invoice",
+    "availableCredit": "Available as credit",
+    "exchangeRate": "Exchange rate",
+    "notes": "Notes",
+    "reference": "Reference",
+    "docNo": "Document No.",
+    "invoiceRef": "Invoice Ref.",
+    "currency": "Currency",
+    "noItems": "No items",
+    "noPayments": "No payments recorded",
+    "noInvoices": "No associated invoices",
+    "summary": "Summary",
+    "generatingPrint": "Preparing print…",
+    "quoteStatus": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "pending": "Pending",
+      "confirmed": "Confirmed"
+    },
+    "invoiceStatus": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "booked": "Booked"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "Unpaid",
+      "paid": "Paid",
+      "partial": "Partial",
+      "partially_paid": "Partially Paid"
+    },
+    "transactionType": {
+      "direct_payment": "Direct Payment",
+      "credit_note_allocation": "Credit Note Application",
+      "payment_allocation": "Payment Application"
     }
   }
 }

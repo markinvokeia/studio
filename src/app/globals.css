@@ -413,4 +413,37 @@ textarea::placeholder {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
+
+  /* ── Document print templates ────────────────────────────────────────────── */
+  .print-template-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-template-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+  }
+
+  .print-template-table th,
+  .print-template-table td {
+    padding: 4px 6px;
+    border: 1px solid #e5e7eb;
+    text-align: left;
+  }
+
+  .print-template-table th {
+    background: #f9fafb;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Ensure the document container is shown in full during print */
+  .print-template-root {
+    width: 100%;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #111827;
+  }
 }

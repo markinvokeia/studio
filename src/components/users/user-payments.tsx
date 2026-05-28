@@ -20,6 +20,7 @@ import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permission
 import { API_ROUTES } from '@/constants/routes';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
@@ -162,6 +163,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   const isViewportNarrow = useViewportNarrow();
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const { printPayment } = usePrintDocument();
   const isSales = mode === 'sales';
   const canEditPayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
   const [payments, setPayments] = React.useState<Payment[]>([]);
@@ -325,28 +327,9 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
   };
 
   // ── Record actions ──────────────────────────────────────────────────────────
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!selectedPayment) return;
-    try {
-      const blob = await api.getBlob(
-        isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT,
-        {
-          transaction_id: selectedPayment.transaction_id || selectedPayment.id,
-          transaction_type: selectedPayment.transaction_type
-        }
-      );
-      const fileName = getDocumentFileName(selectedPayment, 'payment');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir', variant: 'destructive' });
-    }
+    printPayment(selectedPayment, isSales);
   };
 
   // ── Toolbar action buttons ────────────────────────────────────────────────────
