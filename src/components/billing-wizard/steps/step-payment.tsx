@@ -27,7 +27,6 @@ import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -845,8 +844,7 @@ export function StepPayment({
             <CreditCard className="h-4 w-4 text-muted-foreground" />
             <h4 className="text-sm font-semibold">Créditos disponibles</h4>
           </div>
-          <ScrollArea className="max-h-52">
-            <div className="space-y-2 pr-1">
+          <div className="max-h-52 overflow-y-auto space-y-2 pr-0.5">
               {userCredits.map((credit) => {
                 const isChecked = appliedCredits.has(credit.source_id);
                 const maxAmount = Number(credit.available_balance) || 0;
@@ -907,8 +905,7 @@ export function StepPayment({
                   </div>
                 );
               })}
-            </div>
-          </ScrollArea>
+          </div>
         </div>
 
         {/* Credits summary */}

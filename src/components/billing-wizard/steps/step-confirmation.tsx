@@ -203,7 +203,13 @@ export function StepConfirmation({
                   {/* Top line: doc no (or transaction ref) + amount + currency */}
                   <div className="flex items-center gap-1.5 font-medium">
                     <span className="truncate">
-                      {p.docNo ? `#${p.docNo}` : `Ref. #${p.transactionId}`}
+                      {p.docNo
+                        ? `#${p.docNo}`
+                        : (p.transactionType === 'payment_allocation' || p.transactionType === 'credit_note_allocation' || p.methodName === 'Crédito')
+                          ? 'Crédito aplicado'
+                          : p.transactionId
+                            ? `Ref. #${p.transactionId}`
+                            : '—'}
                     </span>
                     {p.amount != null && p.currency && (
                       <>
@@ -245,7 +251,7 @@ export function StepConfirmation({
             {appliedCredits.map((c) => (
               <div key={c.source_id} className="flex justify-between items-center px-4 py-2.5 text-sm">
                 <span className="text-muted-foreground shrink-0">
-                  {c.type === 'credit_note' ? 'Nota de crédito' : 'Referencia de pago'} #{c.source_id}
+                  {c.type === 'credit_note' ? 'Nota de crédito' : 'Crédito'} #{c.source_id}
                 </span>
                 <span className="tabular-nums font-medium text-emerald-600">
                   − {new Intl.NumberFormat('es-UY', { style: 'currency', currency: c.currency }).format(c.amount)}
