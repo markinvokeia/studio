@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 export interface PatientSubTabItem {
   id: string
   label: string
+  /** Full label shown only on desktop (sm+). Falls back to label if not set. */
+  desktopLabel?: string
 }
 
 interface PatientSubTabNavProps {
@@ -31,7 +33,9 @@ export function PatientSubTabNav({ tabs, activeTab, onChange }: PatientSubTabNav
                 : 'border-transparent text-muted-foreground hover:bg-background/60 hover:text-foreground'
             )}
           >
-            {tab.label}
+            {tab.desktopLabel
+              ? <><span className="sm:hidden">{tab.label}</span><span className="hidden sm:inline">{tab.desktopLabel}</span></>
+              : tab.label}
           </button>
         ))}
       </div>

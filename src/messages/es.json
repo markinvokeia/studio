@@ -1309,7 +1309,13 @@
     "currentDebt": "Deuda Actual",
     "openMenu": "Abrir menú",
     "active": "Activo",
-    "inactive": "Inactivo"
+    "inactive": "Inactivo",
+    "activateSuccess": "Paciente activado",
+    "activateSuccessDescription": "{name} ha sido activado exitosamente.",
+    "deactivateSuccess": "Paciente desactivado",
+    "deactivateSuccessDescription": "{name} ha sido desactivado exitosamente.",
+    "toggleStatusError": "Error al actualizar estado",
+    "toggleStatusErrorDescription": "No se pudo actualizar el estado del paciente."
   },
   "UserRoles": {
     "addRoles": "Marcar/Desmarcar Roles",
@@ -2548,9 +2554,11 @@
       "type": "Tipo",
       "paymentTypes": {
         "direct_payment": "Pago Directo",
+        "payment": "Pago",
         "prepaid": "Prepago",
         "payment_allocation": "Asignación de Pago",
-        "credit_note_allocation": "Asignación de Nota de Crédito"
+        "credit_note_allocation": "Asignación de Nota de Crédito",
+        "credit_note": "Nota de Crédito"
       },
       "credit_note": "Nota de Crédito",
       "invoice": "Factura",

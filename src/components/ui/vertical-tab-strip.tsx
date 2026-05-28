@@ -9,6 +9,8 @@ export interface VerticalTab {
   id: string;
   icon: React.ElementType;
   label: string;
+  /** Shorter label shown on mobile when space is tight */
+  shortLabel?: string;
   /** If set, clicking this tab calls pushPanel instead of switching content */
   navigatesTo?: string;
 }
@@ -78,8 +80,8 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
           tabIndex={-1}
           onClick={() => scrollBy(-SCROLL_STEP)}
           className={cn(
-            'flex items-center justify-center w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150 border-r border-border',
-            canScrollLeft ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+            'flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150 border-r border-border overflow-hidden',
+            canScrollLeft ? 'w-7 opacity-100 pointer-events-auto' : 'w-0 opacity-0 pointer-events-none border-0',
           )}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
@@ -100,7 +102,7 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
                     type="button"
                     onClick={() => onTabClick(tab)}
                     className={cn(
-                      'relative flex items-center justify-center gap-1.5 h-10 px-3 sm:px-4 transition-all duration-150 whitespace-nowrap shrink-0',
+                      'relative flex items-center justify-center gap-1 h-10 px-2.5 sm:px-3 transition-all duration-150 whitespace-nowrap shrink-0',
                       isActive
                         ? 'text-primary'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/60',
@@ -112,7 +114,10 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
                       <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full bg-primary" />
                     )}
                     <Icon className="h-4 w-4 shrink-0" />
-                    <span className="hidden sm:inline text-xs font-medium">{tab.label}</span>
+                    <span className="text-xs font-medium">
+                      <span className="sm:hidden">{tab.shortLabel ?? tab.label}</span>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                    </span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="text-xs font-medium">
@@ -130,8 +135,8 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
           tabIndex={-1}
           onClick={() => scrollBy(SCROLL_STEP)}
           className={cn(
-            'flex items-center justify-center w-7 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150 border-l border-border',
-            canScrollRight ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
+            'flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-150 border-l border-border overflow-hidden',
+            canScrollRight ? 'w-7 opacity-100 pointer-events-auto' : 'w-0 opacity-0 pointer-events-none border-0',
           )}
         >
           <ChevronRight className="h-3.5 w-3.5" />

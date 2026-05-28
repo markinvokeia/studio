@@ -194,13 +194,9 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     if (!userId) return;
     silent ? setIsRefreshing(true) : setIsLoading(true);
     const fetchedPayments = await getPaymentsForUser(userId);
-    let filtered = fetchedPayments;
-    if (selectedQuote) {
-      filtered = fetchedPayments.filter(p => p.quote_id === selectedQuote.id);
-    }
-    setPayments(filtered);
+    setPayments(fetchedPayments);
     silent ? setIsRefreshing(false) : setIsLoading(false);
-  }, [userId, selectedQuote]);
+  }, [userId]);
 
   const loadAllocations = React.useCallback(async (paymentId: string) => {
     setIsLoadingAllocations(true);

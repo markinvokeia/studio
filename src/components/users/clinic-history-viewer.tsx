@@ -124,7 +124,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     const [patientAppointments, setPatientAppointments] = React.useState<Appointment[]>([]);
     const [isLoadingPatientAppointments, setIsLoadingPatientAppointments] = React.useState(false);
-    const [calendars, setCalendars] = React.useState<Calendar[]>([]);
+    const calendarsRef = React.useRef<Calendar[]>([]);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -133,10 +133,10 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 const data = await api.get(API_ROUTES.CALENDARS);
                 const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
                 if (!cancelled) {
-                    setCalendars(list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar)));
+                    calendarsRef.current = list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar));
                 }
             } catch {
-                if (!cancelled) setCalendars([]);
+                if (!cancelled) calendarsRef.current = [];
             }
         })();
         return () => { cancelled = true; };
@@ -167,7 +167,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 if (isNaN(dt.getTime())) return null;
                 const endNode = apiAppt.end_time || apiAppt.end;
                 const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
-                const calendar = calendars.find(c => String(c.id) === calendarSourceId);
+                const calendar = calendarsRef.current.find(c => String(c.id) === calendarSourceId);
                 return {
                     id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
                     patientId: currentUserId,
@@ -214,7 +214,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         } finally {
             setIsLoadingPatientAppointments(false);
         }
-    }, [userName, calendars]);
+    }, [userName]);
 
     React.useEffect(() => {
         if (userId) {

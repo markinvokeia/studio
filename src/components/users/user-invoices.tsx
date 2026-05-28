@@ -199,6 +199,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       currency: d.currency || 'USD',
       is_historical: d.is_historical || false,
       due_date: d.due_date || null,
+      paid_amount: d.paid_amount != null ? parseFloat(d.paid_amount) : undefined,
     }));
 
     const needsQuoteFallback = invoices.some((invoice: Invoice) =>
@@ -650,6 +651,15 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
     setIsSubmittingCreditNote(true);
     try {
       const calculatedTotal = (values.items || []).reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+      const maxAllowed = Number(selectedInvoice.paid_amount) || 0;
+      if (maxAllowed <= 0) {
+        toast({ title: 'Esta factura no tiene pagos registrados', variant: 'destructive' });
+        return;
+      }
+      if (calculatedTotal > maxAllowed) {
+        toast({ title: `El total de la nota de crédito no puede superar el monto pagado (${new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(maxAllowed)})`, variant: 'destructive' });
+        return;
+      }
       await api.post(isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT, {
         user_id: selectedInvoice.user_id,
         type: 'credit_note',
@@ -796,7 +806,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 </DropdownMenuItem>
               </>
             )}
-            {!isDraft && selectedInvoice?.type !== 'credit_note' && canCreateInvoice && (
+            {!isDraft && selectedInvoice?.type !== 'credit_note' && canCreateInvoice && ['paid', 'partial', 'partially_paid'].includes(selectedInvoice?.payment_status ?? '') && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => { loadItems(selectedInvoice.id); setIsCreditNoteOpen(true); }}>
@@ -998,12 +1008,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             {/* Tabs: Items + Payments */}
             <div className="flex-1 flex flex-col overflow-hidden">
               <Tabs defaultValue="items" className="flex-1 flex flex-col min-h-0">
-                <div className="px-6 border-b bg-background">
-                  <TabsList className="h-10 bg-transparent gap-1 p-0">
-                    <TabsTrigger value="items" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-full px-3 text-xs font-medium">
+                <div className="px-6 py-2">
+                  <TabsList className="gap-1 rounded-xl border border-border bg-muted/30 p-1 h-auto">
+                    <TabsTrigger value="items" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">
                       Ítems
                     </TabsTrigger>
-                    <TabsTrigger value="payments" className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none h-full px-3 text-xs font-medium flex items-center gap-1.5">
+                    <TabsTrigger value="payments" className="rounded-lg border border-transparent px-3 py-2 text-xs font-medium whitespace-nowrap text-muted-foreground hover:bg-background/60 hover:text-foreground data-[state=active]:border-border data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm flex items-center gap-1.5">
                       <CreditCard className="h-3.5 w-3.5" />
                       Pagos
                     </TabsTrigger>
@@ -1093,6 +1103,36 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 </TabsContent>
               </Tabs>
             </div>
+
+            {/* ── Financial Footer ── */}
+            {(() => {
+              const paidAmt = Number(selectedInvoice.paid_amount) || 0;
+              const pendingAmt = Math.max(0, selectedInvoice.total - paidAmt);
+              const cur = selectedInvoice.currency || 'USD';
+              const fmt = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: cur }).format(v);
+              return (
+                <div className="flex-none border-t bg-muted/30 px-6 py-3">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Total</p>
+                      <p className="text-sm font-semibold tabular-nums">{fmt(selectedInvoice.total)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Pagado</p>
+                      <p className={`text-sm font-semibold tabular-nums ${paidAmt > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`}>
+                        {fmt(paidAmt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-0.5">Saldo pendiente</p>
+                      <p className={`text-sm font-semibold tabular-nums ${pendingAmt > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                        {fmt(pendingAmt)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </ResizableSheet>
@@ -1427,7 +1467,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   </div>
                   <div className="flex flex-col text-left">
                     <DialogTitle>Nueva nota de crédito</DialogTitle>
-                    <DialogDescription>Factura referenciada: {selectedInvoice?.doc_no}.</DialogDescription>
+                    <DialogDescription>
+                      Factura referenciada: {selectedInvoice?.doc_no}. Monto pagado disponible:{' '}
+                      <span className="font-medium text-foreground">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || 'USD' }).format(Number(selectedInvoice?.paid_amount) || 0)}
+                      </span>
+                    </DialogDescription>
                   </div>
                 </div>
               </DialogHeader>
@@ -1582,10 +1627,16 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       )}
                     </div>
                     {creditNoteItemFields.length > 0 && (
-                      <div className="mt-4 flex justify-end border-t border-dashed px-4 pb-4 pt-4">
+                      <div className="mt-4 flex justify-between items-end border-t border-dashed px-4 pb-4 pt-4">
+                        <p className="text-xs text-muted-foreground">
+                          Máximo permitido:{' '}
+                          <span className="font-medium text-foreground">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice?.currency || 'USD' }).format(Number(selectedInvoice?.paid_amount) || 0)}
+                          </span>
+                        </p>
                         <div className="text-right">
                           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Total</p>
-                          <p className="text-2xl font-semibold">
+                          <p className={`text-2xl font-semibold ${creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0) > (Number(selectedInvoice?.paid_amount) || 0) ? 'text-destructive' : ''}`}>
                             {new Intl.NumberFormat('en-US', { style: 'currency', currency: watchedCreditNoteCurrency || 'USD' }).format(
                               creditNoteItemFields.reduce((sum, _, i) => sum + (Number(creditNoteForm.getValues(`items.${i}.total`)) || 0), 0)
                             )}

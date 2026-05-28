@@ -1364,17 +1364,21 @@ export default function UsersPage() {
         is_active: !user.is_active,
       });
 
+      const isNowActive = !user.is_active;
       toast({
-        title: 'Success',
-        description: `Patient ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        title: t(isNowActive ? 'UserColumns.activateSuccess' : 'UserColumns.deactivateSuccess'),
+        description: t(isNowActive ? 'UserColumns.activateSuccessDescription' : 'UserColumns.deactivateSuccessDescription', { name: user.name }),
       });
 
+      if (selectedUser?.id === user.id) {
+        setSelectedUser({ ...selectedUser, is_active: isNowActive });
+      }
       loadUsers();
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update patient status.',
+        title: t('UserColumns.toggleStatusError'),
+        description: t('UserColumns.toggleStatusErrorDescription'),
       });
       console.error(error);
     }
@@ -1618,7 +1622,12 @@ export default function UsersPage() {
         });
       }
       setIsDialogOpen(false);
-      loadUsers();
+      if (!isEditing) {
+        setPagination(prev => ({ ...prev, pageIndex: 0 }));
+        if (pagination.pageIndex === 0) loadUsers();
+      } else {
+        loadUsers();
+      }
 
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
@@ -1984,7 +1993,7 @@ export default function UsersPage() {
                         activeFinancialSubTab={activeFinancialSubTab}
                         onFinancialSubTabChange={setActiveFinancialSubTab}
                         showDocuments={canViewHistory}
-                        showServices={selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active)}
+                        showServices={!selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active)}
                         showNotes={canViewNotes}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}

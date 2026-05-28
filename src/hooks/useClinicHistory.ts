@@ -370,31 +370,31 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         }
     }, []);
 
-    const fetchDocuments = useCallback(async (userId: string) => {
+    const mapDocument = (doc: any): ClinicDocument => ({
+        id: doc.id,
+        nombre: doc.nombre || doc.name || '',
+        tipo: doc.mimeType || doc.tipo || doc.type || '',
+        ruta: doc.ruta || doc.path || doc.thumbnailLink || '',
+        fecha_subida: doc.fecha_subida || doc.created_at || '',
+        tamaño: doc.tamaño || doc.size || 0,
+        thumbnail_url: doc.thumbnailLink || doc.thumbnail_url || '',
+        mimeType: doc.mimeType || '',
+        hasThumbnail: doc.hasThumbnail || false,
+    });
+
+    const fetchDocuments = useCallback(async (userId: string, silent = false) => {
         if (!userId) return;
-        setIsLoadingDocuments(true);
+        if (!silent) setIsLoadingDocuments(true);
         try {
             const data = await api.get(API_ROUTES.CLINIC_HISTORY.USERS_DOCUMENTS, { user_id: userId });
             const docsArray = Array.isArray(data) ? data : (data.documents || data.data || []);
             const docsData = docsArray[0]?.items || docsArray[0] || [];
-
-            const mappedDocs = docsData.map((doc: any): ClinicDocument => ({
-                id: doc.id,
-                nombre: doc.nombre || doc.name || '',
-                tipo: doc.mimeType || doc.tipo || doc.type || '',
-                ruta: doc.ruta || doc.path || doc.thumbnailLink || '',
-                fecha_subida: doc.fecha_subida || doc.created_at || '',
-                tamaño: doc.tamaño || doc.size || 0,
-                thumbnail_url: doc.thumbnailLink || doc.thumbnail_url || '',
-                mimeType: doc.mimeType || '',
-                hasThumbnail: doc.hasThumbnail || false,
-            }));
-            setDocuments(mappedDocs);
+            setDocuments(docsData.map(mapDocument));
         } catch (error) {
             console.error("Failed to fetch documents:", error);
-            setDocuments([]);
+            if (!silent) setDocuments([]);
         } finally {
-            setIsLoadingDocuments(false);
+            if (!silent) setIsLoadingDocuments(false);
         }
     }, []);
 
@@ -700,8 +700,18 @@ export function useClinicHistory(): UseClinicHistoryReturn {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('user_id', userId);
-            await api.post(API_ROUTES.CLINIC_HISTORY.USERS_IMPORT, formData);
-            await fetchDocuments(userId);
+            const response = await api.post(API_ROUTES.CLINIC_HISTORY.USERS_IMPORT, formData);
+            // If the backend returns the new document, add it immediately without a loading flash
+            const raw = response && typeof response === 'object' && response.id
+                ? response
+                : Array.isArray(response) && response[0]?.id
+                    ? response[0]
+                    : null;
+            if (raw) {
+                setDocuments(prev => [...prev, mapDocument(raw)]);
+            }
+            // Sync in background to get the server-authoritative list (silent = no loading state)
+            fetchDocuments(userId, true);
         } catch (error) {
             console.error("Failed to upload document:", error);
             throw error;
