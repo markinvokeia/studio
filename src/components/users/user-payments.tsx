@@ -48,6 +48,10 @@ const getPaymentType = (payment: Payment): { type: 'direct_payment' | 'prepaid' 
   return { type: 'direct_payment', variant: 'default' };
 };
 
+const isAllocationPayment = (payment: Payment) =>
+  payment.transaction_type === 'payment_allocation' ||
+  payment.transaction_type === 'credit_note_allocation';
+
 const historicalBadgeClassName = 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300';
 
 // ── Columns ───────────────────────────────────────────────────────────────────
@@ -71,6 +75,9 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
     header: ({ column }) => <DataTableColumnHeader column={column} title={t('PaymentsPage.columns.doc_no')} />,
     cell: ({ row }) => {
       const docNo = row.getValue('doc_no') as string;
+      if (!docNo && isAllocationPayment(row.original)) {
+        return <div className="font-medium text-muted-foreground italic">Crédito</div>;
+      }
       return <div className="font-medium">{docNo || 'N/A'}</div>;
     },
   },
@@ -425,7 +432,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               return (
                 <DataCard isSelected={_isSelected}
                   className={payment.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
-                  title={payment.doc_no || `PAY-${payment.id}`}
+                  title={payment.doc_no || (isAllocationPayment(payment) ? 'Crédito' : `PAY-${payment.id}`)}
                   subtitle={formatDisplayDate(payment.payment_date || payment.createdAt)}
                   badge={
                     <div className="flex gap-1 flex-wrap justify-end">
@@ -486,7 +493,7 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                 <div className="flex items-start justify-between gap-4 pr-10 sm:pr-20">
                   <div className="flex items-center gap-3">
                     <div>
-                      <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedPayment.doc_no || `PAY-${selectedPayment.id}`}</SheetTitle>
+                      <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedPayment.doc_no || (isAllocationPayment(selectedPayment) ? 'Crédito aplicado' : `PAY-${selectedPayment.id}`)}</SheetTitle>
                       <SheetDescription className="text-sm text-muted-foreground mt-0.5">
                         {(() => {
                           const { type } = getPaymentType(selectedPayment);

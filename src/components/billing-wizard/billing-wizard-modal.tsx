@@ -30,11 +30,11 @@ import {
 
 import { BillingWizardStepper, type WizardStep } from './wizard-stepper';
 import { StepPatientSelect } from './steps/step-patient-select';
-import { StepTreatment } from './steps/step-treatment';
 import { StepInvoiceSelect } from './steps/step-invoice-select';
 import { StepItemsEditor, type EditableItem } from './steps/step-items-editor';
 import { StepPayment, type PaymentResult, type CreatedPayment } from './steps/step-payment';
 import { StepConfirmation } from './steps/step-confirmation';
+import { StepQuoteItems, type QuoteBillingLine } from './steps/step-quote-items';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -79,17 +79,17 @@ async function confirmQuote(quoteId: string, isSales: boolean): Promise<void> {
 async function createInvoiceFromOrder(
   orderId: string,
   quote: Quote,
-  items: QuoteItem[],
+  lines: QuoteBillingLine[],
   isSales: boolean,
 ): Promise<void> {
   const endpoint = isSales ? API_ROUTES.SALES.ORDER_INVOICE : API_ROUTES.PURCHASES.ORDER_INVOICE;
-  const billingItems = items
-    .filter((item) => Number(item.total) > 0)
-    .map((item) => ({
-      quote_item_id: Number(item.id),
-      service_id: Number(item.service_id),
+  const billingItems = lines
+    .filter((line) => line.selected && line.amountToInvoice > 0)
+    .map((line) => ({
+      quote_item_id: Number(line.quoteItemId),
+      service_id: Number(line.serviceId),
       step_names: [],
-      amount: Number(item.total),
+      amount: Number(line.amountToInvoice),
     }));
 
   const billingQuery = {
@@ -114,14 +114,6 @@ async function createInvoiceFromOrder(
   if (Array.isArray(response) && response[0]?.code >= 400) {
     throw new Error(response[0]?.message || 'Error al crear la factura');
   }
-}
-
-async function fetchLatestUnpaidInvoice(quoteId: string, isSales: boolean): Promise<Invoice | null> {
-  const invoices = await fetchQuoteInvoicesForFinancials(quoteId, isSales);
-  const unpaid = invoices
-    .filter((inv) => inv.type !== 'credit_note' && !['paid'].includes(inv.payment_status || ''))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  return unpaid[0] || null;
 }
 
 async function fetchInvoiceById(invoiceId: string, userId: string): Promise<Invoice | null> {
@@ -336,18 +328,12 @@ async function fetchInvoicePaymentsForConfirmation(
 // ── Step definitions ──────────────────────────────────────────────────────────
 
 const STEPS_FROM_QUOTE: WizardStep[] = [
-  { title: 'Tratamiento' },
+  { title: 'Presupuesto' },
   { title: 'Pago' },
   { title: 'Listo' },
 ];
 
 const STEPS_FROM_INVOICE: WizardStep[] = [
-  { title: 'Pago' },
-  { title: 'Listo' },
-];
-
-const STEPS_INVOICE_SELECT: WizardStep[] = [
-  { title: 'Facturas' },
   { title: 'Pago' },
   { title: 'Listo' },
 ];
@@ -389,15 +375,22 @@ export function BillingWizardModal() {
   // Data loaded for treatment step
   const [quote, setQuote] = React.useState<Quote | null>(null);
   const [quoteItems, setQuoteItems] = React.useState<QuoteItem[]>([]);
+  const [quoteBillingLines, setQuoteBillingLines] = React.useState<QuoteBillingLine[]>([]);
   const [financialSummary, setFinancialSummary] = React.useState<QuoteFinancialSummary | null>(null);
   const [orderId, setOrderId] = React.useState<string | null>(null);
   const [isLoadingTreatment, setIsLoadingTreatment] = React.useState(false);
   const [treatmentLoadError, setTreatmentLoadError] = React.useState<string | null>(null);
+  const [isFetchingQuoteInvoiced, setIsFetchingQuoteInvoiced] = React.useState(false);
 
   // Data for payment step
   const [resolvedInvoice, setResolvedInvoice] = React.useState<Invoice | null>(null);
+  // Invoices to pay in the current session (set before navigating to payment step)
+  const [pendingInvoicesForPayment, setPendingInvoicesForPayment] = React.useState<Invoice[]>([]);
 
-  // Invoice selection mode (fully-invoiced quote: skip invoice creation, pick existing unpaid invoices)
+  // All invoices for the current quote (including paid) — used for per-service invoiced amount calc
+  const [allQuoteInvoices, setAllQuoteInvoices] = React.useState<Invoice[]>([]);
+
+  // Unpaid invoices available for the user to select in the quote step
   const [availableInvoices, setAvailableInvoices] = React.useState<Invoice[]>([]);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = React.useState<Set<string>>(new Set());
 
@@ -405,13 +398,6 @@ export function BillingWizardModal() {
     () => availableInvoices.filter((inv) => selectedInvoiceIds.has(inv.id)),
     [availableInvoices, selectedInvoiceIds],
   );
-
-  // Invoice-selection mode: quote is fully invoiced but has unpaid invoices → skip creation
-  const isInvoiceSelectionMode =
-    !startFromInvoice &&
-    financialSummary !== null &&
-    financialSummary.amount_pending_invoice === 0 &&
-    availableInvoices.length > 0;
 
   // Freeform mode: no quoteId and no invoiceId → direct items editor
   const isFreeformFlow = !startFromInvoice && !context?.quoteId;
@@ -423,13 +409,17 @@ export function BillingWizardModal() {
   const effectivePatientId = selectedPatient?.id || context?.patientId;
   const effectivePatientName = selectedPatient?.name || context?.patientName;
 
+  // Whether any service line has been selected for invoicing
+  const hasSelectedServices = React.useMemo(
+    () => quoteBillingLines.some((l) => l.selected && l.amountToInvoice > 0),
+    [quoteBillingLines],
+  );
+
   const steps = startFromInvoice
     ? STEPS_FROM_INVOICE
     : isFreeformFlow
       ? (needsPatientStep ? STEPS_FREEFORM_WITH_PATIENT : STEPS_FREEFORM)
-      : isInvoiceSelectionMode
-        ? STEPS_INVOICE_SELECT
-        : STEPS_FROM_QUOTE;
+      : STEPS_FROM_QUOTE;
 
   // Confirmation data
   const [confirmationData, setConfirmationData] = React.useState<{
@@ -451,9 +441,13 @@ export function BillingWizardModal() {
       setCurrentStep(0);
       setQuote(null);
       setQuoteItems([]);
+      setQuoteBillingLines([]);
       setFinancialSummary(null);
       setOrderId(null);
+      setIsFetchingQuoteInvoiced(false);
       setResolvedInvoice(null);
+      setPendingInvoicesForPayment([]);
+      setAllQuoteInvoices([]);
       setAvailableInvoices([]);
       setSelectedInvoiceIds(new Set());
       setConfirmationData({ payments: [] });
@@ -499,11 +493,15 @@ export function BillingWizardModal() {
           setFinancialSummary(finSummary);
           if (existingQuote) setQuote(existingQuote);
 
-          // Store unpaid invoices for potential invoice-selection mode
+          // All invoices (including paid) for per-service invoiced amount calculation
+          setAllQuoteInvoices(fetchedInvoices);
+          // Only unpaid invoices — available for the user to select for payment
           const unpaidInvoices = fetchedInvoices.filter(
             (inv) => inv.type !== 'credit_note' && !['paid'].includes(inv.payment_status || ''),
           );
           setAvailableInvoices(unpaidInvoices);
+          // Pre-select all unpaid invoices so the user can uncheck the ones they don't want
+          setSelectedInvoiceIds(new Set(unpaidInvoices.map((inv) => inv.id)));
         })
         .catch(() => {
           setTreatmentLoadError('No se pudieron cargar los datos del presupuesto.');
@@ -549,15 +547,16 @@ export function BillingWizardModal() {
     });
   }, []);
 
-  // Invoice selection → Payment step (no invoice creation needed)
-  const handleInvoiceSelectNext = React.useCallback(() => {
-    if (selectedInvoiceIds.size === 0) {
+  // Pay existing selected invoices without creating a new one
+  const handlePayOnly = React.useCallback(() => {
+    if (selectedInvoices.length === 0) {
       setError('Selecciona al menos una factura para continuar.');
       return;
     }
     setError(null);
+    setPendingInvoicesForPayment(selectedInvoices);
     setCurrentStep(1);
-  }, [selectedInvoiceIds]);
+  }, [selectedInvoices]);
 
   // Fire-and-forget: link the new invoice back to the originating appointment/session
   const linkInvoiceToContext = React.useCallback((invoiceId: string) => {
@@ -573,8 +572,8 @@ export function BillingWizardModal() {
     }
   }, [context]);
 
-  // Step 1 → Step 2: Create invoice from quote
-  const handleTreatmentNext = React.useCallback(async () => {
+  // Quote step → next: create invoice, then either pay or just confirm
+  const handleTreatmentNext = React.useCallback(async (action: 'invoice-and-pay' | 'invoice-only' = 'invoice-and-pay') => {
     if (!context?.quoteId) return;
     const quoteId = context.quoteId;
     const quoteObj = quote;
@@ -587,9 +586,16 @@ export function BillingWizardModal() {
       setError('No se encontró la orden del presupuesto. Verifique que el presupuesto esté confirmado.');
       return;
     }
-    const pendingItems = quoteItems.filter((item) => Number(item.total) > 0);
-    if (pendingItems.length === 0) {
-      setError('No hay servicios pendientes de facturación.');
+    const selectedLines = quoteBillingLines.filter((l) => l.selected && l.amountToInvoice > 0);
+    if (selectedLines.length === 0) {
+      setError('Selecciona al menos un servicio con importe para facturar.');
+      return;
+    }
+    const overLimit = selectedLines.find((l) => l.amountToInvoice > l.pendingAmount + 0.01);
+    if (overLimit) {
+      setError(
+        `El monto de "${overLimit.serviceName}" (${overLimit.amountToInvoice.toFixed(2)}) supera el pendiente de facturación (${overLimit.pendingAmount.toFixed(2)}).`,
+      );
       return;
     }
 
@@ -602,24 +608,45 @@ export function BillingWizardModal() {
         await confirmQuote(quoteId, isSales);
       }
 
-      // Create invoice from order with all pending items
-      await createInvoiceFromOrder(orderId, quoteObj, pendingItems, isSales);
+      // Create invoice from order with selected lines
+      await createInvoiceFromOrder(orderId, quoteObj, selectedLines, isSales);
 
-      // Fetch the newly created invoice
-      const invoice = await fetchLatestUnpaidInvoice(quoteId, isSales);
+      // Fetch all invoices for the quote (includes the one just created)
+      const allFetched = await fetchQuoteInvoicesForFinancials(quoteId, isSales);
+      const unpaid = allFetched
+        .filter((inv) => inv.type !== 'credit_note' && !['paid'].includes(inv.payment_status || ''))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      const invoice = unpaid[0] || null;
       if (!invoice) {
         throw new Error('No se encontró la factura creada. Verifique en el módulo de Facturas.');
       }
 
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
-      setCurrentStep(1); // Move to payment step
+
+      if (action === 'invoice-only') {
+        setConfirmationData({
+          invoiceId: invoice.id,
+          invoiceDocNo: invoice.doc_no,
+          payments: [],
+          total: invoice.total,
+          currency: invoice.currency,
+        });
+        setCurrentStep(steps.length - 1);
+        onSuccess?.();
+      } else {
+        // Go directly to payment: new invoice + any pre-selected existing invoices
+        const allToPay = [invoice, ...selectedInvoices.filter((inv) => inv.id !== invoice.id)];
+        setPendingInvoicesForPayment(allToPay);
+        setCurrentStep(1);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear la factura.');
     } finally {
       setIsProcessing(false);
     }
-  }, [context, quote, orderId, quoteItems, isSales, linkInvoiceToContext]);
+  }, [context, quote, orderId, quoteBillingLines, isSales, linkInvoiceToContext, steps.length, onSuccess, selectedInvoices]);
 
   // Freeform flow: create invoice directly from editable items
   const handleItemsEditorNext = React.useCallback(async (action: 'invoice-only' | 'invoice-and-pay') => {
@@ -665,40 +692,63 @@ export function BillingWizardModal() {
 
   const handlePaymentSuccess = React.useCallback(
     async (result: PaymentResult) => {
-      const targetInvoiceId = result.invoiceId || resolvedInvoice?.id;
-      const targetCurrency = result.currency || resolvedInvoice?.currency || 'USD';
+      const primaryInvoice = pendingInvoicesForPayment[0] || resolvedInvoice;
+      const targetInvoiceId = result.invoiceId || primaryInvoice?.id;
+      const targetCurrency = result.currency || primaryInvoice?.currency || 'USD';
 
-      // Fetch all invoice payments, then mark which ones were just created.
       const sessionIds = new Set(result.payments.map((p) => p.transactionId).filter(Boolean));
       let payments = result.payments.map((p) => ({ ...p, isNew: true }));
-      if (targetInvoiceId) {
+
+      const multiInvoices = pendingInvoicesForPayment.length > 1 ? pendingInvoicesForPayment : null;
+
+      if (multiInvoices) {
+        // Fetch payments for every invoice in the distribution and merge + de-duplicate
+        const perInvoiceFetched = await Promise.all(
+          multiInvoices.map((inv) =>
+            fetchInvoicePaymentsForConfirmation(inv.id, isSales, inv.currency || targetCurrency).catch(
+              () => [] as CreatedPayment[],
+            ),
+          ),
+        );
+        const merged = perInvoiceFetched.flat();
+        const seen = new Set<string>();
+        const deduped = merged.filter((p) => {
+          if (!p.transactionId) return true;
+          if (seen.has(p.transactionId)) return false;
+          seen.add(p.transactionId);
+          return true;
+        });
+        if (deduped.length > 0) {
+          payments = deduped.map((p) => ({
+            ...p,
+            isNew: !!p.transactionId && sessionIds.has(p.transactionId),
+          }));
+        }
+      } else if (targetInvoiceId) {
         const fetched = await fetchInvoicePaymentsForConfirmation(targetInvoiceId, isSales, targetCurrency);
         if (fetched.length > 0) {
           payments = fetched.map((p) => ({ ...p, isNew: !!p.transactionId && sessionIds.has(p.transactionId) }));
         }
       }
 
-      if (isInvoiceSelectionMode && selectedInvoices.length > 0) {
-        const totalPending = selectedInvoices.reduce(
-          (sum, inv) => sum + Math.max(0, (inv.total || 0) - (inv.paid_amount || 0)),
-          0,
-        );
+      if (multiInvoices) {
+        const totalInvoiced = multiInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
         setConfirmationData({
-          invoices: selectedInvoices,
+          invoices: multiInvoices,
           payments,
-          total: totalPending,
+          total: totalInvoiced,
           totalPaid: result.totalPaid,
           pendingAfter: result.remainingAfterPayment,
-          currency: result.currency || selectedInvoices[0]?.currency,
+          currency: result.currency || multiInvoices[0]?.currency,
           appliedCredits: result.appliedCredits,
           creditsTotal: result.creditsTotal,
         });
       } else {
         setConfirmationData({
           invoiceId: targetInvoiceId,
-          invoiceDocNo: result.invoiceDocNo || resolvedInvoice?.doc_no,
+          invoiceDocNo: result.invoiceDocNo || primaryInvoice?.doc_no,
           payments,
-          total: resolvedInvoice?.total,
+          total: primaryInvoice?.total,
           totalPaid: result.totalPaid,
           pendingAfter: result.remainingAfterPayment,
           currency: targetCurrency,
@@ -709,20 +759,15 @@ export function BillingWizardModal() {
       setCurrentStep(steps.length - 1);
       onSuccess?.();
     },
-    [resolvedInvoice, steps.length, onSuccess, isInvoiceSelectionMode, selectedInvoices, isSales],
+    [resolvedInvoice, steps.length, onSuccess, pendingInvoicesForPayment, isSales],
   );
 
   const handleSkipPayment = React.useCallback(
     async (invoiceDocNo?: string) => {
-      if (isInvoiceSelectionMode) {
-        // Fully-invoiced flow: nothing to skip, just close
-        close();
-        return;
-      }
-      const targetId = resolvedInvoice?.id;
-      const targetCurrency = resolvedInvoice?.currency || 'USD';
+      const targetInvoice = resolvedInvoice || pendingInvoicesForPayment[0] || null;
+      const targetId = targetInvoice?.id;
+      const targetCurrency = targetInvoice?.currency || 'USD';
 
-      // Fetch all existing payments for the invoice (none are new since no payment was made)
       let payments: CreatedPayment[] = [];
       if (targetId) {
         const fetched = await fetchInvoicePaymentsForConfirmation(targetId, isSales, targetCurrency);
@@ -731,16 +776,18 @@ export function BillingWizardModal() {
 
       setConfirmationData({
         invoiceId: targetId,
-        invoiceDocNo: invoiceDocNo || resolvedInvoice?.doc_no,
+        invoiceDocNo: invoiceDocNo || targetInvoice?.doc_no,
         payments,
-        total: resolvedInvoice?.total,
-        pendingAfter: resolvedInvoice ? Math.max(0, resolvedInvoice.total - (resolvedInvoice.paid_amount || 0)) : undefined,
+        total: targetInvoice?.total,
+        pendingAfter: targetInvoice
+          ? Math.max(0, (targetInvoice.total || 0) - (targetInvoice.paid_amount || 0))
+          : undefined,
         currency: targetCurrency,
       });
       setCurrentStep(steps.length - 1);
       onSuccess?.();
     },
-    [resolvedInvoice, steps.length, onSuccess, isInvoiceSelectionMode, close, isSales],
+    [resolvedInvoice, pendingInvoicesForPayment, steps.length, onSuccess, isSales],
   );
 
   // Determine which logical step renders
@@ -757,34 +804,6 @@ export function BillingWizardModal() {
             isSubmitting={isPaymentSubmitting}
             setIsSubmitting={setIsPaymentSubmitting}
             paymentOnly
-            onSubStepChange={setPaymentSubStep}
-          />
-        );
-      }
-    } else if (isInvoiceSelectionMode) {
-      // Fully-invoiced quote: Invoice selection → Payment → Confirmation
-      if (currentStep === 0) {
-        return (
-          <StepInvoiceSelect
-            invoices={availableInvoices}
-            selectedIds={selectedInvoiceIds}
-            onToggle={handleToggleInvoice}
-            onNext={handleInvoiceSelectNext}
-            isLoading={isLoadingTreatment}
-            patientName={context?.patientName}
-          />
-        );
-      }
-      if (currentStep === 1 && selectedInvoices.length > 0) {
-        return (
-          <StepPayment
-            invoice={selectedInvoices[0]}
-            invoices={selectedInvoices}
-            isSales={isSales}
-            onPaymentSuccess={handlePaymentSuccess}
-            onSkipPayment={handleSkipPayment}
-            isSubmitting={isPaymentSubmitting}
-            setIsSubmitting={setIsPaymentSubmitting}
             onSubStepChange={setPaymentSubStep}
           />
         );
@@ -836,31 +855,44 @@ export function BillingWizardModal() {
         );
       }
     } else {
-      // Quote flow: Treatment → Payment → Confirmation
+      // Quote flow: Presupuesto (step 0) → Pago (step 1) → Listo (step 2)
       if (currentStep === 0) {
         return (
-          <StepTreatment
+          <StepQuoteItems
             quote={quote}
-            items={quoteItems}
+            quoteItems={quoteItems}
+            existingInvoices={allQuoteInvoices}
+            availableInvoices={availableInvoices}
+            selectedInvoiceIds={selectedInvoiceIds}
+            onToggleInvoice={handleToggleInvoice}
             financialSummary={financialSummary}
             isLoading={isLoadingTreatment}
             error={treatmentLoadError}
             patientName={context?.patientName}
+            isSales={isSales}
+            lines={quoteBillingLines}
+            onLinesChange={setQuoteBillingLines}
+            onFetchingChange={setIsFetchingQuoteInvoiced}
           />
         );
       }
-      if (currentStep === 1 && resolvedInvoice) {
-        return (
-          <StepPayment
-            invoice={resolvedInvoice}
-            isSales={isSales}
-            onPaymentSuccess={handlePaymentSuccess}
-            onSkipPayment={handleSkipPayment}
-            isSubmitting={isPaymentSubmitting}
-            setIsSubmitting={setIsPaymentSubmitting}
-            onSubStepChange={setPaymentSubStep}
-          />
-        );
+      if (currentStep === 1) {
+        const primaryInvoice = pendingInvoicesForPayment[0] || resolvedInvoice;
+        const allInvoices = pendingInvoicesForPayment.length > 1 ? pendingInvoicesForPayment : undefined;
+        if (primaryInvoice) {
+          return (
+            <StepPayment
+              invoice={primaryInvoice}
+              invoices={allInvoices}
+              isSales={isSales}
+              onPaymentSuccess={handlePaymentSuccess}
+              onSkipPayment={handleSkipPayment}
+              isSubmitting={isPaymentSubmitting}
+              setIsSubmitting={setIsPaymentSubmitting}
+              onSubStepChange={setPaymentSubStep}
+            />
+          );
+        }
       }
     }
 
@@ -901,11 +933,14 @@ export function BillingWizardModal() {
   // Pending amount for the payment step (drives button visibility in the action bar)
   const paymentPendingAmount = React.useMemo(() => {
     if (!isPaymentStep) return 0;
-    if (isInvoiceSelectionMode && selectedInvoices.length > 0) {
-      return selectedInvoices.reduce((sum, inv) => sum + Math.max(0, (inv.total || 0) - (inv.paid_amount || 0)), 0);
+    if (pendingInvoicesForPayment.length > 0) {
+      return pendingInvoicesForPayment.reduce(
+        (sum, inv) => sum + Math.max(0, (inv.total || 0) - (inv.paid_amount || 0)),
+        0,
+      );
     }
     return Math.max(0, (resolvedInvoice?.total || 0) - (resolvedInvoice?.paid_amount || 0));
-  }, [isPaymentStep, isInvoiceSelectionMode, selectedInvoices, resolvedInvoice]);
+  }, [isPaymentStep, pendingInvoicesForPayment, resolvedInvoice]);
 
   const isPaymentFullyPaid = isPaymentStep && paymentPendingAmount <= 0;
   // paymentOnly: invoice already exists so "Solo facturar" doesn't apply
@@ -964,29 +999,44 @@ export function BillingWizardModal() {
               </button>
             )}
 
-            {/* Invoice select step: Siguiente */}
-            {isInvoiceSelectionMode && currentStep === 0 && (
-              <button
-                type="button"
-                onClick={handleInvoiceSelectNext}
-                disabled={selectedInvoiceIds.size === 0}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Siguiente
-              </button>
-            )}
-
-            {/* Quote treatment step: Siguiente */}
-            {!isFreeformFlow && !isInvoiceSelectionMode && !startFromInvoice && currentStep === 0 && !isLoadingTreatment && (
-              <button
-                type="button"
-                onClick={handleTreatmentNext}
-                disabled={isProcessing || !!treatmentLoadError || quoteItems.length === 0}
-                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isProcessing ? 'Generando factura...' : 'Siguiente'}
-              </button>
+            {/* Quote step 0: buttons depend on what's selected */}
+            {!isFreeformFlow && !startFromInvoice && currentStep === 0 && !isLoadingTreatment && (
+              <>
+                {/* No new services selected → only "Cobrar" (pay existing invoices) */}
+                {!hasSelectedServices && (
+                  <button
+                    type="button"
+                    onClick={handlePayOnly}
+                    disabled={selectedInvoiceIds.size === 0 || isProcessing || isFetchingQuoteInvoiced || !!treatmentLoadError}
+                    className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Cobrar
+                  </button>
+                )}
+                {/* Services selected → create invoice, optionally pay */}
+                {hasSelectedServices && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleTreatmentNext('invoice-only')}
+                      disabled={isProcessing || isFetchingQuoteInvoiced || !!treatmentLoadError}
+                      className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Solo facturar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTreatmentNext('invoice-and-pay')}
+                      disabled={isProcessing || isFetchingQuoteInvoiced || !!treatmentLoadError}
+                      className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {isProcessing ? 'Generando factura...' : 'Facturar y Cobrar'}
+                    </button>
+                  </>
+                )}
+              </>
             )}
 
             {/* Freeform patient step: Siguiente */}
@@ -1029,17 +1079,20 @@ export function BillingWizardModal() {
             {isPaymentStep && isPaymentFullyPaid && paymentSubStep === 1 && (
               <button
                 type="button"
-                onClick={() => handleSkipPayment(resolvedInvoice?.doc_no || resolvedInvoice?.invoice_doc_no || selectedInvoices[0]?.doc_no)}
+                onClick={() => handleSkipPayment(
+                  resolvedInvoice?.doc_no || resolvedInvoice?.invoice_doc_no ||
+                  pendingInvoicesForPayment[0]?.doc_no
+                )}
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 transition-colors"
               >
                 Ver factura y pagos
               </button>
             )}
 
-            {/* Payment step — has pending: Solo facturar (when applicable) + Cobrar */}
+            {/* Payment step — has pending: Solo facturar (only when invoice was just created) + Cobrar */}
             {isPaymentStep && !isPaymentFullyPaid && paymentSubStep === 1 && (
               <>
-                {!isPaymentOnly && !isInvoiceSelectionMode && (
+                {!isPaymentOnly && !!resolvedInvoice && (
                   <button
                     type="button"
                     onClick={() => handleSkipPayment(resolvedInvoice?.doc_no || resolvedInvoice?.invoice_doc_no)}
