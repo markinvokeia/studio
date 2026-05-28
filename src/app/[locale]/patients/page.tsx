@@ -1944,14 +1944,22 @@ export default function UsersPage() {
                           <DropdownMenuItem onClick={() => setIsPreferencesOpen(true)}>
                             <SlidersHorizontal className="h-4 w-4 mr-2" />{t('UsersPage.preferencesButton')}
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuLabel className="text-xs text-muted-foreground">Vista</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => setIsRightExpanded(v => !v)}>
-                            {isRightExpanded ? <Minimize2 className="h-4 w-4 mr-2" /> : <Maximize2 className="h-4 w-4 mr-2" />}
-                            {isRightExpanded ? 'Restaurar' : 'Expandir'}
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
+
+                      {/* Expand/collapse button — always visible */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                            onClick={() => setIsRightExpanded(v => !v)}
+                          >
+                            {isRightExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isRightExpanded ? 'Restaurar' : 'Expandir'}</TooltipContent>
+                      </Tooltip>
 
                       {/* Close button — always visible */}
                       <Tooltip>

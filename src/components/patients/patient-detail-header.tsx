@@ -54,17 +54,29 @@ export function PatientDetailHeader({
   const hasAlerts = allergies.length > 0 || conditions.length > 0
 
   const alertIcon = (
-    <div
-      className="header-icon-circle flex-none"
-      style={
-        allergies.length > 0
-          ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
-          : conditions.length > 0
-            ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
-            : undefined
-      }
-    >
-      {hasAlerts ? <AlertTriangle className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+    <div className="relative flex-none">
+      {hasAlerts && (
+        <span
+          className="absolute inset-0 rounded-full animate-ping"
+          style={
+            allergies.length > 0
+              ? { backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }
+              : { backgroundColor: 'rgb(217 119 6)', opacity: 0.35 }
+          }
+        />
+      )}
+      <div
+        className="header-icon-circle relative"
+        style={
+          allergies.length > 0
+            ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
+            : conditions.length > 0
+              ? { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
+              : undefined
+        }
+      >
+        {hasAlerts ? <AlertTriangle className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+      </div>
     </div>
   )
 
