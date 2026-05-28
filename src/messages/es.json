@@ -3259,7 +3259,9 @@
       "showOnlyActive": "Mostrar solo activos"
     },
     "tabs": {
-      "details": "Detalles"
+      "details": "Detalles",
+      "availability": "Disponibilidad",
+      "exceptions": "Excepciones"
     }
   },
   "UserLogsPage": {
@@ -3332,7 +3334,8 @@
       "description": "¿Está seguro que desea eliminar esta disponibilidad? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
-    }
+    },
+    "empty": "No hay reglas de disponibilidad para este doctor."
   },
   "DoctorAvailabilityColumns": {
     "doctor": "Doctor",
@@ -3401,7 +3404,8 @@
     "validation": {
       "doctorRequired": "El doctor es obligatorio.",
       "dateRequired": "La fecha es obligatoria."
-    }
+    },
+    "empty": "No hay excepciones de disponibilidad para este doctor."
   },
   "CurrenciesPage": {
     "title": "Monedas",
