@@ -5,7 +5,7 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { AlertTriangle, ArrowLeft, ArrowRight, Box, CalendarIcon, CheckCircle2, CreditCard, Loader2, Plus, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Box, CalendarIcon, CheckCircle2, ChevronDown, ChevronRight, CreditCard, Loader2, Plus, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 
@@ -118,6 +118,74 @@ function fmtCurrency(amount: number, currency = 'USD') {
   return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
 }
 
+function fmtDateTime(dateStr?: string): string | null {
+  if (!dateStr) return null;
+  try {
+    return new Intl.DateTimeFormat('es-UY', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    }).format(new Date(dateStr));
+  } catch {
+    return null;
+  }
+}
+
+interface InvoiceLineItem {
+  id: string;
+  description: string;
+  toothNumber?: number;
+  quantity: number;
+  total: number;
+}
+
+interface InvoicePaymentEntry {
+  id: string;
+  docNo?: string;
+  method?: string;
+  date?: string;
+  amount: number;
+  currency: string;
+}
+
+interface InvoiceDetail {
+  items: InvoiceLineItem[];
+  payments: InvoicePaymentEntry[];
+}
+
+async function fetchInvoiceDetail(
+  invoiceId: string,
+  isSales: boolean,
+  fallbackCurrency: string,
+): Promise<InvoiceDetail> {
+  const itemsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS;
+  const paymentsEndpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS;
+  const params = { invoice_id: invoiceId, is_sales: isSales ? 'true' : 'false' };
+  const [itemsData, paymentsData] = await Promise.all([
+    api.get(itemsEndpoint, params).catch(() => []),
+    api.get(paymentsEndpoint, params).catch(() => []),
+  ]);
+  const rawItems: any[] = Array.isArray(itemsData) ? itemsData : (itemsData.invoice_items || itemsData.data || []);
+  const rawPayments: any[] = Array.isArray(paymentsData) ? paymentsData : (paymentsData.payments || paymentsData.data || []);
+  const items: InvoiceLineItem[] = rawItems.map((item: any) => ({
+    id: String(item.id || item.invoice_item_id || Math.random()),
+    description: item.service_name || item.description || item.name || `Servicio #${item.service_id}`,
+    toothNumber: item.tooth_number ? Number(item.tooth_number) : undefined,
+    quantity: Number(item.quantity || 1),
+    total: Math.abs(Number(item.total || item.amount || 0)),
+  }));
+  const payments: InvoicePaymentEntry[] = rawPayments
+    .filter((p: any) => p?.status !== 'failed' && (p?.transaction_id || p?.id))
+    .map((p: any) => ({
+      id: String(p.transaction_id ?? p.id),
+      docNo: p.doc_no || p.payment_doc_no || undefined,
+      method: p.method || p.payment_method || undefined,
+      date: p.payment_date || p.created_at || undefined,
+      amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
+      currency: p.currency || fallbackCurrency,
+    }));
+  return { items, payments };
+}
+
 function calcEquivalent(amount: number, fromCurrency: string, toCurrency: string, rate: number): number {
   if (fromCurrency === toCurrency || !rate) return amount;
   if (toCurrency === 'USD' && fromCurrency === 'UYU') return amount / rate;
@@ -174,6 +242,11 @@ export function StepPayment({
   const [isLoadingCredits, setIsLoadingCredits] = React.useState(true);
   const [creditSubmitError, setCreditSubmitError] = React.useState<string | null>(null);
   const [creditCapWarning, setCreditCapWarning] = React.useState(false);
+
+  // ── Invoice detail state ──
+  const [invoiceDetailExpanded, setInvoiceDetailExpanded] = React.useState(false);
+  const [invoiceDetail, setInvoiceDetail] = React.useState<InvoiceDetail | null | undefined>(undefined);
+  const invoiceDetailLoadedRef = React.useRef(false);
 
   const sessionExchangeRate = React.useMemo<number>(() => {
     const rate = activeCashSession?.data?.opening_details?.date_rate;
@@ -305,6 +378,20 @@ export function StepPayment({
       payment_currency: invoiceCurrency,
       created_at: new Date(),
     });
+  };
+
+  const handleToggleInvoiceDetail = async () => {
+    if (isMultiInvoice) return;
+    setInvoiceDetailExpanded((v) => !v);
+    if (invoiceDetailLoadedRef.current) return;
+    invoiceDetailLoadedRef.current = true;
+    setInvoiceDetail(null);
+    try {
+      const detail = await fetchInvoiceDetail(invoice.id, isSales, invoiceCurrency);
+      setInvoiceDetail(detail);
+    } catch {
+      setInvoiceDetail({ items: [], payments: [] });
+    }
   };
 
   // Build the credit_payment array for the API payload
@@ -589,6 +676,68 @@ export function StepPayment({
     }
   };
 
+  // ── Invoice detail expandable panel ──
+  const renderDetailPanel = () => {
+    if (isMultiInvoice || !invoiceDetailExpanded) return null;
+    return (
+      <div className="border-t divide-y text-xs">
+        {invoiceDetail === null ? (
+          <div className="px-4 py-3 flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Cargando detalle...</span>
+          </div>
+        ) : !invoiceDetail || (invoiceDetail.items.length === 0 && invoiceDetail.payments.length === 0) ? (
+          <p className="px-4 py-3 text-muted-foreground italic">Sin detalle disponible.</p>
+        ) : (
+          <>
+            {invoiceDetail.items.length > 0 && (
+              <div className="px-4 py-2.5 space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Servicios facturados</p>
+                {invoiceDetail.items.map((item) => (
+                  <div key={item.id} className="flex items-baseline justify-between gap-3">
+                    <span className="truncate text-foreground">
+                      {item.description}
+                      {item.toothNumber ? <span className="ml-1 text-muted-foreground">D.{item.toothNumber}</span> : null}
+                      {item.quantity > 1 ? <span className="ml-1 text-muted-foreground">×{item.quantity}</span> : null}
+                    </span>
+                    <span className="tabular-nums shrink-0">{fmtCurrency(item.total, invoiceCurrency)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {invoiceDetail.payments.length > 0 && (
+              <div className="px-4 py-2.5 space-y-1.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Cobros registrados</p>
+                {invoiceDetail.payments.map((pmt) => (
+                  <div key={pmt.id} className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      {pmt.docNo && <span className="font-medium">#{pmt.docNo} </span>}
+                      {pmt.method && <span className="text-muted-foreground">{pmt.method}</span>}
+                      {pmt.date && <span className="text-muted-foreground ml-1">· {fmtDateTime(pmt.date)}</span>}
+                    </div>
+                    <span className="tabular-nums shrink-0 text-emerald-700 font-medium">{fmtCurrency(pmt.amount, pmt.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="px-4 py-2.5 space-y-1">
+              <div className="flex justify-between font-semibold">
+                <span>Total factura</span>
+                <span className="tabular-nums">{fmtCurrency(invoice.total || 0, invoiceCurrency)}</span>
+              </div>
+              {(invoice.paid_amount || 0) > 0 && (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Cobrado</span>
+                  <span className="tabular-nums text-emerald-700">{fmtCurrency(invoice.paid_amount || 0, invoiceCurrency)}</span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   // ── Already fully paid (before wizard opened) ──
   if (pendingAmount <= 0) {
     return (
@@ -652,25 +801,42 @@ export function StepPayment({
         )}
 
         {/* Invoice summary */}
-        <div className="rounded-lg border px-4 py-3 text-sm space-y-1 bg-muted/30">
-          {isMultiInvoice ? (
-            <div className="flex justify-between text-muted-foreground">
-              <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
-              <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
+        <div className="rounded-lg border text-sm bg-muted/30 overflow-hidden">
+          <div className="px-4 py-3 space-y-1">
+            {isMultiInvoice ? (
+              <div className="flex justify-between text-muted-foreground">
+                <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
+                <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className={cn('flex items-center gap-1.5', invoiceJustCreated ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
+                  {invoiceJustCreated && <CheckCircle2 className="h-3.5 w-3.5" />}
+                  {invoiceJustCreated ? 'Factura creada' : 'Factura'}{' '}
+                  <span className="font-medium text-foreground">#{invoice.doc_no || invoice.id}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleToggleInvoiceDetail}
+                  className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
+                >
+                  {invoiceDetail === null ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : invoiceDetailExpanded ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  )}
+                  <span>Detalle</span>
+                </button>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold">
+              <span>Pendiente de cobro</span>
+              <span className="tabular-nums text-primary">{fmtCurrency(pendingAmount, invoiceCurrency)}</span>
             </div>
-          ) : (
-            <div className="flex justify-between items-center">
-              <span className={cn('flex items-center gap-1.5', invoiceJustCreated ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
-                {invoiceJustCreated && <CheckCircle2 className="h-3.5 w-3.5" />}
-                {invoiceJustCreated ? 'Factura creada' : 'Factura'}
-              </span>
-              <span className="font-medium">#{invoice.doc_no || 'NUEVA'}</span>
-            </div>
-          )}
-          <div className="flex justify-between font-semibold">
-            <span>Pendiente de cobro</span>
-            <span className="tabular-nums text-primary">{fmtCurrency(pendingAmount, invoiceCurrency)}</span>
           </div>
+          {renderDetailPanel()}
         </div>
 
         {/* Credits list */}
@@ -687,47 +853,57 @@ export function StepPayment({
                 const currentAmount = appliedCredits.get(credit.source_id) || 0;
 
                 return (
-                  <div key={credit.source_id} className="flex items-center gap-3 rounded-md border p-3">
-                    <Checkbox
-                      id={`credit-${credit.source_id}`}
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        const next = new Map(appliedCredits);
-                        if (checked) {
-                          next.set(credit.source_id, getMaxApplicable(credit.source_id, credit.currency, maxAmount));
-                        } else {
-                          next.delete(credit.source_id);
-                          setCreditCapWarning(false);
-                        }
-                        setAppliedCredits(next);
-                      }}
-                    />
-                    <Label htmlFor={`credit-${credit.source_id}`} className="flex-1 text-xs cursor-pointer">
-                      <span className="font-medium">
-                        {credit.type === 'credit_note' ? 'Nota de crédito' : 'Referencia de pago'}
-                      </span>{' '}
-                      <span className="text-muted-foreground">#{credit.source_id} ({credit.currency})</span>
-                    </Label>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <FormattedNumberInput
-                        value={currentAmount}
-                        onChange={(val) => {
-                          if (!isChecked) return;
+                  <div key={credit.source_id} className="rounded-md border p-3 space-y-1.5">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id={`credit-${credit.source_id}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
                           const next = new Map(appliedCredits);
-                          const maxApplicable = getMaxApplicable(credit.source_id, credit.currency, maxAmount);
-                          const entered = Number(val) || 0;
-                          if (entered > maxApplicable) setCreditCapWarning(true);
-                          next.set(credit.source_id, Math.min(entered, maxApplicable));
+                          if (checked) {
+                            next.set(credit.source_id, getMaxApplicable(credit.source_id, credit.currency, maxAmount));
+                          } else {
+                            next.delete(credit.source_id);
+                            setCreditCapWarning(false);
+                          }
                           setAppliedCredits(next);
                         }}
-                        disabled={!isChecked}
-                        placeholder="0.00"
-                        className="h-7 w-24 text-xs"
                       />
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        / {fmtCurrency(maxAmount, credit.currency)}
-                      </span>
+                      <Label htmlFor={`credit-${credit.source_id}`} className="flex-1 text-xs cursor-pointer">
+                        <span className="font-medium">
+                          {credit.type === 'credit_note' ? 'Nota de crédito' : 'Referencia de pago'}
+                        </span>{' '}
+                        <span className="text-muted-foreground">#{credit.source_id} ({credit.currency})</span>
+                      </Label>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <FormattedNumberInput
+                          value={currentAmount}
+                          onChange={(val) => {
+                            if (!isChecked) return;
+                            const next = new Map(appliedCredits);
+                            const maxApplicable = getMaxApplicable(credit.source_id, credit.currency, maxAmount);
+                            const entered = Number(val) || 0;
+                            if (entered > maxApplicable) setCreditCapWarning(true);
+                            next.set(credit.source_id, Math.min(entered, maxApplicable));
+                            setAppliedCredits(next);
+                          }}
+                          disabled={!isChecked}
+                          placeholder="0.00"
+                          className="h-7 w-24 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          / {fmtCurrency(maxAmount, credit.currency)}
+                        </span>
+                      </div>
                     </div>
+                    {isChecked && credit.currency !== invoiceCurrency && currentAmount > 0 && (
+                      <div className="flex items-center justify-end gap-1.5 text-xs text-muted-foreground pl-7">
+                        <span>≈ {fmtCurrency(calcEquivalent(currentAmount, credit.currency, invoiceCurrency, sessionExchangeRate), invoiceCurrency)}</span>
+                        {sessionExchangeRate !== 1 && (
+                          <span className="opacity-60">· 1 USD = {sessionExchangeRate} UYU</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -861,41 +1037,58 @@ export function StepPayment({
 
           {/* Invoice summary + applied credits banner */}
           <div className={cn(
-            'rounded-lg border px-4 py-3 text-sm space-y-1',
+            'rounded-lg border text-sm overflow-hidden',
             invoiceJustCreated
               ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
               : 'bg-muted/30',
           )}>
-            {isMultiInvoice ? (
-              <div className="flex justify-between text-muted-foreground">
-                <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
-                <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
-              </div>
-            ) : (
-              <div className="flex justify-between items-center">
-                <span className={cn('flex items-center gap-1.5', invoiceJustCreated ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
-                  {invoiceJustCreated && <CheckCircle2 className="h-3.5 w-3.5" />}
-                  {invoiceJustCreated ? 'Factura creada' : 'Factura'}
+            <div className="px-4 py-3 space-y-1">
+              {isMultiInvoice ? (
+                <div className="flex justify-between text-muted-foreground">
+                  <span>{invoices!.length} factura{invoices!.length !== 1 ? 's' : ''} seleccionada{invoices!.length !== 1 ? 's' : ''}</span>
+                  <span className="font-medium">{invoices!.map((inv) => `#${inv.doc_no || inv.id}`).join(', ')}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between items-center">
+                  <span className={cn('flex items-center gap-1.5', invoiceJustCreated ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground')}>
+                    {invoiceJustCreated && <CheckCircle2 className="h-3.5 w-3.5" />}
+                    {invoiceJustCreated ? 'Factura creada' : 'Factura'}{' '}
+                    <span className="font-medium text-foreground">#{invoice.doc_no || invoice.id}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleToggleInvoiceDetail}
+                    className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-2"
+                  >
+                    {invoiceDetail === null ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : invoiceDetailExpanded ? (
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    )}
+                    <span>Detalle</span>
+                  </button>
+                </div>
+              )}
+              {/* Show applied credits deduction */}
+              {creditsTotalConverted > 0 && (
+                <div className="flex justify-between text-xs text-emerald-700 dark:text-emerald-400">
+                  <span className="flex items-center gap-1">
+                    <CreditCard className="h-3 w-3" />
+                    Créditos aplicados
+                  </span>
+                  <span className="tabular-nums">− {fmtCurrency(creditsTotalConverted, invoiceCurrency)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-semibold">
+                <span>Pendiente de cobro</span>
+                <span className="tabular-nums text-primary">
+                  {fmtCurrency(pendingAmountAfterCredits, invoiceCurrency)}
                 </span>
-                <span className="font-medium">#{invoice.doc_no || 'NUEVA'}</span>
               </div>
-            )}
-            {/* Show applied credits deduction */}
-            {creditsTotalConverted > 0 && (
-              <div className="flex justify-between text-xs text-emerald-700 dark:text-emerald-400">
-                <span className="flex items-center gap-1">
-                  <CreditCard className="h-3 w-3" />
-                  Créditos aplicados
-                </span>
-                <span className="tabular-nums">− {fmtCurrency(creditsTotalConverted, invoiceCurrency)}</span>
-              </div>
-            )}
-            <div className="flex justify-between font-semibold">
-              <span>Pendiente de cobro</span>
-              <span className="tabular-nums text-primary">
-                {fmtCurrency(pendingAmountAfterCredits, invoiceCurrency)}
-              </span>
             </div>
+            {renderDetailPanel()}
           </div>
 
           {/* Payment entries */}

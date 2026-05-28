@@ -138,6 +138,9 @@ export function StepConfirmation({
               <span className="text-muted-foreground shrink-0">Factura</span>
               <div className="flex items-center gap-2 min-w-0">
                 <span className="font-medium truncate">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
+                <span className="tabular-nums whitespace-nowrap font-semibold text-emerald-600">
+                  {fmtCurrency(inv.total || 0, inv.currency || currency)}
+                </span>
                 <button
                   type="button"
                   onClick={() => handlePrintInvoice(inv.id, inv.doc_no || inv.invoice_doc_no)}
@@ -157,6 +160,11 @@ export function StepConfirmation({
             <span className="text-muted-foreground shrink-0">Factura</span>
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-medium truncate">#{invoiceDocNo}</span>
+              {total !== undefined && (
+                <span className="tabular-nums whitespace-nowrap font-semibold text-emerald-600">
+                  {fmtCurrency(total, currency)}
+                </span>
+              )}
               {invoiceId && (
                 <button
                   type="button"
@@ -185,9 +193,7 @@ export function StepConfirmation({
               <span className="text-muted-foreground shrink-0 flex items-center gap-1.5 pt-0.5">
                 {payments.length > 1 ? `Pago ${i + 1}` : 'Pago'}
                 {p.isNew && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-1 rounded">
-                    Nuevo
-                  </span>
+                  <span className="text-[10px] text-muted-foreground">(en esta sesión)</span>
                 )}
               </span>
 
@@ -202,7 +208,7 @@ export function StepConfirmation({
                     {p.amount != null && p.currency && (
                       <>
                         <span className="text-muted-foreground">·</span>
-                        <span className="tabular-nums whitespace-nowrap">{fmtCurrency(p.amount, p.currency)}</span>
+                        <span className="tabular-nums whitespace-nowrap text-red-600 dark:text-red-400">−{fmtCurrency(p.amount, p.currency)}</span>
                       </>
                     )}
                   </div>
@@ -257,22 +263,7 @@ export function StepConfirmation({
           </>
         )}
 
-        {/* Totals */}
-        {total !== undefined && (
-          <div className="flex justify-between px-4 py-2.5 font-semibold">
-            <span>Total facturado</span>
-            <span className="tabular-nums text-primary">{fmtCurrency(total, currency)}</span>
-          </div>
-        )}
-        {totalPaid !== undefined && totalPaid > 0 && (
-          <div className="flex justify-between px-4 py-2.5 font-semibold">
-            <span>
-              Total pagado{' '}
-              <span className="font-normal text-muted-foreground text-xs">(en esta sesión)</span>
-            </span>
-            <span className="tabular-nums text-emerald-600">{fmtCurrency(totalPaid, currency)}</span>
-          </div>
-        )}
+        {/* Total pendiente */}
         {pendingAfter !== undefined && (
           <div className="flex justify-between px-4 py-2.5 font-semibold">
             <span>Total pendiente</span>
