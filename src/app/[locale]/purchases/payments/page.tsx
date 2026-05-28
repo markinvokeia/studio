@@ -19,6 +19,7 @@ import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/Purch
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Payment, PaymentAllocation } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
@@ -37,6 +38,7 @@ export default function PaymentsPage() {
 function PaymentsPageContent() {
     const t = useTranslations('PaymentsPage');
     const { toast } = useToast();
+    const { printPayment } = usePrintDocument();
     const { hasPermission } = usePermissions();
 
     // Permission checks for UI elements
@@ -86,37 +88,9 @@ function PaymentsPageContent() {
         setIsPrepaidDialogOpen(true);
     }, []);
 
-    const handlePrintPayment = React.useCallback(async (payment: Payment) => {
-        const fileName = getDocumentFileName(payment, 'payment');
-        toast({
-            title: "Generating PDF",
-            description: `Preparing PDF for Payment #${fileName}...`,
-        });
-
-        try {
-            const blob = await api.getBlob(API_ROUTES.PURCHASES.API_PAYMENT_PRINT, { transaction_id: payment.transaction_id || payment.id, transaction_type: payment.transaction_type });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${fileName}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-
-            toast({
-                title: "Download Started",
-                description: `Your PDF for Payment #${fileName} is downloading.`,
-            });
-
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Print Error',
-                description: error instanceof Error ? error.message : 'Could not print the payment.',
-            });
-        }
-    }, [toast]);
+    const handlePrintPayment = React.useCallback((payment: Payment) => {
+        printPayment(payment, false);
+    }, [printPayment]);
 
     const loadPaymentAllocations = React.useCallback(async (paymentId: string) => {
         setIsLoadingAllocations(true);

@@ -8,7 +8,8 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { getDocumentFileName } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import type { Invoice } from '@/lib/types';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import type { Invoice, Payment } from '@/lib/types';
 import type { CreatedPayment } from './step-payment';
 
 interface StepConfirmationProps {
@@ -57,59 +58,60 @@ export function StepConfirmation({
   onClose,
 }: StepConfirmationProps) {
   const { toast } = useToast();
-  const [printingInvoiceId, setPrintingInvoiceId] = React.useState<string | null>(null);
-  const [printingPaymentId, setPrintingPaymentId] = React.useState<string | null>(null);
+  const { printInvoice, printPayment } = usePrintDocument();
 
-  const handlePrintInvoice = async (id: string, docNo?: string) => {
-    setPrintingInvoiceId(id);
-    try {
-      const endpoint = isSales ? API_ROUTES.SALES.API_INVOICE_PRINT : API_ROUTES.PURCHASES.API_INVOICE_PRINT;
-      const blob = await api.getBlob(endpoint, { id });
-      const fileName = getDocumentFileName({ id, doc_no: docNo, invoice_doc_no: docNo }, 'invoice');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir la factura', variant: 'destructive' });
-    } finally {
-      setPrintingInvoiceId(null);
-    }
+  const handlePrintInvoice = (inv: Invoice) => {
+    printInvoice(inv, isSales);
   };
 
-  const handlePrintPayment = async (payment: CreatedPayment) => {
+  const handlePrintInvoiceById = (id: string, docNo?: string) => {
+    const inv: Invoice = {
+      id,
+      doc_no: docNo,
+      invoice_doc_no: docNo,
+      invoice_ref: docNo || id,
+      order_id: '',
+      quote_id: '',
+      user_name: patientName || '',
+      user_id: '',
+      total: total ?? 0,
+      currency: currency as 'UYU' | 'USD',
+      status: 'booked',
+      payment_status: 'unpaid',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    printInvoice(inv, isSales);
+  };
+
+  const handlePrintPayment = (payment: CreatedPayment) => {
     if (!payment.transactionId) {
       toast({ title: 'No se encontró el recibo del pago', variant: 'destructive' });
       return;
     }
-    setPrintingPaymentId(payment.transactionId);
-    try {
-      const endpoint = isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT;
-      const blob = await api.getBlob(endpoint, {
-        transaction_id: payment.transactionId,
-        transaction_type: payment.transactionType || 'direct_payment',
-      });
-      const fileName = getDocumentFileName(
-        { id: payment.transactionId, doc_no: payment.docNo, payment_doc_no: payment.docNo },
-        'payment',
-      );
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir el recibo', variant: 'destructive' });
-    } finally {
-      setPrintingPaymentId(null);
-    }
+    const p: Payment = {
+      id: payment.transactionId,
+      doc_no: payment.docNo,
+      payment_doc_no: payment.docNo,
+      order_id: '',
+      invoice_id: null,
+      quote_id: null,
+      user_name: patientName || '',
+      payment_date: payment.date || new Date().toISOString(),
+      amount_applied: payment.amount ?? 0,
+      source_amount: payment.amount ?? 0,
+      source_currency: (payment.currency as 'UYU' | 'USD') || 'UYU',
+      payment_method: payment.methodName || '',
+      transaction_type: (payment.transactionType as Payment['transaction_type']) || 'direct_payment',
+      transaction_id: payment.transactionId,
+      status: 'completed',
+      createdAt: payment.date || new Date().toISOString(),
+      updatedAt: payment.date || new Date().toISOString(),
+      amount: payment.amount ?? 0,
+      method: payment.methodName || '',
+      type: null,
+    };
+    printPayment(p, isSales);
   };
 
   const hasPayments = payments.length > 0;
@@ -143,14 +145,11 @@ export function StepConfirmation({
                 </span>
                 <button
                   type="button"
-                  onClick={() => handlePrintInvoice(inv.id, inv.doc_no || inv.invoice_doc_no)}
-                  disabled={printingInvoiceId === inv.id}
-                  className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                  onClick={() => handlePrintInvoice(inv)}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                   title="Imprimir factura"
                 >
-                  {printingInvoiceId === inv.id
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Printer className="h-3.5 w-3.5" />}
+                  <Printer className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -168,14 +167,11 @@ export function StepConfirmation({
               {invoiceId && (
                 <button
                   type="button"
-                  onClick={() => handlePrintInvoice(invoiceId, invoiceDocNo)}
-                  disabled={printingInvoiceId === invoiceId}
-                  className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors"
+                  onClick={() => handlePrintInvoiceById(invoiceId!, invoiceDocNo)}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
                   title="Imprimir factura"
                 >
-                  {printingInvoiceId === invoiceId
-                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    : <Printer className="h-3.5 w-3.5" />}
+                  <Printer className="h-3.5 w-3.5" />
                 </button>
               )}
             </div>
@@ -231,13 +227,10 @@ export function StepConfirmation({
                   <button
                     type="button"
                     onClick={() => handlePrintPayment(p)}
-                    disabled={printingPaymentId === p.transactionId}
-                    className="shrink-0 text-muted-foreground hover:text-foreground disabled:opacity-40 transition-colors mt-0.5"
+                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5"
                     title="Imprimir recibo"
                   >
-                    {printingPaymentId === p.transactionId
-                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      : <Printer className="h-3.5 w-3.5" />}
+                    <Printer className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>

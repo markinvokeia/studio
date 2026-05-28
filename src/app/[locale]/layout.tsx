@@ -12,6 +12,7 @@ import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
 import { BillingWizardModal } from '@/components/billing-wizard';
+import { PrintDocumentContainer } from '@/components/print-templates';
 
 
 export const metadata: Metadata = {
@@ -52,6 +53,7 @@ return (
               <PrivateRoute>
                 {children}
                 <BillingWizardModal />
+                <PrintDocumentContainer />
               </PrivateRoute>
             </NotificationsProvider>
           </TVDisplayProvider>

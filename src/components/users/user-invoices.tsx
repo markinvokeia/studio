@@ -28,6 +28,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
@@ -252,6 +253,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const { hasPermission } = usePermissions();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const { open: openBillingWizard } = useBillingWizard();
+  const { printInvoice } = usePrintDocument();
   const isViewportNarrow = useViewportNarrow();
   const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
@@ -363,8 +365,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         { invoice_id: invoiceId }
       );
       const raw = Array.isArray(data) ? data : (data.payments || data.data || []);
-      setInvoicePayments(raw.map((p: any) => ({
-        id: String(p.id),
+      setInvoicePayments(raw.map((p: any, idx: number) => ({
+        id: p.id != null ? String(p.id) : (p.doc_no || p.payment_doc_no || String(idx)),
         amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
         currency: p.invoice_currency || p.source_currency || p.currency || 'UYU',
         method: p.payment_method_name || p.method || p.payment_method || '',
@@ -409,25 +411,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   }, [loadItems, loadInvoicePayments]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!selectedInvoice) return;
-    try {
-      const blob = await api.getBlob(
-        isSales ? API_ROUTES.SALES.API_INVOICE_PRINT : API_ROUTES.PURCHASES.API_INVOICE_PRINT,
-        { id: selectedInvoice.id }
-      );
-      const fileName = getDocumentFileName(selectedInvoice, 'invoice');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: 'Error al imprimir', variant: 'destructive' });
-    }
+    printInvoice(selectedInvoice, isSales);
   };
 
   const handleSendEmailClick = (invoice: Invoice) => {
@@ -1071,9 +1057,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                       ) : invoicePayments.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
                       ) : (
-                        invoicePayments.map((payment) => (
+                        invoicePayments.map((payment, idx) => (
                           <DataCard
-                            key={payment.id}
+                            key={payment.id || `payment-${idx}`}
                             title={payment.doc_no || `Pago #${payment.id}`}
                             subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
                             fields={[

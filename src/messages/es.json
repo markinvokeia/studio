@@ -44,6 +44,7 @@
     "Currencies": "Monedas y Tipos de Cambio",
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
+    "PrintTemplates": "Plantillas de Documentos",
     "System": "Sistema",
     "SystemUsers": "Usuarios",
     "Roles": "Roles",
@@ -5290,6 +5291,33 @@
       "codeRequired": "El código es obligatorio."
     }
   },
+  "Config": {
+    "PrintTemplates": {
+      "title": "Plantillas de Documentos",
+      "description": "Personaliza el HTML de cada plantilla de impresión para tu clínica.",
+      "tabs": {
+        "invoice": "Factura",
+        "quote": "Presupuesto",
+        "payment": "Pago",
+        "credit_note": "Nota de Crédito",
+        "prepayment": "Prepago"
+      },
+      "editor": "Editor HTML",
+      "preview": "Vista previa",
+      "insertVariable": "Insertar variable",
+      "snippets": "Snippets",
+      "save": "Guardar plantilla",
+      "resetDefault": "Restaurar predeterminado",
+      "saveSuccess": "Plantilla guardada exitosamente",
+      "resetSuccess": "Plantilla restaurada al valor predeterminado",
+      "groups": {
+        "document": "Documento",
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "tables": "Tablas"
+      }
+    }
+  },
   "MutualSocietiesColumns": {
     "id": "ID",
     "name": "Nombre",
@@ -6445,6 +6473,75 @@
     "confirmation": {
       "paymentTitle": "¡Cobro registrado!",
       "invoiceTitle": "¡Factura creada!"
+    }
+  },
+  "PrintTemplates": {
+    "quote": "Presupuesto",
+    "invoice": "Factura",
+    "payment": "Recibo de Pago",
+    "credit_note": "Nota de Crédito",
+    "prepayment": "Pre-pago",
+    "patient": "Paciente",
+    "date": "Fecha",
+    "dueDate": "Vencimiento",
+    "status": "Estado",
+    "billingStatus": "Estado Facturación",
+    "paymentStatus": "Estado Pago",
+    "services": "Servicios",
+    "service": "Servicio",
+    "tooth": "Diente",
+    "qty": "Cant.",
+    "unitPrice": "P. Unit.",
+    "total": "Total",
+    "invoices": "Facturas",
+    "payments": "Pagos",
+    "paymentDate": "Fecha Pago",
+    "paymentMethod": "Método",
+    "amount": "Monto",
+    "subtotal": "Subtotal",
+    "amountInvoiced": "Facturado",
+    "pendingInvoice": "Pend. Factura",
+    "amountPaid": "Pagado",
+    "pendingPayment": "Pend. Pago",
+    "creditedAmount": "Monto Acreditado",
+    "originalInvoice": "Factura Original",
+    "availableCredit": "Disponible como crédito",
+    "exchangeRate": "Tipo de cambio",
+    "notes": "Notas",
+    "reference": "Referencia",
+    "docNo": "Nro. Documento",
+    "invoiceRef": "Ref. Factura",
+    "currency": "Moneda",
+    "noItems": "Sin ítems",
+    "noPayments": "Sin pagos registrados",
+    "noInvoices": "Sin facturas asociadas",
+    "summary": "Resumen",
+    "generatingPrint": "Preparando impresión…",
+    "quoteStatus": {
+      "draft": "Borrador",
+      "sent": "Enviado",
+      "accepted": "Aceptado",
+      "rejected": "Rechazado",
+      "pending": "Pendiente",
+      "confirmed": "Confirmado"
+    },
+    "invoiceStatus": {
+      "draft": "Borrador",
+      "sent": "Enviado",
+      "paid": "Pagado",
+      "overdue": "Vencido",
+      "booked": "Contabilizado"
+    },
+    "paymentStatusLabels": {
+      "unpaid": "No Pagado",
+      "paid": "Pagado",
+      "partial": "Parcial",
+      "partially_paid": "Pago Parcial"
+    },
+    "transactionType": {
+      "direct_payment": "Pago Directo",
+      "credit_note_allocation": "Aplicación Nota de Crédito",
+      "payment_allocation": "Aplicación de Pago"
     }
   }
 }
