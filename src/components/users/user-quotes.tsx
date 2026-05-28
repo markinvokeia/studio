@@ -25,6 +25,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem, Invoice } from '@/lib/types';
@@ -394,6 +395,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const { activeCashSession } = useAuth();
   const { hasPermission } = usePermissions();
   const { open: openBillingWizard } = useBillingWizard();
+  const { printQuote, printPayment } = usePrintDocument();
   const isSales = mode === 'sales';
   const isViewportNarrow = useViewportNarrow();
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
@@ -696,22 +698,9 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   }, [loadItems, quoteItems.length, selectedQuote]);
 
   // ── Record actions ──────────────────────────────────────────────────────────
-  const handlePrint = async () => {
+  const handlePrint = () => {
     if (!selectedQuote || !canPrintQuote) return;
-    try {
-      const blob = await api.getBlob(API_ROUTES.PURCHASES.QUOTES_PRINT, { quote_id: selectedQuote.id.toString() });
-      const fileName = getDocumentFileName(selectedQuote, 'quote');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${fileName}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      a.remove();
-    } catch {
-      toast({ title: t('UserQuotes.toasts.errorPrinting'), variant: 'destructive' });
-    }
+    printQuote(selectedQuote, isSales);
   };
 
   const handleSend = async () => {
@@ -1494,17 +1483,30 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                                 variant="ghost"
                                 size="sm"
                                 className="h-6 px-2 text-xs gap-1 -ml-1"
-                                onClick={async () => {
-                                  try {
-                                    const endpoint = isSales ? API_ROUTES.SALES.API_PAYMENT_PRINT : API_ROUTES.PURCHASES.API_PAYMENT_PRINT;
-                                    const blob = await api.getBlob(endpoint, { transaction_id: pay.transaction_id!, transaction_type: pay.transaction_type! });
-                                    const fileName = getDocumentFileName({ id: pay.transaction_id!, doc_no: pay.doc_no, payment_doc_no: pay.doc_no }, 'payment');
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url; a.download = `${fileName}.pdf`;
-                                    document.body.appendChild(a); a.click();
-                                    URL.revokeObjectURL(url); a.remove();
-                                  } catch { toast({ title: 'Error al imprimir el recibo', variant: 'destructive' }); }
+                                onClick={() => {
+                                  const p: import('@/lib/types').Payment = {
+                                    id: pay.id,
+                                    doc_no: pay.doc_no,
+                                    payment_doc_no: pay.doc_no,
+                                    order_id: '',
+                                    invoice_id: null,
+                                    quote_id: null,
+                                    user_name: selectedQuote?.user_name || '',
+                                    payment_date: pay.payment_date || pay.createdAt || '',
+                                    amount_applied: pay.amount,
+                                    source_amount: pay.amount,
+                                    source_currency: (pay.currency as 'UYU' | 'USD') || 'UYU',
+                                    payment_method: pay.method || '',
+                                    transaction_type: (pay.transaction_type as import('@/lib/types').Payment['transaction_type']) || 'direct_payment',
+                                    transaction_id: pay.transaction_id || null,
+                                    status: 'completed',
+                                    createdAt: pay.createdAt || '',
+                                    updatedAt: pay.createdAt || '',
+                                    amount: pay.amount,
+                                    method: pay.method || '',
+                                    type: null,
+                                  };
+                                  printPayment(p, isSales);
                                 }}
                               >
                                 <Printer className="h-3 w-3" />Imprimir recibo
