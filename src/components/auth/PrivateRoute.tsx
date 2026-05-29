@@ -1,7 +1,7 @@
 'use client';
 
 import { Header } from '@/components/header';
-import { LicenseExpirationBanner } from '@/components/license/LicenseExpirationBanner';
+import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -144,7 +144,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { isExpired, isExpiringSoon, daysLeft } = useLicenseStore();
 
-  const isSystemUser = user?.email === 'system@invokeia.com';
+  const isInvokeUser = user?.email?.endsWith('@invokeia.com') ?? false;
 
   const getEffectivePathname = (p: string, l: string) => {
     const localePrefix = `/${l}`;
@@ -165,13 +165,14 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <div className="print:hidden">
           <Header />
         </div>
+        {isExpired && isInvokeUser && <LicenseExpiredBanner />}
         {isExpiringSoon && !isExpired && (
           <LicenseExpirationBanner daysLeft={daysLeft} />
         )}
         <main className="flex-1 flex flex-col min-h-0 bg-background px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
           <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 print:pt-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {children}
-            {isExpired && !isSystemUser && <LicenseExpiredScreen />}
+            {isExpired && !isInvokeUser && <LicenseExpiredScreen />}
           </div>
         </main>
         <footer className="sm:hidden print:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">

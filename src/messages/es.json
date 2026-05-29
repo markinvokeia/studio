@@ -6611,7 +6611,8 @@
     "expired": {
       "title": "Licencia Expirada",
       "description": "La licencia de InvokeIA ha expirado. Por favor contáctenos para renovarla.",
-      "contact": "Contacto:"
+      "contact": "Contacto:",
+      "banner": "⚠ LICENCIA EXPIRADA — El acceso de los usuarios está bloqueado. Renovar:"
     },
     "expiringSoon": {
       "message": "Su licencia vence en {days} día(s). Por favor contacte a"
