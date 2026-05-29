@@ -391,6 +391,7 @@ export const API_ROUTES = {
         GASTOS_OPERATIVOS:    '/reports/gastos-operativos',
         ESTADO_RESULTADOS:    '/reports/estado-resultados',
         KPIS:                 '/reports/kpis',
+        USERS_BY_ROLE:        '/reports/users-by-role',
     },
     LICENSE: {
         GET:  '/license',

@@ -3604,6 +3604,51 @@
       "showOnlyActive": "Show only active"
     }
   },
+  "StaffPage": {
+    "title": "Staff — Receptionists & Admins",
+    "description": "Manage system users with receptionist and admin roles",
+    "filterPlaceholder": "Search by name or email...",
+    "filters": {
+      "showOnlyActive": "Show only active"
+    },
+    "createDialog": {
+      "createTitle": "Create system user",
+      "createDescription": "Create a new receptionist or administrator",
+      "role": "Role",
+      "rolePlaceholder": "Select role...",
+      "name": "Name",
+      "namePlaceholder": "e.g. Mary Smith",
+      "email": "Email",
+      "emailPlaceholder": "e.g. mary@clinic.com",
+      "phone": "Phone",
+      "phonePlaceholder": "e.g. 099 123 456",
+      "identity_document": "Identity Document",
+      "identity_document_placeholder": "e.g. 12345678",
+      "isActive": "Is Active?",
+      "save": "Save",
+      "cancel": "Cancel",
+      "createSuccessTitle": "User Created",
+      "createSuccessDescription": "The user has been created and the role assigned successfully.",
+      "editSuccessTitle": "User Updated",
+      "editSuccessDescription": "The user has been updated successfully.",
+      "validation": {
+        "roleRequired": "Please select a role."
+      }
+    },
+    "tabs": {
+      "details": "Details",
+      "roles": "Roles",
+      "logs": "History"
+    },
+    "noSelection": "Select a user to view their details",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "role": "Role"
+    }
+  },
   "RolesPage": {
     "title": "Roles",
     "description": "Manage roles for the clinic",
