@@ -2185,3 +2185,43 @@ export interface ReportKPIsResponse {
   ticket_promedio: number;
   total_gastos: number;
 }
+
+// ── Licensing ────────────────────────────────────────────────────────────────
+
+export type AiAccessLevel = 'full' | 'doctors_only' | 'none';
+export type SubscriptionType = 'monthly' | 'annual' | 'custom';
+
+export interface LicensePayload {
+  licenseId: string;
+  version: number;
+  subscriptionType: SubscriptionType;
+  startDate: string;
+  endDate: string;
+  maxDoctors: number;
+  maxReceptionists: number;
+  maxAdmins: number;
+  maxSuperAdmins: number;
+  maxMonthlyNewPatients: number;
+  aiAccess: AiAccessLevel;
+  issuedAt: string;
+  notes?: string;
+}
+
+export type CreateLicenseInput = Omit<LicensePayload, 'licenseId' | 'version' | 'issuedAt'>;
+
+export interface Subscription {
+  id: string;
+  licenseId: string;
+  subscriptionType: SubscriptionType;
+  startDate: string;
+  endDate: string;
+  maxDoctors: number;
+  maxReceptionists: number;
+  maxAdmins: number;
+  maxSuperAdmins: number;
+  maxMonthlyNewPatients: number;
+  aiAccess: AiAccessLevel;
+  issuedAt: string;
+  notes?: string;
+  createdAt: string;
+}

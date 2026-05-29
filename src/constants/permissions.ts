@@ -585,3 +585,18 @@ export const REPORTS_PERMISSIONS = {
 } as const;
 
 export type ReportsPermission = (typeof REPORTS_PERMISSIONS)[keyof typeof REPORTS_PERMISSIONS];
+
+export const LICENSING_PERMISSIONS = {
+  VIEW_MENU: 'LICENSING_VIEW_MENU',
+  VIEW:      'LICENSING_VIEW',
+  GENERATE:  'LICENSING_GENERATE',
+} as const;
+
+export type LicensingPermission = (typeof LICENSING_PERMISSIONS)[keyof typeof LICENSING_PERMISSIONS];
+
+export const SUBSCRIPTIONS_PERMISSIONS = {
+  VIEW_MENU: 'SUBSCRIPTIONS_VIEW_MENU',
+  VIEW:      'SUBSCRIPTIONS_VIEW',
+} as const;
+
+export type SubscriptionsPermission = (typeof SUBSCRIPTIONS_PERMISSIONS)[keyof typeof SUBSCRIPTIONS_PERMISSIONS];

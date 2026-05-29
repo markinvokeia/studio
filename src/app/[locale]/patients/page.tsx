@@ -87,6 +87,7 @@ import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
+import { useLicenseStore } from '@/stores/license-store';
 import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -1450,7 +1451,28 @@ export default function UsersPage() {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
+    const { license, canAddMonthlyPatient } = useLicenseStore.getState();
+    if (license) {
+      try {
+        const now = new Date();
+        const dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        const dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        const data = await api.get(API_ROUTES.REPORTS.NUEVOS_PACIENTES, { date_from: dateFrom, date_to: dateTo });
+        const count: number = data?.data?.summary?.num_nuevos ?? data?.summary?.num_nuevos ?? 0;
+        if (!canAddMonthlyPatient(count)) {
+          toast({
+            variant: 'destructive',
+            title: t('License.enforcement.limitReachedTitle'),
+            description: t('License.enforcement.patientMonthlyLimitReached', { max: license.maxMonthlyNewPatients }),
+          });
+          return;
+        }
+      } catch {
+        // non-critical: allow creating if check fails
+      }
+    }
+
     setEditingUser(null);
     loadMutualSocieties();
     form.reset({

@@ -1,0 +1,103 @@
+{
+  "name": "License - Save",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "license",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar y Extraer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Decodifica JWT y valida el body\nconst input = $input.first().json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\n// JWT → clinic_id\nconst authHeader = (headers.authorization || headers.Authorization || '').toString();\nconst token = authHeader.replace(/^Bearer\\s+/i, '').trim();\nif (!token) throw new Error('Authorization token requerido');\nconst parts = token.split('.');\nif (parts.length !== 3) throw new Error('Formato de token inválido');\n\nlet clinicId;\ntry {\n  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');\n  const padding = '='.repeat((4 - base64.length % 4) % 4);\n  const payload = JSON.parse(Buffer.from(base64 + padding, 'base64').toString('utf8'));\n  clinicId = payload.clinic_id || payload.clinicId || payload.clinic;\n  if (!clinicId) throw new Error('clinic_id no encontrado en el token');\n} catch (e) {\n  throw new Error('Error al decodificar token: ' + e.message);\n}\n\n// Validar body\nconst licenseKey = (body.license_key || '').toString().trim();\nif (!licenseKey) throw new Error('El campo license_key es requerido');\n\nreturn [{ json: { clinic_id: String(clinicId), license_key: licenseKey } }];"
+      }
+    },
+    {
+      "id": "node-pg-upsert",
+      "name": "Guardar Licencia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO licenses (clinic_id, license_key)\nVALUES ($1::uuid, $2)\nON CONFLICT (clinic_id) DO UPDATE\n  SET license_key = EXCLUDED.license_key,\n      updated_at  = now()\nRETURNING\n  id,\n  clinic_id,\n  license_key,\n  created_at,\n  updated_at",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.clinic_id, $json.license_key ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check",
+      "name": "Verificar Guardado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300],
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\n\nif (result.error) {\n  throw new Error('Error al guardar licencia: ' + (result.error?.message || String(result.error)));\n}\nif (!result.id) {\n  throw new Error('No se pudo guardar la licencia');\n}\n\nreturn [{ json: { success: true, id: result.id, updated_at: result.updated_at } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validar y Extraer", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validar y Extraer": {
+      "main": [
+        [{ "node": "Guardar Licencia", "type": "main", "index": 0 }]
+      ]
+    },
+    "Guardar Licencia": {
+      "main": [
+        [{ "node": "Verificar Guardado", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verificar Guardado": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión.\n2. En el nodo 'Guardar Licencia', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/license\n\nAUTENTICACIÓN:\nRequiere header: Authorization: Bearer <JWT>\nEl token se decodifica para extraer el clinic_id (soporta claims: clinic_id, clinicId, clinic)\n\nPAYLOAD:\n{\n  \"license_key\": \"<base64url-blob-generado-por-el-frontend>\"\n}\n\nRESPUESTA EXITOSA:\n{ \"success\": true, \"id\": \"uuid\", \"updated_at\": \"2026-05-29T...\" }\n\nCOMPORTAMIENTO:\n- Si no existe licencia para la clínica → INSERT\n- Si ya existe → UPDATE del license_key y updated_at\n\nTABLA REQUERIDA: licenses (ver 030_20260529_licensing-tables-and-permissions.sql)"
+  }
+}

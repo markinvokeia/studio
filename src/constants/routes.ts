@@ -392,4 +392,12 @@ export const API_ROUTES = {
         ESTADO_RESULTADOS:    '/reports/estado-resultados',
         KPIS:                 '/reports/kpis',
     },
+    LICENSE: {
+        GET:  '/license',
+        SAVE: '/license',
+    },
+    SUBSCRIPTIONS: {
+        LIST:   '/subscriptions',
+        CREATE: '/subscriptions',
+    },
 };

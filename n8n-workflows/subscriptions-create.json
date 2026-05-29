@@ -1,0 +1,103 @@
+{
+  "name": "Subscriptions - Crear",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "subscriptions",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar y Extraer",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Decodifica JWT y valida el body\nconst input = $input.first().json;\nconst headers = input.headers || {};\nconst body = input.body || input;\n\n// JWT → clinic_id\nconst authHeader = (headers.authorization || headers.Authorization || '').toString();\nconst token = authHeader.replace(/^Bearer\\s+/i, '').trim();\nif (!token) throw new Error('Authorization token requerido');\nconst parts = token.split('.');\nif (parts.length !== 3) throw new Error('Formato de token inválido');\n\nlet clinicId;\ntry {\n  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');\n  const padding = '='.repeat((4 - base64.length % 4) % 4);\n  const payload = JSON.parse(Buffer.from(base64 + padding, 'base64').toString('utf8'));\n  clinicId = payload.clinic_id || payload.clinicId || payload.clinic;\n  if (!clinicId) throw new Error('clinic_id no encontrado en el token');\n} catch (e) {\n  throw new Error('Error al decodificar token: ' + e.message);\n}\n\n// Validar campos requeridos\nconst requiredFields = ['licenseId', 'subscriptionType', 'startDate', 'endDate'];\nfor (const field of requiredFields) {\n  if (!body[field]) throw new Error(`El campo ${field} es requerido`);\n}\n\nconst VALID_TYPES = ['monthly', 'annual', 'custom'];\nif (!VALID_TYPES.includes(body.subscriptionType)) {\n  throw new Error(`subscriptionType inválido. Valores permitidos: ${VALID_TYPES.join(', ')}`);\n}\n\nconst VALID_AI = ['full', 'doctors_only', 'none'];\nconst aiAccess = body.aiAccess || 'none';\nif (!VALID_AI.includes(aiAccess)) {\n  throw new Error(`aiAccess inválido. Valores permitidos: ${VALID_AI.join(', ')}`);\n}\n\nreturn [{ json: {\n  clinic_id:                String(clinicId),\n  license_id:               String(body.licenseId),\n  subscription_type:        String(body.subscriptionType),\n  start_date:               String(body.startDate),\n  end_date:                 String(body.endDate),\n  max_doctors:              Number(body.maxDoctors)              || 0,\n  max_receptionists:        Number(body.maxReceptionists)        || 0,\n  max_admins:               Number(body.maxAdmins)               || 0,\n  max_super_admins:         Number(body.maxSuperAdmins)          || 0,\n  max_monthly_new_patients: Number(body.maxMonthlyNewPatients)   || 0,\n  ai_access:                aiAccess,\n  notes:                    body.notes ? String(body.notes) : null,\n  issued_at:                body.issuedAt ? String(body.issuedAt) : new Date().toISOString()\n} }];"
+      }
+    },
+    {
+      "id": "node-pg-insert",
+      "name": "Insertar Suscripción",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO subscriptions (\n  clinic_id,\n  license_id,\n  subscription_type,\n  start_date,\n  end_date,\n  max_doctors,\n  max_receptionists,\n  max_admins,\n  max_super_admins,\n  max_monthly_new_patients,\n  ai_access,\n  notes,\n  issued_at\n) VALUES (\n  $1::uuid,\n  $2::uuid,\n  $3,\n  $4::date,\n  $5::date,\n  $6::int,\n  $7::int,\n  $8::int,\n  $9::int,\n  $10::int,\n  $11,\n  $12,\n  $13::timestamptz\n)\nRETURNING\n  id,\n  clinic_id,\n  license_id,\n  subscription_type,\n  start_date,\n  end_date,\n  max_doctors,\n  max_receptionists,\n  max_admins,\n  max_super_admins,\n  max_monthly_new_patients,\n  ai_access,\n  notes,\n  issued_at,\n  created_at",
+        "additionalFields": {
+          "queryParams": "={{ [\n  $json.clinic_id,\n  $json.license_id,\n  $json.subscription_type,\n  $json.start_date,\n  $json.end_date,\n  $json.max_doctors,\n  $json.max_receptionists,\n  $json.max_admins,\n  $json.max_super_admins,\n  $json.max_monthly_new_patients,\n  $json.ai_access,\n  $json.notes,\n  $json.issued_at\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check",
+      "name": "Verificar Inserción",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300],
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\n\nif (result.error) {\n  throw new Error('Error al crear suscripción: ' + (result.error?.message || String(result.error)));\n}\nif (!result.id) {\n  throw new Error('No se pudo crear la suscripción');\n}\n\nreturn [{ json: result }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 201
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validar y Extraer", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validar y Extraer": {
+      "main": [
+        [{ "node": "Insertar Suscripción", "type": "main", "index": 0 }]
+      ]
+    },
+    "Insertar Suscripción": {
+      "main": [
+        [{ "node": "Verificar Inserción", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verificar Inserción": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión.\n2. En el nodo 'Insertar Suscripción', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nPOST https://<tu-n8n>/webhook/subscriptions\n\nAUTENTICACIÓN:\nRequiere header: Authorization: Bearer <JWT>\nEl token se decodifica para extraer el clinic_id (soporta claims: clinic_id, clinicId, clinic)\n\nPAYLOAD:\n{\n  \"licenseId\": \"uuid-del-payload-descifrado\",\n  \"subscriptionType\": \"monthly\" | \"annual\" | \"custom\",\n  \"startDate\": \"2026-01-01\",\n  \"endDate\": \"2026-12-31\",\n  \"maxDoctors\": 5,\n  \"maxReceptionists\": 3,\n  \"maxAdmins\": 2,\n  \"maxSuperAdmins\": 1,\n  \"maxMonthlyNewPatients\": 200,\n  \"aiAccess\": \"full\" | \"doctors_only\" | \"none\",\n  \"notes\": \"Opcional\",\n  \"issuedAt\": \"2026-05-29T12:00:00.000Z\"\n}\n\nRESPUESTA EXITOSA (HTTP 201):\n{ \"id\": \"uuid\", \"clinic_id\": \"uuid\", \"license_id\": \"uuid\", ... }\n\nNOTA: Este endpoint se llama automáticamente desde /system/licenses cada vez que se genera una nueva licencia, para registrar el historial de suscripciones.\n\nTABLA REQUERIDA: subscriptions (ver 030_20260529_licensing-tables-and-permissions.sql)"
+  }
+}

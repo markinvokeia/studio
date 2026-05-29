@@ -55,6 +55,8 @@
     "AccessLog": "Access Log",
     "ErrorLog": "Error Log",
     "ImportData": "Import Data",
+    "Licenses": "Licenses",
+    "Subscriptions": "Subscriptions",
     "AlertsCenter": "Alerts Center",
     "AlertsConfig": "Alerts Configuration",
     "AlertCategories": "Alert Categories",
@@ -3270,6 +3272,7 @@
       "ErrorActivateDescription": "Could not activate doctor.",
       "ErrorDeactivateDescription": "Could not deactivate doctor.",
       "validation": {
+        "errorTitle": "Error",
         "nameRequired": "Name is required.",
         "emailInvalid": "Invalid email.",
         "phoneInvalid": "Invalid phone number.",
@@ -6577,6 +6580,67 @@
       "direct_payment": "Direct Payment",
       "credit_note_allocation": "Credit Note Application",
       "payment_allocation": "Payment Application"
+    }
+  },
+  "License": {
+    "expired": {
+      "title": "License Expired",
+      "description": "Your InvokeIA license has expired. Please contact us to renew it.",
+      "contact": "Contact:"
+    },
+    "expiringSoon": {
+      "message": "Your license expires in {days} day(s). Please contact"
+    },
+    "masterKey": {
+      "prompt": "Enter Master Key",
+      "promptDescription": "Enter the master key to access license management.",
+      "placeholder": "Master key...",
+      "invalid": "Invalid master key. Could not decrypt the current license.",
+      "submit": "Verify"
+    },
+    "management": {
+      "title": "License Management",
+      "description": "View and generate InvokeIA licenses",
+      "currentLicense": "Current License",
+      "generateNew": "Generate New License",
+      "generatedKey": "Generated License Key",
+      "copyKey": "Copy Key",
+      "keyCopied": "Key copied to clipboard",
+      "noLicense": "No active license found.",
+      "subscriptionType": "Subscription Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "maxDoctors": "Max Doctors",
+      "maxReceptionists": "Max Receptionists",
+      "maxAdmins": "Max Admins",
+      "maxSuperAdmins": "Max Super Admins",
+      "maxMonthlyNewPatients": "Max Monthly New Patients",
+      "aiAccess": "AI Access",
+      "notes": "Notes",
+      "generate": "Generate License",
+      "generating": "Generating..."
+    },
+    "enforcement": {
+      "limitReachedTitle": "License limit reached",
+      "doctorLimitReached": "Your subscription allows up to {max} {max, plural, one {doctor} other {doctors}}. Upgrade your license to add more.",
+      "userLimitReached": "Your subscription allows up to {max} {max, plural, one {system user} other {system users}} (receptionists and admins). Upgrade your license to add more.",
+      "patientMonthlyLimitReached": "Your subscription allows up to {max} new {max, plural, one {patient} other {patients}} per month. This month's limit has been reached."
+    }
+  },
+  "SubscriptionsPage": {
+    "title": "Subscriptions",
+    "description": "Subscription history for this clinic",
+    "columns": {
+      "licenseId": "License ID",
+      "type": "Type",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "maxDoctors": "Max Doctors",
+      "maxReceptionists": "Max Receptionists",
+      "maxAdmins": "Max Admins",
+      "maxMonthlyPatients": "Max Monthly Patients",
+      "aiAccess": "AI Access",
+      "issuedAt": "Issued At"
     }
   }
 }

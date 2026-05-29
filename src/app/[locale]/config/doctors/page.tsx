@@ -30,6 +30,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { User, UserRole } from '@/lib/types';
 import api from '@/services/api';
+import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
@@ -318,6 +319,16 @@ export default function DoctorsPage() {
   };
 
   const handleCreate = () => {
+    const { canAddUserByRole, license } = useLicenseStore.getState();
+    if (!canAddUserByRole('doctor', userCount)) {
+      toast({
+        variant: 'destructive',
+        title: t('License.enforcement.limitReachedTitle'),
+        description: t('License.enforcement.doctorLimitReached', { max: license?.maxDoctors ?? 0 }),
+      });
+      return;
+    }
+
     form.reset({
       name: '',
       email: '',
