@@ -791,13 +791,13 @@ e2e/
 
 ```bash
 # Ejecutar todos los tests
-npm run test:e2e
+pnpm test:e2e
 
 # Ejecutar con interfaz visual
-npm run test:e2e:ui
+pnpm test:e2e:ui
 
 # Ver reporte HTML
-npm run test:e2e:report
+pnpm test:e2e:report
 ```
 
 Variables de entorno requeridas en `.env.local`:

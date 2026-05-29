@@ -92,6 +92,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           <Button
             type="button"
             variant="outline"
+            size="sm"
             role="combobox"
             aria-expanded={open}
             className="w-max justify-start rounded-e-none"

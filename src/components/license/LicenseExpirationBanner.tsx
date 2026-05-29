@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ShieldX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface LicenseExpirationBannerProps {
@@ -17,6 +17,23 @@ export function LicenseExpirationBanner({ daysLeft }: LicenseExpirationBannerPro
       <a
         href="mailto:contacto@invokeia.com"
         className="ml-1 underline underline-offset-2 font-medium hover:opacity-80"
+      >
+        contacto@invokeia.com
+      </a>
+    </div>
+  );
+}
+
+export function LicenseExpiredBanner() {
+  const t = useTranslations('License');
+
+  return (
+    <div className="w-full bg-destructive/10 border-b-2 border-destructive px-4 py-2 flex items-center gap-2 text-xs text-destructive flex-none font-medium">
+      <ShieldX className="h-4 w-4 shrink-0" />
+      <span>{t('expired.banner')}</span>
+      <a
+        href="mailto:contacto@invokeia.com"
+        className="ml-1 underline underline-offset-2 hover:opacity-80"
       >
         contacto@invokeia.com
       </a>

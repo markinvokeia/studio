@@ -70,7 +70,7 @@ For each failure, show:
 ### Step 4 — Offer next steps
 
 Based on results:
-- If all pass: "All tests passing ✅. Run `npm run test:e2e:report` to see the HTML report."
+- If all pass: "All tests passing ✅. Run `pnpm test:e2e:report` to see the HTML report."
 - If failures: List which modules have failures and suggest:
   - `/playwright-add-testids <file>` for selector issues
   - Check if dev server is running and API is accessible

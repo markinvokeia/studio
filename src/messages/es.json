@@ -39,6 +39,7 @@
     "Holidays": "Días Feriados",
     "Calendars": "Calendarios",
     "Doctors": "Doctores",
+    "Staff": "Secretarias y Administración",
     "DoctorAvailability": "Disponibilidad Médica",
     "DoctorAvailabilityExceptions": "Excepciones de Disponibilidad",
     "Currencies": "Monedas y Tipos de Cambio",
@@ -3584,6 +3585,51 @@
       "showOnlyActive": "Mostrar solo activos"
     }
   },
+  "StaffPage": {
+    "title": "Secretarias y Administración",
+    "description": "Gestión de usuarios del sistema con roles de secretaria y administración",
+    "filterPlaceholder": "Buscar por nombre o email...",
+    "filters": {
+      "showOnlyActive": "Mostrar solo activos"
+    },
+    "createDialog": {
+      "createTitle": "Crear usuario de sistema",
+      "createDescription": "Crear una nueva secretaria o administrador",
+      "role": "Rol",
+      "rolePlaceholder": "Seleccionar rol...",
+      "name": "Nombre",
+      "namePlaceholder": "ej. María López",
+      "email": "Correo Electrónico",
+      "emailPlaceholder": "ej. maria@clinica.com",
+      "phone": "Teléfono",
+      "phonePlaceholder": "ej. 099 123 456",
+      "identity_document": "Documento de Identidad",
+      "identity_document_placeholder": "ej. 12345678",
+      "isActive": "¿Está Activo?",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "createSuccessTitle": "Usuario Creado",
+      "createSuccessDescription": "El usuario ha sido creado y el rol asignado exitosamente.",
+      "editSuccessTitle": "Usuario Actualizado",
+      "editSuccessDescription": "El usuario ha sido actualizado exitosamente.",
+      "validation": {
+        "roleRequired": "Debe seleccionar un rol."
+      }
+    },
+    "tabs": {
+      "details": "Detalles",
+      "roles": "Roles",
+      "logs": "Historial"
+    },
+    "noSelection": "Selecciona un usuario para ver sus detalles",
+    "columns": {
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "status": "Estado",
+      "role": "Rol"
+    }
+  },
   "RolesPage": {
     "title": "Roles",
     "description": "Gestionar roles para la clínica",
@@ -6579,7 +6625,8 @@
     "expired": {
       "title": "Licencia Expirada",
       "description": "La licencia de InvokeIA ha expirado. Por favor contáctenos para renovarla.",
-      "contact": "Contacto:"
+      "contact": "Contacto:",
+      "banner": "⚠ LICENCIA EXPIRADA — El acceso de los usuarios está bloqueado. Renovar:"
     },
     "expiringSoon": {
       "message": "Su licencia vence en {days} día(s). Por favor contacte a"
