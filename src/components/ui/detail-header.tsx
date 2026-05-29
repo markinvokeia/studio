@@ -85,9 +85,13 @@ export function DetailHeader({
                             <div key={index} className="flex items-center gap-2">
                                 <span className="text-xs text-muted-foreground">{field.label}:</span>
                                 {typeof field.value === 'string' || typeof field.value === 'number' ? (
-                                    <Badge variant={field.variant || 'default'} className="text-xs font-normal">
-                                        {field.value}
-                                    </Badge>
+                                    field.variant && field.variant !== 'default' ? (
+                                        <Badge variant={field.variant} className="text-xs font-normal">
+                                            {field.value}
+                                        </Badge>
+                                    ) : (
+                                        <span className="text-sm font-semibold tabular-nums">{field.value}</span>
+                                    )
                                 ) : (
                                     field.value
                                 )}

@@ -2998,6 +2998,8 @@
     "locationPlaceholder": "ej. Calle Principal 123, Ciudad, País",
     "phoneLabel": "Teléfono",
     "phonePlaceholder": "ej. +1 234 567 890",
+    "rutLabel": "RUT",
+    "rutPlaceholder": "ej. 21234567-8",
     "emailLabel": "Correo Electrónico",
     "emailPlaceholder": "ej. juan.perez@ejemplo.com",
     "save": "Guardar",

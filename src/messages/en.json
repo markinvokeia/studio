@@ -3021,6 +3021,8 @@
     "locationPlaceholder": "e.g. 123 Main St, City, Country",
     "phoneLabel": "Phone",
     "phonePlaceholder": "e.g. +1 234 567 890",
+    "rutLabel": "RUT",
+    "rutPlaceholder": "e.g. 21234567-8",
     "emailLabel": "Email",
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",

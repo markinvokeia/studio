@@ -380,6 +380,7 @@ export type Clinic = {
   drive_file_id?: string;
   web_view_link?: string;
   thumbnail_link?: string;
+  rut?: string;
 };
 
 export type ClinicSchedule = {
