@@ -5,15 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev           # Start dev server on 0.0.0.0:3000
-npm run build         # Production build
-npm run lint          # ESLint (Next.js config)
-npm run typecheck     # TypeScript type check without emit
-npm run genkit:dev    # Start Google Genkit AI dev server
-npm run genkit:watch  # Start Genkit with file watching
+pnpm dev           # Start dev server on 0.0.0.0:3000
+pnpm build         # Production build
+pnpm lint          # ESLint (Next.js config)
+pnpm typecheck     # TypeScript type check without emit
+pnpm genkit:dev    # Start Google Genkit AI dev server
+pnpm genkit:watch  # Start Genkit with file watching
 ```
 
-**Before committing:** Always run `npm run typecheck && npm run lint`.
+**Before committing:** Always run `pnpm typecheck && pnpm lint`.
 
 ## Architecture
 
