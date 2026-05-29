@@ -49,6 +49,7 @@ import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { User, UserFinancial } from '@/lib/types';
 import { cn, isValidString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -337,6 +338,7 @@ function ProvidersPageContent() {
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const isViewportNarrow = useViewportNarrow();
+  const { printFinancialSummary } = usePrintDocument();
 
   // Permission checks for UI elements
   const canViewList = hasPermission(PURCHASES_PERMISSIONS.SUPPLIERS_VIEW_LIST);
@@ -544,37 +546,16 @@ function ProvidersPageContent() {
     if (!selectedProvider) return;
     setIsPrintingFinancialSummary(true);
     try {
-      const params: Record<string, string> = { user_id: selectedProvider.id };
-
-      if (financialSummaryDateRange.from) {
-        const dateFrom = parseISO(financialSummaryDateRange.from);
-        dateFrom.setHours(0, 0, 0, 0);
-        params.from = dateFrom.toISOString();
-      }
-
-      if (financialSummaryDateRange.to) {
-        const dateTo = parseISO(financialSummaryDateRange.to);
-        dateTo.setHours(23, 59, 59, 999);
-        params.to = dateTo.toISOString();
-      }
-
-      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, params);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `resumen_financiero_${selectedProvider.name.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await printFinancialSummary(selectedProvider.id, financialSummaryDateRange);
       setIsFinancialSummaryDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not print the financial summary.',
+        title: t('UsersPage.financialSummaryDialog.errorTitle'),
+        description: error?.message === 'no_data'
+          ? t('UsersPage.financialSummaryDialog.errorNoData')
+          : t('UsersPage.financialSummaryDialog.errorGeneric'),
       });
-      console.error(error);
     } finally {
       setIsPrintingFinancialSummary(false);
     }

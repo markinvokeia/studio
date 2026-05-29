@@ -89,4 +89,15 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     { key: '{{exchange_rate}}',  label: 'Tipo de cambio', group: 'document' },
     ...SHARED_PATIENT,
   ],
+  financial_summary: [
+    ...CLINIC_VARS,
+    { key: '{{patient_name}}',     label: 'Paciente',              group: 'patient' },
+    { key: '{{patient_id}}',       label: 'Cédula / RUT',          group: 'patient' },
+    { key: '{{patient_email}}',    label: 'Email',                 group: 'patient' },
+    { key: '{{patient_phone}}',    label: 'Teléfono',              group: 'patient' },
+    { key: '{{date_from}}',        label: 'Fecha desde',           group: 'document' },
+    { key: '{{date_to}}',          label: 'Fecha hasta',           group: 'document' },
+    { key: '{{generated_at}}',     label: 'Fecha generación',      group: 'document' },
+    { key: '{{movements_table}}',  label: 'Tablas de movimientos', group: 'tables' },
+  ],
 };

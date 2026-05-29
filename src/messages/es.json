@@ -1141,7 +1141,10 @@
       "to": "Hasta",
       "selectDate": "Seleccionar fecha",
       "print": "Imprimir",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "errorTitle": "Sin movimientos",
+      "errorNoData": "El paciente no tiene movimientos financieros en el período seleccionado.",
+      "errorGeneric": "No se pudo generar el resumen financiero."
     },
     "description": "Gestionar todos los pacientes en el sistema.",
     "filterPlaceholder": "Filtrar pacientes por correo...",
@@ -5317,7 +5320,8 @@
         "quote": "Presupuesto",
         "payment": "Pago",
         "credit_note": "Nota de Crédito",
-        "prepayment": "Prepago"
+        "prepayment": "Prepago",
+        "financial_summary": "Resumen Financiero"
       },
       "editor": "Editor HTML",
       "preview": "Vista previa",
@@ -6559,6 +6563,16 @@
       "direct_payment": "Pago Directo",
       "credit_note_allocation": "Aplicación Nota de Crédito",
       "payment_allocation": "Aplicación de Pago"
+    },
+    "financialSummary": {
+      "title": "Resumen Financiero",
+      "to": "al",
+      "id": "Cédula / RUT",
+      "email": "Email",
+      "phone": "Teléfono",
+      "concept": "Concepto",
+      "balance": "Saldo",
+      "finalBalance": "Saldo Final"
     }
   },
   "License": {

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePrintDocumentStore } from '@/stores/print-document-store';
 import type {
   QuotePrintData,
@@ -7,6 +8,7 @@ import type {
   PaymentPrintData,
   CreditNotePrintData,
   PrepaymentPrintData,
+  FinancialSummaryPrintData,
 } from '@/stores/print-document-store';
 import { PrintDocumentLayout } from './print-document-layout';
 import { QuotePrintTemplate } from './quote-print-template';
@@ -14,6 +16,7 @@ import { InvoicePrintTemplate } from './invoice-print-template';
 import { PaymentPrintTemplate } from './payment-print-template';
 import { CreditNotePrintTemplate } from './credit-note-print-template';
 import { PrepaymentPrintTemplate } from './prepayment-print-template';
+import { FinancialSummaryPrintTemplate } from './financial-summary-print-template';
 import { CustomTemplateRenderer } from './custom-template-renderer';
 
 /**
@@ -28,21 +31,38 @@ import { CustomTemplateRenderer } from './custom-template-renderer';
 export function PrintDocumentContainer() {
   const { isActive, type, data, customTemplates } = usePrintDocumentStore();
 
+  // All documents must not use `fixed inset-0` because that clips content
+  // to a single viewport-sized box. The printing-multipage CSS class handles
+  // background isolation instead.
+  const isMultiPage = isActive;
+
+  // When printing multi-page, add a class to <html> so CSS can hide the rest
+  // of the app and avoid the gray-shadow effect.
+  useEffect(() => {
+    if (!isMultiPage) return;
+    document.documentElement.classList.add('printing-multipage');
+    return () => document.documentElement.classList.remove('printing-multipage');
+  }, [isMultiPage]);
+
   if (!isActive || !data || !type) return null;
 
   const customHtml = customTemplates[type];
 
   return (
-    <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-8">
+    <div
+      data-print-container
+      className={`hidden print:block bg-white z-[9999] p-8${isMultiPage ? ' w-full' : ' fixed inset-0'}`}
+    >
       {customHtml ? (
         <CustomTemplateRenderer html={customHtml} data={data} type={type} />
       ) : (
         <PrintDocumentLayout>
-          {type === 'quote'       && <QuotePrintTemplate       data={data as QuotePrintData} />}
-          {type === 'invoice'     && <InvoicePrintTemplate     data={data as InvoicePrintData} />}
-          {type === 'payment'     && <PaymentPrintTemplate     data={data as PaymentPrintData} />}
-          {type === 'credit_note' && <CreditNotePrintTemplate  data={data as CreditNotePrintData} />}
-          {type === 'prepayment'  && <PrepaymentPrintTemplate  data={data as PrepaymentPrintData} />}
+          {type === 'quote'             && <QuotePrintTemplate             data={data as QuotePrintData} />}
+          {type === 'invoice'           && <InvoicePrintTemplate           data={data as InvoicePrintData} />}
+          {type === 'payment'           && <PaymentPrintTemplate           data={data as PaymentPrintData} />}
+          {type === 'credit_note'       && <CreditNotePrintTemplate        data={data as CreditNotePrintData} />}
+          {type === 'prepayment'        && <PrepaymentPrintTemplate        data={data as PrepaymentPrintData} />}
+          {type === 'financial_summary' && <FinancialSummaryPrintTemplate  data={data as FinancialSummaryPrintData} />}
         </PrintDocumentLayout>
       )}
     </div>

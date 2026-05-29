@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate } from '@/lib/types';
+import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport } from '@/lib/types';
 
-export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment';
+export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary';
 
 export type PrintInvoiceRow = Invoice & { items: InvoiceItem[]; payments: Payment[] };
 
@@ -37,12 +37,18 @@ export type PrepaymentPrintData = {
   isSales: boolean;
 };
 
+export type FinancialSummaryPrintData = {
+  report: FinancialSummaryReport;
+  dateRange?: { from?: string; to?: string };
+};
+
 export type PrintData =
   | QuotePrintData
   | InvoicePrintData
   | PaymentPrintData
   | CreditNotePrintData
-  | PrepaymentPrintData;
+  | PrepaymentPrintData
+  | FinancialSummaryPrintData;
 
 interface PrintDocumentStore {
   isActive: boolean;
