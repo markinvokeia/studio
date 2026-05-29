@@ -1,11 +1,14 @@
 'use client';
 
 import { Header } from '@/components/header';
+import { LicenseExpirationBanner } from '@/components/license/LicenseExpirationBanner';
+import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { navItems, type NavItem } from '@/config/nav';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
+import { useLicenseStore } from '@/stores/license-store';
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -138,6 +141,10 @@ export function PrivateRoute({
 function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const locale = useLocale();
+  const { user } = useAuth();
+  const { isExpired, isExpiringSoon, daysLeft } = useLicenseStore();
+
+  const isSystemUser = user?.email === 'system@invokeia.com';
 
   const getEffectivePathname = (p: string, l: string) => {
     const localePrefix = `/${l}`;
@@ -158,9 +165,13 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <div className="print:hidden">
           <Header />
         </div>
+        {isExpiringSoon && !isExpired && (
+          <LicenseExpirationBanner daysLeft={daysLeft} />
+        )}
         <main className="flex-1 flex flex-col min-h-0 bg-background px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
           <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 print:pt-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {children}
+            {isExpired && !isSystemUser && <LicenseExpiredScreen />}
           </div>
         </main>
         <footer className="sm:hidden print:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">

@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -255,6 +255,9 @@ export const navItems: NavItem[] = [
       { title: 'ErrorLog', href: '/system/errors', icon: FileWarning, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.ERROR_LOG_VIEW_MENU },
       { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
       { title: 'ImportData', href: '/system/import', icon: Upload, isChidren: true, requiredPermission: SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU },
+      { title: '', href: '', icon: Shield, isChidren: false, isSeparator: true },
+      { title: 'Licenses', href: '/system/licenses', icon: KeyRound, isChidren: true, requiredPermission: LICENSING_PERMISSIONS.VIEW_MENU },
+      { title: 'Subscriptions', href: '/subscriptions', icon: CreditCard, isChidren: true, requiredPermission: SUBSCRIPTIONS_PERMISSIONS.VIEW_MENU },
     ],
   },
   {

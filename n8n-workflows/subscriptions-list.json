@@ -1,0 +1,104 @@
+{
+  "name": "Subscriptions - Listar",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "subscriptions",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-extract-clinic",
+      "name": "Extraer Clinic ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [320, 300],
+      "parameters": {
+        "jsCode": "// Decodifica el JWT del header Authorization para obtener el clinic_id\nconst headers = $input.first().json.headers || {};\nconst authHeader = (headers.authorization || headers.Authorization || '').toString();\nconst token = authHeader.replace(/^Bearer\\s+/i, '').trim();\n\nif (!token) {\n  throw new Error('Authorization token requerido');\n}\n\nconst parts = token.split('.');\nif (parts.length !== 3) {\n  throw new Error('Formato de token inválido');\n}\n\ntry {\n  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');\n  const padding = '='.repeat((4 - base64.length % 4) % 4);\n  const payload = JSON.parse(Buffer.from(base64 + padding, 'base64').toString('utf8'));\n  const clinicId = payload.clinic_id || payload.clinicId || payload.clinic;\n  if (!clinicId) throw new Error('clinic_id no encontrado en el token');\n  return [{ json: { clinic_id: String(clinicId) } }];\n} catch (e) {\n  throw new Error('Error al decodificar token: ' + e.message);\n}"
+      }
+    },
+    {
+      "id": "node-pg-select",
+      "name": "Listar Suscripciones",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [540, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id,\n  clinic_id,\n  license_id,\n  subscription_type,\n  start_date,\n  end_date,\n  max_doctors,\n  max_receptionists,\n  max_admins,\n  max_super_admins,\n  max_monthly_new_patients,\n  ai_access,\n  notes,\n  issued_at,\n  created_at\nFROM subscriptions\nWHERE clinic_id = $1::uuid\nORDER BY created_at DESC",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.clinic_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "continueOnFail": true,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [760, 300],
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nif (items.length === 1 && items[0].json.error) {\n  throw new Error('Error en base de datos: ' + (items[0].json.error?.message || String(items[0].json.error)));\n}\n\nconst subscriptions = items\n  .map(i => i.json)\n  .filter(s => s.id != null);\n\nreturn [{ json: subscriptions }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [980, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Extraer Clinic ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extraer Clinic ID": {
+      "main": [
+        [{ "node": "Listar Suscripciones", "type": "main", "index": 0 }]
+      ]
+    },
+    "Listar Suscripciones": {
+      "main": [
+        [{ "node": "Formatear Respuesta", "type": "main", "index": 0 }]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [{ "node": "Responder", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Crear una credencial de tipo 'Postgres' en n8n con los datos de conexión.\n2. En el nodo 'Listar Suscripciones', seleccionar esa credencial (reemplaza POSTGRES_CREDENTIAL_ID).\n3. Activar el workflow.\n\nRUTA DEL WEBHOOK:\nGET https://<tu-n8n>/webhook/subscriptions\n\nAUTENTICACIÓN:\nRequiere header: Authorization: Bearer <JWT>\nEl token se decodifica para extraer el clinic_id (soporta claims: clinic_id, clinicId, clinic)\n\nRESPUESTA:\nArray de suscripciones de la clínica, ordenadas por fecha de creación descendente:\n[\n  {\n    \"id\": \"uuid\",\n    \"clinic_id\": \"uuid\",\n    \"license_id\": \"uuid\",\n    \"subscription_type\": \"monthly\",\n    \"start_date\": \"2026-01-01\",\n    \"end_date\": \"2026-12-31\",\n    \"max_doctors\": 5,\n    \"max_receptionists\": 3,\n    \"max_admins\": 2,\n    \"max_super_admins\": 1,\n    \"max_monthly_new_patients\": 200,\n    \"ai_access\": \"full\",\n    \"notes\": null,\n    \"issued_at\": \"2026-05-29T...\",\n    \"created_at\": \"2026-05-29T...\"\n  }\n]\n\nTABLA REQUERIDA: subscriptions (ver 030_20260529_licensing-tables-and-permissions.sql)"
+  }
+}

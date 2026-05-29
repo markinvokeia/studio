@@ -55,6 +55,8 @@
     "AccessLog": "Registro de Acceso",
     "ErrorLog": "Registro de Errores",
     "ImportData": "Importar Datos",
+    "Licenses": "Licencias",
+    "Subscriptions": "Suscripciones",
     "AlertsCenter": "Centro de Alertas",
     "AlertsConfig": "Configuración de Alertas",
     "AlertCategories": "Categorías de Alertas",
@@ -3247,6 +3249,7 @@
       "ErrorDeactivate": "Error Desactivando Doctor",
       "ErrorDeactivateDescription": "No se pudo desactivar el doctor.",
       "validation": {
+        "errorTitle": "Error",
         "nameRequired": "Nombre es obligatorio.",
         "emailInvalid": "Correo electrónico inválido.",
         "phoneInvalid": "Número de teléfono inválido.",
@@ -6554,6 +6557,67 @@
       "direct_payment": "Pago Directo",
       "credit_note_allocation": "Aplicación Nota de Crédito",
       "payment_allocation": "Aplicación de Pago"
+    }
+  },
+  "License": {
+    "expired": {
+      "title": "Licencia Expirada",
+      "description": "La licencia de InvokeIA ha expirado. Por favor contáctenos para renovarla.",
+      "contact": "Contacto:"
+    },
+    "expiringSoon": {
+      "message": "Su licencia vence en {days} día(s). Por favor contacte a"
+    },
+    "masterKey": {
+      "prompt": "Ingresar Clave Maestra",
+      "promptDescription": "Ingrese la clave maestra para acceder a la gestión de licencias.",
+      "placeholder": "Clave maestra...",
+      "invalid": "Clave maestra inválida. No se pudo descifrar la licencia actual.",
+      "submit": "Verificar"
+    },
+    "management": {
+      "title": "Gestión de Licencia",
+      "description": "Ver y generar licencias de InvokeIA",
+      "currentLicense": "Licencia Actual",
+      "generateNew": "Generar Nueva Licencia",
+      "generatedKey": "Clave de Licencia Generada",
+      "copyKey": "Copiar Clave",
+      "keyCopied": "Clave copiada al portapapeles",
+      "noLicense": "No se encontró una licencia activa.",
+      "subscriptionType": "Tipo de Suscripción",
+      "startDate": "Fecha de Inicio",
+      "endDate": "Fecha de Fin",
+      "maxDoctors": "Máx. Doctores",
+      "maxReceptionists": "Máx. Recepcionistas",
+      "maxAdmins": "Máx. Administradores",
+      "maxSuperAdmins": "Máx. Super Administradores",
+      "maxMonthlyNewPatients": "Máx. Pacientes Nuevos por Mes",
+      "aiAccess": "Acceso IA",
+      "notes": "Notas",
+      "generate": "Generar Licencia",
+      "generating": "Generando..."
+    },
+    "enforcement": {
+      "limitReachedTitle": "Límite de licencia alcanzado",
+      "doctorLimitReached": "Tu suscripción permite hasta {max} {max, plural, one {doctor} other {doctores}}. Actualizá la licencia para agregar más.",
+      "userLimitReached": "Tu suscripción permite hasta {max} {max, plural, one {usuario} other {usuarios}} de sistema (secretarias y administración). Actualizá la licencia para agregar más.",
+      "patientMonthlyLimitReached": "Tu suscripción permite hasta {max} {max, plural, one {paciente nuevo} other {pacientes nuevos}} por mes. Se alcanzó el límite de este mes."
+    }
+  },
+  "SubscriptionsPage": {
+    "title": "Suscripciones",
+    "description": "Historial de suscripciones de la clínica",
+    "columns": {
+      "licenseId": "ID Licencia",
+      "type": "Tipo",
+      "startDate": "Fecha Inicio",
+      "endDate": "Fecha Fin",
+      "maxDoctors": "Máx. Doctores",
+      "maxReceptionists": "Máx. Recepcionistas",
+      "maxAdmins": "Máx. Admins",
+      "maxMonthlyPatients": "Máx. Pacientes/Mes",
+      "aiAccess": "Acceso IA",
+      "issuedAt": "Emitida El"
     }
   }
 }
