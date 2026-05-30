@@ -110,6 +110,26 @@ function waitForFrame(): Promise<void> {
   );
 }
 
+// Waits for all <img> elements inside the print container to finish loading.
+// This guarantees the logo (and any other images) are rendered before the
+// browser print dialog opens. Falls back after 4 s to avoid blocking forever.
+function waitForImages(): Promise<void> {
+  return new Promise((resolve) => {
+    const container = document.querySelector('[data-print-container]');
+    if (!container) { resolve(); return; }
+    const images = Array.from(container.querySelectorAll<HTMLImageElement>('img'));
+    const unloaded = images.filter((img) => !img.complete);
+    if (unloaded.length === 0) { resolve(); return; }
+    let pending = unloaded.length;
+    const done = () => { if (--pending <= 0) resolve(); };
+    unloaded.forEach((img) => {
+      img.addEventListener('load', done, { once: true });
+      img.addEventListener('error', done, { once: true });
+    });
+    setTimeout(resolve, 4000);
+  });
+}
+
 function triggerPrint(deactivate: () => void): void {
   const restore = () => {
     deactivate();
@@ -159,6 +179,7 @@ export function usePrintDocument() {
 
     activate('quote', { quote, items, invoices: invoiceRows, isSales });
     await waitForFrame();
+    await waitForImages();
     triggerPrint(deactivate);
   }
 
@@ -170,12 +191,14 @@ export function usePrintDocument() {
 
     activate('invoice', { invoice, items, payments, creditNotes: [], isSales });
     await waitForFrame();
+    await waitForImages();
     triggerPrint(deactivate);
   }
 
   async function printPayment(payment: Payment, isSales: boolean): Promise<void> {
     activate('payment', { payment, isSales });
     await waitForFrame();
+    await waitForImages();
     triggerPrint(deactivate);
   }
 
@@ -183,12 +206,14 @@ export function usePrintDocument() {
     const items = await fetchInvoiceItems(creditNote.id, isSales);
     activate('credit_note', { creditNote, items, isSales });
     await waitForFrame();
+    await waitForImages();
     triggerPrint(deactivate);
   }
 
   async function printPrepayment(prepayment: Payment, isSales: boolean): Promise<void> {
     activate('prepayment', { prepayment, isSales });
     await waitForFrame();
+    await waitForImages();
     triggerPrint(deactivate);
   }
 
@@ -217,6 +242,7 @@ export function usePrintDocument() {
     }
     activate('financial_summary', { report, dateRange });
     await waitForFrame();
+    await waitForImages();
     triggerPrint(deactivate);
   }
 

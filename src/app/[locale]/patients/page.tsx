@@ -2376,7 +2376,7 @@ export default function UsersPage() {
             </DialogDescription>
           </DialogHeader>
           <DialogBody>
-            <div className="grid grid-cols-2 gap-4 px-4 pt-4">
+            <div className="grid grid-cols-2 gap-4 px-4 pt-4 pb-4">
               <div className="space-y-2">
                 <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
                 <DatePickerInput

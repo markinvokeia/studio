@@ -90,7 +90,7 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
                   </tr>
                 </thead>
                 <tbody>
-                  {section.movements.map((mov) => {
+                  {section.movements.map((mov, idx) => {
                     const isDebit = mov.amount > 0;
                     const concept = [
                       mov.metadata.label,
@@ -99,7 +99,7 @@ export function FinancialSummaryPrintTemplate({ data }: FinancialSummaryPrintTem
                     ].filter(Boolean).join(' — ');
 
                     return (
-                      <tr key={`${currency}-${mov.internal_id}`}>
+                      <tr key={`${currency}-${idx}`}>
                         <td className="whitespace-nowrap">{formatDisplayDate(mov.created_at)}</td>
                         <td className="font-mono text-xs">{mov.doc_no}</td>
                         <td>

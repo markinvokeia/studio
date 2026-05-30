@@ -157,8 +157,8 @@ function buildMovementsTable(currency: string, movements: FinancialSummaryMoveme
     ].filter(Boolean).join(' — ');
     const notes = mov.metadata.notes ? ` · ${mov.metadata.notes}` : '';
     const isDebit = mov.amount > 0;
-    const amountStr = `${isDebit ? '' : '−'}${currency} ${fmt(Math.abs(mov.amount), currency)}`;
-    const balStr = `${mov.running_balance < 0 ? '−' : ''}${currency} ${fmt(Math.abs(mov.running_balance), currency)}`;
+    const amountStr = `${isDebit ? '' : '−'}${fmt(Math.abs(mov.amount), currency)}`;
+    const balStr = `${mov.running_balance < 0 ? '−' : ''}${fmt(Math.abs(mov.running_balance), currency)}`;
     return `<tr>
       <td style="white-space:nowrap;">${formatDisplayDate(mov.created_at)}</td>
       <td style="font-family:monospace;font-size:0.72rem;">${mov.doc_no}</td>
@@ -167,7 +167,7 @@ function buildMovementsTable(currency: string, movements: FinancialSummaryMoveme
       <td style="text-align:right;font-family:monospace;">${balStr}</td>
     </tr>`;
   }).join('');
-  const finalStr = `${finalBalance < 0 ? '−' : ''}${currency} ${fmt(Math.abs(finalBalance), currency)}`;
+  const finalStr = `${finalBalance < 0 ? '−' : ''}${fmt(Math.abs(finalBalance), currency)}`;
   return `<div style="margin-bottom:1.5rem;">
     <h2 style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.5rem;">Moneda: ${currency}</h2>
     <div style="border:1px solid #e5e7eb;border-radius:4px;">
