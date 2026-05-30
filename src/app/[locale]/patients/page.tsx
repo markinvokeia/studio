@@ -60,7 +60,6 @@ import { DentalRecordViewer } from '@/components/users/dental-record/dental-reco
 import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
-import { UserServices } from '@/components/users/user-services';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -1998,7 +1997,6 @@ export default function UsersPage() {
                         activeFinancialSubTab={activeFinancialSubTab}
                         onFinancialSubTabChange={setActiveFinancialSubTab}
                         showDocuments={canViewHistory}
-                        showServices={!selectedUserRoles.some(role => role.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') === 'medico' && role.is_active)}
                         showNotes={canViewNotes}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}
@@ -2065,7 +2063,6 @@ export default function UsersPage() {
                             }}
                           />
                         }
-                        servicesContent={<UserServices userId={selectedUser.id} isSalesUser={true} />}
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
                         financialSummaryContent={
                           <UserFinancialSummaryStats

@@ -10,7 +10,7 @@ import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
 export type InfoSubTab = 'details' | 'notes'
-export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'documents' | 'services'
+export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'documents'
 export type FinancialSubTab = 'quotes' | 'invoices' | 'payments'
 
 interface PatientDetailMainContentProps {
@@ -23,7 +23,6 @@ interface PatientDetailMainContentProps {
   activeFinancialSubTab: FinancialSubTab
   onFinancialSubTabChange: (tab: FinancialSubTab) => void
   showDocuments: boolean
-  showServices: boolean
   showNotes: boolean
   infoContent: React.ReactNode
   notesContent: React.ReactNode
@@ -31,7 +30,6 @@ interface PatientDetailMainContentProps {
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
   documentsContent?: React.ReactNode
-  servicesContent?: React.ReactNode
   financialSummaryContent: React.ReactNode
   quotesContent: React.ReactNode
   invoicesContent: React.ReactNode
@@ -48,7 +46,6 @@ export function PatientDetailMainContent({
   activeFinancialSubTab,
   onFinancialSubTabChange,
   showDocuments,
-  showServices,
   showNotes,
   infoContent,
   notesContent,
@@ -56,7 +53,6 @@ export function PatientDetailMainContent({
   clinicalHistoryContent,
   treatmentPlansContent,
   documentsContent,
-  servicesContent,
   financialSummaryContent,
   quotesContent,
   invoicesContent,
@@ -80,8 +76,7 @@ export function PatientDetailMainContent({
     { id: 'clinical-history', label: t('tabs.history') },
     { id: 'treatment-plans', label: t('tabs.treatmentPlans'), desktopLabel: 'Planes de Tratamiento' },
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
-    ...(showServices ? [{ id: 'services', label: t('tabs.services') }] : []),
-  ], [showDocuments, showServices, t])
+  ], [showDocuments, t])
 
   const financialTabs = React.useMemo(() => [
     { id: 'quotes', label: t('tabs.quotes') },
@@ -120,7 +115,6 @@ export function PatientDetailMainContent({
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
             {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
             {activeClinicalSubTab === 'documents' && documentsContent}
-            {activeClinicalSubTab === 'services' && servicesContent}
           </>
         )}
 
