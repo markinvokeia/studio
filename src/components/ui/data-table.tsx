@@ -64,7 +64,7 @@ interface DataTableProps<TData, TValue> {
   onFilterChange?: (value: string) => void;
   filterValue?: string;
   createButtonIconOnly?: boolean;
-  customToolbar?: React.ReactNode | ((table: any) => React.ReactNode);
+  customToolbar?: React.ReactNode | ((table: any, pagination: React.ReactNode) => React.ReactNode);
   getRowClassName?: (row: TData) => string;
   /** When true the search input filters across all columns instead of a single column */
   useGlobalFilter?: boolean;
@@ -221,30 +221,45 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
-      <div className="print:hidden flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder || useGlobalFilter) ? (
-            <DataTableToolbar
-              table={table}
-              filterColumnId={filterColumnId}
-              filterPlaceholder={filterPlaceholder}
-              useGlobalFilter={useGlobalFilter}
-              onCreate={onCreate}
-              onRefresh={onRefresh}
-              isRefreshing={isRefreshing}
-              columnTranslations={columnTranslations}
-              extraButtons={extraButtons}
-              createButtonLabel={createButtonLabel}
-              filterOptions={filterOptions}
-              onFilterChange={onFilterChange}
-              filterValue={filterValue}
-              createButtonIconOnly={createButtonIconOnly}
-            />
-          ) : null}
-        </div>
-        <div className="shrink-0">
-          <DataTablePagination table={table} />
-        </div>
+      <div className="print:hidden">
+        {customToolbar ? (
+          typeof customToolbar === 'function' ? (
+            // Function toolbars receive the pagination node to place in their own endSlot,
+            // so it wraps together with their secondary actions (refresh/columns).
+            customToolbar(table, <DataTablePagination table={table} />)
+          ) : (
+            // Static custom toolbars own their layout; pagination wraps below it when narrow.
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex-1 min-w-[10rem]">{customToolbar}</div>
+              <div className="shrink-0">
+                <DataTablePagination table={table} />
+              </div>
+            </div>
+          )
+        ) : (filterColumnId || filterPlaceholder || useGlobalFilter) ? (
+          // Standard toolbar: pagination lives in its secondary group so it wraps with refresh/columns.
+          <DataTableToolbar
+            table={table}
+            filterColumnId={filterColumnId}
+            filterPlaceholder={filterPlaceholder}
+            useGlobalFilter={useGlobalFilter}
+            onCreate={onCreate}
+            onRefresh={onRefresh}
+            isRefreshing={isRefreshing}
+            columnTranslations={columnTranslations}
+            extraButtons={extraButtons}
+            createButtonLabel={createButtonLabel}
+            filterOptions={filterOptions}
+            onFilterChange={onFilterChange}
+            filterValue={filterValue}
+            createButtonIconOnly={createButtonIconOnly}
+            endSlot={<DataTablePagination table={table} />}
+          />
+        ) : (
+          <div className="flex justify-end">
+            <DataTablePagination table={table} />
+          </div>
+        )}
       </div>
       {showCardList ? (
         <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">

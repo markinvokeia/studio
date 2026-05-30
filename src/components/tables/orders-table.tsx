@@ -304,9 +304,10 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
             onCreate={onCreate}
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
-            customToolbar={standalone ? (table) => (
+            customToolbar={standalone ? (table, pagination) => (
               <DataTableAdvancedToolbar
                 table={table}
+                endSlot={pagination}
                 isCompact={isCompact}
                 filterPlaceholder={tOrdersPage('filterPlaceholder')}
                 searchQuery={(table.getState().columnFilters.find((f: any) => f.id === filterColumnId)?.value as string) || ''}

@@ -350,9 +350,10 @@ function StaffTableNarrow({
           onClick={() => onRowSelectionChange([row])}
         />
       )}
-      customToolbar={(table: any) => (
+      customToolbar={(table: any, pagination: React.ReactNode) => (
         <DataTableAdvancedToolbar
           table={table}
+          endSlot={pagination}
           filterPlaceholder={t('StaffPage.filterPlaceholder')}
           searchQuery={
             (columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''

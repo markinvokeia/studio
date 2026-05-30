@@ -624,8 +624,6 @@ export function RecentQuotesTable({
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 min-w-0">
             {standalone ? (
               <DataTableAdvancedToolbar
                 table={table}
@@ -645,6 +643,7 @@ export function RecentQuotesTable({
                 onRefresh={onRefresh}
                 isRefreshing={isRefreshing}
                 columnTranslations={columnTranslations}
+                endSlot={<DataTablePagination table={table} />}
               />
             ) : (
               <DataTableToolbar
@@ -655,13 +654,9 @@ export function RecentQuotesTable({
                 isRefreshing={isRefreshing}
                 onCreate={onCreate}
                 columnTranslations={columnTranslations}
+                endSlot={<DataTablePagination table={table} />}
               />
             )}
-              </div>
-              <div className="shrink-0">
-                <DataTablePagination table={table} />
-              </div>
-            </div>
             {isNarrow ? (
               <div className="flex flex-1 min-h-0 flex-col">
                 <div

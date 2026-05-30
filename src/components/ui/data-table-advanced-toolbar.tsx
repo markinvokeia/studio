@@ -40,6 +40,8 @@ interface DataTableAdvancedToolbarProps<TData> {
     extraButtons?: React.ReactNode;
     columnTranslations?: { [key: string]: string };
     isCompact?: boolean;
+    /** Rendered at the end of the secondary action group (e.g. pagination); wraps with it when narrow */
+    endSlot?: React.ReactNode;
 }
 
 export function DataTableAdvancedToolbar<TData>({
@@ -57,6 +59,7 @@ export function DataTableAdvancedToolbar<TData>({
     extraButtons,
     columnTranslations = {},
     isCompact = false,
+    endSlot,
 }: DataTableAdvancedToolbarProps<TData>) {
     const t = useTranslations('DataTableToolbar');
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -176,12 +179,14 @@ export function DataTableAdvancedToolbar<TData>({
 
     return (
         <div className="flex flex-col gap-2 w-full">
-            {/* Row 1: Search + Create + Refresh */}
-            <div className="flex items-center gap-2 w-full">
-                <div className={isCompact ? "flex-1 min-w-0" : "flex-1 min-w-0 sm:max-w-[724px]"}>
-                    {SearchBar}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
+            {/* Row 1: when narrow, the secondary group (refresh/columns + endSlot) wraps below,
+                keeping search + create on the first line. */}
+            <div className="flex flex-wrap items-center gap-2 w-full">
+                {/* Primary group: search + create */}
+                <div className="flex items-center gap-2 flex-1">
+                    <div className={isCompact ? "flex-1 min-w-[12rem]" : "flex-1 min-w-[12rem] sm:max-w-[724px]"}>
+                        {SearchBar}
+                    </div>
                     {onCreate && (
                         <Button
                             variant="default"
@@ -201,6 +206,9 @@ export function DataTableAdvancedToolbar<TData>({
                             )}
                         </Button>
                     )}
+                </div>
+                {/* Secondary group: refresh + columns + extra + endSlot — wraps below when narrow */}
+                <div className="flex items-center gap-2 shrink-0">
                     {onRefresh && (
                         <Button
                             variant="outline"
@@ -249,6 +257,7 @@ export function DataTableAdvancedToolbar<TData>({
                     )}
                     {/* Extra buttons — desktop only (inline) */}
                     {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+                    {endSlot}
                 </div>
             </div>
             {/* Row 2 — mobile only: extra action buttons */}

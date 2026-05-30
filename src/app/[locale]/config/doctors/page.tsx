@@ -195,9 +195,10 @@ function DoctorsTableNarrow({ columns, users, selectedUser, onRowSelectionChange
           onClick={() => onRowSelectionChange([row])}
         />
       )}
-      customToolbar={(table: any) => (
+      customToolbar={(table: any, pagination: React.ReactNode) => (
         <DataTableAdvancedToolbar
           table={table}
+          endSlot={pagination}
           filterPlaceholder={t('UsersPage.filterPlaceholder')}
           searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
           onSearchChange={(value: string) => {

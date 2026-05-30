@@ -362,7 +362,7 @@ export default function SequencesPage() {
             rowCount={total}
             pagination={pagination}
             onPaginationChange={setPagination}
-            customToolbar={(table) => (
+            customToolbar={(table, pagination) => (
               <div className="flex flex-wrap items-center justify-between gap-4 w-full">
                 {/* Search and Filters Section */}
                 <div className="flex items-center space-x-2">
@@ -464,6 +464,7 @@ export default function SequencesPage() {
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     <span className="sr-only">{t('refresh')}</span>
                   </Button>
+                  {pagination}
                 </div>
               </div>
             )}

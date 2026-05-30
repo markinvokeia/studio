@@ -245,9 +245,10 @@ export default function HolidaysPage() {
                     setRowSelection={setRowSelection}
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedHoliday}
-                    customToolbar={(table) => (
+                    customToolbar={(table, pagination) => (
                         <DataTableAdvancedToolbar
                             table={table}
+                            endSlot={pagination}
                             searchQuery={searchQuery}
                             onSearchChange={setSearchQuery}
                             filterPlaceholder={t('filterPlaceholder')}

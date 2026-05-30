@@ -401,9 +401,10 @@ export function InvoicesTable({ invoices, isLoading = false, onRowSelectionChang
             rowSelection={rowSelection}
             setRowSelection={setRowSelection}
             getRowClassName={(row: Invoice) => row.is_historical ? 'bg-amber-50/50 dark:bg-amber-950/30' : ''}
-            customToolbar={standalone ? (table) => (
+            customToolbar={standalone ? (table, pagination) => (
               <DataTableAdvancedToolbar
                 table={table}
+                endSlot={pagination}
                 isCompact={isCompact}
                 filterPlaceholder={t('filterPlaceholder')}
                 searchQuery={(table.getState().columnFilters.find((f: any) => f.id === 'doc_no')?.value as string) || ''}

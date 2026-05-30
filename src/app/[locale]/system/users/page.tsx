@@ -213,9 +213,10 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
           onClick={() => onRowSelectionChange([row])}
         />
       )}
-      customToolbar={(table: any) => (
+      customToolbar={(table: any, pagination: React.ReactNode) => (
         <DataTableAdvancedToolbar
           table={table}
+          endSlot={pagination}
           filterPlaceholder={t('SystemUsersPage.filterPlaceholder')}
           searchQuery={(columnFilters.find((f: any) => f.id === 'email')?.value as string) || ''}
           onSearchChange={(value: string) => {
