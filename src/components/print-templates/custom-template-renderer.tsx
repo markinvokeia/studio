@@ -4,7 +4,8 @@ import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/utils';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { ClinicInfo } from '@/hooks/useClinicInfo';
-import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData } from '@/stores/print-document-store';
+import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData } from '@/stores/print-document-store';
+import type { FinancialSummaryMovement } from '@/lib/types';
 
 interface CustomTemplateRendererProps {
   html: string;
@@ -147,6 +148,47 @@ function buildInvoicesSection(invoices: QuotePrintData['invoices'], currency: st
   </div>`;
 }
 
+function buildMovementsTable(currency: string, movements: FinancialSummaryMovement[], finalBalance: number): string {
+  const rows = movements.map((mov) => {
+    const concept = [
+      mov.metadata.label,
+      mov.metadata.services?.length ? mov.metadata.services.join(', ') : null,
+      mov.metadata.payment_type ?? null,
+    ].filter(Boolean).join(' — ');
+    const notes = mov.metadata.notes ? ` · ${mov.metadata.notes}` : '';
+    const isDebit = mov.amount > 0;
+    const amountStr = `${isDebit ? '' : '−'}${currency} ${fmt(Math.abs(mov.amount), currency)}`;
+    const balStr = `${mov.running_balance < 0 ? '−' : ''}${currency} ${fmt(Math.abs(mov.running_balance), currency)}`;
+    return `<tr>
+      <td style="white-space:nowrap;">${formatDisplayDate(mov.created_at)}</td>
+      <td style="font-family:monospace;font-size:0.72rem;">${mov.doc_no}</td>
+      <td>${concept}${notes ? `<span style="color:#9ca3af;">${notes}</span>` : ''}</td>
+      <td style="text-align:right;font-family:monospace;">${amountStr}</td>
+      <td style="text-align:right;font-family:monospace;">${balStr}</td>
+    </tr>`;
+  }).join('');
+  const finalStr = `${finalBalance < 0 ? '−' : ''}${currency} ${fmt(Math.abs(finalBalance), currency)}`;
+  return `<div style="margin-bottom:1.5rem;">
+    <h2 style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#6b7280;margin-bottom:0.5rem;">Moneda: ${currency}</h2>
+    <div style="border:1px solid #e5e7eb;border-radius:4px;">
+      <table class="print-template-table" style="width:100%;">
+        <thead><tr>
+          <th style="text-align:left;width:6rem;">Fecha</th>
+          <th style="text-align:left;width:8rem;">Nro. Doc.</th>
+          <th style="text-align:left;">Concepto</th>
+          <th style="text-align:right;width:7rem;">Monto</th>
+          <th style="text-align:right;width:7rem;">Saldo</th>
+        </tr></thead>
+        <tbody>${rows || `<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:0.5rem;">Sin movimientos</td></tr>`}</tbody>
+        <tfoot><tr style="border-top:2px solid #d1d5db;">
+          <td colspan="4" style="text-align:right;font-weight:600;">Saldo Final</td>
+          <td style="text-align:right;font-weight:700;font-family:monospace;">${finalStr}</td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>`;
+}
+
 function buildClinicValues(clinic: ClinicInfo | null): Record<string, string> {
   const phone = clinic?.phone || '';
   const email = clinic?.email || '';
@@ -226,7 +268,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       method: payment.payment_method || payment.method || '—',
       transaction_type: payment.transaction_type || '',
       reference: payment.invoice_doc_no || '',
-      exchange_rate: payment.exchange_rate && payment.exchange_rate !== 1 ? String(payment.exchange_rate) : '',
+      exchange_rate: payment.exchange_rate && payment.exchange_rate !== 1 ? String(payment.exchange_rate) : '—',
       amount: fmt(payment.source_amount || payment.amount_applied || 0, currency),
       notes: '',
     });
@@ -259,9 +301,33 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       currency,
       patient_name: prepayment.user_name || '—',
       method: prepayment.payment_method || prepayment.method || '—',
-      exchange_rate: prepayment.exchange_rate && prepayment.exchange_rate !== 1 ? String(prepayment.exchange_rate) : '',
+      exchange_rate: prepayment.exchange_rate && prepayment.exchange_rate !== 1 ? String(prepayment.exchange_rate) : '—',
       amount: fmt(amount, currency),
       notes: '',
+    });
+  } else if (type === 'financial_summary') {
+    const d = data as FinancialSummaryPrintData;
+    const { report, dateRange } = d;
+    const dateFrom = report.report_start_date ?? dateRange?.from ?? null;
+    const dateTo   = report.report_end_date   ?? dateRange?.to   ?? null;
+    const currencies = Object.keys(report.history_by_currency).sort((a, b) =>
+      a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+    );
+    const movementsTable = currencies
+      .map((cur) => {
+        const section = report.history_by_currency[cur];
+        if (!section) return '';
+        return buildMovementsTable(cur, section.movements, section.final_balance);
+      })
+      .join('');
+    Object.assign(values, {
+      patient_name:  report.name || '—',
+      patient_id:    report.identity_document || '',
+      patient_email: report.email || '',
+      patient_phone: report.phone_number || '',
+      date_from:     dateFrom ? formatDisplayDate(dateFrom) : '',
+      date_to:       dateTo   ? formatDisplayDate(dateTo)   : '',
+      movements_table: movementsTable,
     });
   }
 

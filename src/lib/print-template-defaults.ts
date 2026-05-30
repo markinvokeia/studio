@@ -195,10 +195,27 @@ const PREPAYMENT_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem
   ${FOOTER}
 </div>`;
 
+const FINANCIAL_SUMMARY_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;color:#111827;">
+  ${HEADER}
+  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1.5rem;padding-bottom:0.75rem;border-bottom:1px solid #e5e7eb;">
+    <h1 style="font-size:1.4rem;font-weight:700;text-transform:uppercase;margin:0;">Resumen Financiero</h1>
+    <span style="font-size:0.85rem;color:#4b5563;">{{date_from}} — {{date_to}}</span>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 2rem;margin-bottom:1.5rem;font-size:0.85rem;">
+    <div><span style="color:#6b7280;">Paciente: </span><strong>{{patient_name}}</strong></div>
+    <div><span style="color:#6b7280;">Cédula / RUT: </span><strong>{{patient_id}}</strong></div>
+    <div><span style="color:#6b7280;">Email: </span><strong>{{patient_email}}</strong></div>
+    <div><span style="color:#6b7280;">Teléfono: </span><strong>{{patient_phone}}</strong></div>
+  </div>
+  {{movements_table}}
+  ${FOOTER}
+</div>`;
+
 export const PRINT_TEMPLATE_DEFAULTS: Record<PrintDocumentType, string> = {
-  invoice:     INVOICE_DEFAULT,
-  quote:       QUOTE_DEFAULT,
-  payment:     PAYMENT_DEFAULT,
-  credit_note: CREDIT_NOTE_DEFAULT,
-  prepayment:  PREPAYMENT_DEFAULT,
+  invoice:           INVOICE_DEFAULT,
+  quote:             QUOTE_DEFAULT,
+  payment:           PAYMENT_DEFAULT,
+  credit_note:       CREDIT_NOTE_DEFAULT,
+  prepayment:        PREPAYMENT_DEFAULT,
+  financial_summary: FINANCIAL_SUMMARY_DEFAULT,
 };

@@ -47,6 +47,45 @@ export type UserFinancial = {
   financial_data: UserFinancialData;
 };
 
+export type FinancialSummaryMovementMetadata = {
+  label: string;
+  notes: string | null;
+  payment_type?: string;
+  target_invoices?: string[];
+  doc_no?: string;
+  services?: string[];
+  applied_to?: string[];
+};
+
+export type FinancialSummaryMovement = {
+  amount: number;
+  doc_no: string;
+  user_id: string;
+  currency: string;
+  metadata: FinancialSummaryMovementMetadata;
+  created_at: string;
+  internal_id: number;
+  document_type: 'invoice' | 'payment' | 'credit_note';
+  running_balance: number;
+};
+
+export type FinancialSummaryByCurrency = {
+  movements: FinancialSummaryMovement[];
+  final_balance: number;
+  initial_balance: number;
+};
+
+export type FinancialSummaryReport = {
+  user_id: string;
+  name: string;
+  email: string;
+  phone_number: string;
+  identity_document: string;
+  report_start_date: string | null;
+  report_end_date: string | null;
+  history_by_currency: Record<string, FinancialSummaryByCurrency>;
+};
+
 export type UserPermission = {
   permission: string;
   action: string;
@@ -239,7 +278,7 @@ export type CreditNote = Invoice & {
 export interface DocPrintTemplate {
   id: string;
   clinic_id: string;
-  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment';
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary';
   template_html: string;
   is_active: boolean;
   createdAt: string;

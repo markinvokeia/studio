@@ -8,7 +8,8 @@ import {
   usePrintDocumentStore,
   type PrintInvoiceRow,
 } from '@/stores/print-document-store';
-import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate } from '@/lib/types';
+import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport } from '@/lib/types';
+import { fetchClinicInfo } from '@/hooks/useClinicInfo';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
 
@@ -123,6 +124,9 @@ function triggerPrint(deactivate: () => void): void {
 export function usePrintDocument() {
   const { activate, deactivate, customTemplatesLoaded, setCustomTemplates } = usePrintDocumentStore();
 
+  // Preload clinic info so PrintReportHeader has data ready when print fires.
+  useEffect(() => { fetchClinicInfo(); }, []);
+
   // Load custom templates once per session (store persists across hook instances).
   useEffect(() => {
     if (customTemplatesLoaded) return;
@@ -188,5 +192,33 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment };
+  async function printFinancialSummary(
+    userId: string,
+    dateRange?: { from?: string; to?: string },
+  ): Promise<void> {
+    const params: Record<string, string> = { user_id: userId };
+    if (dateRange?.from) {
+      const d = new Date(dateRange.from);
+      d.setHours(0, 0, 0, 0);
+      params.from = d.toISOString();
+    }
+    if (dateRange?.to) {
+      const d = new Date(dateRange.to);
+      d.setHours(23, 59, 59, 999);
+      params.to = d.toISOString();
+    }
+    const [raw] = await Promise.all([
+      api.get(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, params),
+      fetchClinicInfo(),
+    ]);
+    const report = (Array.isArray(raw) ? raw[0] : raw) as FinancialSummaryReport;
+    if (!report?.history_by_currency) {
+      throw new Error('no_data');
+    }
+    activate('financial_summary', { report, dateRange });
+    await waitForFrame();
+    triggerPrint(deactivate);
+  }
+
+  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary };
 }

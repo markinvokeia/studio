@@ -446,6 +446,23 @@ textarea::placeholder {
     line-height: 1.5;
     color: #111827;
   }
+
+  /* ── Multi-page print (financial summary) ────────────────────────────────── */
+  /* Hide everything on the page except our print container so the app layout
+     (sidebar, panels, overlays) doesn't bleed through as a gray shadow. */
+  html.printing-multipage * {
+    visibility: hidden !important;
+  }
+  html.printing-multipage [data-print-container],
+  html.printing-multipage [data-print-container] * {
+    visibility: visible !important;
+  }
+  html.printing-multipage [data-print-container] {
+    position: absolute !important;
+    inset: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
 }
 
 /* Table density tokens — driven by [data-density] on <html>.

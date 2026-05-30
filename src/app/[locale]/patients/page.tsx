@@ -65,6 +65,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { Appointment, Calendar as CalendarType, PatientDischarge, Quote, Service, SessionPrefillData, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
@@ -918,6 +919,7 @@ export default function UsersPage() {
   const { hasPermission } = usePermissions();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
+  const { printFinancialSummary } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
@@ -1232,6 +1234,7 @@ export default function UsersPage() {
 
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
+    setSelectedUserRoles([]);
     const roles = await getRolesForUser(userId);
     setSelectedUserRoles(roles);
     setIsRolesLoading(false);
@@ -1416,37 +1419,16 @@ export default function UsersPage() {
     if (!selectedUser) return;
     setIsPrintingFinancialSummary(true);
     try {
-      const params: Record<string, string> = { user_id: selectedUser.id };
-
-      if (financialSummaryDateRange.from) {
-        const dateFrom = parseISO(financialSummaryDateRange.from);
-        dateFrom.setHours(0, 0, 0, 0);
-        params.from = dateFrom.toISOString();
-      }
-
-      if (financialSummaryDateRange.to) {
-        const dateTo = parseISO(financialSummaryDateRange.to);
-        dateTo.setHours(23, 59, 59, 999);
-        params.to = dateTo.toISOString();
-      }
-
-      const blob = await api.getBlob(API_ROUTES.USER_FINANCIAL_SUMMARY_PRINT, params);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `resumen_financiero_${selectedUser.name.replace(/\s+/g, '_')}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      await printFinancialSummary(selectedUser.id, financialSummaryDateRange);
       setIsFinancialSummaryDialogOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not print the financial summary.',
+        title: t('UsersPage.financialSummaryDialog.errorTitle'),
+        description: error?.message === 'no_data'
+          ? t('UsersPage.financialSummaryDialog.errorNoData')
+          : t('UsersPage.financialSummaryDialog.errorGeneric'),
       });
-      console.error(error);
     } finally {
       setIsPrintingFinancialSummary(false);
     }
@@ -2016,7 +1998,7 @@ export default function UsersPage() {
                         activeFinancialSubTab={activeFinancialSubTab}
                         onFinancialSubTabChange={setActiveFinancialSubTab}
                         showDocuments={canViewHistory}
-                        showServices={!selectedUserRoles.some(role => role.name.toLowerCase() === 'medico' && role.is_active)}
+                        showServices={!selectedUserRoles.some(role => role.name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') === 'medico' && role.is_active)}
                         showNotes={canViewNotes}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}

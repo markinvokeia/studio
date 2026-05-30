@@ -1147,7 +1147,10 @@
       "to": "To",
       "selectDate": "Select date",
       "print": "Print",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "errorTitle": "No movements",
+      "errorNoData": "The patient has no financial movements in the selected period.",
+      "errorGeneric": "Could not generate the financial summary."
     },
     "description": "Manage all patients in the system.",
     "filterPlaceholder": "Filter patients by email...",
@@ -5389,7 +5392,8 @@
         "quote": "Quote",
         "payment": "Payment",
         "credit_note": "Credit Note",
-        "prepayment": "Prepayment"
+        "prepayment": "Prepayment",
+        "financial_summary": "Financial Summary"
       },
       "editor": "HTML Editor",
       "preview": "Preview",
@@ -6631,6 +6635,16 @@
       "direct_payment": "Direct Payment",
       "credit_note_allocation": "Credit Note Application",
       "payment_allocation": "Payment Application"
+    },
+    "financialSummary": {
+      "title": "Financial Summary",
+      "to": "to",
+      "id": "ID / Tax No.",
+      "email": "Email",
+      "phone": "Phone",
+      "concept": "Concept",
+      "balance": "Balance",
+      "finalBalance": "Final Balance"
     }
   },
   "License": {
