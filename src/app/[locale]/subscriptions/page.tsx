@@ -181,8 +181,8 @@ export default function SubscriptionsPage() {
   React.useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="flex-1 overflow-y-auto">
-    <div className="max-w-5xl mx-auto flex flex-col gap-4 p-1">
+    <div className="flex-1 min-h-0 overflow-hidden">
+    <div className="w-full h-full flex flex-col gap-4 p-1">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CreditCard className="h-5 w-5 text-muted-foreground" />
@@ -197,8 +197,8 @@ export default function SubscriptionsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-4">
+      <Card className="flex-1 min-h-0 flex flex-col">
+        <CardContent className="pt-4 flex-1 min-h-0 flex flex-col overflow-hidden">
           {isLoading ? (
             <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
               Cargando suscripciones…
