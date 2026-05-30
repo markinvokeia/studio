@@ -105,6 +105,7 @@ export function StepConfirmation({
       transaction_type: (payment.transactionType as Payment['transaction_type']) || 'direct_payment',
       transaction_id: payment.transactionId,
       status: 'completed',
+      notes: payment.notes || '',
       createdAt: payment.date || new Date().toISOString(),
       updatedAt: payment.date || new Date().toISOString(),
       amount: payment.amount ?? 0,
@@ -115,6 +116,18 @@ export function StepConfirmation({
   };
 
   const hasPayments = payments.length > 0;
+
+  // Payments arrive newest-first (stacked, latest on top), so the array index
+  // can't be used for the "Pago N" label. Rank them chronologically by date so
+  // the first payment made is always "Pago 1" regardless of display order.
+  const paymentNumberByIndex = React.useMemo(() => {
+    const ranked = payments
+      .map((p, idx) => ({ idx, t: p.date ? new Date(p.date).getTime() : 0 }))
+      .sort((a, b) => a.t - b.t);
+    const map = new Map<number, number>();
+    ranked.forEach((entry, rank) => map.set(entry.idx, rank + 1));
+    return map;
+  }, [payments]);
 
   return (
     <div className="flex flex-col gap-5 py-2">
@@ -187,7 +200,7 @@ export function StepConfirmation({
             >
               {/* Left: label */}
               <span className="text-muted-foreground shrink-0 flex items-center gap-1.5 pt-0.5">
-                {payments.length > 1 ? `Pago ${i + 1}` : 'Pago'}
+                {payments.length > 1 ? `Pago ${paymentNumberByIndex.get(i) ?? i + 1}` : 'Pago'}
                 {p.isNew && (
                   <span className="text-[10px] text-muted-foreground">(en esta sesión)</span>
                 )}

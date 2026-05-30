@@ -315,10 +315,11 @@ async function fetchInvoicePaymentsForConfirmation(
         docNo: p.doc_no || p.payment_doc_no || undefined,
         transactionId: p.transaction_id ? String(p.transaction_id) : String(p.id),
         transactionType: p.transaction_type || 'direct_payment',
-        methodName: p.method || p.payment_method || undefined,
+        methodName: p.payment_method_name || p.method || p.payment_method || undefined,
         amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
         currency: p.currency || fallbackCurrency,
         date: p.payment_date || p.created_at || undefined,
+        notes: p.notes || undefined,
       }));
   } catch {
     return [];

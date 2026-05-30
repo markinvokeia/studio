@@ -76,14 +76,6 @@ export function PaymentPrintTemplate({ data }: PaymentPrintTemplateProps) {
               </td>
             </tr>
           </tbody>
-          <tfoot>
-            <tr className="border-t border-gray-300">
-              <td colSpan={2} className="text-right font-semibold">{t('total')}</td>
-              <td className="text-right font-bold">
-                {currency} {Number(payment.source_amount || payment.amount_applied || 0).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              </td>
-            </tr>
-          </tfoot>
         </table>
       </div>
 

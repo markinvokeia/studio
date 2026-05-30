@@ -74,6 +74,7 @@ export interface CreatedPayment {
   amount?: number;
   currency?: string;
   date?: string;
+  notes?: string;
   /** True when this payment was created in the current wizard session. */
   isNew?: boolean;
 }
@@ -579,6 +580,7 @@ export function StepPayment({
             amount: allocatedAmount,
             currency: inv.currency || invoiceCurrency,
             date: toLocalISOString(firstEntry.created_at),
+            notes: values.notes || undefined,
           });
         }
 
@@ -649,6 +651,7 @@ export function StepPayment({
             amount: Number(entry.amount),
             currency: entry.payment_currency,
             date: toLocalISOString(entry.created_at),
+            notes: values.notes || undefined,
           });
         }
 

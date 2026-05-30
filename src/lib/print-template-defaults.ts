@@ -124,12 +124,6 @@ const PAYMENT_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem;co
           <td style="text-align:right;font-weight:600;">{{currency}} {{amount}}</td>
         </tr>
       </tbody>
-      <tfoot>
-        <tr style="border-top:1px solid #d1d5db;">
-          <td colspan="2" style="text-align:right;font-weight:600;">Total</td>
-          <td style="text-align:right;font-weight:700;">{{currency}} {{amount}}</td>
-        </tr>
-      </tfoot>
     </table>
   </div>
   <div style="font-size:0.85rem;">{{notes}}</div>
@@ -180,12 +174,6 @@ const PREPAYMENT_DEFAULT = `<div style="font-family:sans-serif;font-size:0.85rem
           <td style="text-align:right;font-weight:600;">{{currency}} {{amount}}</td>
         </tr>
       </tbody>
-      <tfoot>
-        <tr style="border-top:1px solid #d1d5db;">
-          <td colspan="2" style="text-align:right;font-weight:600;">Total</td>
-          <td style="text-align:right;font-weight:700;">{{currency}} {{amount}}</td>
-        </tr>
-      </tfoot>
     </table>
   </div>
   <div style="margin-top:1rem;padding:0.75rem;border:1px solid #e5e7eb;border-radius:4px;font-size:0.85rem;color:#4b5563;">

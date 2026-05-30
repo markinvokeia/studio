@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
+import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
 import type { InvoicePrintData } from '@/stores/print-document-store';
 
 interface InvoicePrintTemplateProps {
@@ -18,9 +19,7 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
 
   const docNo = invoice.doc_no || invoice.invoice_doc_no || invoice.invoice_ref || invoice.id;
   const currency = invoice.currency || 'UYU';
-  const total = Number(invoice.total || 0);
-  const paid = Number(invoice.paid_amount || 0);
-  const pending = Math.max(total - paid, 0);
+  const { total, paid, pending, paymentStatus } = computeInvoiceTotals(invoice, payments);
 
   const isCredit = invoice.type?.toLowerCase().includes('credit');
 
@@ -59,7 +58,7 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
         <div>
           <span className="text-gray-500">{t('paymentStatus')}: </span>
           <span className="font-medium">
-            {t(`paymentStatusLabels.${invoice.payment_status}` as any) || invoice.payment_status}
+            {t(`paymentStatusLabels.${paymentStatus}` as any) || paymentStatus}
           </span>
         </div>
         <div>

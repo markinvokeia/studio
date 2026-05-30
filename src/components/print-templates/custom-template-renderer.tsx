@@ -1,7 +1,9 @@
 'use client';
 
 import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
+import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { ClinicInfo } from '@/hooks/useClinicInfo';
 import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData } from '@/stores/print-document-store';
@@ -75,9 +77,7 @@ function buildInvoicesSection(invoices: QuotePrintData['invoices'], currency: st
   const blocks = invoices.map((inv) => {
     const invDocNo = inv.doc_no || inv.invoice_doc_no || inv.invoice_ref || inv.id;
     const invCurrency = inv.currency || currency;
-    const invTotal = Number(inv.total || 0);
-    const invPaid = Number(inv.paid_amount || 0);
-    const invPending = Math.max(invTotal - invPaid, 0);
+    const { total: invTotal, paid: invPaid, pending: invPending } = computeInvoiceTotals(inv, inv.payments);
     const isCredit = inv.type?.toLowerCase().includes('credit');
 
     const itemsHtml = inv.items.length > 0
@@ -203,7 +203,16 @@ function buildClinicValues(clinic: ClinicInfo | null): Record<string, string> {
   };
 }
 
-function substituteVariables(html: string, data: PrintData, type: PrintDocumentType, clinic: ClinicInfo | null): string {
+type Translator = ReturnType<typeof useTranslations>;
+
+/** Translates a status code (e.g. "booked", "unpaid") to its label, falling back to the raw value. */
+function translateStatus(t: Translator, namespace: string, value: string | undefined | null): string {
+  if (!value) return '';
+  const key = `${namespace}.${value}`;
+  return t.has(key) ? t(key) : value;
+}
+
+function substituteVariables(html: string, data: PrintData, type: PrintDocumentType, clinic: ClinicInfo | null, t: Translator): string {
   const values: Record<string, string> = {
     ...buildClinicValues(clinic),
     generated_at: format(new Date(), 'dd/MM/yyyy HH:mm'),
@@ -213,20 +222,19 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
     const d = data as InvoicePrintData;
     const { invoice, items, payments } = d;
     const currency = invoice.currency || 'UYU';
-    const total = Number(invoice.total || 0);
-    const paid = Number(invoice.paid_amount || 0);
+    const { total, paid, pending, paymentStatus } = computeInvoiceTotals(invoice, payments);
     Object.assign(values, {
       doc_no: invoice.doc_no || invoice.invoice_doc_no || invoice.invoice_ref || invoice.id,
       date: formatDisplayDate(invoice.createdAt),
       due_date: invoice.due_date ? formatDisplayDate(invoice.due_date) : '',
-      status: invoice.status || '',
-      payment_status: invoice.payment_status || '',
+      status: translateStatus(t, 'invoiceStatus', invoice.status),
+      payment_status: translateStatus(t, 'paymentStatusLabels', paymentStatus),
       currency,
       patient_name: invoice.user_name || '—',
       reference: invoice.quote_doc_no || '',
       total: fmt(total, currency),
       paid: fmt(paid, currency),
-      pending: fmt(Math.max(total - paid, 0), currency),
+      pending: fmt(pending, currency),
       notes: invoice.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">Notas</p><p>${invoice.notes}</p>` : '',
       items_table: buildItemsTable(items, currency),
       payments_table: buildPaymentsTable(payments, currency),
@@ -243,8 +251,8 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
     Object.assign(values, {
       doc_no: quote.doc_no || quote.quote_doc_no || quote.id,
       date: formatDisplayDate(quote.createdAt),
-      status: quote.status || '',
-      payment_status: quote.payment_status || '',
+      status: translateStatus(t, 'quoteStatus', quote.status),
+      payment_status: translateStatus(t, 'paymentStatusLabels', quote.payment_status),
       currency,
       patient_name: quote.user_name || '—',
       total: fmt(total, currency),
@@ -266,11 +274,11 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       currency,
       patient_name: payment.user_name || '—',
       method: payment.payment_method || payment.method || '—',
-      transaction_type: payment.transaction_type || '',
+      transaction_type: translateStatus(t, 'transactionType', payment.transaction_type),
       reference: payment.invoice_doc_no || '',
       exchange_rate: payment.exchange_rate && payment.exchange_rate !== 1 ? String(payment.exchange_rate) : '—',
       amount: fmt(payment.source_amount || payment.amount_applied || 0, currency),
-      notes: '',
+      notes: payment.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">${t('notes')}</p><p>${payment.notes}</p>` : '',
     });
   } else if (type === 'credit_note') {
     const d = data as CreditNotePrintData;
@@ -303,7 +311,7 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       method: prepayment.payment_method || prepayment.method || '—',
       exchange_rate: prepayment.exchange_rate && prepayment.exchange_rate !== 1 ? String(prepayment.exchange_rate) : '—',
       amount: fmt(amount, currency),
-      notes: '',
+      notes: prepayment.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">${t('notes')}</p><p>${prepayment.notes}</p>` : '',
     });
   } else if (type === 'financial_summary') {
     const d = data as FinancialSummaryPrintData;
@@ -336,7 +344,8 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
 
 export function CustomTemplateRenderer({ html, data, type }: CustomTemplateRendererProps) {
   const clinic = useClinicInfo();
-  const substituted = substituteVariables(html, data, type, clinic);
+  const t = useTranslations('PrintTemplates');
+  const substituted = substituteVariables(html, data, type, clinic, t);
   return (
     <div
       className="print-template-root"
