@@ -137,7 +137,7 @@ export default function MiscellaneousCategoriesPage() {
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
 
     const form = useForm<CategoryFormValues>({
         resolver: zodResolver(categoryFormSchema(tValidation)),
@@ -249,6 +249,7 @@ export default function MiscellaneousCategoriesPage() {
                         columns={columns}
                         data={categories}
                         pageCount={Math.ceil(categoryCount / pagination.pageSize)}
+                        rowCount={categoryCount}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         columnFilters={columnFilters}

@@ -121,7 +121,7 @@ export default function MutualSocietiesPage() {
     const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
     const [totalItems, setTotalItems] = React.useState(0);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedMutualSociety, setSelectedMutualSociety] = React.useState<MutualSociety | null>(null);
@@ -260,6 +260,7 @@ export default function MutualSocietiesPage() {
                     onRowSelectionChange={handleRowSelection}
                     isNarrow={isNarrow || !!selectedMutualSociety}
                     pageCount={totalItems > 0 ? Math.ceil(totalItems / pagination.pageSize) : 0}
+                    rowCount={totalItems}
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     manualPagination={true}

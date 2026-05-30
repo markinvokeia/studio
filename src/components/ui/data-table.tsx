@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/table';
 import { DataTablePagination } from './data-table-pagination';
 import { DataTableToolbar } from './data-table-toolbar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
 import { cn } from '@/lib/utils';
@@ -75,6 +76,10 @@ interface DataTableProps<TData, TValue> {
   renderCard?: (row: TData, isSelected: boolean) => React.ReactNode;
   /** Called when a card is clicked in narrow mode */
   onRowClick?: (row: TData) => void;
+  /** Total row count for server-side pagination — enables an accurate "1–25 of N" range */
+  rowCount?: number;
+  /** When true, shows skeleton rows/cards instead of data or the "no results" message */
+  isLoading?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -113,6 +118,8 @@ export function DataTable<TData, TValue>({
   isNarrow,
   renderCard,
   onRowClick,
+  rowCount,
+  isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const showCardList = Boolean(isNarrow && renderCard);
@@ -137,6 +144,10 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     pageCount: pageCount,
+    ...(rowCount !== undefined && { rowCount }),
+    initialState: {
+      pagination: { pageSize: 25 },
+    },
     state: {
       sorting,
       columnVisibility: columnVisibility ?? internalColumnVisibility,
@@ -210,29 +221,38 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full flex-1 flex flex-col min-h-0 space-y-4 print:block print:h-auto">
-      <div className="print:hidden">
-        {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder || useGlobalFilter) && (
-          <DataTableToolbar
-            table={table}
-            filterColumnId={filterColumnId}
-            filterPlaceholder={filterPlaceholder}
-            useGlobalFilter={useGlobalFilter}
-            onCreate={onCreate}
-            onRefresh={onRefresh}
-            isRefreshing={isRefreshing}
-            columnTranslations={columnTranslations}
-            extraButtons={extraButtons}
-            createButtonLabel={createButtonLabel}
-            filterOptions={filterOptions}
-            onFilterChange={onFilterChange}
-            filterValue={filterValue}
-            createButtonIconOnly={createButtonIconOnly}
-          />
-        )}
+      <div className="print:hidden flex items-center gap-2">
+        <div className="flex-1 min-w-0">
+          {typeof customToolbar === 'function' ? customToolbar(table) : customToolbar ? customToolbar : (filterColumnId || filterPlaceholder || useGlobalFilter) ? (
+            <DataTableToolbar
+              table={table}
+              filterColumnId={filterColumnId}
+              filterPlaceholder={filterPlaceholder}
+              useGlobalFilter={useGlobalFilter}
+              onCreate={onCreate}
+              onRefresh={onRefresh}
+              isRefreshing={isRefreshing}
+              columnTranslations={columnTranslations}
+              extraButtons={extraButtons}
+              createButtonLabel={createButtonLabel}
+              filterOptions={filterOptions}
+              onFilterChange={onFilterChange}
+              filterValue={filterValue}
+              createButtonIconOnly={createButtonIconOnly}
+            />
+          ) : null}
+        </div>
+        <div className="shrink-0">
+          <DataTablePagination table={table} />
+        </div>
       </div>
       {showCardList ? (
         <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
-          {table.getRowModel().rows?.length ? (
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full rounded-md" />
+            ))
+          ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
               <div key={row.id} data-testid="list-item" onClick={() => {
                 if (enableSingleRowSelection) {
@@ -251,7 +271,7 @@ export function DataTable<TData, TValue>({
       ) : null}
       {!showCardList ? (
       <div className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
-        <table className={cn("w-full caption-bottom text-sm")}>
+        <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
           <TableHeader className="sticky print:static top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -280,7 +300,17 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody className="[&_tr:last-child]:border-b">
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              Array.from({ length: Math.min(table.getState().pagination.pageSize, 8) }).map((_, rowIdx) => (
+                <TableRow key={`skeleton-${rowIdx}`}>
+                  {columns.map((_, cellIdx) => (
+                    <TableCell key={cellIdx}>
+                      <Skeleton className="h-4" style={{ width: `${60 + ((rowIdx + cellIdx) % 4) * 10}%` }} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -320,9 +350,6 @@ export function DataTable<TData, TValue>({
         </table>
       </div>
       ) : null}
-      <div className="print:hidden">
-        <DataTablePagination table={table} />
-      </div>
     </div>
   );
 }

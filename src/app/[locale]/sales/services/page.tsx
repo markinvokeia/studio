@@ -628,7 +628,7 @@ function TreatmentStepsFields({ form, t }: { form: any; t: (key: string, values?
 // Inner component — reads NarrowModeContext
 function ServicesTableWithCards({
   services, columns, selectedService, onRowSelect, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection,
-  pagination, onPaginationChange, pageCount, columnFilters, onColumnFiltersChange, t,
+  pagination, onPaginationChange, pageCount, rowCount, columnFilters, onColumnFiltersChange, t,
 }: {
   services: Service[];
   columns: any[];
@@ -642,6 +642,7 @@ function ServicesTableWithCards({
   pagination: PaginationState;
   onPaginationChange: React.Dispatch<React.SetStateAction<PaginationState>>;
   pageCount: number;
+  rowCount: number;
   columnFilters: ColumnFiltersState;
   onColumnFiltersChange: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
   t: (key: string) => string;
@@ -668,6 +669,7 @@ function ServicesTableWithCards({
       pagination={pagination}
       onPaginationChange={onPaginationChange}
       pageCount={pageCount}
+      rowCount={rowCount}
       columnFilters={columnFilters}
       onColumnFiltersChange={onColumnFiltersChange}
       renderCard={(service: Service, _isSelected: boolean) => (
@@ -904,6 +906,7 @@ export default function ServicesPage() {
                 pagination={pagination}
                 onPaginationChange={setPagination}
                 pageCount={pageCount}
+                rowCount={totalCount}
                 columnFilters={columnFilters}
                 onColumnFiltersChange={handleColumnFiltersChange}
                 t={t}

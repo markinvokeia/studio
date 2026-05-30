@@ -27,7 +27,7 @@ export default function ExecutionHistoryPage() {
   const isNarrow = useViewportNarrow();
   const [runs, setRuns] = React.useState<AlertScheduleRun[]>([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+  const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedRun, setSelectedRun] = React.useState<AlertScheduleRun | null>(null);
 

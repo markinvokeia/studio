@@ -447,3 +447,27 @@ textarea::placeholder {
     color: #111827;
   }
 }
+
+/* Table density tokens — driven by [data-density] on <html>.
+   Normal (default) mirrors the current values. [data-density] overrides win by specificity. */
+:root {
+  --tbl-font: 13px;
+  --tbl-head-font: 0.75rem;
+  --tbl-head-h: 2.25rem;
+  --tbl-cell-px: 0.75rem;
+  --tbl-cell-py: 0.5rem;
+}
+[data-density='comfortable'] {
+  --tbl-font: 14px;
+  --tbl-head-font: 0.8125rem;
+  --tbl-head-h: 3rem;
+  --tbl-cell-px: 1rem;
+  --tbl-cell-py: 0.75rem;
+}
+[data-density='compact'] {
+  --tbl-font: 12px;
+  --tbl-head-font: 0.6875rem;
+  --tbl-head-h: 2rem;
+  --tbl-cell-px: 0.5rem;
+  --tbl-cell-py: 0.25rem;
+}

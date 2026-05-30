@@ -21,6 +21,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" translate="no" suppressHydrationWarning>
       <head>
+        {/* Apply the saved table density before paint to avoid a flash of the default density. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var d=localStorage.getItem('table-density');if(d==='comfortable'||d==='compact'){document.documentElement.setAttribute('data-density',d);}}catch(e){}})();`,
+          }}
+        />
         <meta name="google" content="notranslate" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

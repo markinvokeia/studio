@@ -135,7 +135,7 @@ export default function DoctorAvailabilityPage() {
     const [deletingRule, setDeletingRule] = React.useState<AvailabilityRule | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedRule, setSelectedRule] = React.useState<AvailabilityRule | null>(null);
@@ -277,6 +277,7 @@ export default function DoctorAvailabilityPage() {
                     columns={columns}
                     data={rules}
                     pageCount={Math.ceil(ruleCount / pagination.pageSize)}
+                    rowCount={ruleCount}
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     columnFilters={columnFilters}

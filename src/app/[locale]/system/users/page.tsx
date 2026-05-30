@@ -197,6 +197,7 @@ function SystemUsersTableNarrow({ columns, users, selectedUser, onRowSelectionCh
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       pageCount={Math.ceil(userCount / pagination.pageSize)}
+      rowCount={userCount}
       pagination={pagination}
       onPaginationChange={setPagination}
       manualPagination={true}
@@ -267,7 +268,7 @@ export default function SystemUsersPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);

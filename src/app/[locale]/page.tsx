@@ -325,7 +325,7 @@ function LegacyDashboardPage() {
     const [patientTotal, setPatientTotal] = React.useState(0);
     const [patientPagination, setPatientPagination] = React.useState<PaginationState>({
         pageIndex: 0,
-        pageSize: 10,
+        pageSize: 25,
     });
     const [patientColumnFilters, setPatientColumnFilters] = React.useState<ColumnFiltersState>([]);
 
@@ -440,6 +440,7 @@ function LegacyDashboardPage() {
                     onRefresh={loadPatients}
                     isRefreshing={isRefreshingPatients}
                     pageCount={Math.ceil(patientTotal / patientPagination.pageSize)}
+                    rowCount={patientTotal}
                     pagination={patientPagination}
                     onPaginationChange={setPatientPagination}
                     columnFilters={patientColumnFilters}

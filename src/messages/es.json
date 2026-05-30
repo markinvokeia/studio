@@ -300,6 +300,10 @@
     "light": "Invoke",
     "dark": "Oscuro",
     "system": "Claro",
+    "density": "Densidad de tabla",
+    "densityComfortable": "Cómoda",
+    "densityNormal": "Normal",
+    "densityCompact": "Compacta",
     "logoutConfirmation": {
       "title": "Sesión de Caja Activa",
       "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de cerrar sesión.",
@@ -360,6 +364,7 @@
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
     "rowsPerPage": "Filas por página",
     "all": "Todo",
+    "range": "{from}–{to}/{total}",
     "page": "Página {current} de {total}",
     "goToFirst": "Ir a la primera página",
     "goToPrevious": "Ir a la página anterior",

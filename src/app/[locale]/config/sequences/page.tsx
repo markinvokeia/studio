@@ -176,7 +176,7 @@ export default function SequencesPage() {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [searchTerm, setSearchTerm] = React.useState('');
   const [activeOnly, setActiveOnly] = React.useState(true);
@@ -359,6 +359,7 @@ export default function SequencesPage() {
             isRefreshing={isRefreshing}
             manualPagination={true}
             pageCount={Math.ceil(total / pagination.pageSize)}
+            rowCount={total}
             pagination={pagination}
             onPaginationChange={setPagination}
             customToolbar={(table) => (

@@ -239,7 +239,7 @@ export default function MiscellaneousTransactionsPage() {
     const [deletingTransaction, setDeletingTransaction] = React.useState<MiscellaneousTransaction | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [visibility, setVisibility] = React.useState<VisibilityState>({ id: false });
     const [quickFilter, setQuickFilter] = React.useState('pending');
@@ -467,6 +467,7 @@ export default function MiscellaneousTransactionsPage() {
                         columns={columns}
                         data={transactions}
                         pageCount={Math.ceil(transactionCount / pagination.pageSize)}
+                        rowCount={transactionCount}
                         pagination={pagination}
                         onPaginationChange={setPagination}
                         columnFilters={columnFilters}

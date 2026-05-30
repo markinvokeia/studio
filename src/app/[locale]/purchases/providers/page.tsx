@@ -309,6 +309,7 @@ function ProvidersTableNarrow({
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       pageCount={Math.ceil(providerCount / pagination.pageSize)}
+      rowCount={providerCount}
       pagination={pagination}
       onPaginationChange={setPagination}
       manualPagination={true}
@@ -367,7 +368,7 @@ function ProvidersPageContent() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: 25,
   });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [activeTab, setActiveTab] = React.useState('info');

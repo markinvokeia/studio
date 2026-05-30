@@ -128,7 +128,7 @@ export default function AvailabilityExceptionsPage() {
     const [deletingException, setDeletingException] = React.useState<AvailabilityException | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedException, setSelectedException] = React.useState<AvailabilityException | null>(null);
@@ -267,6 +267,7 @@ export default function AvailabilityExceptionsPage() {
                     columns={columns}
                     data={exceptions}
                     pageCount={Math.ceil(exceptionCount / pagination.pageSize)}
+                    rowCount={exceptionCount}
                     pagination={pagination}
                     onPaginationChange={setPagination}
                     columnFilters={columnFilters}

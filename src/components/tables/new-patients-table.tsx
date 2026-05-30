@@ -56,6 +56,7 @@ interface NewPatientsTableProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   pageCount?: number;
+  rowCount?: number;
   pagination?: PaginationState;
   onPaginationChange?: React.Dispatch<React.SetStateAction<PaginationState>>;
   columnFilters?: ColumnFiltersState;
@@ -69,6 +70,7 @@ export function NewPatientsTable({
   onRefresh,
   isRefreshing,
   pageCount,
+  rowCount,
   pagination,
   onPaginationChange,
   columnFilters,
@@ -102,6 +104,7 @@ export function NewPatientsTable({
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           pageCount={pageCount}
+          rowCount={rowCount}
           pagination={pagination}
           onPaginationChange={onPaginationChange}
           columnFilters={columnFilters}

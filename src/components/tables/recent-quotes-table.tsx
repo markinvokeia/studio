@@ -624,6 +624,8 @@ export function RecentQuotesTable({
         )}
         <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden pt-2">
           <div className="flex flex-col flex-1 min-h-0 space-y-4 overflow-hidden">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
             {standalone ? (
               <DataTableAdvancedToolbar
                 table={table}
@@ -655,6 +657,11 @@ export function RecentQuotesTable({
                 columnTranslations={columnTranslations}
               />
             )}
+              </div>
+              <div className="shrink-0">
+                <DataTablePagination table={table} />
+              </div>
+            </div>
             {isNarrow ? (
               <div className="flex flex-1 min-h-0 flex-col">
                 <div
@@ -700,14 +707,11 @@ export function RecentQuotesTable({
                     : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
                   }
                 </div>
-                <div className="flex-none px-0.5 pb-0.5 pt-2">
-                  <DataTablePagination table={table} />
-                </div>
               </div>
             ) : (
               <>
                 <div className="rounded-md border overflow-auto flex-1 min-h-0 relative">
-                  <table className={cn("w-full caption-bottom text-sm")}>
+                  <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
                     <TableHeader className="sticky top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
                       {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow key={headerGroup.id}>
@@ -763,9 +767,6 @@ export function RecentQuotesTable({
                       )}
                     </TableBody>
                   </table>
-                </div>
-                <div className="flex-none">
-                  <DataTablePagination table={table} />
                 </div>
               </>
             )}
