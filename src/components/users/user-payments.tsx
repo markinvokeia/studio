@@ -157,7 +157,7 @@ interface UserPaymentsProps {
   refreshTrigger?: number;
 }
 
-export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTrigger }: UserPaymentsProps) {
+export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPaymentsProps) {
   const t = useTranslations();
   const tPayments = useTranslations('PaymentsPage');
   const isViewportNarrow = useViewportNarrow();
@@ -390,12 +390,6 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
     <>
       <Card className="flex-1 flex flex-col min-h-0 shadow-none border-0">
         <CardContent className="flex-1 flex flex-col min-h-0 p-0">
-          {selectedQuote && (
-            <div className="mb-4 p-3 bg-muted rounded-lg">
-              <div className="text-sm text-muted-foreground">{t('UserPayments.showingForQuote')}:</div>
-              <div className="font-medium">{selectedQuote.doc_no || selectedQuote.id}</div>
-            </div>
-          )}
           <DataTable
             columns={columns}
             data={payments}
@@ -506,10 +500,6 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
               {/* Información del documento integrada en el header */}
               <div className="px-6 py-3">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Monto:</span>
-                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}</span>
-                  </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Método:</span>
                     <span className="text-sm">{selectedPayment.method || '-'}</span>
@@ -629,6 +619,16 @@ export function UserPayments({ userId, selectedQuote, mode = 'sales', refreshTri
                 </div>
               </div>
             )}
+
+            {/* ── Financial Footer ── */}
+            <div className="flex-none border-t bg-muted/30 px-6 py-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Monto</p>
+                <p className="text-sm font-semibold tabular-nums">
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}
+                </p>
+              </div>
+            </div>
           </>
         )}
       </ResizableSheet>

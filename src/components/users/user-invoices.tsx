@@ -917,10 +917,6 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               <div className="px-6 py-3">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Total:</span>
-                    <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{t('InvoicesPage.columns.quoteDocNo')}:</span>
                     <span className="text-sm">{selectedInvoice.quote_doc_no || '-'}</span>
                   </div>

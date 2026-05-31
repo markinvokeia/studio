@@ -1228,34 +1228,12 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </div>
               </div>
 
-              {/* Resumen financiero: Total + pendientes en una línea */}
-              <div className="px-6 py-3 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                  <span>
-                    <span className="font-medium text-foreground">{t('QuoteColumns.total')}:</span>{' '}
-                    <span className="font-semibold text-foreground">{formatCurrency(selectedQuote.total, selectedQuote.currency)}</span>
-                  </span>
-                  <span>
-                    {t('QuoteColumns.pendingInvoice')}:{' '}
-                    <span className={`font-semibold ${Number(selectedQuote.amount_pending_invoice) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formatCurrency(selectedQuote.amount_pending_invoice, selectedQuote.currency)}
-                    </span>
-                    {' '}<span className="font-normal">de</span>{' '}
-                    <span className="font-medium text-foreground">{formatCurrency(selectedQuote.total, selectedQuote.currency)}</span>
-                  </span>
-                  <span>
-                    {t('QuoteColumns.pendingPayment')}:{' '}
-                    <span className={`font-semibold ${Number(selectedQuote.amount_pending_payment) > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                      {formatCurrency(selectedQuote.amount_pending_payment, selectedQuote.currency)}
-                    </span>
-                    {' '}<span className="font-normal">de</span>{' '}
-                    <span className="font-medium text-foreground">{formatCurrency(selectedQuote.amount_invoiced, selectedQuote.currency)}</span>
-                  </span>
-                </div>
-                {selectedQuote.notes && (
+              {/* Notas del presupuesto (los totales se muestran en el footer) */}
+              {selectedQuote.notes && (
+                <div className="px-6 py-3">
                   <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Actions */}
