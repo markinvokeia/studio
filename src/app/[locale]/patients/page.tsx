@@ -2408,6 +2408,18 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>{t('UserCommunicationPreferences.title')}</DialogTitle>
+            <DialogDescription>{t('UserCommunicationPreferences.description')}</DialogDescription>
+          </DialogHeader>
+          <DialogBody className="px-6 py-4">
+            {selectedUser && <UserCommunicationPreferences user={selectedUser} autoSave compact />}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
+
       {selectedUser && (
         <PrepaidFormDialog
           open={isPrepaidDialogOpen}
