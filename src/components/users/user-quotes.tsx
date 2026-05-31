@@ -144,6 +144,143 @@ function getClinicSessionColumns(t: (key: string) => string): ColumnDef<QuoteCli
   ];
 }
 
+// ── Invoices / Payments tab types & columns ──────────────────────────────────
+interface QuotePaymentRow {
+  id: string;
+  doc_no?: string;
+  invoice_doc_no?: string;
+  amount: number;
+  currency: string;
+  method?: string;
+  payment_date?: string;
+  createdAt?: string;
+  transaction_id?: string;
+  transaction_type?: string;
+}
+
+const invoiceStatusVariant = (status?: string) =>
+  ({ booked: 'success', draft: 'outline', overdue: 'destructive' }[status?.toLowerCase() ?? ''] ?? 'default') as any;
+
+const paymentStatusLabel = (t: (key: string) => string, status?: string) =>
+  status === 'paid'
+    ? t('UserQuotes.columns.paid')
+    : status?.includes('partial')
+      ? t('UserQuotes.columns.partiallyPaid')
+      : t('UserQuotes.columns.unpaid');
+
+const transactionTypeLabel = (t: (key: string) => string, type?: string) =>
+  type === 'credit_note_allocation'
+    ? t('UserQuotes.columns.creditNote')
+    : type === 'payment_allocation'
+      ? t('UserQuotes.columns.allocation')
+      : type ?? '';
+
+function getInvoiceColumns(t: (key: string) => string): ColumnDef<Invoice>[] {
+  return [
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.invoiceNo')} />,
+      cell: ({ row }) => <span className="font-semibold">#{row.original.doc_no || row.original.invoice_doc_no || row.original.id}</span>,
+    },
+    {
+      accessorKey: 'createdAt',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.date')} />,
+      cell: ({ row }) => <span>{formatDisplayDate(row.original.createdAt)}</span>,
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.status')} />,
+      cell: ({ row }) =>
+        row.original.status ? (
+          <Badge variant={invoiceStatusVariant(row.original.status)} className="text-[10px] font-normal capitalize">
+            {row.original.status}
+          </Badge>
+        ) : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'payment_status',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.paymentStatus')} />,
+      cell: ({ row }) => {
+        const ps = row.original.payment_status;
+        return (
+          <Badge variant={(ps === 'paid' ? 'success' : ps?.includes('partial') ? 'info' : 'outline') as any} className="text-[10px] font-normal">
+            {paymentStatusLabel(t, ps)}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'paid_amount',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.paidAmount')} />,
+      cell: ({ row }) => <span className="tabular-nums text-emerald-600">{formatCurrency(row.original.paid_amount || 0, row.original.currency)}</span>,
+    },
+    {
+      accessorKey: 'due_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.dueDate')} />,
+      cell: ({ row }) => row.original.due_date ? <span>{formatDisplayDate(row.original.due_date)}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'total',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.total')} />,
+      cell: ({ row }) => <span className="font-bold tabular-nums">{formatCurrency(row.original.total, row.original.currency)}</span>,
+    },
+  ];
+}
+
+function getPaymentColumns(
+  t: (key: string) => string,
+  onPrintReceipt: (pay: QuotePaymentRow) => void,
+): ColumnDef<QuotePaymentRow>[] {
+  return [
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.paymentNo')} />,
+      cell: ({ row }) => <span className="font-semibold">#{row.original.doc_no || row.original.id}</span>,
+    },
+    {
+      accessorKey: 'payment_date',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.date')} />,
+      cell: ({ row }) => row.original.payment_date ? <span>{formatDisplayDate(row.original.payment_date)}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'method',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.method')} />,
+      cell: ({ row }) => row.original.method ? <Badge variant="outline" className="text-[10px] font-normal capitalize">{row.original.method}</Badge> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'invoice_doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.invoice')} />,
+      cell: ({ row }) => row.original.invoice_doc_no ? <span>#{row.original.invoice_doc_no}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: 'transaction_type',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.transactionType')} />,
+      cell: ({ row }) => {
+        const tt = row.original.transaction_type;
+        return tt && tt !== 'direct_payment'
+          ? <Badge variant="info" className="text-[10px] font-normal">{transactionTypeLabel(t, tt)}</Badge>
+          : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      accessorKey: 'amount',
+      header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserQuotes.columns.amount')} />,
+      cell: ({ row }) => <span className="font-bold tabular-nums text-emerald-600">{formatCurrency(row.original.amount, row.original.currency)}</span>,
+    },
+    {
+      id: 'actions',
+      header: () => null,
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.transaction_id ? (
+          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => onPrintReceipt(row.original)}>
+            <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
+          </Button>
+        ) : null,
+    },
+  ];
+}
+
 // ── Order helpers for confirmed quotes ───────────────────────────────────────
 async function getOrdersForQuote(quoteId: string, isSales: boolean): Promise<Order[]> {
   if (!quoteId) return [];
@@ -465,7 +602,6 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   // Quote Invoices / Payments tabs
   const [quoteDetailInvoices, setQuoteDetailInvoices] = React.useState<Invoice[]>([]);
   const [isLoadingQuoteDetailInvoices, setIsLoadingQuoteDetailInvoices] = React.useState(false);
-  interface QuotePaymentRow { id: string; doc_no?: string; invoice_doc_no?: string; amount: number; currency: string; method?: string; payment_date?: string; createdAt?: string; transaction_id?: string; transaction_type?: string; }
   const [quoteDetailPayments, setQuoteDetailPayments] = React.useState<QuotePaymentRow[]>([]);
   const [isLoadingQuoteDetailPayments, setIsLoadingQuoteDetailPayments] = React.useState(false);
 
@@ -1123,6 +1259,35 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     </div>
   ) : null;
 
+  const viewportNarrow = useViewportNarrow();
+
+  // Builds a printable Payment from a quote-detail payment row and prints its receipt.
+  const handlePrintReceipt = React.useCallback((pay: QuotePaymentRow) => {
+    const p: import('@/lib/types').Payment = {
+      id: pay.id,
+      doc_no: pay.doc_no,
+      payment_doc_no: pay.doc_no,
+      order_id: '',
+      invoice_id: null,
+      quote_id: null,
+      user_name: selectedQuote?.user_name || '',
+      payment_date: pay.payment_date || pay.createdAt || '',
+      amount_applied: pay.amount,
+      source_amount: pay.amount,
+      source_currency: (pay.currency as 'UYU' | 'USD') || 'UYU',
+      payment_method: pay.method || '',
+      transaction_type: (pay.transaction_type as import('@/lib/types').Payment['transaction_type']) || 'direct_payment',
+      transaction_id: pay.transaction_id || null,
+      status: 'completed',
+      createdAt: pay.createdAt || '',
+      updatedAt: pay.createdAt || '',
+      amount: pay.amount,
+      method: pay.method || '',
+      type: null,
+    };
+    printPayment(p, isSales);
+  }, [printPayment, isSales, selectedQuote]);
+
   // ── Render ───────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
@@ -1334,7 +1499,6 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           onDelete={canDeleteItem ? setDeletingItem : () => { }}
                           onRefresh={() => loadItems(selectedQuote.id)}
                           showToothNumber={isSales}
-                          forceCardMode
                         />
                       </>
                     )}
@@ -1365,135 +1529,98 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   </TabsContent>
 
                   {/* Facturas tab */}
-                  <TabsContent value="facturas" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <FileText className="h-4 w-4" />
-                        Facturas del presupuesto
-                      </h4>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadQuoteDetailInvoices(selectedQuote.id)} disabled={isLoadingQuoteDetailInvoices}>
-                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingQuoteDetailInvoices ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                    {isLoadingQuoteDetailInvoices ? (
-                      <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />Cargando...
-                      </div>
-                    ) : quoteDetailInvoices.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">Sin facturas registradas.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {quoteDetailInvoices.map((inv) => (
-                          <div key={inv.id} className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
-                              <span className="font-bold tabular-nums">{formatCurrency(inv.total, inv.currency)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
-                              <span>{formatDisplayDate(inv.createdAt)}</span>
-                              {inv.status && (
+                  <TabsContent value="facturas" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                    <Card className="h-full flex flex-col min-h-0">
+                      <CardContent className="flex flex-col p-4 flex-1 min-h-0">
+                        <DataTable
+                          columns={getInvoiceColumns(t)}
+                          data={quoteDetailInvoices}
+                          isLoading={isLoadingQuoteDetailInvoices}
+                          onRefresh={() => loadQuoteDetailInvoices(selectedQuote.id)}
+                          isRefreshing={isLoadingQuoteDetailInvoices}
+                          useGlobalFilter
+                          filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                          isNarrow={viewportNarrow}
+                          renderCard={(inv) => (
+                            <div className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
+                                <span className="font-bold tabular-nums">{formatCurrency(inv.total, inv.currency)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
+                                <span>{formatDisplayDate(inv.createdAt)}</span>
+                                {inv.status && (
+                                  <Badge variant={invoiceStatusVariant(inv.status)} className="text-[10px] font-normal capitalize">
+                                    {inv.status}
+                                  </Badge>
+                                )}
                                 <Badge
-                                  variant={({ booked: 'success', draft: 'outline', overdue: 'destructive' }[inv.status.toLowerCase()] ?? 'default') as any}
-                                  className="text-[10px] font-normal capitalize"
+                                  variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any}
+                                  className="text-[10px] font-normal"
                                 >
-                                  {inv.status}
+                                  {paymentStatusLabel(t, inv.payment_status)}
                                 </Badge>
-                              )}
-                              <Badge
-                                variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any}
-                                className="text-[10px] font-normal"
-                              >
-                                {inv.payment_status === 'paid' ? 'Pagada' : inv.payment_status?.includes('partial') ? 'Pago parcial' : 'Sin pagar'}
-                              </Badge>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
+                                {(inv.paid_amount || 0) > 0 && (
+                                  <span>{t('UserQuotes.columns.paidAmount')}: <span className="font-medium text-emerald-600">{formatCurrency(inv.paid_amount || 0, inv.currency)}</span></span>
+                                )}
+                                {inv.due_date && (
+                                  <span className="text-muted-foreground">{t('UserQuotes.columns.dueDate')}: <span className="font-medium text-foreground">{formatDisplayDate(inv.due_date)}</span></span>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
-                              {(inv.paid_amount || 0) > 0 && (
-                                <span>Pagado: <span className="font-medium text-emerald-600">{formatCurrency(inv.paid_amount || 0, inv.currency)}</span></span>
-                              )}
-                              {inv.due_date && (
-                                <span className="text-muted-foreground">Vence: <span className="font-medium text-foreground">{formatDisplayDate(inv.due_date)}</span></span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   {/* Pagos tab */}
-                  <TabsContent value="pagos" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" />
-                        Pagos del presupuesto
-                      </h4>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadQuoteDetailPayments(selectedQuote.id)} disabled={isLoadingQuoteDetailPayments}>
-                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingQuoteDetailPayments ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                    {isLoadingQuoteDetailPayments ? (
-                      <div className="flex items-center gap-2 py-6 justify-center text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />Cargando...
-                      </div>
-                    ) : quoteDetailPayments.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {quoteDetailPayments.map((pay) => (
-                          <div key={pay.id} className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="font-semibold">#{pay.doc_no || pay.id}</span>
-                              <span className="font-bold tabular-nums text-emerald-600">{formatCurrency(pay.amount, pay.currency)}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
-                              {pay.payment_date && <span>{formatDisplayDate(pay.payment_date)}</span>}
-                              {pay.method && <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>}
-                              {pay.currency && <Badge variant="secondary" className="text-[10px] font-normal">{pay.currency}</Badge>}
-                              {pay.invoice_doc_no && <span>Factura #{pay.invoice_doc_no}</span>}
-                              {pay.transaction_type && pay.transaction_type !== 'direct_payment' && (
-                                <Badge variant="info" className="text-[10px] font-normal">
-                                  {pay.transaction_type === 'credit_note_allocation' ? 'Nota de crédito' : pay.transaction_type === 'payment_allocation' ? 'Asignación' : pay.transaction_type}
-                                </Badge>
+                  <TabsContent value="pagos" className="m-0 h-full data-[state=active]:flex data-[state=active]:flex-col">
+                    <Card className="h-full flex flex-col min-h-0">
+                      <CardContent className="flex flex-col p-4 flex-1 min-h-0">
+                        <DataTable
+                          columns={getPaymentColumns(t, handlePrintReceipt)}
+                          data={quoteDetailPayments}
+                          isLoading={isLoadingQuoteDetailPayments}
+                          onRefresh={() => loadQuoteDetailPayments(selectedQuote.id)}
+                          isRefreshing={isLoadingQuoteDetailPayments}
+                          useGlobalFilter
+                          filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                          isNarrow={viewportNarrow}
+                          renderCard={(pay) => (
+                            <div className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold">#{pay.doc_no || pay.id}</span>
+                                <span className="font-bold tabular-nums text-emerald-600">{formatCurrency(pay.amount, pay.currency)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
+                                {pay.payment_date && <span>{formatDisplayDate(pay.payment_date)}</span>}
+                                {pay.method && <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>}
+                                {pay.currency && <Badge variant="secondary" className="text-[10px] font-normal">{pay.currency}</Badge>}
+                                {pay.invoice_doc_no && <span>{t('UserQuotes.columns.invoice')} #{pay.invoice_doc_no}</span>}
+                                {pay.transaction_type && pay.transaction_type !== 'direct_payment' && (
+                                  <Badge variant="info" className="text-[10px] font-normal">
+                                    {transactionTypeLabel(t, pay.transaction_type)}
+                                  </Badge>
+                                )}
+                              </div>
+                              {pay.transaction_id && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs gap-1 -ml-1"
+                                  onClick={() => handlePrintReceipt(pay)}
+                                >
+                                  <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
+                                </Button>
                               )}
                             </div>
-                            {pay.transaction_id && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 px-2 text-xs gap-1 -ml-1"
-                                onClick={() => {
-                                  const p: import('@/lib/types').Payment = {
-                                    id: pay.id,
-                                    doc_no: pay.doc_no,
-                                    payment_doc_no: pay.doc_no,
-                                    order_id: '',
-                                    invoice_id: null,
-                                    quote_id: null,
-                                    user_name: selectedQuote?.user_name || '',
-                                    payment_date: pay.payment_date || pay.createdAt || '',
-                                    amount_applied: pay.amount,
-                                    source_amount: pay.amount,
-                                    source_currency: (pay.currency as 'UYU' | 'USD') || 'UYU',
-                                    payment_method: pay.method || '',
-                                    transaction_type: (pay.transaction_type as import('@/lib/types').Payment['transaction_type']) || 'direct_payment',
-                                    transaction_id: pay.transaction_id || null,
-                                    status: 'completed',
-                                    createdAt: pay.createdAt || '',
-                                    updatedAt: pay.createdAt || '',
-                                    amount: pay.amount,
-                                    method: pay.method || '',
-                                    type: null,
-                                  };
-                                  printPayment(p, isSales);
-                                }}
-                              >
-                                <Printer className="h-3 w-3" />Imprimir recibo
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                          )}
+                        />
+                      </CardContent>
+                    </Card>
                   </TabsContent>
                 </div>
               </Tabs>
