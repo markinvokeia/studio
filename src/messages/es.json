@@ -4646,7 +4646,8 @@
     "pagination": {
       "showing": "Mostrando",
       "of": "de",
-      "page": "Página {current} de {total}"
+      "page": "Página {current} de {total}",
+      "all": "Todas"
     },
     "filters": {
       "title": "Filtros",

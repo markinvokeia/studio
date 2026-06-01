@@ -4667,7 +4667,8 @@
     "pagination": {
       "showing": "Showing",
       "of": "of",
-      "page": "Page {current} of {total}"
+      "page": "Page {current} of {total}",
+      "all": "All"
     },
     "filters": {
       "title": "Filters",
