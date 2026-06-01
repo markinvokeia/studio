@@ -1486,6 +1486,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                         isSales={true}
                         canSchedule={canScheduleItem}
                         canComplete={canCompleteItem}
+                        listView
                       />
                     ) : (
                       <>
@@ -1499,6 +1500,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           onDelete={canDeleteItem ? setDeletingItem : () => { }}
                           onRefresh={() => loadItems(selectedQuote.id)}
                           showToothNumber={isSales}
+                          listView
                         />
                       </>
                     )}

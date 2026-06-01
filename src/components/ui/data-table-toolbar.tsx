@@ -37,6 +37,10 @@ interface DataTableToolbarProps<TData> {
   createButtonIconOnly?: boolean;
   /** Rendered at the end of the secondary action group (e.g. pagination); wraps with it when narrow */
   endSlot?: React.ReactNode;
+  /** Action buttons rendered on the primary line (next to search) so they don't wrap */
+  primaryActions?: React.ReactNode;
+  /** View controls (e.g. a view-mode toggle) rendered after pagination, alongside refresh/columns */
+  viewControls?: React.ReactNode;
 }
 
 export function DataTableToolbar<TData>({
@@ -55,6 +59,8 @@ export function DataTableToolbar<TData>({
   filterValue,
   createButtonIconOnly,
   endSlot,
+  primaryActions,
+  viewControls,
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
   return (
@@ -134,8 +140,10 @@ export function DataTableToolbar<TData>({
               </TooltipProvider>
             </div>
           )}
+          {/* Primary action buttons — stay on the first line next to search */}
+          {primaryActions && <div className="shrink-0 flex items-center gap-2">{primaryActions}</div>}
         </div>
-        {/* Secondary group: filter + extra + refresh + columns + endSlot — wraps below when narrow */}
+        {/* Secondary group: filter + endSlot + extra + refresh + columns — wraps below when narrow */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Filter select — hidden on mobile */}
           {filterOptions && onFilterChange && (
@@ -158,8 +166,10 @@ export function DataTableToolbar<TData>({
               </Select>
             </div>
           )}
-          {/* Extra buttons — desktop only (inline) */}
+          {/* Action buttons — desktop only (inline); before pagination */}
           {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+          {/* Pagination — after the action buttons, before the control buttons */}
+          {endSlot}
           {onRefresh && (
             <Button
               variant="outline"
@@ -172,6 +182,8 @@ export function DataTableToolbar<TData>({
               <span className="sr-only">{t('refresh')}</span>
             </Button>
           )}
+          {/* View controls (e.g. view-mode toggle) — desktop only */}
+          {viewControls && <div className="hidden sm:flex items-center gap-2">{viewControls}</div>}
           {/* Column toggle — desktop only */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -206,7 +218,6 @@ export function DataTableToolbar<TData>({
                 })}
               </DropdownMenuContent>
           </DropdownMenu>
-          {endSlot}
         </div>
       </div>
       {/* Row 2 — mobile only: extra action buttons */}

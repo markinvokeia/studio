@@ -207,8 +207,12 @@ export function DataTableAdvancedToolbar<TData>({
                         </Button>
                     )}
                 </div>
-                {/* Secondary group: refresh + columns + extra + endSlot — wraps below when narrow */}
+                {/* Secondary group: action buttons → pagination → refresh → columns — wraps below when narrow */}
                 <div className="flex items-center gap-2 shrink-0">
+                    {/* Action buttons — desktop only (inline); before pagination */}
+                    {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+                    {/* Pagination — after the action buttons, before the control buttons */}
+                    {endSlot}
                     {onRefresh && (
                         <Button
                             variant="outline"
@@ -255,9 +259,6 @@ export function DataTableAdvancedToolbar<TData>({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
-                    {/* Extra buttons — desktop only (inline) */}
-                    {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
-                    {endSlot}
                 </div>
             </div>
             {/* Row 2 — mobile only: extra action buttons */}

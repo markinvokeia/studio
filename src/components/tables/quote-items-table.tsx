@@ -1,9 +1,13 @@
 
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useItemsViewMode } from '@/hooks/use-items-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -13,9 +17,11 @@ import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { QuoteItem } from '@/lib/types';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+
+const fmtUSD = (v: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(v);
 
 interface QuoteItemsTableProps {
   items: QuoteItem[];
@@ -33,6 +39,8 @@ interface QuoteItemsTableProps {
   extraButtons?: React.ReactNode;
   /** Force card/list mode regardless of viewport width */
   forceCardMode?: boolean;
+  /** When true, enables the table/list view toggle (list view shown on desktop) */
+  listView?: boolean;
 }
 
 const getColumns = (
@@ -160,12 +168,17 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false, listView = false }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = forceCardMode || panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useItemsViewMode('list');
+  // Toggle only on desktop/tablet; mobile always shows cards.
+  const showToggle = listView && !viewportNarrow;
+  // Render the list view on desktop; mobile keeps DataCard.
+  const useListView = listView && !viewportNarrow && viewMode === 'list';
+  const isNarrow = forceCardMode || useListView || panelNarrow || viewportNarrow;
   const columns = getColumns(
     (key) => {
       try {
@@ -206,9 +219,38 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
           onRowSelectionChange={onRowSelectionChange}
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
-          extraButtons={extraButtons}
+          primaryActions={extraButtons}
+          viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
           isNarrow={isNarrow}
-          renderCard={(item: QuoteItem, isSelected: boolean) => (
+          cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+          renderCard={(item: QuoteItem, isSelected: boolean) => useListView ? (
+            <DataListRow
+              isSelected={isSelected}
+              onClick={onRowSelectionChange ? () => onRowSelectionChange([item]) : undefined}
+              title={item.service_name || String(item.id)}
+              meta={(
+                <>
+                  <span>{t('id')}: {item.id}</span>
+                  {showToothNumber && item.tooth_number ? <span>{t('toothNumber')}: {item.tooth_number}</span> : null}
+                  <span>{t('quantity')}: {item.quantity}</span>
+                  <span>{t('unitPrice')}: {fmtUSD(item.unit_price || 0)}</span>
+                  <span className="font-medium text-foreground">{t('total')}: {fmtUSD(item.total || 0)}</span>
+                </>
+              )}
+              actions={canEdit ? (
+                <>
+                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1"
+                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}>
+                    <Pencil className="h-3 w-3" />{t('edit')}
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-6 px-2 text-xs gap-1 text-destructive hover:text-destructive"
+                    onClick={(e) => { e.stopPropagation(); onDelete(item); }}>
+                    <Trash2 className="h-3 w-3" />{t('delete')}
+                  </Button>
+                </>
+              ) : undefined}
+            />
+          ) : (
             <DataCard
               isSelected={isSelected}
               title={item.service_name || String(item.id)}

@@ -448,12 +448,13 @@ export default function SequencesPage() {
                   </DropdownMenu>
                 </div>
 
-                {/* Buttons Section */}
+                {/* Buttons Section — action → pagination → refresh */}
                 <div className="flex items-center gap-2">
                   <Button onClick={handleCreate} className="h-9">
                     <PlusCircle className="h-4 w-4" />
                     {t('createNew')}
                   </Button>
+                  {pagination}
                   <Button
                     variant="outline"
                     size="icon"
@@ -464,7 +465,6 @@ export default function SequencesPage() {
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     <span className="sr-only">{t('refresh')}</span>
                   </Button>
-                  {pagination}
                 </div>
               </div>
             )}
