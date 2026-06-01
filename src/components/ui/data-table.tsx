@@ -80,6 +80,12 @@ interface DataTableProps<TData, TValue> {
   rowCount?: number;
   /** When true, shows skeleton rows/cards instead of data or the "no results" message */
   isLoading?: boolean;
+  /** Extra classes for the narrow-mode card list container (e.g. to remove the gap for a connected list) */
+  cardListClassName?: string;
+  /** Action buttons rendered on the toolbar's primary line (next to search) so they don't wrap */
+  primaryActions?: React.ReactNode;
+  /** View controls (e.g. a view-mode toggle) rendered after pagination in the toolbar */
+  viewControls?: React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -120,6 +126,9 @@ export function DataTable<TData, TValue>({
   onRowClick,
   rowCount,
   isLoading = false,
+  cardListClassName,
+  primaryActions,
+  viewControls,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   const showCardList = Boolean(isNarrow && renderCard);
@@ -254,6 +263,8 @@ export function DataTable<TData, TValue>({
             filterValue={filterValue}
             createButtonIconOnly={createButtonIconOnly}
             endSlot={<DataTablePagination table={table} />}
+            primaryActions={primaryActions}
+            viewControls={viewControls}
           />
         ) : (
           <div className="flex justify-end">
@@ -262,7 +273,7 @@ export function DataTable<TData, TValue>({
         )}
       </div>
       {showCardList ? (
-        <div data-testid="card-list" className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1">
+        <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-md" />

@@ -39,6 +39,9 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CheckCircle, ChevronDown, CreditCard, Eye, FileText, Loader2, Pencil, Printer, Receipt, RefreshCw, Send, Stethoscope, Trash2, XCircle, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -535,6 +538,9 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const { printQuote, printPayment } = usePrintDocument();
   const isSales = mode === 'sales';
   const isViewportNarrow = useViewportNarrow();
+  const [viewMode, setViewMode] = useTableViewMode('quotes-list', 'table');
+  const showListToggle = !isViewportNarrow;
+  const useListView = !isViewportNarrow && viewMode === 'list';
   const [userQuotes, setUserQuotes] = React.useState<Quote[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -1260,6 +1266,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   ) : null;
 
   const viewportNarrow = useViewportNarrow();
+  const [invoicesViewMode, setInvoicesViewMode] = useTableViewMode('quote-detail-invoices', 'table');
+  const [paymentsViewMode, setPaymentsViewMode] = useTableViewMode('quote-detail-payments', 'table');
+  const invoicesListView = !viewportNarrow && invoicesViewMode === 'list';
+  const paymentsListView = !viewportNarrow && paymentsViewMode === 'list';
 
   // Builds a printable Payment from a quote-detail payment row and prints its receipt.
   const handlePrintReceipt = React.useCallback((pay: QuotePaymentRow) => {
@@ -1328,23 +1338,49 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
               currency: t('QuoteColumns.currency'),
               exchange_rate: t('QuoteColumns.exchangeRate'),
             }}
-            isNarrow={isViewportNarrow}
-            renderCard={(quote: Quote, _isSelected: boolean) => (
-              <DataCard isSelected={_isSelected}
-                title={quote.doc_no}
-                subtitle={formatDisplayDate(quote.createdAt)}
-                badge={<Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>}
-                fields={[
-                  { label: t('QuoteColumns.total'), value: formatCurrency(quote.total, quote.currency), primary: true },
-                  { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(quote.amount_invoiced, quote.currency) },
-                  { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(quote.amount_pending_invoice, quote.currency) },
-                  { label: t('QuoteColumns.amountPaid'), value: formatCurrency(quote.amount_paid, quote.currency) },
-                  { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(quote.amount_pending_payment, quote.currency) },
-                  { label: t('Navigation.Payments'), value: quote.payment_status || '-' },
-                  { label: t('QuoteColumns.billingStatus'), value: quote.billing_status || '-' },
-                ]}
-              />
-            )}
+            isNarrow={isViewportNarrow || useListView}
+            viewControls={showListToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+            cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+            renderCard={(quote: Quote, _isSelected: boolean) => {
+              const statusBadge = (
+                <Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>
+              );
+              if (useListView) {
+                return (
+                  <DataListRow
+                    isSelected={_isSelected}
+                    onClick={() => handleRowSelectionChange([quote])}
+                    title={quote.doc_no}
+                    badge={statusBadge}
+                    meta={(
+                      <>
+                        <span>{formatDisplayDate(quote.createdAt)}</span>
+                        <span className="font-medium text-foreground">{t('QuoteColumns.total')}: {formatCurrency(quote.total, quote.currency)}</span>
+                        <span>{t('QuoteColumns.amountInvoiced')}: {formatCurrency(quote.amount_invoiced, quote.currency)}</span>
+                        <span>{t('QuoteColumns.amountPaid')}: {formatCurrency(quote.amount_paid, quote.currency)}</span>
+                        <span>{t('QuoteColumns.pendingPayment')}: {formatCurrency(quote.amount_pending_payment, quote.currency)}</span>
+                      </>
+                    )}
+                  />
+                );
+              }
+              return (
+                <DataCard isSelected={_isSelected}
+                  title={quote.doc_no}
+                  subtitle={formatDisplayDate(quote.createdAt)}
+                  badge={statusBadge}
+                  fields={[
+                    { label: t('QuoteColumns.total'), value: formatCurrency(quote.total, quote.currency), primary: true },
+                    { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(quote.amount_invoiced, quote.currency) },
+                    { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(quote.amount_pending_invoice, quote.currency) },
+                    { label: t('QuoteColumns.amountPaid'), value: formatCurrency(quote.amount_paid, quote.currency) },
+                    { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(quote.amount_pending_payment, quote.currency) },
+                    { label: t('Navigation.Payments'), value: quote.payment_status || '-' },
+                    { label: t('QuoteColumns.billingStatus'), value: quote.billing_status || '-' },
+                  ]}
+                />
+              );
+            }}
           />
         </CardContent>
       </Card>
@@ -1486,6 +1522,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                         isSales={true}
                         canSchedule={canScheduleItem}
                         canComplete={canCompleteItem}
+                        listView
                       />
                     ) : (
                       <>
@@ -1499,6 +1536,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           onDelete={canDeleteItem ? setDeletingItem : () => { }}
                           onRefresh={() => loadItems(selectedQuote.id)}
                           showToothNumber={isSales}
+                          listView
                         />
                       </>
                     )}
@@ -1528,8 +1566,34 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           isRefreshing={isLoadingQuoteDetailInvoices}
                           useGlobalFilter
                           filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
-                          isNarrow={viewportNarrow}
-                          renderCard={(inv) => (
+                          isNarrow={viewportNarrow || invoicesListView}
+                          viewControls={!viewportNarrow ? <ViewModeToggle value={invoicesViewMode} onChange={setInvoicesViewMode} /> : undefined}
+                          cardListClassName={invoicesListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                          renderCard={(inv) => invoicesListView ? (
+                            <DataListRow
+                              title={`#${inv.doc_no || inv.invoice_doc_no || inv.id}`}
+                              badge={(
+                                <>
+                                  {inv.status && (
+                                    <Badge variant={invoiceStatusVariant(inv.status)} className="text-[10px] font-normal capitalize">
+                                      {t(`InvoicesPage.status.${inv.status.toLowerCase()}`)}
+                                    </Badge>
+                                  )}
+                                  <Badge variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any} className="text-[10px] font-normal">
+                                    {paymentStatusLabel(t, inv.payment_status)}
+                                  </Badge>
+                                </>
+                              )}
+                              meta={(
+                                <>
+                                  <span>{formatDisplayDate(inv.createdAt)}</span>
+                                  <span className="font-medium text-foreground">{t('UserQuotes.columns.total')}: {formatCurrency(inv.total, inv.currency)}</span>
+                                  {(inv.paid_amount || 0) > 0 ? <span>{t('UserQuotes.columns.paidAmount')}: {formatCurrency(inv.paid_amount || 0, inv.currency)}</span> : null}
+                                  {inv.due_date ? <span>{t('UserQuotes.columns.dueDate')}: {formatDisplayDate(inv.due_date)}</span> : null}
+                                </>
+                              )}
+                            />
+                          ) : (
                             <DataCard
                               title={`#${inv.doc_no || inv.invoice_doc_no || inv.id}`}
                               subtitle={formatDisplayDate(inv.createdAt)}
@@ -1586,8 +1650,35 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           isRefreshing={isLoadingQuoteDetailPayments}
                           useGlobalFilter
                           filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
-                          isNarrow={viewportNarrow}
-                          renderCard={(pay) => (
+                          isNarrow={viewportNarrow || paymentsListView}
+                          viewControls={!viewportNarrow ? <ViewModeToggle value={paymentsViewMode} onChange={setPaymentsViewMode} /> : undefined}
+                          cardListClassName={paymentsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                          renderCard={(pay) => paymentsListView ? (
+                            <DataListRow
+                              title={`#${pay.doc_no || pay.id}`}
+                              badge={(
+                                <>
+                                  {pay.method && <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>}
+                                  {pay.transaction_type && pay.transaction_type !== 'direct_payment' && (
+                                    <Badge variant="info" className="text-[10px] font-normal">{transactionTypeLabel(t, pay.transaction_type)}</Badge>
+                                  )}
+                                </>
+                              )}
+                              meta={(
+                                <>
+                                  {pay.payment_date ? <span>{formatDisplayDate(pay.payment_date)}</span> : null}
+                                  <span className="font-medium text-emerald-600">{t('UserQuotes.columns.amount')}: {formatCurrency(pay.amount, pay.currency)}</span>
+                                  {pay.invoice_doc_no ? <span>{t('UserQuotes.columns.invoice')}: #{pay.invoice_doc_no}</span> : null}
+                                </>
+                              )}
+                              actions={pay.transaction_id ? (
+                                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs gap-1 -ml-1"
+                                  onClick={(e) => { e.stopPropagation(); handlePrintReceipt(pay); }}>
+                                  <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
+                                </Button>
+                              ) : undefined}
+                            />
+                          ) : (
                             <DataCard
                               title={`#${pay.doc_no || pay.id}`}
                               subtitle={pay.payment_date ? formatDisplayDate(pay.payment_date) : undefined}
