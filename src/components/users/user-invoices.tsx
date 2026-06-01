@@ -426,6 +426,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const canCreateInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_CREATE : PURCHASES_PERMISSIONS.INVOICES_CREATE);
   const canEditItems = isDraft && (canAddItem || canUpdateItem || canDeleteItem);
 
+  const invoicePaymentColumns = React.useMemo<ColumnDef<any>[]>(() => [
+    { accessorKey: 'doc_no', header: 'N° Pago', size: 130, cell: ({ row }: any) => row.original.doc_no ? `#${row.original.doc_no}` : '-' },
+    { accessorKey: 'date', header: 'Fecha', size: 100, cell: ({ row }: any) => row.original.date ? formatDisplayDate(row.original.date) : '-' },
+    { accessorKey: 'method', header: 'Método', size: 130, cell: ({ row }: any) => row.original.method || '-' },
+    { accessorKey: 'currency', header: 'Moneda', size: 80 },
+    { accessorKey: 'amount', header: 'Monto', size: 130, cell: ({ row }: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(row.original.amount) },
+  ], []);
+
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadInvoices = React.useCallback(async (silent = false) => {
     if (!userId) return;

@@ -4646,7 +4646,8 @@
     "pagination": {
       "showing": "Mostrando",
       "of": "de",
-      "page": "Página {current} de {total}"
+      "page": "Página {current} de {total}",
+      "all": "Todas"
     },
     "filters": {
       "title": "Filtros",
@@ -5457,7 +5458,8 @@
       "invoices": "Facturas",
       "payments": "Pagos",
       "appointments": "Citas",
-      "clinicalSessions": "Sesiones Clínicas"
+      "clinicalSessions": "Sesiones Clínicas",
+      "mutualSocieties": "Sociedades Mutuales"
     },
     "upload": {
       "exampleCsv": "Descargar CSV de ejemplo",

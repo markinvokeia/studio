@@ -4667,7 +4667,8 @@
     "pagination": {
       "showing": "Showing",
       "of": "of",
-      "page": "Page {current} of {total}"
+      "page": "Page {current} of {total}",
+      "all": "All"
     },
     "filters": {
       "title": "Filters",
@@ -5478,7 +5479,8 @@
       "invoices": "Invoices",
       "payments": "Payments",
       "appointments": "Appointments",
-      "clinicalSessions": "Clinical Sessions"
+      "clinicalSessions": "Clinical Sessions",
+      "mutualSocieties": "Mutual Societies"
     },
     "upload": {
       "exampleCsv": "Download example CSV",
