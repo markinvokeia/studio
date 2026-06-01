@@ -28,6 +28,9 @@ import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communi
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
@@ -428,7 +431,11 @@ export function RecentQuotesTable({
 }: RecentQuotesTableProps) {
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = isCompact || panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('quotes', 'table');
+  const showToggle = !isCompact && !panelNarrow && !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = isCompact || panelNarrow || viewportNarrow || useListView;
+  const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
   const t = useTranslations();
   const { toast } = useToast();
   const { printQuote } = usePrintDocument();
@@ -644,6 +651,7 @@ export function RecentQuotesTable({
                 isRefreshing={isRefreshing}
                 columnTranslations={columnTranslations}
                 endSlot={<DataTablePagination table={table} />}
+                viewControls={viewToggleEl}
               />
             ) : (
               <DataTableToolbar
@@ -655,50 +663,77 @@ export function RecentQuotesTable({
                 onCreate={onCreate}
                 columnTranslations={columnTranslations}
                 endSlot={<DataTablePagination table={table} />}
+                viewControls={viewToggleEl}
               />
             )}
             {isNarrow ? (
               <div className="flex flex-1 min-h-0 flex-col">
                 <div
                   data-testid="card-list"
-                  className="flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-0.5 py-0.5"
+                  className={cn(
+                    "flex flex-col overflow-auto flex-1 min-h-0",
+                    useListView ? "rounded-md border" : "gap-2 px-0.5 py-0.5",
+                  )}
                 >
                   {table.getRowModel().rows.length > 0
-                    ? table.getRowModel().rows.map((row) => (
-                      <div key={row.id} data-testid="list-item">
-                        <DataCard
-                          key={row.id}
-                          title={row.original.doc_no || String(row.original.id)}
-                          subtitle={[row.original.user_name, formatDisplayDate(row.original.createdAt), row.original.status].filter(Boolean).join(' · ')}
-                          isSelected={row.getIsSelected()}
-                          showArrow={!!(onRowClick || onRowSelectionChange)}
-                          fields={[
-                            { label: t('QuoteColumns.total'), value: formatCurrency(row.original.total, row.original.currency), primary: true },
-                            { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(row.original.amount_invoiced, row.original.currency) },
-                            { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(row.original.amount_pending_invoice, row.original.currency) },
-                            { label: t('QuoteColumns.amountPaid'), value: formatCurrency(row.original.amount_paid, row.original.currency) },
-                            { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(row.original.amount_pending_payment, row.original.currency) },
-                          ]}
-                          actions={!isCompact && !viewportNarrow ? (
-                            <QuoteActions
-                              quote={row.original}
-                              onEdit={onEdit}
-                              onDelete={onDelete}
-                              onQuoteActionRequest={onQuoteActionRequest}
-                              onPrint={handlePrintQuote}
-                              onSendEmail={handleSendEmailClick}
-                              {...actionPermissions}
-                            />
-                          ) : undefined}
-                          onClick={() => {
-                            table.toggleAllPageRowsSelected(false);
-                            row.toggleSelected(true);
-                            onRowSelectionChange?.([row.original]);
-                            onRowClick?.(row.original);
-                          }}
+                    ? table.getRowModel().rows.map((row) => {
+                      const onRowActivate = () => {
+                        table.toggleAllPageRowsSelected(false);
+                        row.toggleSelected(true);
+                        onRowSelectionChange?.([row.original]);
+                        onRowClick?.(row.original);
+                      };
+                      const quoteActions = !isCompact && !viewportNarrow ? (
+                        <QuoteActions
+                          quote={row.original}
+                          onEdit={onEdit}
+                          onDelete={onDelete}
+                          onQuoteActionRequest={onQuoteActionRequest}
+                          onPrint={handlePrintQuote}
+                          onSendEmail={handleSendEmailClick}
+                          {...actionPermissions}
                         />
+                      ) : undefined;
+                      return (
+                      <div key={row.id} data-testid="list-item">
+                        {useListView ? (
+                          <DataListRow
+                            isSelected={row.getIsSelected()}
+                            onClick={onRowActivate}
+                            title={row.original.doc_no || String(row.original.id)}
+                            badge={row.original.status ? <Badge variant="outline" className="capitalize text-[10px] font-normal">{row.original.status}</Badge> : undefined}
+                            meta={(
+                              <>
+                                {row.original.user_name ? <span>{row.original.user_name}</span> : null}
+                                <span>{formatDisplayDate(row.original.createdAt)}</span>
+                                <span className="font-medium text-foreground">{t('QuoteColumns.total')}: {formatCurrency(row.original.total, row.original.currency)}</span>
+                                <span>{t('QuoteColumns.amountInvoiced')}: {formatCurrency(row.original.amount_invoiced, row.original.currency)}</span>
+                                <span>{t('QuoteColumns.amountPaid')}: {formatCurrency(row.original.amount_paid, row.original.currency)}</span>
+                                <span>{t('QuoteColumns.pendingPayment')}: {formatCurrency(row.original.amount_pending_payment, row.original.currency)}</span>
+                              </>
+                            )}
+                            actions={quoteActions}
+                          />
+                        ) : (
+                          <DataCard
+                            title={row.original.doc_no || String(row.original.id)}
+                            subtitle={[row.original.user_name, formatDisplayDate(row.original.createdAt), row.original.status].filter(Boolean).join(' · ')}
+                            isSelected={row.getIsSelected()}
+                            showArrow={!!(onRowClick || onRowSelectionChange)}
+                            fields={[
+                              { label: t('QuoteColumns.total'), value: formatCurrency(row.original.total, row.original.currency), primary: true },
+                              { label: t('QuoteColumns.amountInvoiced'), value: formatCurrency(row.original.amount_invoiced, row.original.currency) },
+                              { label: t('QuoteColumns.pendingInvoice'), value: formatCurrency(row.original.amount_pending_invoice, row.original.currency) },
+                              { label: t('QuoteColumns.amountPaid'), value: formatCurrency(row.original.amount_paid, row.original.currency) },
+                              { label: t('QuoteColumns.pendingPayment'), value: formatCurrency(row.original.amount_pending_payment, row.original.currency) },
+                            ]}
+                            actions={quoteActions}
+                            onClick={onRowActivate}
+                          />
+                        )}
                       </div>
-                      ))
+                      );
+                      })
                     : <div className="py-8 text-center text-sm text-muted-foreground">{t('General.noResults')}</div>
                   }
                 </div>

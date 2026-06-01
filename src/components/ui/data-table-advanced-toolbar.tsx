@@ -42,6 +42,8 @@ interface DataTableAdvancedToolbarProps<TData> {
     isCompact?: boolean;
     /** Rendered at the end of the secondary action group (e.g. pagination); wraps with it when narrow */
     endSlot?: React.ReactNode;
+    /** View controls (e.g. a view-mode toggle) rendered after pagination, alongside refresh/columns */
+    viewControls?: React.ReactNode;
 }
 
 export function DataTableAdvancedToolbar<TData>({
@@ -60,6 +62,7 @@ export function DataTableAdvancedToolbar<TData>({
     columnTranslations = {},
     isCompact = false,
     endSlot,
+    viewControls,
 }: DataTableAdvancedToolbarProps<TData>) {
     const t = useTranslations('DataTableToolbar');
     const inputRef = React.useRef<HTMLInputElement>(null);
@@ -225,6 +228,8 @@ export function DataTableAdvancedToolbar<TData>({
                             <span className="sr-only">{t('refresh')}</span>
                         </Button>
                     )}
+                    {/* View controls (e.g. view-mode toggle) — desktop only */}
+                    {viewControls && <div className="hidden sm:flex items-center gap-2">{viewControls}</div>}
                     {/* Column toggle — desktop only */}
                     {table && (
                         <DropdownMenu>

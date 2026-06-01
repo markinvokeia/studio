@@ -3,6 +3,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -155,7 +158,10 @@ export function CreditNotesTable({ creditNotes, isLoading = false, onRefresh, is
   const tActions = useTranslations('InvoicesPage.actions');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('credit-notes', 'table');
+  const showToggle = !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
   const columns = React.useMemo(() => getColumns(t, tActions, onPrint, onSendEmail), [t, tActions, onPrint, onSendEmail]);
 
   if (isLoading) {
@@ -191,26 +197,41 @@ export function CreditNotesTable({ creditNotes, isLoading = false, onRefresh, is
           pageCount={pageCount}
           manualPagination={manualPagination}
           isNarrow={isNarrow}
-          renderCard={(creditNote: CreditNote) => (
-            <DataCard
-              title={creditNote.doc_no || String(creditNote.id)}
-              subtitle={[
-                creditNote.createdAt ? formatDateTime(creditNote.createdAt) : null,
-                creditNote.currency || null,
-                creditNote.status ? t(`statuses.${creditNote.status}`) : null,
-              ].filter(Boolean).join(' · ')}
-              badge={
-                creditNote.total != null ? (
-                  <Badge variant="outline">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: creditNote.currency || 'USD',
-                    }).format(Math.abs(Number(creditNote.total)))}
-                  </Badge>
-                ) : undefined
-              }
-            />
-          )}
+          viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+          renderCard={(creditNote: CreditNote) => {
+            const totalStr = creditNote.total != null
+              ? new Intl.NumberFormat('en-US', { style: 'currency', currency: creditNote.currency || 'USD' }).format(Math.abs(Number(creditNote.total)))
+              : undefined;
+            const statusBadge = creditNote.status ? (
+              <Badge variant="outline" className="text-[10px] font-normal capitalize">{t(`statuses.${creditNote.status}`)}</Badge>
+            ) : undefined;
+            if (useListView) {
+              return (
+                <DataListRow
+                  title={creditNote.doc_no || String(creditNote.id)}
+                  badge={statusBadge}
+                  meta={(
+                    <>
+                      {creditNote.createdAt ? <span>{formatDateTime(creditNote.createdAt)}</span> : null}
+                      {totalStr ? <span className="font-medium text-foreground">{t('total')}: {totalStr}</span> : null}
+                    </>
+                  )}
+                />
+              );
+            }
+            return (
+              <DataCard
+                title={creditNote.doc_no || String(creditNote.id)}
+                subtitle={[
+                  creditNote.createdAt ? formatDateTime(creditNote.createdAt) : null,
+                  creditNote.currency || null,
+                  creditNote.status ? t(`statuses.${creditNote.status}`) : null,
+                ].filter(Boolean).join(' · ')}
+                badge={totalStr ? <Badge variant="outline">{totalStr}</Badge> : undefined}
+              />
+            );
+          }}
         />
       </CardContent>
     </Card>

@@ -1,7 +1,12 @@
 'use client';
 
+import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
+import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { InvoiceAllocation } from '@/lib/types';
 import { formatDateTime } from '@/lib/utils';
 import { ColumnDef } from '@tanstack/react-table';
@@ -86,6 +91,11 @@ const getColumns = (t: (key: string) => string): ColumnDef<InvoiceAllocation>[] 
 
 export function AllocationsTable({ allocations, isLoading }: AllocationsTableProps) {
   const tMain = useTranslations('InvoicesPage.AllocationsTable');
+  const tFilter = useTranslations('OrderItemsTable');
+  const viewportNarrow = useViewportNarrow();
+  const [viewMode, setViewMode] = useTableViewMode('allocations', 'table');
+  const showToggle = !viewportNarrow;
+  const useListView = !viewportNarrow && viewMode === 'list';
 
   const columns = React.useMemo(() => getColumns(tMain), [tMain]);
 
@@ -111,6 +121,41 @@ export function AllocationsTable({ allocations, isLoading }: AllocationsTablePro
     <DataTable
       columns={columns}
       data={allocations}
+      useGlobalFilter
+      filterPlaceholder={tFilter('filterPlaceholder')}
+      isNarrow={viewportNarrow || useListView}
+      viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+      cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+      renderCard={(alloc: InvoiceAllocation) => {
+        const monto = `${alloc.moneda} ${parseFloat(String(alloc.monto_asignado ?? '0')).toFixed(2)}`;
+        const badge = alloc.destino_tipo ? (
+          <Badge variant="outline" className="text-[10px] font-normal">{tMain(`documentTypes.${alloc.destino_tipo}`)}</Badge>
+        ) : undefined;
+        if (useListView) {
+          return (
+            <DataListRow
+              title={`#${alloc.destino_doc_no || 'N/A'}`}
+              badge={badge}
+              meta={(
+                <>
+                  <span>{formatDateTime(alloc.fecha_asignacion)}</span>
+                  <span className="font-medium text-foreground">{tMain('monto_asignado')}: {monto}</span>
+                </>
+              )}
+            />
+          );
+        }
+        return (
+          <DataCard
+            title={`#${alloc.destino_doc_no || 'N/A'}`}
+            badge={badge}
+            fields={[
+              { label: tMain('monto_asignado'), value: monto, primary: true },
+              { label: tMain('fecha_asignacion'), value: formatDateTime(alloc.fecha_asignacion) },
+            ]}
+          />
+        );
+      }}
     />
   );
 }

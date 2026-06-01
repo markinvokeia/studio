@@ -61,21 +61,19 @@ interface OrderItemsTableProps {
   patient?: UserType;
   canSchedule?: boolean;
   canComplete?: boolean;
-  /** When true, enables the table/list view toggle (list view shown on desktop) */
-  listView?: boolean;
 }
 
-export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true, listView = false }: OrderItemsTableProps) {
+export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quoteId, quoteDocNo, isSales = true, userId, patient, canSchedule = true, canComplete = true }: OrderItemsTableProps) {
   const t = useTranslations('OrderItemsTable');
   const { toast } = useToast();
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
   const [viewMode, setViewMode] = useTableViewMode('quote-items', 'list');
-  // Toggle only on desktop/tablet; mobile always shows cards.
-  const showToggle = listView && !viewportNarrow;
+  // Toggle on desktop/tablet; mobile always shows cards.
+  const showToggle = !viewportNarrow;
   // Render the list view on desktop; mobile keeps DataCard.
-  const useListView = listView && !viewportNarrow && viewMode === 'list';
-  const isNarrow = useListView || panelNarrow || viewportNarrow;
+  const useListView = !viewportNarrow && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
   const [isDatePickerOpen, setIsDatePickerOpen] = React.useState(false);
   const [isClinicSessionDialogOpen, setIsClinicSessionDialogOpen] = React.useState(false);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);

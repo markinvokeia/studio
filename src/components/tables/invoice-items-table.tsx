@@ -4,6 +4,9 @@ import * as React from 'react';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -34,7 +37,10 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
   const t = useTranslations('InvoicesPage.InvoiceItemsTable');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('invoice-items', 'table');
+  const showToggle = !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
 
   const columns: ColumnDef<InvoiceItem>[] = [
     {
@@ -195,7 +201,23 @@ export function InvoiceItemsTable({ items, isLoading = false, onRefresh, isRefre
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
           isNarrow={isNarrow}
-          renderCard={(item: InvoiceItem, isSelected: boolean) => (
+          viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+          renderCard={(item: InvoiceItem, isSelected: boolean) => useListView ? (
+            <DataListRow
+              isSelected={isSelected}
+              onClick={onRowSelectionChange ? () => onRowSelectionChange([item]) : undefined}
+              title={item.service_name || String(item.id)}
+              meta={(
+                <>
+                  {(item.steps || item.step_id) ? <span>{t('columns.step')}: {item.steps || item.step_id}</span> : null}
+                  <span>{t('columns.quantity')}: {item.quantity}</span>
+                  <span>{t('columns.unitPrice')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.unit_price || 0)}</span>
+                  <span className="font-medium text-foreground">{t('columns.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.total || 0)}</span>
+                </>
+              )}
+            />
+          ) : (
             <DataCard
               isSelected={isSelected}
               title={item.service_name || String(item.id)}
