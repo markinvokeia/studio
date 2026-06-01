@@ -171,6 +171,26 @@ const fetchAlertActions = async (page: number = 1, limit: number = 50): Promise<
     }
 };
 
+type AlertStatistics = {
+    total_alertas_activas: string;
+    alertas_criticas: string;
+    alertas_alta_prioridad: string;
+    alertas_media_prioridad: string;
+};
+
+const EMPTY_STATISTICS: AlertStatistics = { total_alertas_activas: '0', alertas_criticas: '0', alertas_alta_prioridad: '0', alertas_media_prioridad: '0' };
+
+const fetchAlertStatistics = async (): Promise<AlertStatistics> => {
+    try {
+        const response = await api.get(API_ROUTES.SYSTEM.ALERT_STATISTICS);
+        const data = Array.isArray(response) ? response[0] : response;
+        return data || EMPTY_STATISTICS;
+    } catch (error) {
+        console.error('Failed to fetch alert statistics:', error);
+        return EMPTY_STATISTICS;
+    }
+};
+
 const fetchAlertCategories = async (): Promise<AlertCategory[]> => {
     try {
         const response = await api.get(API_ROUTES.SYSTEM.ALERT_CATEGORIES);
@@ -255,21 +275,24 @@ function AlertsCenterPageContent() {
     const [alertForEmailComposer, setAlertForEmailComposer] = React.useState<AlertInstance | null>(null);
     const [isAlertWhatsAppDialogOpen, setIsAlertWhatsAppDialogOpen] = React.useState(false);
     const [alertForWhatsAppComposer, setAlertForWhatsAppComposer] = React.useState<AlertInstance | null>(null);
+    const [alertStatistics, setAlertStatistics] = React.useState<AlertStatistics>(EMPTY_STATISTICS);
 
 
     const loadAlerts = React.useCallback(async () => {
         setLoading(true);
         try {
-            const [alertsData, { actions: actionsData, totalPages: actionsTotalPages }, categoriesData] = await Promise.all([
+            const [alertsData, { actions: actionsData, totalPages: actionsTotalPages }, categoriesData, statisticsData] = await Promise.all([
                 fetchAlerts(statusFilter || undefined, priorityFilter || undefined, alertsPage, alertsLimit),
                 fetchAlertActions(page, limit),
-                fetchAlertCategories()
+                fetchAlertCategories(),
+                fetchAlertStatistics(),
             ]);
             setAlerts(alertsData.alerts);
             setAlertsTotalRecords(alertsData.totalRecords);
             setAlertActions(actionsData);
             setTotalPages(actionsTotalPages);
             setAlertCategories(categoriesData);
+            setAlertStatistics(statisticsData);
         } catch (error) {
             console.error('Failed to load alerts:', error);
         } finally {
@@ -513,10 +536,10 @@ function AlertsCenterPageContent() {
     };
 
     const summaryCounts = {
-        total: (alerts || []).filter(a => a.status === 'PENDING').length,
-        critical: (alerts || []).filter(a => a.priority === 'CRITICAL' && a.status === 'PENDING').length,
-        high: (alerts || []).filter(a => a.priority === 'HIGH' && a.status === 'PENDING').length,
-        medium: (alerts || []).filter(a => a.priority === 'MEDIUM' && a.status === 'PENDING').length,
+        total: Number(alertStatistics.total_alertas_activas),
+        critical: Number(alertStatistics.alertas_criticas),
+        high: Number(alertStatistics.alertas_alta_prioridad),
+        medium: Number(alertStatistics.alertas_media_prioridad),
     };
 
     return (

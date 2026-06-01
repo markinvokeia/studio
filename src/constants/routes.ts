@@ -286,6 +286,7 @@ export const API_ROUTES = {
         ALERT_CATEGORY: '/alert_category',
         ALERT_CONFIG_WEBHOOK: '/system/alert-config',
         ALERT_INSTANCES: '/system/alert-instances',
+        ALERT_STATISTICS: '/system/alert-statistics',
         ALERT_INSTANCES_COMPLETE: '/system/alert-instances/complete',
         ALERT_INSTANCES_IGNORE: '/system/alert-instances/ignore',
         ALERT_INSTANCES_SEND_EMAIL: '/system/alert-instances/send-email',
