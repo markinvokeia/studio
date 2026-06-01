@@ -57,7 +57,7 @@ import { toLocalISOString } from '@/lib/utils';
 import api from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
 import { updateAppointmentStatusRequest } from '@/services/appointments';
-import { getSalesServices, getUsersServicesBatch } from '@/services/services';
+import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, format, isValid, parseISO } from 'date-fns';
 import { BellRing, Calendar as CalendarIcon, CalendarPlus, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Loader2, PlusCircle, RefreshCw, Stethoscope, Trash2, Users } from 'lucide-react';
@@ -85,7 +85,7 @@ import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
 
 interface NotifActCallbacks {
-  onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void;
+  onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
   onSchedule: (
     patientId: string,
     patientName: string,
@@ -95,8 +95,9 @@ interface NotifActCallbacks {
     items?: SessionPreloadedService[],
     quoteId?: string,
     calendarId?: string,
+    notifId?: string,
   ) => void;
-  onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void;
+  onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
 }
 
 function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
@@ -149,6 +150,7 @@ function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCal
         preloadedItems,
         searchParams.get('quoteId') ?? undefined,
         searchParams.get('calendarId') ?? undefined,
+        notifId,
       );
     } else if (act === 'invoice') {
       onInvoice(patientId, patientName, preloadedItems, notifId);
@@ -521,6 +523,8 @@ export default function AppointmentsPage() {
             setIsReschedulingMode(false);
             setSlotInitialData(null);
             setScheduleNextData(null);
+            setPendingScheduleNotifId(undefined);
+            setScheduleNextResolvedServices(undefined);
         }
     };
 
@@ -1043,28 +1047,31 @@ export default function AppointmentsPage() {
     const [invoicePatient, setInvoicePatient] = React.useState<UserType | null>(null);
     const [invoiceInitialItems, setInvoiceInitialItems] = React.useState<SessionPreloadedService[] | undefined>();
     const [pendingInvoiceNotifId, setPendingInvoiceNotifId] = React.useState<string | undefined>();
+    const [pendingScheduleNotifId, setPendingScheduleNotifId] = React.useState<string | undefined>();
+    const [scheduleNextResolvedServices, setScheduleNextResolvedServices] = React.useState<Service[] | undefined>();
 
     // ── Notification deep-link handlers ───────────────────────────────────────
     /**
      * Enriches preloaded AI service items with prices from the loaded services catalog.
      * AI treatments only carry service_id/name — prices must come from the catalog.
      */
-    const enrichItemsWithPrices = React.useCallback((items?: SessionPreloadedService[]): SessionPreloadedService[] | undefined => {
-        if (!items) return undefined;
+    const enrichItemsWithPrices = React.useCallback(async (items?: SessionPreloadedService[]): Promise<SessionPreloadedService[] | undefined> => {
+        if (!items || items.length === 0) return undefined;
+        const ids = items.map(i => i.service_id).filter((id): id is string => Boolean(id));
+        const catalogItems = await fetchServicesByIds(ids);
         return items.map(item => {
-            if (item.unit_price != null && item.unit_price > 0) return item;
-            const catalogService = services.find(s => String(s.id) === String(item.service_id));
+            const catalogService = catalogItems.find(s => String(s.id) === String(item.service_id));
             return {
                 ...item,
                 unit_price: catalogService?.price ?? item.unit_price,
-                service_name: item.service_name || catalogService?.name,
+                service_name: catalogService?.name ?? item.service_name,
             };
         });
-    }, [services]);
+    }, []);
 
-    const handleNotifQuote = React.useCallback((patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
+    const handleNotifQuote = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setQuickQuotePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setQuickQuoteInitialItems(enrichItemsWithPrices(items));
+        setQuickQuoteInitialItems(await enrichItemsWithPrices(items));
         setPendingQuoteNotifId(notifId);
         setIsQuickQuoteOpen(true);
     }, [enrichItemsWithPrices]);
@@ -1078,17 +1085,33 @@ export default function AppointmentsPage() {
         items?: SessionPreloadedService[],
         quoteId?: string,
         calendarId?: string,
+        notifId?: string,
     ) => {
         setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId });
+        setPendingScheduleNotifId(notifId);
         setCreateOpen(true);
     }, []);
 
-    const handleNotifInvoice = React.useCallback((patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
+    const handleNotifInvoice = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setInvoicePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setInvoiceInitialItems(enrichItemsWithPrices(items));
+        setInvoiceInitialItems(await enrichItemsWithPrices(items));
         setPendingInvoiceNotifId(notifId);
         setIsInvoiceFormOpen(true);
     }, [enrichItemsWithPrices]);
+
+    // Fetch the catalog services for the AI-detected IDs whenever scheduleNextData changes.
+    React.useEffect(() => {
+        const ids = scheduleNextData?.services
+            ?.map(s => s.service_id)
+            .filter((id): id is string => Boolean(id));
+        if (!ids || ids.length === 0) {
+            setScheduleNextResolvedServices(undefined);
+            return;
+        }
+        fetchServicesByIds(ids).then(items => {
+            setScheduleNextResolvedServices(items.length > 0 ? items : undefined);
+        }).catch(() => setScheduleNextResolvedServices(undefined));
+    }, [scheduleNextData]);
 
     // Resolved initialData for the "schedule next" dialog — memoized to avoid a new
     // object reference on every render while the dialog is open.
@@ -1100,14 +1123,6 @@ export default function AppointmentsPage() {
         const calendar = scheduleNextData.calendarId
             ? (calendars.find(c => String(c.id) === scheduleNextData.calendarId) ?? null)
             : null;
-        // Resolve pre-loaded AI services against the catalog.
-        // Return undefined (not []) when nothing resolves so the form stays
-        // in a clean uninitialized state; when the catalog finishes loading
-        // the memo will recompute and the form will reinitialize correctly.
-        const catalogMatches = scheduleNextData.services && scheduleNextData.services.length > 0
-            ? services.filter(s => scheduleNextData.services!.some(item => String(item.service_id) === String(s.id)))
-            : null;
-        const resolvedServices = catalogMatches && catalogMatches.length > 0 ? catalogMatches : undefined;
         const quote: Quote | null = scheduleNextData.quoteId
             ? {
                 id: scheduleNextData.quoteId,
@@ -1124,10 +1139,10 @@ export default function AppointmentsPage() {
             date: scheduleNextData.date,
             doctor,
             calendar,
-            services: resolvedServices,
+            services: scheduleNextResolvedServices,
             quote,
         };
-    }, [scheduleNextData, doctors, calendars, services]);
+    }, [scheduleNextData, doctors, calendars, scheduleNextResolvedServices]);
     // ─────────────────────────────────────────────────────────────────────────
 
     const loadInitialData = React.useCallback(async () => {
@@ -1188,6 +1203,10 @@ export default function AppointmentsPage() {
         setCreateOpen(false);
         setEditingAppointment(null);
         setSlotInitialData(null);
+        if (pendingScheduleNotifId) {
+            markSessionAction(pendingScheduleNotifId, 'schedule');
+            setPendingScheduleNotifId(undefined);
+        }
     };
 
     const handleEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {

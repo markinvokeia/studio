@@ -10,7 +10,6 @@ import {
   Check,
   Clock,
   ExternalLink,
-  FileText,
   ListChecks,
   Loader2,
   Stethoscope,
@@ -27,6 +26,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useNotifications } from '@/context/notifications-context';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
+import { getSalesServices } from '@/services/services';
 import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
@@ -164,10 +164,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
   // Usar los IDs del documento como fuente de verdad — taken solo como fallback
   // en caso de que el dato aún no haya llegado desde el backend.
   const hasQuote = !!appointment.quote_id || taken.includes('quote');
-  const hasInvoice = !!appointment.invoice_id || taken.includes('invoice');
-  const hasNoQuote = !hasQuote && !hasInvoice;
-  // La factura puede crearse sin presupuesto previo (para la sesión actual)
-  const hasInvoiceAction = !hasInvoice;
+  const hasNoQuote = !hasQuote;
 
   // Loading state independiente por botón
   const [loadingAction, setLoadingAction] = React.useState<'quote' | 'invoice' | 'schedule' | 'billing' | null>(null);
@@ -190,7 +187,8 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       // Buscar la sesión que corresponde a esta cita:
       // 1º por appointment_id exacto
       // 2º por fecha de sesión que coincida con la fecha de la cita (mismo día)
-      // 3º fallback a la sesión más reciente (puede ser otra cita del mismo paciente)
+      // Sin fallback a sorted[0]: si ninguno coincide, devolver [] para que
+      // goToAppointments use el snapshot de la notificación en su lugar.
       const sorted = [...arr].sort(
         (a, b) => Date.parse(b.fecha_sesion || '') - Date.parse(a.fecha_sesion || ''),
       );
@@ -199,8 +197,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
         sorted.find((s) => String(s.appointment_id ?? '') === appointment.id) ??
         (apptDatePrefix
           ? sorted.find((s) => s.fecha_sesion && String(s.fecha_sesion).slice(0, 10) === apptDatePrefix)
-          : undefined) ??
-        sorted[0];
+          : undefined);
       // Normalizar para mapear service_catalog_id → service_id (string)
       return Array.isArray(matched?.tratamientos)
         ? matched.tratamientos.map(normalizeTratamiento)
@@ -210,29 +207,50 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     }
   }, [appointment.patientId, appointment.id]);
 
+  // Servicios del snapshot local (para display en la card y pre-carga en Cobro Rápido).
+  const allTratamientos: TreatmentDetail[] = (session?.tratamientos ?? []).map(normalizeTratamiento);
+  const aiCurrentServices = allTratamientos.filter((t) => t.service_id && t.is_for_next_session !== true);
+  const aiNextServices = allTratamientos.filter((t) => t.service_id && t.is_for_next_session === true);
+
   const handleCobroRapido = React.useCallback(async () => {
     if (!appointment.patientId) return;
     setLoadingAction('billing');
     try {
-      // Fetch fresh billing state so we never open a freeform wizard for an
-      // appointment that was already invoiced since the notification was created.
-      const fresh = await fetchAppointmentBillingState(
-        appointment.patientId,
-        appointment.id,
-        appointment.date,
-      );
+      // Fetch billing state and catalog in parallel.
+      const [fresh, catalogResponse] = await Promise.all([
+        fetchAppointmentBillingState(appointment.patientId, appointment.id, appointment.date),
+        aiCurrentServices.length > 0 ? getSalesServices({ limit: 500 }) : Promise.resolve(null),
+      ]);
 
       const freshInvoiceId = fresh.invoice_id ?? (appointment.invoice_id ? String(appointment.invoice_id) : null);
       const freshQuoteId = fresh.quote_id ?? appointment.quote_id ?? null;
 
-      const preloadedItems = (appointment.services ?? []).map((svc) => ({
-        tempId: svc.id,
-        service_id: svc.id,
-        service_name: svc.name,
-        unit_price: svc.price || 0,
-        quantity: 1,
-        total: svc.price || 0,
-      }));
+      // Prefer AI-detected current-session services with catalog-resolved names;
+      // fall back to appointment.services when no AI services are available.
+      const preloadedItems = aiCurrentServices.length > 0
+        ? aiCurrentServices.map((svc) => {
+            const catalogService = catalogResponse?.items.find(
+              (s) => String(s.id) === String(svc.service_id),
+            );
+            const price = catalogService?.price ?? svc.unit_price ?? 0;
+            const qty = svc.quantity ?? 1;
+            return {
+              tempId: svc.service_id!,
+              service_id: svc.service_id!,
+              service_name: catalogService?.name ?? svc.service_name ?? svc.descripcion ?? '',
+              unit_price: price,
+              quantity: qty,
+              total: price * qty,
+            };
+          })
+        : (appointment.services ?? []).map((svc) => ({
+            tempId: svc.id,
+            service_id: svc.id,
+            service_name: svc.name,
+            unit_price: svc.price || 0,
+            quantity: 1,
+            total: svc.price || 0,
+          }));
 
       closePanel();
       window.dispatchEvent(new Event('clinic:calendar:refresh'));
@@ -248,16 +266,13 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     } finally {
       setLoadingAction(null);
     }
-  }, [appointment, closePanel, openBillingWizard]);
+  }, [appointment, aiCurrentServices, closePanel, openBillingWizard]);
 
   /** Re-fetcha la sesión, filtra servicios IA y navega a /appointments */
   const goToAppointments = async (action: 'quote' | 'invoice' | 'schedule') => {
     setLoadingAction(action);
-    // Para schedule no hay un documento que confirme la acción, así que se marca
-    // de inmediato. Para quote e invoice se marca solo tras el guardado exitoso
-    // del formulario (el deep-link en appointments/page.tsx lo hace vía notifId).
-    if (action === 'schedule') markSessionAction(notification.id, action);
-    // Cerrar el panel inmediatamente — el trabajo async continúa en background.
+    // Todas las acciones se marcan solo tras el guardado exitoso del formulario
+    // (el deep-link en appointments/page.tsx lo hace vía notifId).
     closePanel();
     window.dispatchEvent(new Event('clinic:calendar:refresh'));
 
@@ -267,6 +282,10 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       patientName: appointment.patientName || '',
     });
 
+    // notifId siempre presente para que appointments/page.tsx pueda marcar la
+    // acción como completada solo si el guardado es exitoso.
+    params.set('notifId', notification.id);
+
     if (action === 'schedule') {
       if (session?.fecha_proxima_cita) params.set('date', session.fecha_proxima_cita);
       if (appointment.doctorId) params.set('doctorId', appointment.doctorId);
@@ -274,15 +293,18 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
       if (appointment.quote_id) params.set('quoteId', appointment.quote_id);
       if (appointment.calendar_source_id) params.set('calendarId', appointment.calendar_source_id);
     } else {
-      // Pasar referencia a la notificación para que appointments/page.tsx pueda
-      // marcar la acción como completada solo si el guardado es exitoso.
-      params.set('notifId', notification.id);
       if (appointment.id) params.set('appointmentId', appointment.id);
     }
 
-    // Fetch treatments once and select the relevant subset per action.
+    // Re-fetch treatments. If strict matching found nothing (appointment_id and date
+    // both missed), fall back to the snapshot already stored in the notification so
+    // the form stays consistent with what the card displays — never use a random
+    // session from the same patient.
     const freshTratamientos = await fetchFreshTratamientos();
-    const aiServices = freshTratamientos.filter((t) => t.service_id);
+    const source = freshTratamientos.length > 0
+      ? freshTratamientos
+      : (session?.tratamientos ?? []).map(normalizeTratamiento);
+    const aiServices = source.filter((t) => t.service_id);
     const nextServices = aiServices.filter((t) => t.is_for_next_session === true);
     const currentServices = aiServices.filter((t) => t.is_for_next_session !== true);
 
@@ -308,12 +330,6 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
     // so without this reset all buttons stay disabled after navigation.
     setLoadingAction(null);
   };
-
-  // Servicios del snapshot local (solo para display en la card, no para el form).
-  // Normalizar para mapear service_catalog_id → service_id.
-  const allTratamientos: TreatmentDetail[] = (session?.tratamientos ?? []).map(normalizeTratamiento);
-  const aiCurrentServices = allTratamientos.filter((t) => t.service_id && t.is_for_next_session !== true);
-  const aiNextServices = allTratamientos.filter((t) => t.service_id && t.is_for_next_session === true);
 
   return (
     <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-emerald-500/60">
@@ -424,14 +440,14 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
               ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : <Zap className="h-3.5 w-3.5" />}
             {t('actionCobroRapido')}
-            {(appointment.services?.length ?? 0) > 0 && loadingAction !== 'billing' && (
+            {(aiCurrentServices.length > 0 || (appointment.services?.length ?? 0) > 0) && loadingAction !== 'billing' && (
               <span className="ml-auto text-[10px] text-emerald-100">
-                {appointment.services!.length} {t('servicesPreloaded')}
+                {aiCurrentServices.length > 0 ? aiCurrentServices.length : appointment.services!.length} {t('servicesPreloaded')}
               </span>
             )}
           </Button>
 
-          {(hasNoQuote || hasInvoiceAction || hasNextPlan) && (
+          {(hasNoQuote || hasNextPlan) && (
             <>
             {hasNoQuote && (
               <Button
@@ -448,26 +464,6 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 {aiNextServices.length > 0 && loadingAction !== 'quote' && (
                   <span className="ml-auto text-[10px] text-muted-foreground">
                     {aiNextServices.length} {t('servicesPreloaded')}
-                  </span>
-                )}
-              </Button>
-            )}
-
-            {hasInvoiceAction && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 w-full justify-start gap-2 text-[11px]"
-                disabled={loadingAction !== null}
-                onClick={() => goToAppointments('invoice')}
-              >
-                {loadingAction === 'invoice'
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <FileText className="h-3.5 w-3.5 text-amber-500" />}
-                {t('actionGenerateInvoice')}
-                {aiCurrentServices.length > 0 && loadingAction !== 'invoice' && (
-                  <span className="ml-auto text-[10px] text-muted-foreground">
-                    {aiCurrentServices.length} {t('servicesPreloaded')}
                   </span>
                 )}
               </Button>
