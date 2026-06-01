@@ -42,6 +42,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, FileMinus2, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -323,6 +324,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const canCreatePayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
   const canCreateInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_CREATE : PURCHASES_PERMISSIONS.INVOICES_CREATE);
   const canEditItems = isDraft && (canAddItem || canUpdateItem || canDeleteItem);
+
+  const invoicePaymentColumns = React.useMemo<ColumnDef<any>[]>(() => [
+    { accessorKey: 'doc_no', header: 'N° Pago', size: 130, cell: ({ row }: any) => row.original.doc_no ? `#${row.original.doc_no}` : '-' },
+    { accessorKey: 'date', header: 'Fecha', size: 100, cell: ({ row }: any) => row.original.date ? formatDisplayDate(row.original.date) : '-' },
+    { accessorKey: 'method', header: 'Método', size: 130, cell: ({ row }: any) => row.original.method || '-' },
+    { accessorKey: 'currency', header: 'Moneda', size: 80 },
+    { accessorKey: 'amount', header: 'Monto', size: 130, cell: ({ row }: any) => new Intl.NumberFormat('en-US', { style: 'currency', currency: row.original.currency || 'USD' }).format(row.original.amount) },
+  ], []);
 
   // ── Data loading ────────────────────────────────────────────────────────────
   const loadInvoices = React.useCallback(async (silent = false) => {
@@ -1002,74 +1011,34 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   </TabsList>
                 </div>
 
-                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
-                  <ScrollArea className="h-full">
-                    <div className="px-4 py-3 space-y-2">
-                      {isLoadingItems ? (
-                        <>
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                        </>
-                      ) : invoiceItems.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Sin ítems registrados.</p>
-                      ) : (
-                        invoiceItems.map((item) => (
-                          <DataCard
-                            key={item.id}
-                            title={item.service_name || '-'}
-                            subtitle={item.steps || item.step_id || undefined}
-                            fields={[
-                              { label: 'Cantidad', value: String(item.quantity) },
-                              {
-                                label: 'Precio unit.',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.unit_price),
-                              },
-                              {
-                                label: 'Total',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.total),
-                                primary: true,
-                              },
-                            ]}
-                            actions={canEditItems ? (
-                              <div className="flex items-center gap-1">
-                                {canUpdateItem && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                                {canDeleteItem && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingItem(item)}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            ) : undefined}
-                          />
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden px-4 py-2">
+                  <InvoiceItemsTable
+                    items={invoiceItems}
+                    isLoading={isLoadingItems}
+                    canEdit={canEditItems}
+                    onCreate={canAddItem ? () => { setEditingItem(null); setIsItemDialogOpen(true); loadServices(); } : undefined}
+                    onEdit={canUpdateItem ? (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); } : undefined}
+                    onDelete={canDeleteItem ? setDeletingItem : undefined}
+                    onRefresh={() => selectedInvoice && loadItems(selectedInvoice.id)}
+                  />
                 </TabsContent>
 
-                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
-                  <ScrollArea className="h-full">
-                    <div className="px-4 py-3 space-y-2">
-                      {isLoadingPayments ? (
-                        <>
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                        </>
-                      ) : invoicePayments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
-                      ) : (
-                        invoicePayments.map((payment, idx) => (
+                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden px-4 py-2">
+                  <Card className="h-full flex flex-col min-h-0">
+                    <CardContent className="flex flex-col p-4 flex-1 min-h-0">
+                      <DataTable
+                        columns={invoicePaymentColumns}
+                        data={invoicePayments}
+                        isLoading={isLoadingPayments}
+                        onRefresh={() => selectedInvoice && loadInvoicePayments(selectedInvoice.id)}
+                        isRefreshing={isLoadingPayments}
+                        isNarrow={isViewportNarrow}
+                        renderCard={(payment) => (
                           <DataCard
-                            key={payment.id || `payment-${idx}`}
-                            title={payment.doc_no || `Pago #${payment.id}`}
+                            title={payment.doc_no ? `#${payment.doc_no}` : `Pago #${payment.id}`}
                             subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
                             fields={[
-                              { label: 'Método', value: payment.method || '-' },
+                              ...(payment.method ? [{ label: 'Método', value: payment.method }] : []),
                               { label: 'Moneda', value: payment.currency || '-' },
                               {
                                 label: 'Monto',
@@ -1078,10 +1047,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                               },
                             ]}
                           />
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                        )}
+                      />
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               </Tabs>
             </div>

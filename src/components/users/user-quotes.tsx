@@ -1505,27 +1505,15 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                   </TabsContent>
 
                   <TabsContent value="clinic-sessions" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-semibold flex items-center gap-2">
-                        <Stethoscope className="h-4 w-4" />
-                        {t('UserQuotes.clinicSessions')}
-                      </h4>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => loadQuoteClinicSessions(selectedQuote.id)} disabled={isLoadingClinicSessions}>
-                        <RefreshCw className={`h-3.5 w-3.5 ${isLoadingClinicSessions ? 'animate-spin' : ''}`} />
-                      </Button>
-                    </div>
-                    <div className="flex-1 min-h-0">
-                      {clinicSessions.length === 0 && !isLoadingClinicSessions ? (
-                        <p className="text-muted-foreground text-sm text-center py-8">{t('UserQuotes.noSessionsFound')}</p>
-                      ) : (
-                        <DataTable
-                          columns={getClinicSessionColumns(t)}
-                          data={clinicSessions}
-                          isRefreshing={isLoadingClinicSessions}
-                          onRefresh={() => loadQuoteClinicSessions(selectedQuote.id)}
-                        />
-                      )}
-                    </div>
+                    <DataTable
+                      columns={getClinicSessionColumns(t)}
+                      data={clinicSessions}
+                      isLoading={isLoadingClinicSessions}
+                      isRefreshing={isLoadingClinicSessions}
+                      onRefresh={() => loadQuoteClinicSessions(selectedQuote.id)}
+                      useGlobalFilter
+                      filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                    />
                   </TabsContent>
 
                   {/* Facturas tab */}
