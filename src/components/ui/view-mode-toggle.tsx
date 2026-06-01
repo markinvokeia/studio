@@ -4,11 +4,11 @@ import * as React from 'react';
 import { LayoutList, Table2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import type { ItemsViewMode } from '@/hooks/use-items-view-mode';
+import type { TableViewMode } from '@/hooks/use-table-view-mode';
 
 interface ViewModeToggleProps {
-  value: ItemsViewMode;
-  onChange: (mode: ItemsViewMode) => void;
+  value: TableViewMode;
+  onChange: (mode: TableViewMode) => void;
   tableLabel?: string;
   listLabel?: string;
   className?: string;
@@ -16,7 +16,7 @@ interface ViewModeToggleProps {
 
 /** Segmented control to switch between table and list (timeline-style) views. */
 export function ViewModeToggle({ value, onChange, tableLabel = 'Tabla', listLabel = 'Lista', className }: ViewModeToggleProps) {
-  const options: { mode: ItemsViewMode; icon: typeof Table2; label: string }[] = [
+  const options: { mode: TableViewMode; icon: typeof Table2; label: string }[] = [
     { mode: 'table', icon: Table2, label: tableLabel },
     { mode: 'list', icon: LayoutList, label: listLabel },
   ];

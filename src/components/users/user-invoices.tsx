@@ -18,7 +18,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,6 +41,9 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { AlertTriangle, CalendarIcon, CheckCircle, ChevronDown, CreditCard, Eye, FileMinus2, Loader2, Pencil, Printer, Send, Trash2, Zap } from 'lucide-react';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
@@ -166,6 +168,99 @@ const getColumns = (t: (key: string) => string, tStatus: (key: string) => string
   },
 ];
 
+// ── Invoice-detail inner table columns ────────────────────────────────────────
+const fmtCurrency = (v: number, currency?: string) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(v || 0);
+
+function getInvoiceItemColumns(currency: string | undefined, opts: {
+  canUpdateItem: boolean;
+  canDeleteItem: boolean;
+  onEdit: (item: InvoiceItem) => void;
+  onDelete: (item: InvoiceItem) => void;
+}): ColumnDef<InvoiceItem>[] {
+  const cols: ColumnDef<InvoiceItem>[] = [
+    {
+      accessorKey: 'service_name',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Servicio" />,
+      cell: ({ row }) => <span className="font-medium">{row.original.service_name || '-'}</span>,
+    },
+    {
+      accessorKey: 'quantity',
+      size: 90,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Cantidad" />,
+    },
+    {
+      accessorKey: 'unit_price',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Precio unit." />,
+      cell: ({ row }) => fmtCurrency(row.original.unit_price, currency),
+    },
+    {
+      accessorKey: 'total',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Total" />,
+      cell: ({ row }) => <span className="font-medium tabular-nums">{fmtCurrency(row.original.total, currency)}</span>,
+    },
+  ];
+  if (opts.canUpdateItem || opts.canDeleteItem) {
+    cols.push({
+      id: 'actions',
+      size: 90,
+      header: () => null,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          {opts.canUpdateItem && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => opts.onEdit(row.original)}>
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {opts.canDeleteItem && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => opts.onDelete(row.original)}>
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+      ),
+    });
+  }
+  return cols;
+}
+
+function getInvoicePaymentColumns(): ColumnDef<any>[] {
+  return [
+    {
+      accessorKey: 'doc_no',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="N° Pago" />,
+      cell: ({ row }) => <span className="font-medium">{row.original.doc_no || `Pago #${row.original.id}`}</span>,
+    },
+    {
+      accessorKey: 'date',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha" />,
+      cell: ({ row }) => row.original.date ? formatDisplayDate(row.original.date) : '-',
+    },
+    {
+      accessorKey: 'method',
+      size: 140,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Método" />,
+      cell: ({ row }) => row.original.method || '-',
+    },
+    {
+      accessorKey: 'currency',
+      size: 90,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Moneda" />,
+      cell: ({ row }) => row.original.currency || '-',
+    },
+    {
+      accessorKey: 'amount',
+      size: 120,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Monto" />,
+      cell: ({ row }) => <span className="font-medium tabular-nums">{fmtCurrency(row.original.amount, row.original.currency)}</span>,
+    },
+  ];
+}
+
 // ── Data fetching ─────────────────────────────────────────────────────────────
 async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
   if (!userId) return [];
@@ -256,6 +351,13 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const { open: openBillingWizard } = useBillingWizard();
   const { printInvoice } = usePrintDocument();
   const isViewportNarrow = useViewportNarrow();
+  const [viewMode, setViewMode] = useTableViewMode('invoices-list', 'table');
+  const showToggle = !isViewportNarrow;
+  const useListView = !isViewportNarrow && viewMode === 'list';
+  const [detailItemsViewMode, setDetailItemsViewMode] = useTableViewMode('invoice-detail-items', 'table');
+  const [detailPaymentsViewMode, setDetailPaymentsViewMode] = useTableViewMode('invoice-detail-payments', 'table');
+  const detailItemsListView = !isViewportNarrow && detailItemsViewMode === 'list';
+  const detailPaymentsListView = !isViewportNarrow && detailPaymentsViewMode === 'list';
   const isSales = mode === 'sales';
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -838,30 +940,53 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             onRefresh={() => loadInvoices(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
-            isNarrow={isViewportNarrow}
-            renderCard={(invoice: Invoice, _isSelected: boolean) => (
-              <DataCard isSelected={_isSelected}
-                title={invoice.doc_no || `INV-${invoice.id}`}
-                subtitle={formatDisplayDate(invoice.createdAt)}
-                badge={
-                  <div className="flex gap-1 flex-wrap justify-end">
-                    <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
-                      {tStatus(invoice.status?.toLowerCase() || '')}
+            isNarrow={isViewportNarrow || useListView}
+            viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+            cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+            renderCard={(invoice: Invoice, _isSelected: boolean) => {
+              const badgeGroup = (
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <Badge variant={(STATUS_BADGE[invoice.status?.toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">
+                    {tStatus(invoice.status?.toLowerCase() || '')}
+                  </Badge>
+                  {invoice.payment_status && (
+                    <Badge variant={(PAYMENT_BADGE[invoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize text-[10px]">
+                      {tStatus(invoice.payment_status?.toLowerCase() || '')}
                     </Badge>
-                    {invoice.payment_status && (
-                      <Badge variant={(PAYMENT_BADGE[invoice.payment_status?.toLowerCase()] ?? 'outline') as any} className="capitalize text-[10px]">
-                        {tStatus(invoice.payment_status?.toLowerCase() || '')}
-                      </Badge>
+                  )}
+                </div>
+              );
+              if (useListView) {
+                return (
+                  <DataListRow
+                    isSelected={_isSelected}
+                    onClick={() => handleRowSelectionChange([invoice])}
+                    title={invoice.doc_no || `INV-${invoice.id}`}
+                    badge={badgeGroup}
+                    meta={(
+                      <>
+                        <span>{formatDisplayDate(invoice.createdAt)}</span>
+                        <span className="font-medium text-foreground">{t('InvoicesPage.columns.total')}: {invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-'}</span>
+                        {invoice.quote_doc_no ? <span>{t('InvoicesPage.columns.quoteDocNo')}: {invoice.quote_doc_no}</span> : null}
+                        {invoice.due_date ? <span>{t('InvoicesPage.columns.dueDate')}: {formatDisplayDate(invoice.due_date)}</span> : null}
+                      </>
                     )}
-                  </div>
-                }
-                fields={[
-                  { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
-                  { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
-                  { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
-                ]}
-              />
-            )}
+                  />
+                );
+              }
+              return (
+                <DataCard isSelected={_isSelected}
+                  title={invoice.doc_no || `INV-${invoice.id}`}
+                  subtitle={formatDisplayDate(invoice.createdAt)}
+                  badge={badgeGroup}
+                  fields={[
+                    { label: t('InvoicesPage.columns.total'), value: invoice.total != null ? `${invoice.currency || 'USD'} ${Number(invoice.total).toFixed(2)}` : '-', primary: true },
+                    { label: t('InvoicesPage.columns.quoteDocNo'), value: invoice.quote_doc_no || '-' },
+                    { label: t('InvoicesPage.columns.dueDate'), value: invoice.due_date ? formatDisplayDate(invoice.due_date) : '-' },
+                  ]}
+                />
+              );
+            }}
             columnTranslations={{
               doc_no: t('InvoicesPage.columns.docNo'),
               quote_doc_no: t('InvoicesPage.columns.quoteDocNo'),
@@ -1002,86 +1127,101 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   </TabsList>
                 </div>
 
-                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
-                  <ScrollArea className="h-full">
-                    <div className="px-4 py-3 space-y-2">
-                      {isLoadingItems ? (
+                <TabsContent value="items" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+                  <DataTable
+                    columns={getInvoiceItemColumns(selectedInvoice.currency, {
+                      canUpdateItem,
+                      canDeleteItem,
+                      onEdit: (item) => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); },
+                      onDelete: (item) => setDeletingItem(item),
+                    })}
+                    data={invoiceItems}
+                    isLoading={isLoadingItems}
+                    useGlobalFilter
+                    filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                    isNarrow={isViewportNarrow || detailItemsListView}
+                    viewControls={showToggle ? <ViewModeToggle value={detailItemsViewMode} onChange={setDetailItemsViewMode} /> : undefined}
+                    cardListClassName={detailItemsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                    renderCard={(item: InvoiceItem) => {
+                      const actionsEl = canEditItems ? (
                         <>
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
+                          {canUpdateItem && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {canDeleteItem && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingItem(item)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
                         </>
-                      ) : invoiceItems.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Sin ítems registrados.</p>
-                      ) : (
-                        invoiceItems.map((item) => (
-                          <DataCard
-                            key={item.id}
+                      ) : undefined;
+                      if (detailItemsListView) {
+                        return (
+                          <DataListRow
                             title={item.service_name || '-'}
-                            subtitle={item.steps || item.step_id || undefined}
-                            fields={[
-                              { label: 'Cantidad', value: String(item.quantity) },
-                              {
-                                label: 'Precio unit.',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.unit_price),
-                              },
-                              {
-                                label: 'Total',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(item.total),
-                                primary: true,
-                              },
-                            ]}
-                            actions={canEditItems ? (
-                              <div className="flex items-center gap-1">
-                                {canUpdateItem && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingItem(item); setIsItemDialogOpen(true); loadServices(); }}>
-                                    <Pencil className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                                {canDeleteItem && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeletingItem(item)}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                              </div>
-                            ) : undefined}
+                            meta={(
+                              <>
+                                <span>Cantidad: {item.quantity}</span>
+                                <span>Precio unit.: {fmtCurrency(item.unit_price, selectedInvoice.currency)}</span>
+                                <span className="font-medium text-foreground">Total: {fmtCurrency(item.total, selectedInvoice.currency)}</span>
+                              </>
+                            )}
+                            actions={actionsEl}
                           />
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                        );
+                      }
+                      return (
+                        <DataCard
+                          title={item.service_name || '-'}
+                          subtitle={item.steps || item.step_id || undefined}
+                          fields={[
+                            { label: 'Cantidad', value: String(item.quantity) },
+                            { label: 'Precio unit.', value: fmtCurrency(item.unit_price, selectedInvoice.currency) },
+                            { label: 'Total', value: fmtCurrency(item.total, selectedInvoice.currency), primary: true },
+                          ]}
+                          actions={actionsEl}
+                        />
+                      );
+                    }}
+                  />
                 </TabsContent>
 
-                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden">
-                  <ScrollArea className="h-full">
-                    <div className="px-4 py-3 space-y-2">
-                      {isLoadingPayments ? (
-                        <>
-                          <Skeleton className="h-16 w-full" />
-                          <Skeleton className="h-16 w-full" />
-                        </>
-                      ) : invoicePayments.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-8">Sin pagos registrados.</p>
-                      ) : (
-                        invoicePayments.map((payment, idx) => (
-                          <DataCard
-                            key={payment.id || `payment-${idx}`}
-                            title={payment.doc_no || `Pago #${payment.id}`}
-                            subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
-                            fields={[
-                              { label: 'Método', value: payment.method || '-' },
-                              { label: 'Moneda', value: payment.currency || '-' },
-                              {
-                                label: 'Monto',
-                                value: new Intl.NumberFormat('en-US', { style: 'currency', currency: payment.currency || 'USD' }).format(payment.amount),
-                                primary: true,
-                              },
-                            ]}
-                          />
-                        ))
-                      )}
-                    </div>
-                  </ScrollArea>
+                <TabsContent value="payments" className="flex-1 overflow-hidden mt-0 px-4 py-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+                  <DataTable
+                    columns={getInvoicePaymentColumns()}
+                    data={invoicePayments}
+                    isLoading={isLoadingPayments}
+                    useGlobalFilter
+                    filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
+                    isNarrow={isViewportNarrow || detailPaymentsListView}
+                    viewControls={showToggle ? <ViewModeToggle value={detailPaymentsViewMode} onChange={setDetailPaymentsViewMode} /> : undefined}
+                    cardListClassName={detailPaymentsListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+                    renderCard={(payment: any) => detailPaymentsListView ? (
+                      <DataListRow
+                        title={payment.doc_no || `Pago #${payment.id}`}
+                        meta={(
+                          <>
+                            {payment.date ? <span>{formatDisplayDate(payment.date)}</span> : null}
+                            <span>Método: {payment.method || '-'}</span>
+                            {payment.currency ? <span>Moneda: {payment.currency}</span> : null}
+                            <span className="font-medium text-foreground">Monto: {fmtCurrency(payment.amount, payment.currency)}</span>
+                          </>
+                        )}
+                      />
+                    ) : (
+                      <DataCard
+                        title={payment.doc_no || `Pago #${payment.id}`}
+                        subtitle={payment.date ? formatDisplayDate(payment.date) : undefined}
+                        fields={[
+                          { label: 'Método', value: payment.method || '-' },
+                          { label: 'Moneda', value: payment.currency || '-' },
+                          { label: 'Monto', value: fmtCurrency(payment.amount, payment.currency), primary: true },
+                        ]}
+                      />
+                    )}
+                  />
                 </TabsContent>
               </Tabs>
             </div>

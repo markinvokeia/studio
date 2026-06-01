@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
 import { DataListRow } from '@/components/ui/data-list-row';
 import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
-import { useItemsViewMode } from '@/hooks/use-items-view-mode';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -173,7 +173,7 @@ export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefresh
   const tShared = useTranslations('UserColumns');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const [viewMode, setViewMode] = useItemsViewMode('list');
+  const [viewMode, setViewMode] = useTableViewMode('quote-items', 'list');
   // Toggle only on desktop/tablet; mobile always shows cards.
   const showToggle = listView && !viewportNarrow;
   // Render the list view on desktop; mobile keeps DataCard.

@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -161,6 +164,9 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
   const t = useTranslations();
   const tPayments = useTranslations('PaymentsPage');
   const isViewportNarrow = useViewportNarrow();
+  const [viewMode, setViewMode] = useTableViewMode('payments-list', 'table');
+  const showToggle = !isViewportNarrow;
+  const useListView = !isViewportNarrow && viewMode === 'list';
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { printPayment } = usePrintDocument();
@@ -402,10 +408,47 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
             onRefresh={() => loadPayments(true)}
             isRefreshing={isRefreshing}
             extraButtons={toolbarActions}
-            isNarrow={isViewportNarrow}
+            isNarrow={isViewportNarrow || useListView}
+            viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+            cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
             renderCard={(payment: Payment, _isSelected: boolean) => {
               const { type, variant } = getPaymentType(payment);
               const statusLower = payment.status?.toLowerCase();
+              const badgeGroup = (
+                <div className="flex gap-1 flex-wrap justify-end">
+                  {payment.is_historical && (
+                    <Badge variant="outline" className={`${historicalBadgeClassName} text-[10px]`}>
+                      {t('PaymentsPage.columns.isHistorical')}
+                    </Badge>
+                  )}
+                  <Badge variant={variant} className="capitalize text-[10px]">
+                    {t(`PaymentsPage.columns.paymentTypes.${type}`)}
+                  </Badge>
+                  {statusLower && (
+                    <Badge variant={(STATUS_BADGE[statusLower] ?? 'default') as any} className="capitalize text-[10px]">
+                      {statusLower}
+                    </Badge>
+                  )}
+                </div>
+              );
+              if (useListView) {
+                return (
+                  <DataListRow
+                    isSelected={_isSelected}
+                    onClick={() => handleRowSelectionChange([payment])}
+                    title={payment.doc_no || (isAllocationPayment(payment) ? 'Crédito' : `PAY-${payment.id}`)}
+                    badge={badgeGroup}
+                    meta={(
+                      <>
+                        <span>{formatDisplayDate(payment.payment_date || payment.createdAt)}</span>
+                        <span className="font-medium text-foreground">{t('PaymentsPage.columns.amount')}: {payment.currency || ''} {Math.abs(parseFloat(String(payment.amount || 0))).toFixed(2)}</span>
+                        <span>{t('PaymentsPage.columns.method')}: {payment.method || '-'}</span>
+                        {payment.invoice_doc_no ? <span>{t('InvoicesPage.columns.docNo')}: {payment.invoice_doc_no}</span> : null}
+                      </>
+                    )}
+                  />
+                );
+              }
               return (
                 <DataCard isSelected={_isSelected}
                   className={payment.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
@@ -600,23 +643,16 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
             {selectedPayment.invoice_id && (
               <div className="flex-1 flex flex-col overflow-hidden px-4 py-4">
                 <p className="text-sm font-semibold mb-2">Documentos relacionados</p>
-                <div className="rounded-lg border divide-y text-sm">
-                  {selectedPayment.invoice_doc_no && (
-                    <div className="flex justify-between items-center px-4 py-2.5">
-                      <span className="text-muted-foreground">Factura</span>
-                      <span className="font-medium">#{selectedPayment.invoice_doc_no}</span>
-                    </div>
-                  )}
-                  {selectedPayment.payment_doc_no && (
-                    <div className="flex justify-between items-center px-4 py-2.5">
-                      <span className="text-muted-foreground">Pago origen</span>
-                      <span className="font-medium">#{selectedPayment.payment_doc_no}</span>
-                    </div>
-                  )}
-                  {!selectedPayment.invoice_doc_no && !selectedPayment.payment_doc_no && (
-                    <div className="px-4 py-2.5 text-muted-foreground">Sin documentos relacionados</div>
-                  )}
-                </div>
+                {(selectedPayment.invoice_doc_no || selectedPayment.payment_doc_no) ? (
+                  <DataCard
+                    fields={[
+                      ...(selectedPayment.invoice_doc_no ? [{ label: 'Factura', value: `#${selectedPayment.invoice_doc_no}` }] : []),
+                      ...(selectedPayment.payment_doc_no ? [{ label: 'Pago origen', value: `#${selectedPayment.payment_doc_no}` }] : []),
+                    ]}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Sin documentos relacionados</p>
+                )}
               </div>
             )}
 

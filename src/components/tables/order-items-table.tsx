@@ -23,7 +23,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { CalendarCheck, CheckCircle2 } from 'lucide-react';
 import { DataListRow } from '@/components/ui/data-list-row';
 import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
-import { useItemsViewMode } from '@/hooks/use-items-view-mode';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
@@ -70,7 +70,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
   const { toast } = useToast();
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const [viewMode, setViewMode] = useItemsViewMode('list');
+  const [viewMode, setViewMode] = useTableViewMode('quote-items', 'list');
   // Toggle only on desktop/tablet; mobile always shows cards.
   const showToggle = listView && !viewportNarrow;
   // Render the list view on desktop; mobile keeps DataCard.
@@ -568,7 +568,7 @@ export function OrderItemsTable({ items, isLoading = false, onItemsUpdate, quote
           enableSingleRowSelection
           rowSelection={rowSelection}
           setRowSelection={setRowSelection}
-          primaryActions={toolbarActions}
+          primaryActions={isNarrow ? undefined : toolbarActions}
           viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
           isNarrow={isNarrow}
           cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
