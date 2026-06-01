@@ -1376,7 +1376,7 @@
   "UserServices": {
     "addServices": "Marcar/Desmarcar Servicios",
     "dialog": {
-      "title": "Agregar Servicios al Usuario",
+      "title": "Agregar Servicios al Doctor",
       "description": "Seleccione los servicios para asignar a este usuario.",
       "availableServices": "Servicios Disponibles",
       "cancel": "Cancelar",
@@ -3302,6 +3302,7 @@
       "noDoctorFound": "No se encontró el doctor",
       "selectDay": "Seleccione día",
       "save": "Guardar",
+      "edit": "Editar",
       "createTitle": "Crear Disponibilidad",
       "createDescription": "Crear una nueva disponibilidad para el doctor",
       "editTitle": "Editar Disponibilidad",
@@ -3745,6 +3746,7 @@
       "resource": "Recurso",
       "resourcePlaceholder": "ej. usuario",
       "create": "Crear",
+      "save": "Guardar",
       "cancel": "Cancelar",
       "editTitle": "Editar Permiso",
       "editDescription": "Editar el permiso para la clínica",
@@ -3780,6 +3782,7 @@
       "createSuccess": "Permiso creado exitosamente",
       "successDescription": "El permiso \"{name}\" se ha guardado exitosamente."
     },
+    "close": "Cerrar",
     "detailsFor": "Detalles para {name}",
     "tabs": {
       "users": "Usuarios",

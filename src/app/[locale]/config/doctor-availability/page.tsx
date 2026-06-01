@@ -250,16 +250,40 @@ export default function DoctorAvailabilityPage() {
 
     const tColumns = useTranslations('DoctorAvailabilityColumns');
 
+    const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
+
+    const formatDate = (date: string | undefined | null) =>
+        date ? format(parseISO(date), 'dd/MM/yyyy') : '-';
+
     const columns: ColumnDef<AvailabilityRule>[] = React.useMemo(() => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
         { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
-        { accessorKey: 'recurrence', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('recurrence')} /> },
-        { accessorKey: 'day_of_week', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('day')} /> },
+        {
+            accessorKey: 'recurrence',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('recurrence')} />,
+            cell: ({ row }) => <span>{t(`dialog.${row.original.recurrence}`)}</span>,
+        },
+        {
+            accessorKey: 'day_of_week',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('day')} />,
+            cell: ({ row }) => {
+                const dow = row.original.day_of_week;
+                return <span>{dow != null ? t(`days.${DAY_NAMES[dow - 1]}`) : '-'}</span>;
+            },
+        },
         { accessorKey: 'start_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startTime')} /> },
         { accessorKey: 'end_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endTime')} /> },
-        { accessorKey: 'start_date', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startDate')} /> },
-        { accessorKey: 'end_date', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endDate')} /> },
-    ], [tColumns]);
+        {
+            accessorKey: 'start_date',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startDate')} />,
+            cell: ({ row }) => <span>{formatDate(row.original.start_date)}</span>,
+        },
+        {
+            accessorKey: 'end_date',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endDate')} />,
+            cell: ({ row }) => <span>{formatDate(row.original.end_date)}</span>,
+        },
+    ], [tColumns, t]);
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -293,7 +317,7 @@ export default function DoctorAvailabilityPage() {
                         <DataCard isSelected={_isSelected}
                             title={row.user_name || row.user_id}
                             subtitle={`${row.start_time} – ${row.end_time}`}
-                            badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{row.recurrence}</span>}
+                            badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{t(`dialog.${row.recurrence}`)}</span>}
                             showArrow
                         />
                     )}
@@ -314,11 +338,11 @@ export default function DoctorAvailabilityPage() {
                     <div className="header-icon-circle flex-none"><CalendarPlus className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{selectedRule.user_name || selectedRule.user_id}</CardTitle>
-                        <p className="text-xs text-muted-foreground truncate">{selectedRule.start_date} → {selectedRule.end_date || '∞'}</p>
+                        <p className="text-xs text-muted-foreground truncate">{formatDate(selectedRule.start_date)} → {selectedRule.end_date ? formatDate(selectedRule.end_date) : '∞'}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
-                            <Pencil className="h-4 w-4 mr-1" />{t('dialog.save').replace('Guardar', 'Editar') || 'Editar'}
+                            <Pencil className="h-4 w-4 mr-1" />{t('dialog.edit')}
                         </Button>
                         <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => handleDelete(selectedRule)}>
                             <Trash2 className="h-4 w-4" />
@@ -333,14 +357,14 @@ export default function DoctorAvailabilityPage() {
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('doctor')}</dt>
                         <dd className="text-foreground">{selectedRule.user_name || selectedRule.user_id || '-'}</dd>
                     </div>
-                    <div>
-                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('recurrence')}</dt>
-                        <dd><Badge variant="outline">{selectedRule.recurrence}</Badge></dd>
+                    <div className="flex items-center gap-2">
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{tColumns('recurrence')}</dt>
+                        <dd><Badge variant="outline">{t(`dialog.${selectedRule.recurrence}`)}</Badge></dd>
                     </div>
                     {selectedRule.day_of_week !== undefined && selectedRule.day_of_week !== null && (
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
-                            <dd className="text-foreground">{selectedRule.day_of_week}</dd>
+                            <dd className="text-foreground">{t(`days.${DAY_NAMES[selectedRule.day_of_week - 1]}`)}</dd>
                         </div>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -356,11 +380,11 @@ export default function DoctorAvailabilityPage() {
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('startDate')}</dt>
-                            <dd className="text-foreground">{selectedRule.start_date || '-'}</dd>
+                            <dd className="text-foreground">{formatDate(selectedRule.start_date)}</dd>
                         </div>
                         <div>
                             <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('endDate')}</dt>
-                            <dd className="text-foreground">{selectedRule.end_date || '-'}</dd>
+                            <dd className="text-foreground">{formatDate(selectedRule.end_date)}</dd>
                         </div>
                     </div>
                 </dl>

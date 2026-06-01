@@ -195,7 +195,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                         <div key={ex.id} className="flex items-start justify-between rounded-lg border px-4 py-3 gap-4">
                             <div className="flex flex-col gap-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium">{ex.exception_date}</span>
+                                    <span className="text-sm font-medium">{format(parseISO(ex.exception_date), 'dd/MM/yyyy')}</span>
                                     <Badge variant={ex.is_available ? 'success' : 'destructive'} className="text-xs">
                                         {ex.is_available ? tColumns('yes') : tColumns('no')}
                                     </Badge>

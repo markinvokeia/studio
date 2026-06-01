@@ -223,7 +223,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                                 </div>
                                 <div className="flex items-center gap-3 text-sm">
                                     <span>{rule.start_time} – {rule.end_time}</span>
-                                    <span className="text-muted-foreground text-xs">{rule.start_date} → {rule.end_date || '∞'}</span>
+                                    <span className="text-muted-foreground text-xs">{format(parseISO(rule.start_date), 'dd/MM/yyyy')} → {rule.end_date ? format(parseISO(rule.end_date), 'dd/MM/yyyy') : '∞'}</span>
                                 </div>
                             </div>
                             <div className="flex gap-1 flex-none">

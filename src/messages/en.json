@@ -1376,7 +1376,7 @@
   "UserServices": {
     "addServices": "Mark/Unmark Services",
     "dialog": {
-      "title": "Add Services to User",
+      "title": "Add Services to Doctor",
       "description": "Select the services to assign to this user.",
       "availableServices": "Available Services",
       "cancel": "Cancel",
@@ -3325,6 +3325,7 @@
       "noDoctorFound": "No doctor found",
       "selectDay": "Select day",
       "save": "Save Changes",
+      "edit": "Edit",
       "createTitle": "Create Availability",
       "createDescription": "Create a new availability for the doctor",
       "editTitle": "Edit Availability",
@@ -3768,6 +3769,7 @@
       "resource": "Resource",
       "resourcePlaceholder": "e.g. user",
       "create": "Create",
+      "save": "Save",
       "cancel": "Cancel",
       "editTitle": "Edit Permission",
       "editDescription": "Edit the permission for the clinic",
@@ -3803,6 +3805,7 @@
       "successDescription": "Permission \"{name}\" has been saved successfully.",
       "deleteSuccessDescription": "Permission deleted successfully"
     },
+    "close": "Close",
     "detailsFor": "Details for {name}",
     "tabs": {
       "users": "Users",

@@ -234,10 +234,17 @@ export default function AvailabilityExceptionsPage() {
         setRowSelection({});
     };
 
+    const formatDate = (date: string | undefined | null) =>
+        date ? format(parseISO(date), 'dd/MM/yyyy') : '-';
+
     const columns: ColumnDef<AvailabilityException>[] = React.useMemo(() => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
         { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
-        { accessorKey: 'exception_date', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('date')} /> },
+        {
+            accessorKey: 'exception_date',
+            header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('date')} />,
+            cell: ({ row }) => <span>{formatDate(row.original.exception_date)}</span>,
+        },
         {
             accessorKey: 'is_available',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('available')} />,
@@ -282,7 +289,7 @@ export default function AvailabilityExceptionsPage() {
                     renderCard={(row: AvailabilityException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
                             title={row.user_name || row.user_id}
-                            subtitle={row.exception_date}
+                            subtitle={formatDate(row.exception_date)}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}
                             showArrow
                         />
@@ -304,7 +311,7 @@ export default function AvailabilityExceptionsPage() {
                     <div className="header-icon-circle flex-none"><UserX className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{selectedException.user_name || selectedException.user_id}</CardTitle>
-                        <p className="text-xs text-muted-foreground truncate">{selectedException.exception_date}</p>
+                        <p className="text-xs text-muted-foreground truncate">{formatDate(selectedException.exception_date)}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(selectedException)}>
@@ -325,7 +332,7 @@ export default function AvailabilityExceptionsPage() {
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('date')}</dt>
-                        <dd className="text-foreground">{selectedException.exception_date || '-'}</dd>
+                        <dd className="text-foreground">{formatDate(selectedException.exception_date)}</dd>
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('available')}</dt>
