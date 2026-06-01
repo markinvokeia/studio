@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
+import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  BookUser,
   CalendarDays,
   ChevronDown,
   ChevronUp,
@@ -1010,6 +1012,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [isLoadingTimeline, setIsLoadingTimeline] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
+  const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
   const [agentSessionPrefill, setAgentSessionPrefill] = React.useState<{
     doctor_id?: string;
@@ -1414,7 +1417,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           </Button>
         )}
 
-        <div className="flex shrink-0 flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:pb-4">
+        <div className="flex shrink-0 flex-row items-start justify-between gap-3 border-b pb-3 sm:pb-4">
             <div className="flex min-w-0 items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/8 sm:h-11 sm:w-11">
                 {patientAlertTags.length > 0 ? (
@@ -1464,6 +1467,15 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </div>
             </div>
 
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 self-start"
+              onClick={() => setPatientFichaOpen(true)}
+            >
+              <BookUser className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{t('focus.viewPatientFile')}</span>
+            </Button>
         </div>
 
         <div className="flex flex-col flex-1 min-h-0">
@@ -1605,6 +1617,16 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       />
 
 
+
+      {selectedAppointment && (
+        <PatientDetailSheet
+          open={patientFichaOpen}
+          onOpenChange={setPatientFichaOpen}
+          userId={selectedAppointment.patientId}
+          userName={selectedAppointment.patientName || ''}
+          mode="doctor"
+        />
+      )}
 
       {selectedAppointment && canManageSessions && (
         <ClinicSessionDialog

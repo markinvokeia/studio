@@ -9,7 +9,8 @@ import {
   type PatientSheetMacroTab,
 } from '@/components/patients/patient-detail-sheet-main-content';
 import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
-import { AnamnesisViewer, ClinicHistoryViewer } from '@/components/users/clinic-history-viewer';
+import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
+import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserInvoices } from '@/components/users/user-invoices';
 import { UserPayments } from '@/components/users/user-payments';
@@ -147,8 +148,26 @@ export function PatientDetailSheet({
         {/* Header */}
         <div className="flex-none border-b border-border bg-card px-6 py-4 pr-14">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/8 shrink-0">
-              <Users className="h-4 w-4 text-primary" />
+            <div className="relative flex-none">
+              {isDoctorMode && allergies.length > 0 && (
+                <span
+                  className="absolute inset-0 rounded-full animate-ping"
+                  style={{ backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }}
+                />
+              )}
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-full relative shrink-0"
+                style={
+                  isDoctorMode && allergies.length > 0
+                    ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
+                    : { backgroundColor: 'rgb(var(--primary) / 0.08)', color: 'rgb(var(--primary))' }
+                }
+              >
+                {isDoctorMode && allergies.length > 0
+                  ? <AlertTriangle className="h-4 w-4" />
+                  : <Users className="h-4 w-4" />
+                }
+              </div>
             </div>
             <div className="min-w-0">
               <SheetTitle className="text-base font-semibold truncate leading-tight">{userName}</SheetTitle>
@@ -198,6 +217,8 @@ export function PatientDetailSheet({
           isDoctorMode={isDoctorMode}
           anamnesisContent={<AnamnesisViewer userId={userId} />}
           clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} />}
+          treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} />}
+          documentsContent={<DocumentsViewer userId={userId} />}
           financialSummaryContent={
             !isDoctorMode ? (
               <UserFinancialSummaryStats

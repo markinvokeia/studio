@@ -9,7 +9,7 @@ import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip'
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 
 export type PatientSheetMacroTab = 'clinical' | 'financial'
-export type PatientSheetClinicalSubTab = 'anamnesis' | 'clinical-history'
+export type PatientSheetClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'documents'
 export type PatientSheetFinancialSubTab = 'quotes' | 'invoices' | 'payments'
 
 interface PatientDetailSheetMainContentProps {
@@ -22,6 +22,8 @@ interface PatientDetailSheetMainContentProps {
   isDoctorMode: boolean
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
+  treatmentPlansContent: React.ReactNode
+  documentsContent: React.ReactNode
   financialSummaryContent?: React.ReactNode
   quotesContent: React.ReactNode
   invoicesContent: React.ReactNode
@@ -38,6 +40,8 @@ export function PatientDetailSheetMainContent({
   isDoctorMode,
   anamnesisContent,
   clinicalHistoryContent,
+  treatmentPlansContent,
+  documentsContent,
   financialSummaryContent,
   quotesContent,
   invoicesContent,
@@ -70,12 +74,16 @@ export function PatientDetailSheetMainContent({
               tabs={[
                 { id: 'anamnesis', label: t('tabs.anamnesis') },
                 { id: 'clinical-history', label: t('tabs.history') },
+                { id: 'treatment-plans', label: t('tabs.treatmentPlans') },
+                { id: 'documents', label: t('tabs.documents') },
               ]}
               activeTab={activeClinicalSubTab}
               onChange={(id) => onClinicalSubTabChange(id as PatientSheetClinicalSubTab)}
             />
             {activeClinicalSubTab === 'anamnesis' && anamnesisContent}
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
+            {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
+            {activeClinicalSubTab === 'documents' && documentsContent}
           </>
         )}
 

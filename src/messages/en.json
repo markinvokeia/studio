@@ -840,6 +840,7 @@
       "timelineEmptyDescription": "There are no recorded clinical sessions for this patient yet.",
       "latestSessionBadge": "Latest session",
       "currentAppointmentBadge": "Current appointment",
+      "viewPatientFile": "Patient file",
       "noClinicalSignals": "No recorded allergies or complications.",
       "moreAlertTags": "+{count} more",
       "sessionExistsToday": "A clinical session already exists for today. Only one session per patient per day is allowed.",
