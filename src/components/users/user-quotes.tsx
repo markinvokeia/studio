@@ -193,7 +193,7 @@ function getInvoiceColumns(t: (key: string) => string): ColumnDef<Invoice>[] {
       cell: ({ row }) =>
         row.original.status ? (
           <Badge variant={invoiceStatusVariant(row.original.status)} className="text-[10px] font-normal capitalize">
-            {row.original.status}
+            {t(`InvoicesPage.status.${row.original.status.toLowerCase()}`)}
           </Badge>
         ) : <span className="text-muted-foreground">—</span>,
     },
@@ -1542,34 +1542,44 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
                           isNarrow={viewportNarrow}
                           renderCard={(inv) => (
-                            <div className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold">#{inv.doc_no || inv.invoice_doc_no || inv.id}</span>
-                                <span className="font-bold tabular-nums">{formatCurrency(inv.total, inv.currency)}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
-                                <span>{formatDisplayDate(inv.createdAt)}</span>
-                                {inv.status && (
-                                  <Badge variant={invoiceStatusVariant(inv.status)} className="text-[10px] font-normal capitalize">
-                                    {inv.status}
-                                  </Badge>
-                                )}
-                                <Badge
-                                  variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any}
-                                  className="text-[10px] font-normal"
-                                >
-                                  {paymentStatusLabel(t, inv.payment_status)}
-                                </Badge>
-                              </div>
-                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs">
-                                {(inv.paid_amount || 0) > 0 && (
-                                  <span>{t('UserQuotes.columns.paidAmount')}: <span className="font-medium text-emerald-600">{formatCurrency(inv.paid_amount || 0, inv.currency)}</span></span>
-                                )}
-                                {inv.due_date && (
-                                  <span className="text-muted-foreground">{t('UserQuotes.columns.dueDate')}: <span className="font-medium text-foreground">{formatDisplayDate(inv.due_date)}</span></span>
-                                )}
-                              </div>
-                            </div>
+                            <DataCard
+                              title={`#${inv.doc_no || inv.invoice_doc_no || inv.id}`}
+                              subtitle={formatDisplayDate(inv.createdAt)}
+                              fields={[
+                                ...(inv.status ? [{
+                                  label: t('UserQuotes.columns.status'),
+                                  value: (
+                                    <Badge variant={invoiceStatusVariant(inv.status)} className="text-[10px] font-normal capitalize">
+                                      {t(`InvoicesPage.status.${inv.status.toLowerCase()}`)}
+                                    </Badge>
+                                  ),
+                                }] : []),
+                                {
+                                  label: t('UserQuotes.columns.paymentStatus'),
+                                  value: (
+                                    <Badge
+                                      variant={(inv.payment_status === 'paid' ? 'success' : inv.payment_status?.includes('partial') ? 'info' : 'outline') as any}
+                                      className="text-[10px] font-normal"
+                                    >
+                                      {paymentStatusLabel(t, inv.payment_status)}
+                                    </Badge>
+                                  ),
+                                },
+                                ...((inv.paid_amount || 0) > 0 ? [{
+                                  label: t('UserQuotes.columns.paidAmount'),
+                                  value: formatCurrency(inv.paid_amount || 0, inv.currency),
+                                }] : []),
+                                ...(inv.due_date ? [{
+                                  label: t('UserQuotes.columns.dueDate'),
+                                  value: formatDisplayDate(inv.due_date),
+                                }] : []),
+                                {
+                                  label: t('UserQuotes.columns.total'),
+                                  value: formatCurrency(inv.total, inv.currency),
+                                  primary: true,
+                                },
+                              ]}
+                            />
                           )}
                         />
                       </CardContent>
@@ -1590,33 +1600,39 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                           filterPlaceholder={t('OrderItemsTable.filterPlaceholder')}
                           isNarrow={viewportNarrow}
                           renderCard={(pay) => (
-                            <div className="rounded-lg border bg-card p-3 text-sm space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-semibold">#{pay.doc_no || pay.id}</span>
-                                <span className="font-bold tabular-nums text-emerald-600">{formatCurrency(pay.amount, pay.currency)}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-wrap text-xs text-muted-foreground">
-                                {pay.payment_date && <span>{formatDisplayDate(pay.payment_date)}</span>}
-                                {pay.method && <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>}
-                                {pay.currency && <Badge variant="secondary" className="text-[10px] font-normal">{pay.currency}</Badge>}
-                                {pay.invoice_doc_no && <span>{t('UserQuotes.columns.invoice')} #{pay.invoice_doc_no}</span>}
-                                {pay.transaction_type && pay.transaction_type !== 'direct_payment' && (
-                                  <Badge variant="info" className="text-[10px] font-normal">
-                                    {transactionTypeLabel(t, pay.transaction_type)}
-                                  </Badge>
-                                )}
-                              </div>
-                              {pay.transaction_id && (
+                            <DataCard
+                              title={`#${pay.doc_no || pay.id}`}
+                              subtitle={pay.payment_date ? formatDisplayDate(pay.payment_date) : undefined}
+                              fields={[
+                                ...(pay.method ? [{
+                                  label: t('UserQuotes.columns.method'),
+                                  value: <Badge variant="outline" className="text-[10px] font-normal capitalize">{pay.method}</Badge>,
+                                }] : []),
+                                ...(pay.invoice_doc_no ? [{
+                                  label: t('UserQuotes.columns.invoice'),
+                                  value: `#${pay.invoice_doc_no}`,
+                                }] : []),
+                                ...(pay.transaction_type && pay.transaction_type !== 'direct_payment' ? [{
+                                  label: t('UserQuotes.columns.transactionType'),
+                                  value: <Badge variant="info" className="text-[10px] font-normal">{transactionTypeLabel(t, pay.transaction_type)}</Badge>,
+                                }] : []),
+                                {
+                                  label: t('UserQuotes.columns.amount'),
+                                  value: <span className="text-emerald-600">{formatCurrency(pay.amount, pay.currency)}</span>,
+                                  primary: true,
+                                },
+                              ]}
+                              actions={pay.transaction_id ? (
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 px-2 text-xs gap-1 -ml-1"
-                                  onClick={() => handlePrintReceipt(pay)}
+                                  onClick={(e) => { e.stopPropagation(); handlePrintReceipt(pay); }}
                                 >
                                   <Printer className="h-3 w-3" />{t('UserQuotes.columns.printReceipt')}
                                 </Button>
-                              )}
-                            </div>
+                              ) : undefined}
+                            />
                           )}
                         />
                       </CardContent>
