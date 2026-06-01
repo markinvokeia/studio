@@ -39,8 +39,6 @@ interface QuoteItemsTableProps {
   extraButtons?: React.ReactNode;
   /** Force card/list mode regardless of viewport width */
   forceCardMode?: boolean;
-  /** When true, enables the table/list view toggle (list view shown on desktop) */
-  listView?: boolean;
 }
 
 const getColumns = (
@@ -168,16 +166,16 @@ const getColumns = (
   return baseColumns;
 };
 
-export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false, listView = false }: QuoteItemsTableProps) {
+export function QuoteItemsTable({ items, isLoading = false, onRefresh, isRefreshing, canEdit, onCreate, onEdit, onDelete, showToothNumber = true, onRowSelectionChange, rowSelection, setRowSelection, extraButtons, forceCardMode = false }: QuoteItemsTableProps) {
   const t = useTranslations('QuotesPage.itemDialog');
   const tShared = useTranslations('UserColumns');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
   const [viewMode, setViewMode] = useTableViewMode('quote-items', 'list');
-  // Toggle only on desktop/tablet; mobile always shows cards.
-  const showToggle = listView && !viewportNarrow;
+  // Toggle on desktop/tablet (unless forced to card mode); mobile always shows cards.
+  const showToggle = !forceCardMode && !viewportNarrow;
   // Render the list view on desktop; mobile keeps DataCard.
-  const useListView = listView && !viewportNarrow && viewMode === 'list';
+  const useListView = showToggle && viewMode === 'list';
   const isNarrow = forceCardMode || useListView || panelNarrow || viewportNarrow;
   const columns = getColumns(
     (key) => {

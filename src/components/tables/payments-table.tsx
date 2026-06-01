@@ -5,6 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { DataCard } from '@/components/ui/data-card';
+import { DataListRow } from '@/components/ui/data-list-row';
+import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
+import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -284,7 +287,10 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const tPaymentMethods = useTranslations('PaymentsPage.columns.paymentMethods');
   const { isNarrow: panelNarrow } = useNarrowMode();
   const viewportNarrow = useViewportNarrow();
-  const isNarrow = isCompact || panelNarrow || viewportNarrow;
+  const [viewMode, setViewMode] = useTableViewMode('payments', 'table');
+  const showToggle = !viewportNarrow;
+  const useListView = showToggle && viewMode === 'list';
+  const isNarrow = panelNarrow || viewportNarrow || useListView;
   const columns = React.useMemo(() => getColumns(t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit), [t, tTransactionType, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit]);
 
   if (isLoading) {
@@ -348,25 +354,49 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
           onRowSelectionChange={onRowSelectionChange}
           getRowClassName={(row: Payment) => row.is_historical ? 'border-l-4 border-l-amber-400 bg-amber-50/70 dark:border-l-amber-700 dark:bg-amber-950/30' : ''}
           isNarrow={isNarrow}
-          renderCard={(row: Payment, _isSelected: boolean) => (
-            <DataCard isSelected={_isSelected}
-              className={row.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
-              title={row.doc_no || String(row.id)}
-              subtitle={[
-                row.user_name,
-                formatDisplayDate(row.payment_date),
-                row.amount_applied != null
-                  ? [row.source_currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(Number(row.amount_applied)))].filter(Boolean).join(' ')
-                  : undefined,
-                row.payment_method_code,
-              ].filter(Boolean).join(' · ')}
-              badge={
-                row.is_historical ? <HistoricalBadge label={t('isHistorical')} /> : undefined
-              }
-              showArrow
-              onClick={() => onRowSelectionChange?.([row])}
-            />
-          )}
+          viewControls={showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
+          cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
+          renderCard={(row: Payment, _isSelected: boolean) => {
+            const amount = row.amount_applied != null
+              ? [row.source_currency, new Intl.NumberFormat('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(Number(row.amount_applied)))].filter(Boolean).join(' ')
+              : undefined;
+            const histBadge = row.is_historical ? <HistoricalBadge label={t('isHistorical')} /> : undefined;
+            if (useListView) {
+              return (
+                <DataListRow
+                  isSelected={_isSelected}
+                  onClick={() => onRowSelectionChange?.([row])}
+                  className={row.is_historical ? 'bg-amber-50/70 dark:bg-amber-950/30' : undefined}
+                  title={row.doc_no || String(row.id)}
+                  badge={histBadge}
+                  meta={(
+                    <>
+                      {row.user_name ? <span>{row.user_name}</span> : null}
+                      <span>{formatDisplayDate(row.payment_date)}</span>
+                      {row.payment_method_code ? <span>{t('method')}: {row.payment_method_code}</span> : null}
+                      {row.invoice_doc_no ? <span>{t('invoice_doc_no')}: {row.invoice_doc_no}</span> : null}
+                      {amount ? <span className="font-medium text-foreground">{t('amount_applied')}: {amount}</span> : null}
+                    </>
+                  )}
+                />
+              );
+            }
+            return (
+              <DataCard isSelected={_isSelected}
+                className={row.is_historical ? 'border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30' : undefined}
+                title={row.doc_no || String(row.id)}
+                subtitle={[
+                  row.user_name,
+                  formatDisplayDate(row.payment_date),
+                  amount,
+                  row.payment_method_code,
+                ].filter(Boolean).join(' · ')}
+                badge={histBadge}
+                showArrow
+                onClick={() => onRowSelectionChange?.([row])}
+              />
+            );
+          }}
         />
       </CardContent>
     </Card>
