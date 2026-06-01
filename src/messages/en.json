@@ -5478,7 +5478,8 @@
       "invoices": "Invoices",
       "payments": "Payments",
       "appointments": "Appointments",
-      "clinicalSessions": "Clinical Sessions"
+      "clinicalSessions": "Clinical Sessions",
+      "mutualSocieties": "Mutual Societies"
     },
     "upload": {
       "exampleCsv": "Download example CSV",
