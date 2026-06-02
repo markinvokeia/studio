@@ -269,42 +269,46 @@ export default function LicensesPage() {
 
   return (
     <div className="flex-1 overflow-y-auto">
-    <div className="max-w-5xl mx-auto flex flex-col gap-4 p-1">
-      <div className="flex items-center gap-2">
-        <KeyRound className="h-5 w-5 text-muted-foreground" />
-        <div>
-          <h1 className="text-lg font-semibold">{t('management.title')}</h1>
-          <p className="text-xs text-muted-foreground">{t('management.description')}</p>
+      <div className="flex flex-col gap-6 p-6">
+        <div className="flex items-start gap-3">
+          <div className="header-icon-circle mt-0.5">
+            <KeyRound className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-semibold">{t('management.title')}</h1>
+            <p className="text-xs text-muted-foreground">{t('management.description')}</p>
+          </div>
         </div>
-      </div>
 
       {!isUnlocked ? (
-        <Card className="max-w-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <KeyRound className="h-4 w-4" />
-              Clave maestra
-            </CardTitle>
-            <CardDescription>
-              Ingresa la clave maestra para acceder a la gestión de licencias.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleUnlock} className="flex flex-col gap-3">
-              <Input
-                type="password"
-                placeholder="Clave maestra..."
-                value={secInput}
-                onChange={e => { setSecInput(e.target.value); setSecError(''); }}
-                autoFocus
-              />
-              {secError && <p className="text-xs text-destructive">{secError}</p>}
-              <Button type="submit" disabled={!secInput.trim()} className="w-full">
-                Verificar
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <div>
+          <Card className="w-full max-w-md shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <KeyRound className="h-4 w-4" />
+                Clave maestra
+              </CardTitle>
+              <CardDescription>
+                Ingresa la clave maestra para acceder a la gestión de licencias.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUnlock} className="flex flex-col gap-3">
+                <Input
+                  type="password"
+                  placeholder="Clave maestra..."
+                  value={secInput}
+                  onChange={e => { setSecInput(e.target.value); setSecError(''); }}
+                  autoFocus
+                />
+                {secError && <p className="text-xs text-destructive">{secError}</p>}
+                <Button type="submit" disabled={!secInput.trim()} className="w-full">
+                  Verificar
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <>
           {isFetchingLicense ? (
@@ -507,7 +511,7 @@ export default function LicensesPage() {
           )}
         </>
       )}
-    </div>
+      </div>
     </div>
   );
 }

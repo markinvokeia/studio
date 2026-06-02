@@ -105,9 +105,10 @@ interface ClinicHistoryViewerProps {
     editSessionId?: number | null;
     onClinicalDataChange?: () => void;
     deepLinkView?: string;
+    onEditAppointment?: (appointment: Appointment) => void;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -267,6 +268,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onSessionCreated={onSessionCreated}
                             editSessionId={editSessionId}
                             onRefreshAppointments={() => fetchPatientAppointments(userId)}
+                            onEditAppointment={onEditAppointment}
                         />
                     </div>
                 </ScrollArea>
@@ -1609,9 +1611,10 @@ interface TreatmentTimelineProps {
     onOdontogramTriggerConsumed?: () => void;
     sessionPrefill?: SessionPrefillData | null;
     onRefreshAppointments?: () => void;
+    onEditAppointment?: (appointment: Appointment) => void;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments }: TreatmentTimelineProps) {
+function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onEditAppointment }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -2295,6 +2298,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 onStatusChange={handleApptStatusChange}
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
+                onEdit={onEditAppointment ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
             />
             <CancellationNoteDialog
                 open={!!pendingCancellation}
