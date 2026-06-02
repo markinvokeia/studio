@@ -450,7 +450,9 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.INVOICE_ITEMS : API_ROUTES.PURCHASES.INVOICE_ITEMS,
         { invoice_id: invoiceId, is_sales: isSales ? 'true' : 'false' }
       );
-      const raw = Array.isArray(data) ? data : (data.items || data.data || []);
+      const rawData = Array.isArray(data) ? data : (data.items || data.data || []);
+      // Empty responses come back as `[{ success: true }]`; skip those ack objects.
+      const raw = rawData.filter((i: any) => i && typeof i === 'object' && (i.id != null || i.service_id != null || i.service_name));
       setInvoiceItems(raw.map((i: any) => ({
         id: String(i.id),
         service_id: String(i.service_id),
@@ -475,7 +477,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS,
         { invoice_id: invoiceId }
       );
-      const raw = Array.isArray(data) ? data : (data.payments || data.data || []);
+      const rawData = Array.isArray(data) ? data : (data.payments || data.data || []);
+      // Empty responses come back as `[{ success: true }]`; skip those ack objects.
+      const raw = rawData.filter((p: any) =>
+        p && typeof p === 'object' &&
+        (p.id != null || p.amount_applied != null || p.amount != null || p.doc_no || p.payment_doc_no)
+      );
       setInvoicePayments(raw.map((p: any, idx: number) => ({
         id: p.id != null ? String(p.id) : (p.doc_no || p.payment_doc_no || String(idx)),
         amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
