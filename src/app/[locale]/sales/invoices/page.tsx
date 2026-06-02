@@ -678,16 +678,10 @@ export default function InvoicesPage() {
                                         </Button>
                                     )}
                                     {canAddPaymentAction && (
-                                        <>
-                                            <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openBillingWizard({ invoiceId: selectedInvoice.id, invoice: selectedInvoice, patientId: selectedInvoice.user_id, patientName: selectedInvoice.user_name, isSales: true }, () => { loadInvoices(); loadPayments(); })}>
-                                                <Zap className="h-3.5 w-3.5" />
-                                                {t('paymentDialog.add')}
-                                            </Button>
-                                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setInvoiceForPayment(selectedInvoice); setIsPaymentDialogOpen(true); }}>
-                                                <CreditCard className="h-3.5 w-3.5" />
-                                                {t('paymentDialog.addClassic')}
-                                            </Button>
-                                        </>
+                                        <Button variant="default" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => openBillingWizard({ invoiceId: selectedInvoice.id, invoice: selectedInvoice, patientId: selectedInvoice.user_id, patientName: selectedInvoice.user_name, isSales: true }, () => { loadInvoices(); loadPayments(); })}>
+                                            <Zap className="h-3.5 w-3.5" />
+                                            {t('paymentDialog.add')}
+                                        </Button>
                                     )}
                                     {(canConfirmAction || canAddPaymentAction) && <Separator orientation="vertical" className="h-6 mx-1" />}
                                     {canPrint && (
