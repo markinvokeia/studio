@@ -1872,6 +1872,9 @@
     "defaults": {
       "noEmail": "sin-correo@ejemplo.com",
       "notAvailable": "N/D"
+    },
+    "rejectedBanner": {
+      "title": "Motivo de rechazo"
     }
   },
   "SalesQuotesPage": {

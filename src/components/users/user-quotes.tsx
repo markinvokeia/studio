@@ -1429,11 +1429,21 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
                 </div>
               </div>
 
-              {/* Notas del presupuesto (los totales se muestran en el footer) */}
+              {/* Notas / motivo de rechazo */}
               {selectedQuote.notes && (
-                <div className="px-6 py-3">
-                  <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
-                </div>
+                selectedQuote.status?.toLowerCase() === 'rejected' ? (
+                  <div className="mx-6 my-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                    <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-destructive">{tQuotes('rejectedBanner.title')}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="px-6 py-3">
+                    <p className="text-xs text-muted-foreground italic">{selectedQuote.notes}</p>
+                  </div>
+                )
               )}
             </div>
 

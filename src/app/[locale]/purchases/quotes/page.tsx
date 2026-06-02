@@ -1359,6 +1359,15 @@ function QuotesPageContent() {
                                         </Button>
                                     )}
                                 </div>
+                                {selectedQuote.status?.toLowerCase() === 'rejected' && selectedQuote.notes && (
+                                    <div className="mx-4 mt-3 flex gap-2.5 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2.5">
+                                        <XCircle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                                        <div>
+                                            <p className="text-xs font-medium text-destructive">{t('rejectedBanner.title')}</p>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{selectedQuote.notes}</p>
+                                        </div>
+                                    </div>
+                                )}
                                 <CardContent className="flex-1 flex flex-col overflow-hidden p-0 min-h-0 bg-card">
                                     <VerticalTabStrip
                                         tabs={quoteTabs}

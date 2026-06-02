@@ -1872,6 +1872,9 @@
     "defaults": {
       "noEmail": "no-email@example.com",
       "notAvailable": "N/A"
+    },
+    "rejectedBanner": {
+      "title": "Rejection reason"
     }
   },
   "SalesQuotesPage": {
