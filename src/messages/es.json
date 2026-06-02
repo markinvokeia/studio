@@ -4999,6 +4999,7 @@
     "columns": {
       "runDate": "Fecha de Ejecución",
       "status": "Estado",
+      "rulesProcessed": "Reglas Procesadas",
       "alertsCreated": "Alertas Creadas",
       "emailsSent": "Correos Enviados",
       "errorsCount": "Errores",

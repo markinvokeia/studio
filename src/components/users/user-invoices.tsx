@@ -286,6 +286,7 @@ async function getInvoicesForUser(userId: string): Promise<Invoice[]> {
       user_id: d.user_id?.toString() ?? userId,
       user_name: d.user_name || '',
       type: d.type || 'invoice',
+      parent_id: d.parent_id ? String(d.parent_id) : undefined,
       total: parseFloat(d.total),
       status: d.status,
       payment_status: d.payment_state || d.payment_status,
@@ -1037,7 +1038,26 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                   <div className="flex items-center gap-3">
                     <div>
                       <SheetTitle className="text-2xl font-bold text-card-foreground">{selectedInvoice.doc_no || `INV-${selectedInvoice.id}`}</SheetTitle>
-                      <SheetDescription className="text-sm text-muted-foreground mt-0.5">Factura</SheetDescription>
+                      {selectedInvoice.type === 'credit_note' ? (
+                        <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                          Nota de crédito
+                          {selectedInvoice.parent_id && (() => {
+                            const parent = invoices.find(inv => inv.id === selectedInvoice.parent_id);
+                            const parentLabel = parent?.doc_no || `#${selectedInvoice.parent_id}`;
+                            return <> · Relacionada a: <span className="font-medium text-foreground">{parentLabel}</span></>;
+                          })()}
+                        </SheetDescription>
+                      ) : (() => {
+                        const creditNote = invoices.find(inv => inv.type === 'credit_note' && inv.parent_id === selectedInvoice.id);
+                        return (
+                          <SheetDescription className="text-sm text-muted-foreground mt-0.5">
+                            Factura
+                            {creditNote && (
+                              <> · Relacionada a: <span className="font-medium text-foreground">Nota de crédito {creditNote.doc_no || `#${creditNote.id}`}</span></>
+                            )}
+                          </SheetDescription>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">

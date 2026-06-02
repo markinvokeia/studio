@@ -2,7 +2,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
@@ -693,7 +692,6 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
-  const tGeneral = useTranslations('General');
   const { hasPermission } = usePermissions();
   const [services, setServices] = React.useState<Service[]>([]);
   const [totalCount, setTotalCount] = React.useState(0);
@@ -861,7 +859,7 @@ export default function ServicesPage() {
   const [activeTab, setActiveTab] = React.useState('details');
 
   useDeepLink<Service>({
-    tabMap: { 'Detalles': 'details', 'Info': 'info' },
+    tabMap: { 'Detalles': 'details' },
     onFilter: (value) => {
       setPagination((prev) => ({ ...prev, pageIndex: 0 }));
       setColumnFilters([{ id: 'name', value }]);
@@ -947,7 +945,6 @@ export default function ServicesPage() {
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                       <TabsList>
                         <TabsTrigger value="details">{t('tabs.details')}</TabsTrigger>
-                        <TabsTrigger value="info">{t('tabs.info')}</TabsTrigger>
                         {detailForm.watch('service_type') === 'workflow' && (
                           <TabsTrigger value="steps">{t('tabs.steps')}</TabsTrigger>
                         )}
@@ -967,42 +964,6 @@ export default function ServicesPage() {
                               <Button type="submit" disabled={isSavingDetail}>
                                 {isSavingDetail ? t('createDialog.editSave') + '...' : t('createDialog.editSave')}
                               </Button>
-                            </div>
-                          )}
-                        </TabsContent>
-                        <TabsContent value="info" className="m-0 space-y-4">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-lg border border-border bg-muted/30 p-3">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{tColumns('price')}</p>
-                              <p className="text-xl font-bold text-foreground">{formatServicePrice(selectedService.price, selectedService.currency, tGeneral('free'))}</p>
-                            </div>
-                            <div className="rounded-lg border border-border bg-muted/30 p-3">
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{tColumns('duration')}</p>
-                              <p className="text-xl font-bold text-foreground">{selectedService.duration_minutes} min</p>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between py-2 border-b border-border/50">
-                              <span className="text-xs text-muted-foreground">{tColumns('category')}</span>
-                              <span className="text-xs font-medium">{selectedService.category}</span>
-                            </div>
-                            <div className="flex items-center justify-between py-2 border-b border-border/50">
-                              <span className="text-xs text-muted-foreground">{tColumns('isActive')}</span>
-                              <Badge variant={selectedService.is_active ? 'success' : 'outline'}>
-                                {selectedService.is_active ? tColumns('active') : tColumns('inactive')}
-                              </Badge>
-                            </div>
-                          </div>
-                          {selectedService.description && (
-                            <div>
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{t('createDialog.descriptionLabel')}</p>
-                              <p className="text-sm text-foreground whitespace-pre-wrap">{selectedService.description}</p>
-                            </div>
-                          )}
-                          {selectedService.indications && (
-                            <div>
-                              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{t('createDialog.indicationsLabel')}</p>
-                              <p className="text-sm text-foreground whitespace-pre-wrap">{selectedService.indications}</p>
                             </div>
                           )}
                         </TabsContent>

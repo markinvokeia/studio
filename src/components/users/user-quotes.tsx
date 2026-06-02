@@ -1342,8 +1342,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             viewControls={showListToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined}
             cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
             renderCard={(quote: Quote, _isSelected: boolean) => {
+              const statusKey = (quote.status || '').toLowerCase();
+              const statusLabel = tQuotes(`quoteDialog.${statusKey}` as any) || quote.status;
               const statusBadge = (
-                <Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[(quote.status || '').toLowerCase()] ?? 'default') as any} className="capitalize text-[10px]">{quote.status}</Badge>
+                <Badge variant={({ accepted: 'success', confirmed: 'success', sent: 'default', pending: 'info', draft: 'outline', rejected: 'destructive' }[statusKey] ?? 'default') as any} className="text-[10px]">{statusLabel}</Badge>
               );
               if (useListView) {
                 return (

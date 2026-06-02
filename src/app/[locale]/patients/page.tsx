@@ -933,6 +933,7 @@ export default function UsersPage() {
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [isDischargeDialogOpen, setIsDischargeDialogOpen] = React.useState(false);
   const [dischargeDate, setDischargeDate] = React.useState<string>('');
+  const [dischargePreset, setDischargePreset] = React.useState<number | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
   const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
   const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
@@ -1293,6 +1294,7 @@ export default function UsersPage() {
 
       setIsDischargeDialogOpen(false);
       setDischargeDate('');
+      setDischargePreset(null);
       fetchPatientDischarge(selectedUser.id);
     } catch (error: any) {
       console.error("Error saving discharge:", error);
@@ -1872,7 +1874,7 @@ export default function UsersPage() {
                           </TooltipTrigger>
                           <TooltipContent>Crear</TooltipContent>
                         </Tooltip>
-                        <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuContent align="end" className="w-48" style={{ maxHeight: 'none' }}>
                           <DropdownMenuLabel className="text-xs text-muted-foreground">Clínico</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => { openClinicalHistory(); setCreateSessionTrigger(t => t + 1); }}>
                             <Stethoscope className="h-4 w-4 mr-2 text-primary" />Sesión clínica
@@ -2034,6 +2036,11 @@ export default function UsersPage() {
                             createOdontogramTrigger={createOdontogramTrigger}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}
+                            onEditAppointment={(appt) => {
+                              setEditingAppointmentForPlan(appt);
+                              loadApptData();
+                              setIsAppointmentDialogOpen(true);
+                            }}
                             onSessionCreated={async (sesionId, stepId) => {
                               if (stepId) {
                                 try {
@@ -2062,6 +2069,7 @@ export default function UsersPage() {
                               setActiveTab('clinical')
                               setActiveClinicalSubTab('clinical-history')
                             }}
+                            onContact={() => setIsWhatsAppDialogOpen(true)}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
@@ -2296,38 +2304,26 @@ export default function UsersPage() {
                 {t('ClinicHistoryPage.discharge.optionsLabel')}
               </Label>
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 1), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option1Month')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 3), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option3Months')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 6), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option6Months')}
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => setDischargeDate(format(addMonths(new Date(), 12), 'yyyy-MM-dd'))}
-                >
-                  {t('ClinicHistoryPage.discharge.option1Year')}
-                </Button>
+                {([1, 3, 6, 12] as const).map((months) => (
+                  <Button
+                    key={months}
+                    variant={dischargePreset === months ? 'default' : 'secondary'}
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => {
+                      setDischargeDate(format(addMonths(new Date(), months), 'yyyy-MM-dd'));
+                      setDischargePreset(months);
+                    }}
+                  >
+                    {months === 1
+                      ? t('ClinicHistoryPage.discharge.option1Month')
+                      : months === 3
+                      ? t('ClinicHistoryPage.discharge.option3Months')
+                      : months === 6
+                      ? t('ClinicHistoryPage.discharge.option6Months')
+                      : t('ClinicHistoryPage.discharge.option1Year')}
+                  </Button>
+                ))}
               </div>
             </div>
 
@@ -2337,7 +2333,7 @@ export default function UsersPage() {
               </Label>
               <DatePickerInput
                 value={dischargeDate}
-                onChange={(value) => setDischargeDate(value)}
+                onChange={(value) => { setDischargeDate(value); setDischargePreset(null); }}
                 placeholder={t('ClinicHistoryPage.discharge.datePlaceholder')}
                 disabledDays={(date: Date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
               />
@@ -2357,6 +2353,7 @@ export default function UsersPage() {
               onClick={() => {
                 setIsDischargeDialogOpen(false);
                 setDischargeDate('');
+                setDischargePreset(null);
               }}
             >
               {t('ClinicHistoryPage.discharge.cancelButton')}
