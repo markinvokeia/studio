@@ -113,7 +113,7 @@ async function getQuotes(t: (key: string) => string): Promise<Quote[]> {
             id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
             doc_no: apiQuote.doc_no || t('defaults.notAvailable'),
             user_id: apiQuote.user_id || t('defaults.notAvailable'),
-            total: apiQuote.total || 0,
+            total: Number(apiQuote.total_presupuesto ?? apiQuote.total ?? 0),
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
